@@ -2,7 +2,6 @@
 <sdf version="1.5">
   <world name="wamv_world">
     <include> <uri>coast_waves</uri> </include>
-    <include> <uri>wamv</uri> </include>
     <include> <uri>seabed</uri> </include>
 
     <physics name="1ms" type="ode">
@@ -22,7 +21,6 @@
           <density>1</density>
         </density_change>
       </graded_buoyancy>
-      <enable>wamv</enable>
     </plugin>
 
     <!-- Sensors -->
