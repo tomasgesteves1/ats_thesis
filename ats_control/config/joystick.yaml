@@ -1,0 +1,18 @@
+teleop_twist_joy_node:
+  ros__parameters:
+    axis_linear:
+      x: 1 # Stick esquerdo cima/baixo
+    scale_linear:
+      x: 2.0
+    scale_linear_turbo:
+      x: 5.0
+
+    axis_angular:
+      yaw: 3 # Stick direito esquerda/direita (ou 0 para stick esquerdo esq/dir)
+    scale_angular:
+      yaw: 1.0
+    scale_angular_turbo:
+      yaw: 2.0
+
+    enable_button: 4  # L1 no PS4/PS5 (Deadman switch)
+    enable_turbo_button: 5  # R1 no PS4/PS5 (Turbo switch)

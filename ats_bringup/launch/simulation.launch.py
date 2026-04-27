@@ -68,18 +68,18 @@ def generate_launch_description():
         output='screen'
     )
 
-    # 6. A tua Ponte de Comunicação (Mantida intacta)
+    # 6. A tua Ponte de Comunicação (Atualizada para os tópicos do VRX)
     bridge = Node(
         package='ros_gz_bridge',
         executable='parameter_bridge',
         arguments=[
-            '/model/wamv/joint/left_engine_propeller_joint/cmd_thrust@std_msgs/msg/Float64]gz.msgs.Double',
-            '/model/wamv/joint/right_engine_propeller_joint/cmd_thrust@std_msgs/msg/Float64]gz.msgs.Double',
+            '/wamv/thrusters/left/thrust@std_msgs/msg/Float64]gz.msgs.Double',
+            '/wamv/thrusters/right/thrust@std_msgs/msg/Float64]gz.msgs.Double',
+            '/wamv/thrusters/left/pos@std_msgs/msg/Float64]gz.msgs.Double',
+            '/wamv/thrusters/right/pos@std_msgs/msg/Float64]gz.msgs.Double',
             '/model/wamv/odometry@nav_msgs/msg/Odometry[gz.msgs.Odometry',
         ],
         remappings=[
-            ('/model/wamv/joint/left_engine_propeller_joint/cmd_thrust', '/wamv/thrusters/left/thrust'),
-            ('/model/wamv/joint/right_engine_propeller_joint/cmd_thrust', '/wamv/thrusters/right/thrust'),
             ('/model/wamv/odometry', '/wamv/ground_truth/odometry'),
         ],
         output='screen'
