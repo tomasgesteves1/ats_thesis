@@ -1,0 +1,18 @@
+<?xml version="1.0"?>
+<package format="3">
+  <name>micro_xrce_vendor</name>
+  <version>3.0.1</version>
+  <description>Wrapper around the Micro-XRCE-DDS-Agent</description>
+  <maintainer email="marcelo.jacinto@tecnico.ulisboa.pt">Marcelo Jacinto</maintainer>
+  <license>Apache-2.0 license</license>
+
+  <url type="bugtracker">https://github.com/eProsima/Micro-XRCE-DDS-Agent/issues</url>
+  <url type="repository">https://github.com/eProsima/Micro-XRCE-DDS-Agent</url>
+  <url type="website">https://github.com/eProsima/Micro-XRCE-DDS-Agent</url>
+
+  <buildtool_depend>ament_cmake</buildtool_depend>
+
+  <export>
+    <build_type>ament_cmake</build_type>
+  </export>
+</package>
