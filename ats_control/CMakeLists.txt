@@ -7,13 +7,22 @@ find_package(rclcpp REQUIRED)
 find_package(geometry_msgs REQUIRED)
 find_package(sensor_msgs REQUIRED)
 find_package(std_msgs REQUIRED)
+find_package(nav_msgs REQUIRED)
+find_package(px4_msgs REQUIRED)
 
-# add executable
+# add executable usv_controller
 add_executable(usv_controller src/usv_controller.cpp)
 target_include_directories(usv_controller PUBLIC
   $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
   $<INSTALL_INTERFACE:include>)
 ament_target_dependencies(usv_controller rclcpp geometry_msgs sensor_msgs std_msgs)
+
+# add executable drone_tracker
+add_executable(drone_tracker src/drone_tracker.cpp)
+target_include_directories(drone_tracker PUBLIC
+  $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
+  $<INSTALL_INTERFACE:include>)
+ament_target_dependencies(drone_tracker rclcpp nav_msgs px4_msgs std_msgs)
 
 # install
 install(DIRECTORY launch config
@@ -23,6 +32,7 @@ install(DIRECTORY launch config
 # O DESTINATION correto é lib/${PROJECT_NAME}
 install(TARGETS
   usv_controller
+  drone_tracker
   DESTINATION lib/${PROJECT_NAME}
 )
 
