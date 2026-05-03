@@ -2,7 +2,7 @@ import os
 from ament_index_python.packages import get_package_share_directory
 from launch import LaunchDescription
 from launch.actions import ExecuteProcess, SetEnvironmentVariable, IncludeLaunchDescription
-from launch.launch_description_sources import PythonLaunchDescriptionSource
+from launch.launch_description_sources import PythonLaunchDescriptionSource, AnyLaunchDescriptionSource
 from launch_ros.actions import Node
 from launch.substitutions import Command
 
@@ -91,10 +91,18 @@ def generate_launch_description():
         output='screen'
     )
 
+    # 7. Foxglove Bridge para visualização
+    foxglove_bridge = IncludeLaunchDescription(
+        AnyLaunchDescriptionSource(
+            os.path.join(get_package_share_directory('foxglove_bridge'), 'launch', 'foxglove_bridge_launch.xml')
+        )
+    )
+
     return LaunchDescription([
         set_gz_resource_path,
         gazebo,
         robot_state_publisher,
         spawn_entity,
-        bridge
+        bridge,
+        foxglove_bridge
     ])
