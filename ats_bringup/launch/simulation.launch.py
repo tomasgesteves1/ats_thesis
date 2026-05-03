@@ -14,6 +14,10 @@ def generate_launch_description():
     pkg_vrx_gazebo = get_package_share_directory('vrx_gazebo')
     pkg_wamv_description = get_package_share_directory('wamv_description')
     pkg_wamv_gazebo = get_package_share_directory('wamv_gazebo')
+    
+    # Adicionar o caminho dos modelos do PX4 para o Gazebo conseguir fazer o spawn do drone
+    px4_dir = os.path.expanduser('~/PX4-Autopilot')
+    px4_models_dir = os.path.join(px4_dir, 'Tools', 'simulation', 'gz', 'models')
 
     world_path = os.path.join(pkg_ats_gazebo, 'worlds', 'wamv_world.sdf')
     models_path = os.path.join(pkg_ats_gazebo, 'models')
@@ -25,7 +29,8 @@ def generate_launch_description():
         models_path,
         os.path.join(pkg_vrx_gazebo, '..'),
         os.path.join(pkg_wamv_description, '..'),
-        os.path.join(pkg_wamv_gazebo, '..')
+        os.path.join(pkg_wamv_gazebo, '..'),
+        px4_models_dir
     ])
 
     # 2. Configurar o Gazebo
@@ -73,6 +78,7 @@ def generate_launch_description():
         package='ros_gz_bridge',
         executable='parameter_bridge',
         arguments=[
+            '/clock@rosgraph_msgs/msg/Clock[gz.msgs.Clock',
             '/wamv/thrusters/left/thrust@std_msgs/msg/Float64]gz.msgs.Double',
             '/wamv/thrusters/right/thrust@std_msgs/msg/Float64]gz.msgs.Double',
             '/wamv/thrusters/left/pos@std_msgs/msg/Float64]gz.msgs.Double',
