@@ -26,10 +26,18 @@ public:
 		boat_odom_sub_ = this->create_subscription<nav_msgs::msg::Odometry>(
 			"/wamv/ground_truth/odometry", 10, std::bind(&DroneTracker::boat_odom_callback, this, std::placeholders::_1));
 
+		this->declare_parameter<int>("target_system", 2);
+		this->declare_parameter<double>("follow_height", 5.0);
+		this->declare_parameter<double>("wait_time_s", 5.0);
+
+		target_system_ = this->get_parameter("target_system").as_int();
+		follow_height_ = this->get_parameter("follow_height").as_double();
+		wait_time_s_ = this->get_parameter("wait_time_s").as_double();
+
 		// Timer at 20 Hz (Offboard mode requires at least 2Hz, 20Hz is recommended)
 		timer_ = this->create_wall_timer(50ms, std::bind(&DroneTracker::timer_callback, this));
 
-		RCLCPP_INFO(this->get_logger(), "Drone Tracker Node started. Waiting 5 seconds before taking off...");
+		RCLCPP_INFO(this->get_logger(), "Drone Tracker Node started. Waiting %f seconds before taking off...", wait_time_s_);
 	}
 
 private:
@@ -40,8 +48,9 @@ private:
 	}
 
 	void timer_callback() {
-		if (offboard_setpoint_counter_ == 100) {
-			// After 5 seconds (100 * 50ms), send commands to arm and switch to offboard
+		uint64_t wait_ticks = static_cast<uint64_t>(wait_time_s_ * 20.0);
+		if (offboard_setpoint_counter_ == wait_ticks) {
+			// After wait_time_s, send commands to arm and switch to offboard
 			this->publish_vehicle_command(px4_msgs::msg::VehicleCommand::VEHICLE_CMD_DO_SET_MODE, 1, 6);
 			this->arm();
 			RCLCPP_INFO(this->get_logger(), "Armed and Switched to Offboard Mode!");
@@ -51,7 +60,7 @@ private:
 		publish_offboard_control_mode();
 		publish_trajectory_setpoint();
 
-		if (offboard_setpoint_counter_ < 101) {
+		if (offboard_setpoint_counter_ <= wait_ticks) {
 			offboard_setpoint_counter_++;
 		}
 	}
@@ -73,10 +82,10 @@ private:
 
 	void publish_trajectory_setpoint() {
 		px4_msgs::msg::TrajectorySetpoint msg{};
-		// NED frame: Z is down. So -5.0 means 5 meters above the boat.
+		// NED frame: Z is down. So -follow_height_ means follow_height_ meters above the boat.
 		// Note: The boat Odometry is in ENU. Gazebo world is ENU. PX4 expects NED in setpoints.
 		// ENU to NED: X_ned = Y_enu, Y_ned = X_enu, Z_ned = -Z_enu
-		msg.position = { (float)boat_y_, (float)boat_x_, -5.0f };
+		msg.position = { (float)boat_y_, (float)boat_x_, -(float)follow_height_ };
 		msg.velocity = {NAN, NAN, NAN};
 		msg.acceleration = {NAN, NAN, NAN};
 		msg.jerk = {NAN, NAN, NAN};
@@ -91,7 +100,7 @@ private:
 		msg.param1 = param1;
 		msg.param2 = param2;
 		msg.command = command;
-		msg.target_system = 2; // PX4 is launched with -i 1, so MAV_SYS_ID = 2
+		msg.target_system = target_system_; // Use ROS parameter
 		msg.target_component = 1;
 		msg.source_system = 255; // Offboard computer
 		msg.source_component = 1;
@@ -110,6 +119,10 @@ private:
 	double boat_x_{0.0};
 	double boat_y_{0.0};
 	double boat_z_{0.0};
+
+	int target_system_{2};
+	double follow_height_{5.0};
+	double wait_time_s_{5.0};
 };
 
 int main(int argc, char* argv[]) {

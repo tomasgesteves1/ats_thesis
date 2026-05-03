@@ -16,7 +16,7 @@ def generate_launch_description():
     pkg_wamv_gazebo = get_package_share_directory('wamv_gazebo')
     
     # Adicionar o caminho dos modelos do PX4 para o Gazebo conseguir fazer o spawn do drone
-    px4_dir = os.path.expanduser('~/PX4-Autopilot')
+    px4_dir = os.environ.get('PX4_DIR', os.path.expanduser('~/PX4-Autopilot'))
     px4_models_dir = os.path.join(px4_dir, 'Tools', 'simulation', 'gz', 'models')
 
     world_path = os.path.join(pkg_ats_gazebo, 'worlds', 'wamv_world.sdf')

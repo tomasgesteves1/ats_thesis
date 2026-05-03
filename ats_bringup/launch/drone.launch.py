@@ -1,12 +1,12 @@
 import os
-from ament_index_python.packages import get_package_share_directory
+from ament_index_python.packages import get_package_share_directory, get_package_prefix
 from launch import LaunchDescription
 from launch.actions import ExecuteProcess, SetEnvironmentVariable
 from launch_ros.actions import Node
 
 def generate_launch_description():
     # Caminho base do PX4
-    px4_dir = os.path.expanduser('~/PX4-Autopilot')
+    px4_dir = os.environ.get('PX4_DIR', os.path.expanduser('~/PX4-Autopilot'))
     px4_build_dir = os.path.join(px4_dir, 'build', 'px4_sitl_default')
     px4_models_dir = os.path.join(px4_dir, 'Tools', 'simulation', 'gz', 'models')
 
@@ -38,8 +38,7 @@ def generate_launch_description():
 
     # Micro XRCE-DDS Agent para a bridge entre ROS 2 e PX4
     micro_xrce_agent_path = os.path.join(
-        get_package_share_directory('micro_xrce_vendor').replace('share/micro_xrce_vendor', 'lib/micro_xrce_vendor'), 
-        'MicroXRCEAgent'
+        get_package_prefix('micro_xrce_vendor'), 'lib', 'micro_xrce_vendor', 'MicroXRCEAgent'
     )
     
     micro_ros_agent = ExecuteProcess(
