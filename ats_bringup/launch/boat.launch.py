@@ -67,6 +67,7 @@ def generate_launch_description():
         x_arg,
         y_arg,
         z_arg,
+        has_tether_arg,
         robot_state_publisher,
         spawn_entity,
         bridge

@@ -85,11 +85,21 @@ def generate_tether(num_links, link_length=0.15, radius=0.01, mass=0.05):
     return sdf
 
 if __name__ == "__main__":
-    n = 20 # 3 metros total por defeito
-    if len(sys.argv) > 1:
-        n = int(sys.argv[1])
-    
+    import argparse
+
+    parser = argparse.ArgumentParser(description="Generate a tether SDF model for Gazebo Harmonic.")
+    parser.add_argument("-n", "--num_links", type=int, default=20, help="Number of links in the tether.")
+    parser.add_argument("-l", "--length", type=float, default=0.15, help="Length of each link in meters.")
+    parser.add_argument("-r", "--radius", type=float, default=0.01, help="Radius of the tether links in meters.")
+    parser.add_argument("-m", "--mass", type=float, default=0.05, help="Mass of each link in kg.")
+
+    args = parser.parse_args()
+
     output_path = os.path.join(os.path.dirname(__file__), "tether.sdf")
     with open(output_path, "w") as f:
-        f.write(generate_tether(n))
-    print(f"Tether SDF gerado com {n} links em {output_path}")
+        f.write(generate_tether(args.num_links, args.length, args.radius, args.mass))
+    
+    total_length = args.num_links * args.length
+    total_mass = args.num_links * args.mass
+    print(f"Tether SDF gerado em: {output_path}")
+    print(f"Propriedades: {args.num_links} elos | Comprimento Total: ~{total_length:.2f}m | Massa Total: ~{total_mass:.2f}kg | Raio: {args.radius}m")
