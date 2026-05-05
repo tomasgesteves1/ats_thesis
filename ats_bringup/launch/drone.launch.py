@@ -28,11 +28,10 @@ def generate_launch_description():
     }
 
     # Processo que corre o PX4 Autopilot em modo SITL
-    # A flag "-i 1" define o ID do veiculo (instance 1), útil caso queiras ter barco(0) e drone(1)
     px4_sitl_process = ExecuteProcess(
         cmd=[os.path.join(px4_build_dir, 'bin', 'px4'), '-i', '1'],
         cwd=px4_build_dir,
-        output='screen',
+        output='log', # Mudado de 'screen' para 'log'
         additional_env=px4_env
     )
 
@@ -43,7 +42,7 @@ def generate_launch_description():
     
     micro_ros_agent = ExecuteProcess(
         cmd=[micro_xrce_agent_path, 'udp4', '-p', '8888'],
-        output='screen'
+        output='log' # Mudado de 'screen' para 'log'
     )
 
     return LaunchDescription([
