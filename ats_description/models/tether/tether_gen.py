@@ -1,15 +1,20 @@
 import sys
 import os
 
+"""
+Script para gerar um tether modular para Gazebo Harmonic.
+Cria um cabo flexível composto por múltiplos links cilíndricos ligados por universal joints.
+"""
+
 def generate_tether(num_links, link_length=0.15, radius=0.01, mass=0.05):
-    base_length = 0.02 # Elo de base de 2cm
+    base_length = 0.02 # Pequeno elo para fixação na plataforma
     sdf = f"""<?xml version="1.0" ?>
 <sdf version="1.9">
     <model name="tether">
         <pose>0 0 0 0 0 0</pose>
         <self_collide>false</self_collide>
 
-        <!-- Link de Base (Prende ao Barco) -->
+        <!-- Link de Base para conexão com o barco via âncora -->
         <link name="link_base">
             <pose>0 0 {base_length/2} 0 0 0</pose>
             <inertial>
@@ -25,10 +30,10 @@ def generate_tether(num_links, link_length=0.15, radius=0.01, mass=0.05):
         </link>
 """
     
-    # Gerar Links principais
+    # Gerar a corrente de elos
     for i in range(num_links):
         z_pos = base_length + (i * link_length) + (link_length / 2)
-        # Inércia de um cilindro
+        # Inércia correta do cilindro
         ixx = (1/12) * mass * (3 * radius**2 + link_length**2)
         iyy = ixx
         izz = 0.5 * mass * radius**2
@@ -39,14 +44,11 @@ def generate_tether(num_links, link_length=0.15, radius=0.01, mass=0.05):
             <inertial>
                 <mass>{mass}</mass>
                 <inertia>
-                    <ixx>{ixx}</ixx>
-                    <iyy>{iyy}</iyy>
-                    <izz>{izz}</izz>
+                    <ixx>{ixx}</ixx><iyy>{iyy}</iyy><izz>{izz}</izz>
                 </inertia>
             </inertial>
             <velocity_decay>
-                <linear>0.8</linear>
-                <angular>0.8</angular>
+                <linear>0.8</linear><angular>0.8</angular>
             </velocity_decay>
             <visual name="visual">
                 <geometry><cylinder><radius>{radius}</radius><length>{link_length*0.95}</length></cylinder></geometry>
@@ -57,22 +59,21 @@ def generate_tether(num_links, link_length=0.15, radius=0.01, mass=0.05):
             </collision>
         </link>"""
 
-    # Junta entre Base e Link_0
+    # Juntas Universal (mais estáveis que Ball Joints em correntes)
+    # Primeira junta (Base -> Link 0)
     sdf += f"""
         <joint name="joint_base" type="universal">
-            <parent>link_base</parent>
-            <child>link_0</child>
+            <parent>link_base</parent><child>link_0</child>
             <pose>0 0 {-link_length/2} 0 0 0</pose>
             <axis><xyz>1 0 0</xyz><dynamics><damping>0.1</damping><friction>0.05</friction></dynamics></axis>
             <axis2><xyz>0 1 0</xyz><dynamics><damping>0.1</damping><friction>0.05</friction></dynamics></axis2>
         </joint>"""
 
-    # Gerar o resto das Joints
+    # Juntas subsequentes
     for i in range(num_links - 1):
         sdf += f"""
         <joint name="joint_{i}" type="universal">
-            <parent>link_{i}</parent>
-            <child>link_{i+1}</child>
+            <parent>link_{i}</parent><child>link_{i+1}</child>
             <pose>0 0 {-link_length/2} 0 0 0</pose>
             <axis><xyz>1 0 0</xyz><dynamics><damping>0.1</damping><friction>0.05</friction></dynamics></axis>
             <axis2><xyz>0 1 0</xyz><dynamics><damping>0.1</damping><friction>0.05</friction></dynamics></axis2>
@@ -84,7 +85,7 @@ def generate_tether(num_links, link_length=0.15, radius=0.01, mass=0.05):
     return sdf
 
 if __name__ == "__main__":
-    n = 20 # 3 metros total (20 * 0.15m)
+    n = 20 # 3 metros total por defeito
     if len(sys.argv) > 1:
         n = int(sys.argv[1])
     
