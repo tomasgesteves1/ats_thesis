@@ -4,7 +4,7 @@ project(ats_description)
 find_package(ament_cmake REQUIRED)
 
 # Instala as pastas cruciais para que o launch file as encontre
-install(DIRECTORY urdf config
+install(DIRECTORY urdf config models
   DESTINATION share/${PROJECT_NAME}
 )
 

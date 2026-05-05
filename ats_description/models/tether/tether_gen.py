@@ -1,0 +1,94 @@
+import sys
+import os
+
+def generate_tether(num_links, link_length=0.15, radius=0.01, mass=0.05):
+    base_length = 0.02 # Elo de base de 2cm
+    sdf = f"""<?xml version="1.0" ?>
+<sdf version="1.9">
+    <model name="tether">
+        <pose>0 0 0 0 0 0</pose>
+        <self_collide>false</self_collide>
+
+        <!-- Link de Base (Prende ao Barco) -->
+        <link name="link_base">
+            <pose>0 0 {base_length/2} 0 0 0</pose>
+            <inertial>
+                <mass>0.01</mass>
+                <inertia>
+                    <ixx>0.00001</ixx><iyy>0.00001</iyy><izz>0.00001</izz>
+                </inertia>
+            </inertial>
+            <visual name="visual">
+                <geometry><cylinder><radius>{radius}</radius><length>{base_length}</length></cylinder></geometry>
+                <material><ambient>0.2 0.2 0.2 1</ambient><diffuse>0.1 0.1 0.1 1</diffuse></material>
+            </visual>
+        </link>
+"""
+    
+    # Gerar Links principais
+    for i in range(num_links):
+        z_pos = base_length + (i * link_length) + (link_length / 2)
+        # Inércia de um cilindro
+        ixx = (1/12) * mass * (3 * radius**2 + link_length**2)
+        iyy = ixx
+        izz = 0.5 * mass * radius**2
+
+        sdf += f"""
+        <link name="link_{i}">
+            <pose>0 0 {z_pos} 0 0 0</pose>
+            <inertial>
+                <mass>{mass}</mass>
+                <inertia>
+                    <ixx>{ixx}</ixx>
+                    <iyy>{iyy}</iyy>
+                    <izz>{izz}</izz>
+                </inertia>
+            </inertial>
+            <velocity_decay>
+                <linear>0.8</linear>
+                <angular>0.8</angular>
+            </velocity_decay>
+            <visual name="visual">
+                <geometry><cylinder><radius>{radius}</radius><length>{link_length*0.95}</length></cylinder></geometry>
+                <material><ambient>0.2 0.2 0.2 1</ambient><diffuse>0.1 0.1 0.1 1</diffuse></material>
+            </visual>
+            <collision name="collision">
+                <geometry><cylinder><radius>{radius}</radius><length>{link_length*0.95}</length></cylinder></geometry>
+            </collision>
+        </link>"""
+
+    # Junta entre Base e Link_0
+    sdf += f"""
+        <joint name="joint_base" type="universal">
+            <parent>link_base</parent>
+            <child>link_0</child>
+            <pose>0 0 {-link_length/2} 0 0 0</pose>
+            <axis><xyz>1 0 0</xyz><dynamics><damping>0.1</damping><friction>0.05</friction></dynamics></axis>
+            <axis2><xyz>0 1 0</xyz><dynamics><damping>0.1</damping><friction>0.05</friction></dynamics></axis2>
+        </joint>"""
+
+    # Gerar o resto das Joints
+    for i in range(num_links - 1):
+        sdf += f"""
+        <joint name="joint_{i}" type="universal">
+            <parent>link_{i}</parent>
+            <child>link_{i+1}</child>
+            <pose>0 0 {-link_length/2} 0 0 0</pose>
+            <axis><xyz>1 0 0</xyz><dynamics><damping>0.1</damping><friction>0.05</friction></dynamics></axis>
+            <axis2><xyz>0 1 0</xyz><dynamics><damping>0.1</damping><friction>0.05</friction></dynamics></axis2>
+        </joint>"""
+
+    sdf += """
+    </model>
+</sdf>"""
+    return sdf
+
+if __name__ == "__main__":
+    n = 20 # 3 metros total (20 * 0.15m)
+    if len(sys.argv) > 1:
+        n = int(sys.argv[1])
+    
+    output_path = os.path.join(os.path.dirname(__file__), "tether.sdf")
+    with open(output_path, "w") as f:
+        f.write(generate_tether(n))
+    print(f"Tether SDF gerado com {n} links em {output_path}")
