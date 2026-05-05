@@ -9,14 +9,18 @@ def generate_launch_description():
     # Pacotes
     pkg_ats_description = get_package_share_directory('ats_description')
     
-    # Argumentos para posição de spawn
+    # Argumentos
     x_arg = DeclareLaunchArgument('x', default_value='0.0')
     y_arg = DeclareLaunchArgument('y', default_value='0.0')
     z_arg = DeclareLaunchArgument('z', default_value='1.0')
+    has_tether_arg = DeclareLaunchArgument('has_tether', default_value='false')
     
     # XACRO -> URDF
     xacro_file = os.path.join(pkg_ats_description, 'urdf', 'wamv_target.urdf.xacro')
-    robot_description = Command(['xacro ', xacro_file])
+    robot_description = Command([
+        'xacro ', xacro_file,
+        ' has_tether:=', LaunchConfiguration('has_tether')
+    ])
 
     # Robot State Publisher
     robot_state_publisher = Node(

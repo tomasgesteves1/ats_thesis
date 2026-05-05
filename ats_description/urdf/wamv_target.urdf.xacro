@@ -4,7 +4,7 @@
 <!-- |    EDITING THIS FILE BY HAND IS NOT RECOMMENDED                                 | -->
 <!-- =================================================================================== -->
 <!-- Basic WAM-V with gazebo plugins for dynamics -->
-<robot name="WAM-V">
+<robot name="WAM-V" xmlns:xacro="http://ros.org/wiki/xacro">
   <link name="wamv/left_battery_link">
     <visual>
       <origin rpy="0 0 0" xyz="0 -1.03 -.45"/>
@@ -698,5 +698,29 @@
   <gazebo reference="wamv/tether_anchor_joint">
     <preserveFixedJoint>true</preserveFixedJoint>
   </gazebo>
+
+  <!-- Ativar colisões internas para que o tether (e outras partes móveis) colidam com o barco -->
+  <gazebo>
+    <self_collide>true</self_collide>
+  </gazebo>
+
+  <!-- Inclusão Condicional do Tether como Modelo Aninhado -->
+  <xacro:arg name="has_tether" default="false"/>
+  <xacro:if value="$(arg has_tether)">
+    <gazebo>
+      <include>
+        <uri>model://tether</uri>
+        <!-- A pose do tether é relativa à âncora, logo 0 0 0 -->
+        <pose>-0.70 0.0 1.3 0 0 0</pose>
+      </include>
+      <!-- Usar uma junta universal ou ball para o ponto de fixação para garantir flexibilidade -->
+      <joint name="tether_to_boat_joint" type="universal">
+        <parent>wamv/tether_anchor</parent>
+        <child>tether::link_base</child>
+        <axis><xyz>1 0 0</xyz><dynamics><damping>0.1</damping></dynamics></axis>
+        <axis2><xyz>0 1 0</xyz><dynamics><damping>0.1</damping></dynamics></axis2>
+      </joint>
+    </gazebo>
+  </xacro:if>
 
 </robot>

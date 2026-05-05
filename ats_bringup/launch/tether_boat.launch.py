@@ -14,22 +14,15 @@ def generate_launch_description():
         )
     )
 
-    # 2. Barco (WAM-V)
+    # 2. Barco (WAM-V) com Tether integrado e self_collide ativo
     boat = IncludeLaunchDescription(
         PythonLaunchDescriptionSource(
             os.path.join(pkg_ats_bringup, 'launch', 'boat.launch.py')
-        )
-    )
-
-    # 3. Tether (Cabo + Âncora + Bridge)
-    tether = IncludeLaunchDescription(
-        PythonLaunchDescriptionSource(
-            os.path.join(pkg_ats_bringup, 'launch', 'tether.launch.py')
-        )
+        ),
+        launch_arguments={'has_tether': 'true'}.items()
     )
 
     return LaunchDescription([
         world,
-        boat,
-        tether
+        boat
     ])

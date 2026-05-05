@@ -7,6 +7,7 @@ from launch.substitutions import LaunchConfiguration, PathJoinSubstitution
 
 def generate_launch_description():
     # Pacotes
+    pkg_ats_description = get_package_share_directory('ats_description')
     pkg_ats_gazebo = get_package_share_directory('ats_gazebo')
     pkg_ros_gz_sim = get_package_share_directory('ros_gz_sim')
     pkg_vrx_gazebo = get_package_share_directory('vrx_gazebo')
@@ -19,6 +20,7 @@ def generate_launch_description():
 
     # Configuração de Recursos do Gazebo
     gz_resource_path = os.pathsep.join([
+        os.path.join(pkg_ats_description, 'models'),
         os.path.join(pkg_ats_gazebo, 'models'),
         os.path.join(pkg_vrx_gazebo, '..'),
         os.path.join(pkg_wamv_description, '..'),
