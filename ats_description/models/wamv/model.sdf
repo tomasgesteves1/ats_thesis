@@ -256,7 +256,7 @@
         <geometry>
           <mesh>
             <scale>1 1 1</scale>
-            <uri>model://wamv_description/models/WAM-V-Base/mesh/WAM-V-Base.dae</uri>
+            <uri>model://wamv/meshes/WAM-V-Base.dae</uri>
           </mesh>
         </geometry>
         <material>
@@ -264,10 +264,10 @@
           <specular>1 1 1 1</specular>
           <pbr>
             <metal>
-              <albedo_map>model://wamv_description/models/WAM-V-Base/mesh/WAM-V_Albedo.png</albedo_map>
-              <normal_map>model://wamv_description/models/WAM-V-Base/mesh/WAM-V_Normal.png</normal_map>
-              <roughness_map>model://wamv_description/models/WAM-V-Base/mesh/WAM-V_Roughness.png</roughness_map>
-              <metalness_map>model://wamv_description/models/WAM-V-Base/mesh/WAM-V_Metalness.png</metalness_map>
+              <albedo_map>model://wamv/meshes/WAM-V_Albedo.png</albedo_map>
+              <normal_map>model://wamv/meshes/WAM-V_Normal.png</normal_map>
+              <roughness_map>model://wamv/meshes/WAM-V_Roughness.png</roughness_map>
+              <metalness_map>model://wamv/meshes/WAM-V_Metalness.png</metalness_map>
             </metal>
           </pbr>
         </material>
@@ -277,7 +277,7 @@
         <geometry>
           <mesh>
             <scale>1 1 1</scale>
-            <uri>model://vrx_gazebo/models/battery/mesh/battery.dae</uri>
+            <uri>model://wamv/meshes/battery.dae</uri>
           </mesh>
         </geometry>
         <material>
@@ -285,10 +285,10 @@
           <specular>1 1 1 1</specular>
           <pbr>
             <metal>
-              <albedo_map>model://vrx_gazebo/models/battery/mesh/battery_Albedo.png</albedo_map>
-              <normal_map>model://vrx_gazebo/models/battery/mesh/battery_Normal.png</normal_map>
-              <roughness_map>model://vrx_gazebo/models/battery/mesh/battery_Roughness.png</roughness_map>
-              <metalness_map>model://vrx_gazebo/models/battery/mesh/battery_Metalness.png</metalness_map>
+              <albedo_map>model://wamv/meshes/battery_Albedo.png</albedo_map>
+              <normal_map>model://wamv/meshes/battery_Normal.png</normal_map>
+              <roughness_map>model://wamv/meshes/battery_Roughness.png</roughness_map>
+              <metalness_map>model://wamv/meshes/battery_Metalness.png</metalness_map>
             </metal>
           </pbr>
         </material>
@@ -298,7 +298,7 @@
         <geometry>
           <mesh>
             <scale>1 1 1</scale>
-            <uri>model://vrx_gazebo/models/battery/mesh/battery.dae</uri>
+            <uri>model://wamv/meshes/battery.dae</uri>
           </mesh>
         </geometry>
         <material>
@@ -306,10 +306,10 @@
           <specular>1 1 1 1</specular>
           <pbr>
             <metal>
-              <albedo_map>model://vrx_gazebo/models/battery/mesh/battery_Albedo.png</albedo_map>
-              <normal_map>model://vrx_gazebo/models/battery/mesh/battery_Normal.png</normal_map>
-              <roughness_map>model://vrx_gazebo/models/battery/mesh/battery_Roughness.png</roughness_map>
-              <metalness_map>model://vrx_gazebo/models/battery/mesh/battery_Metalness.png</metalness_map>
+              <albedo_map>model://wamv/meshes/battery_Albedo.png</albedo_map>
+              <normal_map>model://wamv/meshes/battery_Normal.png</normal_map>
+              <roughness_map>model://wamv/meshes/battery_Roughness.png</roughness_map>
+              <metalness_map>model://wamv/meshes/battery_Metalness.png</metalness_map>
             </metal>
           </pbr>
         </material>
@@ -384,7 +384,7 @@
         <geometry>
           <mesh>
             <scale>1 1 1</scale>
-            <uri>model://wamv_gazebo/models/gps/mesh/gps.dae</uri>
+            <uri>model://wamv/meshes/gps.dae</uri>
           </mesh>
         </geometry>
       </visual>
@@ -580,7 +580,7 @@
         <geometry>
           <mesh>
             <scale>1 1 1</scale>
-            <uri>model://wamv_description/models/engine/mesh/engine.dae</uri>
+            <uri>model://wamv/meshes/engine.dae</uri>
           </mesh>
         </geometry>
       </visual>
@@ -633,7 +633,7 @@
         <geometry>
           <mesh>
             <scale>1 1 1</scale>
-            <uri>model://wamv_description/models/propeller/mesh/propeller.dae</uri>
+            <uri>model://wamv/meshes/propeller.dae</uri>
           </mesh>
         </geometry>
       </visual>
@@ -693,7 +693,7 @@
         <geometry>
           <mesh>
             <scale>1 1 1</scale>
-            <uri>model://wamv_description/models/engine/mesh/engine.dae</uri>
+            <uri>model://wamv/meshes/engine.dae</uri>
           </mesh>
         </geometry>
       </visual>
@@ -746,7 +746,7 @@
         <geometry>
           <mesh>
             <scale>1 1 1</scale>
-            <uri>model://wamv_description/models/propeller/mesh/propeller.dae</uri>
+            <uri>model://wamv/meshes/propeller.dae</uri>
           </mesh>
         </geometry>
       </visual>
