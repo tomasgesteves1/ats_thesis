@@ -10,12 +10,12 @@ find_package(std_msgs REQUIRED)
 find_package(nav_msgs REQUIRED)
 find_package(px4_msgs REQUIRED)
 
-# add executable usv_controller
-add_executable(usv_controller src/usv_controller.cpp)
-target_include_directories(usv_controller PUBLIC
+# add executable boat_controller
+add_executable(boat_controller src/boat_controller.cpp)
+target_include_directories(boat_controller PUBLIC
   $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
   $<INSTALL_INTERFACE:include>)
-ament_target_dependencies(usv_controller rclcpp geometry_msgs sensor_msgs std_msgs)
+ament_target_dependencies(boat_controller rclcpp geometry_msgs sensor_msgs std_msgs)
 
 # add executable drone_tracker
 add_executable(drone_tracker src/drone_tracker.cpp)
@@ -31,7 +31,7 @@ install(DIRECTORY launch config
 
 # O DESTINATION correto é lib/${PROJECT_NAME}
 install(TARGETS
-  usv_controller
+  boat_controller
   drone_tracker
   DESTINATION lib/${PROJECT_NAME}
 )
