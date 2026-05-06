@@ -1,0 +1,23 @@
+<?xml version="1.0" ?>
+<sdf version="1.9">
+  <model name="marsupial">
+    <pose>0 0 0 0 0 0</pose>
+
+    <!-- [Módulo 1] O Barco (WAM-V) -->
+    <!-- Mantido como include normal para evitar colisões de nomes -->
+    <include>
+      <uri>model://wamv</uri>
+      <name>barco</name>
+      <pose>0 0 0 0 0 0</pose>
+    </include>
+
+    <!-- [Módulo 2] O Drone (x500 do PX4) -->
+    <!-- Usamos merge='true' para o PX4 conseguir ver os sensores e motores -->
+    <include merge='true'>
+      <uri>model://x500</uri>
+      <!-- Posicionado no centro da plataforma (x=0.0) -->
+      <pose>0.0 0 1.5 0 0 0</pose>
+    </include>
+
+  </model>
+</sdf>
