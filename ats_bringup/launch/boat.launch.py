@@ -1,41 +1,39 @@
 import os
 from ament_index_python.packages import get_package_share_directory
 from launch import LaunchDescription
-from launch.actions import DeclareLaunchArgument
+from launch.actions import DeclareLaunchArgument, IncludeLaunchDescription, SetEnvironmentVariable
 from launch_ros.actions import Node
-from launch.substitutions import Command, LaunchConfiguration
+from launch.substitutions import LaunchConfiguration
+from launch.launch_description_sources import PythonLaunchDescriptionSource
 
 def generate_launch_description():
     # Pacotes
+    pkg_ats_bringup = get_package_share_directory('ats_bringup')
     pkg_ats_description = get_package_share_directory('ats_description')
     
     # Argumentos
     x_arg = DeclareLaunchArgument('x', default_value='0.0')
     y_arg = DeclareLaunchArgument('y', default_value='0.0')
     z_arg = DeclareLaunchArgument('z', default_value='1.0')
-    has_tether_arg = DeclareLaunchArgument('has_tether', default_value='false')
-    
-    # XACRO -> URDF
-    xacro_file = os.path.join(pkg_ats_description, 'urdf', 'wamv_target.urdf.xacro')
-    robot_description = Command([
-        'xacro ', xacro_file,
-        ' has_tether:=', LaunchConfiguration('has_tether')
-    ])
+    world_arg = DeclareLaunchArgument('world', default_value='wamv_world')
 
-    # Robot State Publisher
-    robot_state_publisher = Node(
-        package='robot_state_publisher',
-        executable='robot_state_publisher',
-        output='screen',
-        parameters=[{'robot_description': robot_description}]
+    # Caminho para o modelo SDF local
+    boat_sdf_path = os.path.join(pkg_ats_description, 'models', 'wamv', 'model.sdf')
+
+    # 1. Incluir o Mundo
+    world_launch = IncludeLaunchDescription(
+        PythonLaunchDescriptionSource(
+            os.path.join(pkg_ats_bringup, 'launch', 'world.launch.py')
+        ),
+        launch_arguments={'world': LaunchConfiguration('world')}.items()
     )
 
-    # Spawn do WAM-V
+    # 2. Spawn do WAM-V usando o SDF
     spawn_entity = Node(
         package='ros_gz_sim',
         executable='create',
         arguments=[
-            '-string', robot_description,
+            '-file', boat_sdf_path,
             '-name', 'wamv',
             '-allow_renaming', 'false',
             '-x', LaunchConfiguration('x'),
@@ -45,7 +43,8 @@ def generate_launch_description():
         output='screen'
     )
 
-    # Bridge de tópicos
+    # 3. Bridge de tópicos
+    # Nota: Quando spawnado como 'wamv' no topo, o odometry volta a ser /model/wamv/odometry
     bridge = Node(
         package='ros_gz_bridge',
         executable='parameter_bridge',
@@ -67,8 +66,8 @@ def generate_launch_description():
         x_arg,
         y_arg,
         z_arg,
-        has_tether_arg,
-        robot_state_publisher,
+        world_arg,
+        world_launch,
         spawn_entity,
         bridge
     ])
