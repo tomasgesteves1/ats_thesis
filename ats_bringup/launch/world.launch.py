@@ -3,7 +3,7 @@ from ament_index_python.packages import get_package_share_directory
 from launch import LaunchDescription
 from launch.actions import DeclareLaunchArgument, IncludeLaunchDescription, SetEnvironmentVariable
 from launch.launch_description_sources import PythonLaunchDescriptionSource
-from launch.substitutions import LaunchConfiguration, PathJoinSubstitution
+from launch.substitutions import LaunchConfiguration, PathJoinSubstitution, PythonExpression
 
 def generate_launch_description():
     # Pacotes
@@ -30,14 +30,30 @@ def generate_launch_description():
         description='Nome do mundo (sem .sdf)'
     )
 
+    paused_arg = DeclareLaunchArgument(
+        'paused',
+        default_value='false',
+        description='Iniciar simulação pausada'
+    )
+
     # Gazebo Sim
+    gz_args_base = [
+        '-v 1 ',
+        PathJoinSubstitution([pkg_ats_gazebo, 'worlds', LaunchConfiguration('world')]),
+        '.sdf'
+    ]
+
+    # Condicionalmente adicionar -r se NÃO estiver pausado
+    # Infelizmente o launch do ROS2 com listas é chato. Vamos usar uma PythonExpression.
+    
     gz_sim = IncludeLaunchDescription(
         PythonLaunchDescriptionSource(
             os.path.join(pkg_ros_gz_sim, 'launch', 'gz_sim.launch.py')
         ),
         launch_arguments={
             'gz_args': [
-                '-r -v 1 ',
+                PythonExpression(["'-r ' if '", LaunchConfiguration('paused'), "' == 'false' else ''"]),
+                '-v 1 ',
                 PathJoinSubstitution([pkg_ats_gazebo, 'worlds', LaunchConfiguration('world')]),
                 '.sdf'
             ],
@@ -48,5 +64,6 @@ def generate_launch_description():
     return LaunchDescription([
         SetEnvironmentVariable('GZ_SIM_RESOURCE_PATH', gz_resource_path),
         world_arg,
+        paused_arg,
         gz_sim
     ])

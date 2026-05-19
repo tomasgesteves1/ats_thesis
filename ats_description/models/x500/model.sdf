@@ -68,5 +68,11 @@
       <rotorVelocitySlowdownSim>10</rotorVelocitySlowdownSim>
       <motorType>velocity</motorType>
     </plugin>
+    <plugin name='gz::sim::systems::DetachableJoint' filename='gz-sim-detachable-joint-system'>
+      <parent_link>base_link</parent_link>
+      <child_model>tether</child_model>
+      <child_link>link_9</child_link>
+      <suppress_child_warning>true</suppress_child_warning>
+    </plugin>
   </model>
 </sdf>

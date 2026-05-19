@@ -1,0 +1,296 @@
+<?xml version="1.0" ?>
+<sdf version="1.9">
+    <model name="tether">
+        <self_collide>true</self_collide>
+
+        <link name="link_0">
+            <pose>0.013953488372093023 0.0 0.006104651162790698 0 1.1583858851975093 0.0</pose>
+            <inertial>
+                <mass>0.02</mass>
+                <inertia><ixx>1e-1</ixx><iyy>1e-1</iyy><izz>1e-2</izz></inertia>
+            </inertial>
+            <visual name="visual_cylinder">
+                <geometry><cylinder><radius>0.005</radius><length>0.030460899761464502</length></cylinder></geometry>
+                <material><ambient>0.2 0.2 0.2 1</ambient><diffuse>0.1 0.1 0.1 1</diffuse></material>
+            </visual>
+            <collision name="collision">
+                <geometry><cylinder><radius>0.005</radius><length>0.030460899761464502</length></cylinder></geometry>
+                <surface>
+                    <contact>
+                        <collide_bitmask>0x01</collide_bitmask>
+                    </contact>
+                </surface>
+            </collision>
+        </link>
+        <link name="link_1">
+            <pose>0.07441860465116279 0.0 0.03255813953488372 0 1.1583858851975093 0.0</pose>
+            <inertial>
+                <mass>0.02</mass>
+                <inertia><ixx>1e-1</ixx><iyy>1e-1</iyy><izz>1e-2</izz></inertia>
+            </inertial>
+            <visual name="visual_cylinder">
+                <geometry><cylinder><radius>0.005</radius><length>0.10153633253821501</length></cylinder></geometry>
+                <material><ambient>0.2 0.2 0.2 1</ambient><diffuse>0.1 0.1 0.1 1</diffuse></material>
+            </visual>
+            <visual name="visual_joint">
+                <pose>0 0 -0.050768166269107504 0 0 0</pose>
+                <geometry><sphere><radius>0.01</radius></sphere></geometry>
+                <material><ambient>1 0 0 1</ambient><diffuse>1 0 0 1</diffuse></material>
+            </visual>
+            <collision name="collision">
+                <geometry><cylinder><radius>0.005</radius><length>0.10153633253821501</length></cylinder></geometry>
+                <surface>
+                    <contact>
+                        <collide_bitmask>0x01</collide_bitmask>
+                    </contact>
+                </surface>
+            </collision>
+        </link>
+        <joint name="joint_0_1" type="ball">
+            <parent>link_0</parent>
+            <child>link_1</child>
+            <pose>0 0 -0.050768166269107504 0 0 0</pose>
+            <axis><xyz>1 0 0</xyz></axis><axis2><xyz>0 1 0</xyz></axis2>
+        </joint>
+        <link name="link_2">
+            <pose>0.16744186046511633 0.0 0.07325581395348837 0 1.1583858851975093 0.0</pose>
+            <inertial>
+                <mass>0.02</mass>
+                <inertia><ixx>1e-1</ixx><iyy>1e-1</iyy><izz>1e-2</izz></inertia>
+            </inertial>
+            <visual name="visual_cylinder">
+                <geometry><cylinder><radius>0.005</radius><length>0.10153633253821501</length></cylinder></geometry>
+                <material><ambient>0.2 0.2 0.2 1</ambient><diffuse>0.1 0.1 0.1 1</diffuse></material>
+            </visual>
+            <visual name="visual_joint">
+                <pose>0 0 -0.050768166269107504 0 0 0</pose>
+                <geometry><sphere><radius>0.01</radius></sphere></geometry>
+                <material><ambient>1 0 0 1</ambient><diffuse>1 0 0 1</diffuse></material>
+            </visual>
+            <collision name="collision">
+                <geometry><cylinder><radius>0.005</radius><length>0.10153633253821501</length></cylinder></geometry>
+                <surface>
+                    <contact>
+                        <collide_bitmask>0x01</collide_bitmask>
+                    </contact>
+                </surface>
+            </collision>
+        </link>
+        <joint name="joint_1_2" type="ball">
+            <parent>link_1</parent>
+            <child>link_2</child>
+            <pose>0 0 -0.050768166269107504 0 0 0</pose>
+            <axis><xyz>1 0 0</xyz></axis><axis2><xyz>0 1 0</xyz></axis2>
+        </joint>
+        <link name="link_3">
+            <pose>0.2604651162790698 0.0 0.11395348837209303 0 1.1583858851975093 0.0</pose>
+            <inertial>
+                <mass>0.02</mass>
+                <inertia><ixx>1e-1</ixx><iyy>1e-1</iyy><izz>1e-2</izz></inertia>
+            </inertial>
+            <visual name="visual_cylinder">
+                <geometry><cylinder><radius>0.005</radius><length>0.10153633253821501</length></cylinder></geometry>
+                <material><ambient>0.2 0.2 0.2 1</ambient><diffuse>0.1 0.1 0.1 1</diffuse></material>
+            </visual>
+            <visual name="visual_joint">
+                <pose>0 0 -0.050768166269107504 0 0 0</pose>
+                <geometry><sphere><radius>0.01</radius></sphere></geometry>
+                <material><ambient>1 0 0 1</ambient><diffuse>1 0 0 1</diffuse></material>
+            </visual>
+            <collision name="collision">
+                <geometry><cylinder><radius>0.005</radius><length>0.10153633253821501</length></cylinder></geometry>
+                <surface>
+                    <contact>
+                        <collide_bitmask>0x01</collide_bitmask>
+                    </contact>
+                </surface>
+            </collision>
+        </link>
+        <joint name="joint_2_3" type="ball">
+            <parent>link_2</parent>
+            <child>link_3</child>
+            <pose>0 0 -0.050768166269107504 0 0 0</pose>
+            <axis><xyz>1 0 0</xyz></axis><axis2><xyz>0 1 0</xyz></axis2>
+        </joint>
+        <link name="link_4">
+            <pose>0.3534883720930233 0.0 0.15465116279069768 0 1.1583858851975093 0.0</pose>
+            <inertial>
+                <mass>0.02</mass>
+                <inertia><ixx>1e-1</ixx><iyy>1e-1</iyy><izz>1e-2</izz></inertia>
+            </inertial>
+            <visual name="visual_cylinder">
+                <geometry><cylinder><radius>0.005</radius><length>0.10153633253821501</length></cylinder></geometry>
+                <material><ambient>0.2 0.2 0.2 1</ambient><diffuse>0.1 0.1 0.1 1</diffuse></material>
+            </visual>
+            <visual name="visual_joint">
+                <pose>0 0 -0.050768166269107504 0 0 0</pose>
+                <geometry><sphere><radius>0.01</radius></sphere></geometry>
+                <material><ambient>1 0 0 1</ambient><diffuse>1 0 0 1</diffuse></material>
+            </visual>
+            <collision name="collision">
+                <geometry><cylinder><radius>0.005</radius><length>0.10153633253821501</length></cylinder></geometry>
+                <surface>
+                    <contact>
+                        <collide_bitmask>0x01</collide_bitmask>
+                    </contact>
+                </surface>
+            </collision>
+        </link>
+        <joint name="joint_3_4" type="ball">
+            <parent>link_3</parent>
+            <child>link_4</child>
+            <pose>0 0 -0.050768166269107504 0 0 0</pose>
+            <axis><xyz>1 0 0</xyz></axis><axis2><xyz>0 1 0</xyz></axis2>
+        </joint>
+        <link name="link_5">
+            <pose>0.44651162790697674 0.0 0.19534883720930232 0 1.1583858851975093 0.0</pose>
+            <inertial>
+                <mass>0.02</mass>
+                <inertia><ixx>1e-1</ixx><iyy>1e-1</iyy><izz>1e-2</izz></inertia>
+            </inertial>
+            <visual name="visual_cylinder">
+                <geometry><cylinder><radius>0.005</radius><length>0.10153633253821501</length></cylinder></geometry>
+                <material><ambient>0.2 0.2 0.2 1</ambient><diffuse>0.1 0.1 0.1 1</diffuse></material>
+            </visual>
+            <visual name="visual_joint">
+                <pose>0 0 -0.050768166269107504 0 0 0</pose>
+                <geometry><sphere><radius>0.01</radius></sphere></geometry>
+                <material><ambient>1 0 0 1</ambient><diffuse>1 0 0 1</diffuse></material>
+            </visual>
+            <collision name="collision">
+                <geometry><cylinder><radius>0.005</radius><length>0.10153633253821501</length></cylinder></geometry>
+                <surface>
+                    <contact>
+                        <collide_bitmask>0x01</collide_bitmask>
+                    </contact>
+                </surface>
+            </collision>
+        </link>
+        <joint name="joint_4_5" type="ball">
+            <parent>link_4</parent>
+            <child>link_5</child>
+            <pose>0 0 -0.050768166269107504 0 0 0</pose>
+            <axis><xyz>1 0 0</xyz></axis><axis2><xyz>0 1 0</xyz></axis2>
+        </joint>
+        <link name="link_6">
+            <pose>0.5395348837209303 0.0 0.236046511627907 0 1.1583858851975093 0.0</pose>
+            <inertial>
+                <mass>0.02</mass>
+                <inertia><ixx>1e-1</ixx><iyy>1e-1</iyy><izz>1e-2</izz></inertia>
+            </inertial>
+            <visual name="visual_cylinder">
+                <geometry><cylinder><radius>0.005</radius><length>0.10153633253821501</length></cylinder></geometry>
+                <material><ambient>0.2 0.2 0.2 1</ambient><diffuse>0.1 0.1 0.1 1</diffuse></material>
+            </visual>
+            <visual name="visual_joint">
+                <pose>0 0 -0.050768166269107504 0 0 0</pose>
+                <geometry><sphere><radius>0.01</radius></sphere></geometry>
+                <material><ambient>1 0 0 1</ambient><diffuse>1 0 0 1</diffuse></material>
+            </visual>
+            <collision name="collision">
+                <geometry><cylinder><radius>0.005</radius><length>0.10153633253821501</length></cylinder></geometry>
+                <surface>
+                    <contact>
+                        <collide_bitmask>0x01</collide_bitmask>
+                    </contact>
+                </surface>
+            </collision>
+        </link>
+        <joint name="joint_5_6" type="ball">
+            <parent>link_5</parent>
+            <child>link_6</child>
+            <pose>0 0 -0.050768166269107504 0 0 0</pose>
+            <axis><xyz>1 0 0</xyz></axis><axis2><xyz>0 1 0</xyz></axis2>
+        </joint>
+        <link name="link_7">
+            <pose>0.6325581395348838 0.0 0.27674418604651163 0 1.1583858851975093 0.0</pose>
+            <inertial>
+                <mass>0.02</mass>
+                <inertia><ixx>1e-1</ixx><iyy>1e-1</iyy><izz>1e-2</izz></inertia>
+            </inertial>
+            <visual name="visual_cylinder">
+                <geometry><cylinder><radius>0.005</radius><length>0.10153633253821501</length></cylinder></geometry>
+                <material><ambient>0.2 0.2 0.2 1</ambient><diffuse>0.1 0.1 0.1 1</diffuse></material>
+            </visual>
+            <visual name="visual_joint">
+                <pose>0 0 -0.050768166269107504 0 0 0</pose>
+                <geometry><sphere><radius>0.01</radius></sphere></geometry>
+                <material><ambient>1 0 0 1</ambient><diffuse>1 0 0 1</diffuse></material>
+            </visual>
+            <collision name="collision">
+                <geometry><cylinder><radius>0.005</radius><length>0.10153633253821501</length></cylinder></geometry>
+                <surface>
+                    <contact>
+                        <collide_bitmask>0x01</collide_bitmask>
+                    </contact>
+                </surface>
+            </collision>
+        </link>
+        <joint name="joint_6_7" type="ball">
+            <parent>link_6</parent>
+            <child>link_7</child>
+            <pose>0 0 -0.050768166269107504 0 0 0</pose>
+            <axis><xyz>1 0 0</xyz></axis><axis2><xyz>0 1 0</xyz></axis2>
+        </joint>
+        <link name="link_8">
+            <pose>0.7255813953488374 0.0 0.3174418604651163 0 1.1583858851975093 0.0</pose>
+            <inertial>
+                <mass>0.02</mass>
+                <inertia><ixx>1e-1</ixx><iyy>1e-1</iyy><izz>1e-2</izz></inertia>
+            </inertial>
+            <visual name="visual_cylinder">
+                <geometry><cylinder><radius>0.005</radius><length>0.10153633253821501</length></cylinder></geometry>
+                <material><ambient>0.2 0.2 0.2 1</ambient><diffuse>0.1 0.1 0.1 1</diffuse></material>
+            </visual>
+            <visual name="visual_joint">
+                <pose>0 0 -0.050768166269107504 0 0 0</pose>
+                <geometry><sphere><radius>0.01</radius></sphere></geometry>
+                <material><ambient>1 0 0 1</ambient><diffuse>1 0 0 1</diffuse></material>
+            </visual>
+            <collision name="collision">
+                <geometry><cylinder><radius>0.005</radius><length>0.10153633253821501</length></cylinder></geometry>
+                <surface>
+                    <contact>
+                        <collide_bitmask>0x01</collide_bitmask>
+                    </contact>
+                </surface>
+            </collision>
+        </link>
+        <joint name="joint_7_8" type="ball">
+            <parent>link_7</parent>
+            <child>link_8</child>
+            <pose>0 0 -0.050768166269107504 0 0 0</pose>
+            <axis><xyz>1 0 0</xyz></axis><axis2><xyz>0 1 0</xyz></axis2>
+        </joint>
+        <link name="link_9">
+            <pose>0.7860465116279072 0.0 0.34389534883720935 0 1.1583858851975093 0.0</pose>
+            <inertial>
+                <mass>0.02</mass>
+                <inertia><ixx>1e-1</ixx><iyy>1e-1</iyy><izz>1e-2</izz></inertia>
+            </inertial>
+            <visual name="visual_cylinder">
+                <geometry><cylinder><radius>0.005</radius><length>0.030460899761464502</length></cylinder></geometry>
+                <material><ambient>0.2 0.2 0.2 1</ambient><diffuse>0.1 0.1 0.1 1</diffuse></material>
+            </visual>
+            <visual name="visual_joint">
+                <pose>0 0 -0.015230449880732251 0 0 0</pose>
+                <geometry><sphere><radius>0.01</radius></sphere></geometry>
+                <material><ambient>1 0 0 1</ambient><diffuse>1 0 0 1</diffuse></material>
+            </visual>
+            <collision name="collision">
+                <geometry><cylinder><radius>0.005</radius><length>0.030460899761464502</length></cylinder></geometry>
+                <surface>
+                    <contact>
+                        <collide_bitmask>0x01</collide_bitmask>
+                    </contact>
+                </surface>
+            </collision>
+        </link>
+        <joint name="joint_8_9" type="ball">
+            <parent>link_8</parent>
+            <child>link_9</child>
+            <pose>0 0 -0.015230449880732251 0 0 0</pose>
+            <axis><xyz>1 0 0</xyz></axis><axis2><xyz>0 1 0</xyz></axis2>
+        </joint>
+    </model>
+</sdf>

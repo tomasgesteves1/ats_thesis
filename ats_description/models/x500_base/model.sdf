@@ -120,6 +120,11 @@
           </pbr>
         </material>
       </visual>
+      <visual name="visual_attachment">
+        <pose>0 0 -0.02 0 0 0</pose>
+        <geometry><sphere><radius>0.02</radius></sphere></geometry>
+        <material><ambient>0 1 0 1</ambient><diffuse>0 1 0 1</diffuse></material>
+      </visual>
       <collision name="base_link_collision_0">
         <pose>0 0 .007 0 0 0</pose>
         <geometry>
