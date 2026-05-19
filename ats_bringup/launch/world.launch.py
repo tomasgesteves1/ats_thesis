@@ -14,18 +14,13 @@ def generate_launch_description():
     pkg_wamv_description = get_package_share_directory('wamv_description')
     pkg_wamv_gazebo = get_package_share_directory('wamv_gazebo')
 
-    # PX4 Models Path
-    px4_dir = os.environ.get('PX4_DIR', os.path.expanduser('~/PX4-Autopilot'))
-    px4_models_dir = os.path.join(px4_dir, 'Tools', 'simulation', 'gz', 'models')
-
     # Configuração de Recursos do Gazebo
     gz_resource_path = os.pathsep.join([
         os.path.join(pkg_ats_description, 'models'),
         os.path.join(pkg_ats_gazebo, 'models'),
         os.path.join(pkg_vrx_gazebo, '..'),
         os.path.join(pkg_wamv_description, '..'),
-        os.path.join(pkg_wamv_gazebo, '..'),
-        px4_models_dir
+        os.path.join(pkg_wamv_gazebo, '..')
     ])
 
     # Argumentos

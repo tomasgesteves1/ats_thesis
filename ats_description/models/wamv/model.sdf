@@ -264,10 +264,10 @@
           <specular>1 1 1 1</specular>
           <pbr>
             <metal>
-              <albedo_map>model://wamv/meshes/WAM-V_Albedo.png</albedo_map>
-              <normal_map>model://wamv/meshes/WAM-V_Normal.png</normal_map>
-              <roughness_map>model://wamv/meshes/WAM-V_Roughness.png</roughness_map>
-              <metalness_map>model://wamv/meshes/WAM-V_Metalness.png</metalness_map>
+              <albedo_map>./meshes/WAM-V_Albedo.png</albedo_map>
+              <normal_map>./meshes/WAM-V_Normal.png</normal_map>
+              <roughness_map>./meshes/WAM-V_Roughness.png</roughness_map>
+              <metalness_map>./meshes/WAM-V_Metalness.png</metalness_map>
             </metal>
           </pbr>
         </material>
@@ -285,10 +285,10 @@
           <specular>1 1 1 1</specular>
           <pbr>
             <metal>
-              <albedo_map>model://wamv/meshes/battery_Albedo.png</albedo_map>
-              <normal_map>model://wamv/meshes/battery_Normal.png</normal_map>
-              <roughness_map>model://wamv/meshes/battery_Roughness.png</roughness_map>
-              <metalness_map>model://wamv/meshes/battery_Metalness.png</metalness_map>
+              <albedo_map>./meshes/battery_Albedo.png</albedo_map>
+              <normal_map>./meshes/battery_Normal.png</normal_map>
+              <roughness_map>./meshes/battery_Roughness.png</roughness_map>
+              <metalness_map>./meshes/battery_Metalness.png</metalness_map>
             </metal>
           </pbr>
         </material>
@@ -306,10 +306,10 @@
           <specular>1 1 1 1</specular>
           <pbr>
             <metal>
-              <albedo_map>model://wamv/meshes/battery_Albedo.png</albedo_map>
-              <normal_map>model://wamv/meshes/battery_Normal.png</normal_map>
-              <roughness_map>model://wamv/meshes/battery_Roughness.png</roughness_map>
-              <metalness_map>model://wamv/meshes/battery_Metalness.png</metalness_map>
+              <albedo_map>./meshes/battery_Albedo.png</albedo_map>
+              <normal_map>./meshes/battery_Normal.png</normal_map>
+              <roughness_map>./meshes/battery_Roughness.png</roughness_map>
+              <metalness_map>./meshes/battery_Metalness.png</metalness_map>
             </metal>
           </pbr>
         </material>

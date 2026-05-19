@@ -12,12 +12,11 @@ def generate_launch_description():
     # Caminhos PX4
     px4_dir = os.environ.get('PX4_DIR', os.path.expanduser('~/PX4-Autopilot'))
     px4_build_dir = os.path.join(px4_dir, 'build', 'px4_sitl_default')
-    px4_models_dir = os.path.join(px4_dir, 'Tools', 'simulation', 'gz', 'models')
 
     # Configurar Caminhos de Recursos
     local_models_dir = os.path.join(pkg_ats_description, 'models')
     gz_resource_path = os.environ.get('GZ_SIM_RESOURCE_PATH', '')
-    new_gz_resource_path = f"{local_models_dir}:{px4_models_dir}:{gz_resource_path}"
+    new_gz_resource_path = f"{local_models_dir}:{gz_resource_path}"
 
     set_gz_resource_path = SetEnvironmentVariable(
         name='GZ_SIM_RESOURCE_PATH',
