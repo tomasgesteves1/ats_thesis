@@ -22,6 +22,11 @@
             <radius>0.20000000000000001</radius>
           </cylinder>
         </geometry>
+        <surface>
+          <contact>
+            <collide_bitmask>0x03</collide_bitmask>
+          </contact>
+        </surface>
       </collision>
       <collision name='wamv/base_link_fixed_joint_lump__left_mid_float_collision_1'>
         <pose>1.8500000000000001 1.03 0.29999999999999999 0 1.3799999999999997 0</pose>
@@ -31,6 +36,11 @@
             <radius>0.17000000000000001</radius>
           </cylinder>
         </geometry>
+        <surface>
+          <contact>
+            <collide_bitmask>0x03</collide_bitmask>
+          </contact>
+        </surface>
       </collision>
       <collision name='wamv/base_link_fixed_joint_lump__left_front_float_collision_2'>
         <pose>2.2999999999999998 1.03 0.40000000000000002 0 1.3 0</pose>
@@ -40,6 +50,11 @@
             <radius>0.12</radius>
           </cylinder>
         </geometry>
+        <surface>
+          <contact>
+            <collide_bitmask>0x03</collide_bitmask>
+          </contact>
+        </surface>
       </collision>
       <collision name='wamv/base_link_fixed_joint_lump__front_left_beam_lower_collision_3'>
         <pose>0.90000000000000002 0.84999999999999998 1 0.78000000000000003 0 0</pose>
@@ -49,6 +64,11 @@
             <radius>0.040000000000000001</radius>
           </cylinder>
         </geometry>
+        <surface>
+          <contact>
+            <collide_bitmask>0x03</collide_bitmask>
+          </contact>
+        </surface>
       </collision>
       <collision name='wamv/base_link_fixed_joint_lump__front_left_beam_upper_collision_4'>
         <pose>0.90000000000000002 0.59999999999999998 1.1799999999999999 1.3500000000000001 0 0</pose>
@@ -58,6 +78,11 @@
             <radius>0.040000000000000001</radius>
           </cylinder>
         </geometry>
+        <surface>
+          <contact>
+            <collide_bitmask>0x03</collide_bitmask>
+          </contact>
+        </surface>
       </collision>
       <collision name='wamv/base_link_fixed_joint_lump__mid_left_beam_lower_collision_5'>
         <pose>-0.65000000000000002 0.98999999999999999 0.69999999999999996 0.099999999999999978 0.25000000000000006 0</pose>
@@ -67,6 +92,11 @@
             <radius>0.029999999999999999</radius>
           </cylinder>
         </geometry>
+        <surface>
+          <contact>
+            <collide_bitmask>0x03</collide_bitmask>
+          </contact>
+        </surface>
       </collision>
       <collision name='wamv/base_link_fixed_joint_lump__mid_left_beam_medium_collision_6'>
         <pose>-0.56999999999999995 0.87 1.05 0.75000000000000033 0.25000000000000017 0</pose>
@@ -76,6 +106,11 @@
             <radius>0.029999999999999999</radius>
           </cylinder>
         </geometry>
+        <surface>
+          <contact>
+            <collide_bitmask>0x03</collide_bitmask>
+          </contact>
+        </surface>
       </collision>
       <collision name='wamv/base_link_fixed_joint_lump__mid_left_beam_upper_collision_7'>
         <pose>-0.55000000000000004 0.65000000000000002 1.1699999999999999 1.3500000000000001 0.25000000000000011 0</pose>
@@ -85,6 +120,11 @@
             <radius>0.029999999999999999</radius>
           </cylinder>
         </geometry>
+        <surface>
+          <contact>
+            <collide_bitmask>0x03</collide_bitmask>
+          </contact>
+        </surface>
       </collision>
       <collision name='wamv/base_link_fixed_joint_lump__rear_left_beam_lower_collision_8'>
         <pose>-0.73999999999999999 1.03 0.69999999999999996 0 -0.14999999999999999 0</pose>
@@ -94,6 +134,11 @@
             <radius>0.029999999999999999</radius>
           </cylinder>
         </geometry>
+        <surface>
+          <contact>
+            <collide_bitmask>0x03</collide_bitmask>
+          </contact>
+        </surface>
       </collision>
       <collision name='wamv/base_link_fixed_joint_lump__rear_left_beam_medium_collision_9'>
         <pose>-0.79000000000000004 0.91000000000000003 1.05 0.75000000000000022 -0.14999999999999999 -1.4035390109491176e-17</pose>
@@ -103,6 +148,11 @@
             <radius>0.029999999999999999</radius>
           </cylinder>
         </geometry>
+        <surface>
+          <contact>
+            <collide_bitmask>0x03</collide_bitmask>
+          </contact>
+        </surface>
       </collision>
       <collision name='wamv/base_link_fixed_joint_lump__rear_left_beam_upper_collision_10'>
         <pose>-0.81000000000000005 0.67000000000000004 1.1799999999999999 1.45 -0.14999999999999999 0</pose>
@@ -112,6 +162,11 @@
             <radius>0.029999999999999999</radius>
           </cylinder>
         </geometry>
+        <surface>
+          <contact>
+            <collide_bitmask>0x03</collide_bitmask>
+          </contact>
+        </surface>
       </collision>
       <collision name='wamv/base_link_fixed_joint_lump__left_joint_collision_11'>
         <pose>0.57999999999999996 1.03 0.59999999999999998 0 -0.59999999999999987 0</pose>
@@ -120,6 +175,11 @@
             <size>0.65000000000000002 0.20000000000000001 0.10000000000000001</size>
           </box>
         </geometry>
+        <surface>
+          <contact>
+            <collide_bitmask>0x03</collide_bitmask>
+          </contact>
+        </surface>
       </collision>
       <collision name='wamv/base_link_fixed_joint_lump__right_float_collision_12'>
         <pose>-0.40000000000000002 -1.03 0.20000000000000001 0 1.5707963267948966 0</pose>
@@ -129,6 +189,11 @@
             <radius>0.20000000000000001</radius>
           </cylinder>
         </geometry>
+        <surface>
+          <contact>
+            <collide_bitmask>0x03</collide_bitmask>
+          </contact>
+        </surface>
       </collision>
       <collision name='wamv/base_link_fixed_joint_lump__right_mid_float_collision_13'>
         <pose>1.8500000000000001 -1.03 0.29999999999999999 0 1.3799999999999997 0</pose>
@@ -138,6 +203,11 @@
             <radius>0.17000000000000001</radius>
           </cylinder>
         </geometry>
+        <surface>
+          <contact>
+            <collide_bitmask>0x03</collide_bitmask>
+          </contact>
+        </surface>
       </collision>
       <collision name='wamv/base_link_fixed_joint_lump__right_front_float_collision_14'>
         <pose>2.2999999999999998 -1.03 0.40000000000000002 0 1.3 0</pose>
@@ -147,6 +217,11 @@
             <radius>0.12</radius>
           </cylinder>
         </geometry>
+        <surface>
+          <contact>
+            <collide_bitmask>0x03</collide_bitmask>
+          </contact>
+        </surface>
       </collision>
       <collision name='wamv/base_link_fixed_joint_lump__front_right_beam_lower_collision_15'>
         <pose>0.90000000000000002 -0.84999999999999998 1 -0.78000000000000003 0 0</pose>
@@ -156,6 +231,11 @@
             <radius>0.040000000000000001</radius>
           </cylinder>
         </geometry>
+        <surface>
+          <contact>
+            <collide_bitmask>0x03</collide_bitmask>
+          </contact>
+        </surface>
       </collision>
       <collision name='wamv/base_link_fixed_joint_lump__front_right_beam_upper_collision_16'>
         <pose>0.90000000000000002 -0.59999999999999998 1.1799999999999999 -1.3500000000000001 0 0</pose>
@@ -165,6 +245,11 @@
             <radius>0.040000000000000001</radius>
           </cylinder>
         </geometry>
+        <surface>
+          <contact>
+            <collide_bitmask>0x03</collide_bitmask>
+          </contact>
+        </surface>
       </collision>
       <collision name='wamv/base_link_fixed_joint_lump__mid_right_beam_lower_collision_17'>
         <pose>-0.65000000000000002 -0.98999999999999999 0.69999999999999996 -0.099999999999999978 0.25000000000000006 0</pose>
@@ -174,6 +259,11 @@
             <radius>0.029999999999999999</radius>
           </cylinder>
         </geometry>
+        <surface>
+          <contact>
+            <collide_bitmask>0x03</collide_bitmask>
+          </contact>
+        </surface>
       </collision>
       <collision name='wamv/base_link_fixed_joint_lump__mid_right_beam_medium_collision_18'>
         <pose>-0.56999999999999995 -0.87 1.05 -0.75000000000000033 0.25000000000000017 0</pose>
@@ -183,6 +273,11 @@
             <radius>0.029999999999999999</radius>
           </cylinder>
         </geometry>
+        <surface>
+          <contact>
+            <collide_bitmask>0x03</collide_bitmask>
+          </contact>
+        </surface>
       </collision>
       <collision name='wamv/base_link_fixed_joint_lump__mid_right_beam_upper_collision_19'>
         <pose>-0.55000000000000004 -0.65000000000000002 1.1699999999999999 -1.3500000000000001 0.25000000000000011 0</pose>
@@ -192,6 +287,11 @@
             <radius>0.029999999999999999</radius>
           </cylinder>
         </geometry>
+        <surface>
+          <contact>
+            <collide_bitmask>0x03</collide_bitmask>
+          </contact>
+        </surface>
       </collision>
       <collision name='wamv/base_link_fixed_joint_lump__rear_right_beam_lower_collision_20'>
         <pose>-0.73999999999999999 -1.03 0.69999999999999996 0 -0.14999999999999999 0</pose>
@@ -201,6 +301,11 @@
             <radius>0.029999999999999999</radius>
           </cylinder>
         </geometry>
+        <surface>
+          <contact>
+            <collide_bitmask>0x03</collide_bitmask>
+          </contact>
+        </surface>
       </collision>
       <collision name='wamv/base_link_fixed_joint_lump__rear_right_beam_medium_collision_21'>
         <pose>-0.79000000000000004 -0.91000000000000003 1.05 -0.75000000000000022 -0.14999999999999999 1.4035390109491176e-17</pose>
@@ -210,6 +315,11 @@
             <radius>0.029999999999999999</radius>
           </cylinder>
         </geometry>
+        <surface>
+          <contact>
+            <collide_bitmask>0x03</collide_bitmask>
+          </contact>
+        </surface>
       </collision>
       <collision name='wamv/base_link_fixed_joint_lump__rear_right_beam_upper_collision_22'>
         <pose>-0.81000000000000005 -0.67000000000000004 1.1799999999999999 -1.45 -0.14999999999999999 0</pose>
@@ -219,6 +329,11 @@
             <radius>0.029999999999999999</radius>
           </cylinder>
         </geometry>
+        <surface>
+          <contact>
+            <collide_bitmask>0x03</collide_bitmask>
+          </contact>
+        </surface>
       </collision>
       <collision name='wamv/base_link_fixed_joint_lump__right_joint_collision_23'>
         <pose>0.57999999999999996 -1.03 0.59999999999999998 0 -0.59999999999999987 0</pose>
@@ -227,6 +342,11 @@
             <size>0.65000000000000002 0.20000000000000001 0.10000000000000001</size>
           </box>
         </geometry>
+        <surface>
+          <contact>
+            <collide_bitmask>0x03</collide_bitmask>
+          </contact>
+        </surface>
       </collision>
       <collision name='wamv/base_link_fixed_joint_lump__top_base_collision_24'>
         <pose>0 0 1.25 0 0 0</pose>
@@ -235,6 +355,11 @@
             <size>1.8500000000000001 1 0.10000000000000001</size>
           </box>
         </geometry>
+        <surface>
+          <contact>
+            <collide_bitmask>0x03</collide_bitmask>
+          </contact>
+        </surface>
       </collision>
       <collision name='wamv/base_link_fixed_joint_lump__left_battery_collision_collision_25'>
         <pose>0 1 0.59999999999999998 0 0 0</pose>
@@ -243,6 +368,11 @@
             <size>0.59999999999999998 0.40000000000000002 0.31</size>
           </box>
         </geometry>
+        <surface>
+          <contact>
+            <collide_bitmask>0x03</collide_bitmask>
+          </contact>
+        </surface>
       </collision>
       <collision name='wamv/base_link_fixed_joint_lump__right_battery_collision_collision_26'>
         <pose>0 -1 0.59999999999999998 0 0 0</pose>
@@ -251,6 +381,11 @@
             <size>0.59999999999999998 0.40000000000000002 0.31</size>
           </box>
         </geometry>
+        <surface>
+          <contact>
+            <collide_bitmask>0x03</collide_bitmask>
+          </contact>
+        </surface>
       </collision>
       <visual name='wamv/base_link_visual'>
         <pose>0 0 0 0 0 0</pose>
@@ -375,6 +510,11 @@
             <radius>0.014999999999999999</radius>
           </cylinder>
         </geometry>
+        <surface>
+          <contact>
+            <collide_bitmask>0x03</collide_bitmask>
+          </contact>
+        </surface>
       </collision>
       <collision name='wamv/gps_wamv_link_fixed_joint_lump__gps_wamv_collision_antenna_collision_1'>
         <pose>0 0 0.11 0 0 0</pose>
@@ -384,6 +524,11 @@
             <radius>0.14999999999999999</radius>
           </cylinder>
         </geometry>
+        <surface>
+          <contact>
+            <collide_bitmask>0x03</collide_bitmask>
+          </contact>
+        </surface>
       </collision>
       <visual name='wamv/gps_wamv_link_fixed_joint_lump__gps_wamv_visual_visual'>
         <pose>0 0 0 0 0 0</pose>
@@ -439,6 +584,11 @@
             <size>0.050000000000000003 0.025000000000000001 0.0050000000000000001</size>
           </box>
         </geometry>
+        <surface>
+          <contact>
+            <collide_bitmask>0x03</collide_bitmask>
+          </contact>
+        </surface>
       </collision>
       <visual name='wamv/imu_wamv_link_fixed_joint_lump__imu_wamv_visual_visual'>
         <pose>0 0 0 0 0 0</pose>
@@ -572,6 +722,11 @@
             <size>0.20000000000000001 0.14999999999999999 0.82999999999999996</size>
           </box>
         </geometry>
+        <surface>
+          <contact>
+            <collide_bitmask>0x03</collide_bitmask>
+          </contact>
+        </surface>
       </collision>
       <collision name='wamv/left_engine_link_fixed_joint_lump__left_engine_rear_end_collision_collision_1'>
         <pose>-0.34000000000000002 0 0.12 0 0 0</pose>
@@ -580,6 +735,11 @@
             <size>0.12 0.14999999999999999 0.12</size>
           </box>
         </geometry>
+        <surface>
+          <contact>
+            <collide_bitmask>0x03</collide_bitmask>
+          </contact>
+        </surface>
       </collision>
       <visual name='wamv/left_engine_link_visual'>
         <pose>0 0 0 0 0 0</pose>
@@ -633,6 +793,11 @@
             <radius>0.23999999999999999</radius>
           </cylinder>
         </geometry>
+        <surface>
+          <contact>
+            <collide_bitmask>0x03</collide_bitmask>
+          </contact>
+        </surface>
       </collision>
       <visual name='wamv/left_propeller_link_visual'>
         <pose>0 0 0 0 0 0</pose>
@@ -685,6 +850,11 @@
             <size>0.20000000000000001 0.14999999999999999 0.82999999999999996</size>
           </box>
         </geometry>
+        <surface>
+          <contact>
+            <collide_bitmask>0x03</collide_bitmask>
+          </contact>
+        </surface>
       </collision>
       <collision name='wamv/right_engine_link_fixed_joint_lump__right_engine_rear_end_collision_collision_1'>
         <pose>-0.34000000000000002 0 0.12 0 0 0</pose>
@@ -693,6 +863,11 @@
             <size>0.12 0.14999999999999999 0.12</size>
           </box>
         </geometry>
+        <surface>
+          <contact>
+            <collide_bitmask>0x03</collide_bitmask>
+          </contact>
+        </surface>
       </collision>
       <visual name='wamv/right_engine_link_visual'>
         <pose>0 0 0 0 0 0</pose>
@@ -746,6 +921,11 @@
             <radius>0.23999999999999999</radius>
           </cylinder>
         </geometry>
+        <surface>
+          <contact>
+            <collide_bitmask>0x03</collide_bitmask>
+          </contact>
+        </surface>
       </collision>
       <visual name='wamv/right_propeller_link_visual'>
         <pose>0 0 0 0 0 0</pose>
