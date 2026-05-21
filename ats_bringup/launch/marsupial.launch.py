@@ -45,7 +45,7 @@ def generate_launch_description():
         package='ros_gz_sim',
         executable='create',
         arguments=['-world', 'wamv_world', '-file', os.path.join(local_models_dir, 'wamv', 'model.sdf'),
-                   '-name', 'barco', '-x', str(boat_x), '-y', str(boat_y), '-z', str(boat_z)],
+                   '-name', 'wamv', '-x', str(boat_x), '-y', str(boat_y), '-z', str(boat_z)],
         output='screen'
     )
 
@@ -53,7 +53,7 @@ def generate_launch_description():
         package='ros_gz_sim',
         executable='create',
         arguments=['-world', 'wamv_world', '-file', os.path.join(local_models_dir, 'x500', 'model.sdf'),
-                   '-name', 'drone', '-x', str(drone_world_x), '-y', str(boat_y), '-z', str(drone_world_z)],
+                   '-name', 'x500', '-x', str(drone_world_x), '-y', str(boat_y), '-z', str(drone_world_z)],
         output='screen'
     )
 
@@ -104,7 +104,7 @@ def generate_launch_description():
     px4_env = os.environ.copy()
     px4_env.update({
         'PX4_GZ_WORLD': 'wamv_world', 
-        'PX4_GZ_MODEL_NAME': 'drone',
+        'PX4_GZ_MODEL_NAME': 'x500',
         'PX4_SYS_AUTOSTART': '4001',
         'GZ_SIM_RESOURCE_PATH': new_gz_resource_path
     })
@@ -139,12 +139,25 @@ def generate_launch_description():
             '/wamv/thrusters/right/thrust@std_msgs/msg/Float64]gz.msgs.Double',
             '/wamv/thrusters/left/pos@std_msgs/msg/Float64]gz.msgs.Double',
             '/wamv/thrusters/right/pos@std_msgs/msg/Float64]gz.msgs.Double',
-            '/model/barco/odometry@nav_msgs/msg/Odometry[gz.msgs.Odometry',
+            '/model/wamv/odometry@nav_msgs/msg/Odometry[gz.msgs.Odometry',
+            '/model/x500/odometry@nav_msgs/msg/Odometry[gz.msgs.Odometry',
         ],
         remappings=[
-            ('/model/barco/odometry', '/wamv/ground_truth/odometry'),
+            ('/wamv/thrusters/left/thrust', '/boat/thrusters/left/thrust'),
+            ('/wamv/thrusters/right/thrust', '/boat/thrusters/right/thrust'),
+            ('/wamv/thrusters/left/pos', '/boat/thrusters/left/pos'),
+            ('/wamv/thrusters/right/pos', '/boat/thrusters/right/pos'),
+            ('/model/wamv/odometry', '/boat/ground_truth/odometry'),
+            ('/model/x500/odometry', '/drone/ground_truth/odometry'),
         ],
         output='screen'
+    )
+
+    foxglove_bridge = Node(
+        package='foxglove_bridge',
+        executable='foxglove_bridge',
+        name='foxglove_bridge',
+        parameters=[{'use_sim_time': True}]
     )
 
     return LaunchDescription([
@@ -156,5 +169,6 @@ def generate_launch_description():
         unpause_physics_handler,
         px4_sitl_process,
         micro_ros_agent,
-        bridge
+        bridge,
+        foxglove_bridge
     ])

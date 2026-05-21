@@ -26,7 +26,7 @@ def generate_launch_description():
         executable='create',
         arguments=[
             '-file', os.path.join(local_models_dir, 'x500', 'model.sdf'),
-            '-name', 'x500_standalone',
+            '-name', 'drone',
             '-allow_renaming', 'false',
             '-x', '0.3',
             '-y', '0.0',
@@ -39,7 +39,7 @@ def generate_launch_description():
     px4_env = os.environ.copy()
     px4_env.update({
         'PX4_GZ_WORLD': LaunchConfiguration('world'), 
-        'PX4_GZ_MODEL_NAME': 'x500_standalone',
+        'PX4_GZ_MODEL_NAME': 'drone',
         'PX4_SYS_AUTOSTART': '4001',
         'GZ_SIM_RESOURCE_PATH': new_gz_resource_path
     })
@@ -70,5 +70,11 @@ def generate_launch_description():
         world_arg,
         spawn_drone,
         px4_sitl_process,
-        micro_ros_agent
+        micro_ros_agent,
+        Node(
+            package='foxglove_bridge',
+            executable='foxglove_bridge',
+            name='foxglove_bridge',
+            parameters=[{'use_sim_time': True}]
+        )
     ])

@@ -34,7 +34,7 @@ def generate_launch_description():
         executable='create',
         arguments=[
             '-file', boat_sdf_path,
-            '-name', 'wamv',
+            '-name', 'boat',
             '-allow_renaming', 'false',
             '-x', LaunchConfiguration('x'),
             '-y', LaunchConfiguration('y'),
@@ -44,7 +44,7 @@ def generate_launch_description():
     )
 
     # 3. Bridge de tópicos
-    # Nota: Quando spawnado como 'wamv' no topo, o odometry volta a ser /model/wamv/odometry
+    # Nota: Quando spawnado como 'boat' no topo, o odometry volta a ser /model/boat/odometry
     bridge = Node(
         package='ros_gz_bridge',
         executable='parameter_bridge',
@@ -54,10 +54,14 @@ def generate_launch_description():
             '/wamv/thrusters/right/thrust@std_msgs/msg/Float64]gz.msgs.Double',
             '/wamv/thrusters/left/pos@std_msgs/msg/Float64]gz.msgs.Double',
             '/wamv/thrusters/right/pos@std_msgs/msg/Float64]gz.msgs.Double',
-            '/model/wamv/odometry@nav_msgs/msg/Odometry[gz.msgs.Odometry',
+            '/model/boat/odometry@nav_msgs/msg/Odometry[gz.msgs.Odometry',
         ],
         remappings=[
-            ('/model/wamv/odometry', '/wamv/ground_truth/odometry'),
+            ('/wamv/thrusters/left/thrust', '/boat/thrusters/left/thrust'),
+            ('/wamv/thrusters/right/thrust', '/boat/thrusters/right/thrust'),
+            ('/wamv/thrusters/left/pos', '/boat/thrusters/left/pos'),
+            ('/wamv/thrusters/right/pos', '/boat/thrusters/right/pos'),
+            ('/model/boat/odometry', '/boat/ground_truth/odometry'),
         ],
         output='screen'
     )
@@ -69,5 +73,11 @@ def generate_launch_description():
         world_arg,
         world_launch,
         spawn_entity,
-        bridge
+        bridge,
+        Node(
+            package='foxglove_bridge',
+            executable='foxglove_bridge',
+            name='foxglove_bridge',
+            parameters=[{'use_sim_time': True}]
+        )
     ])

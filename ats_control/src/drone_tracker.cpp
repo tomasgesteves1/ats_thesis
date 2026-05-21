@@ -24,7 +24,7 @@ public:
 
 		// Subscriber
 		boat_odom_sub_ = this->create_subscription<nav_msgs::msg::Odometry>(
-			"/wamv/ground_truth/odometry", 10, std::bind(&DroneTracker::boat_odom_callback, this, std::placeholders::_1));
+			"/boat/ground_truth/odometry", 10, std::bind(&DroneTracker::boat_odom_callback, this, std::placeholders::_1));
 
 		this->declare_parameter<int>("target_system", 2);
 		this->declare_parameter<double>("follow_height", 5.0);

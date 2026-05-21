@@ -11,11 +11,11 @@ public:
   USVController() : Node("usv_controller"), current_angle_(0.0), target_angle_(0.0), target_thrust_(0.0)
   {
     // Publishers para a forca (thrust) e angulo (pos) dos motores esquerdo e direito do WAM-V
-    left_thrust_pub_ = this->create_publisher<std_msgs::msg::Float64>("/wamv/thrusters/left/thrust", 10);
-    right_thrust_pub_ = this->create_publisher<std_msgs::msg::Float64>("/wamv/thrusters/right/thrust", 10);
+    left_thrust_pub_ = this->create_publisher<std_msgs::msg::Float64>("/boat/thrusters/left/thrust", 10);
+    right_thrust_pub_ = this->create_publisher<std_msgs::msg::Float64>("/boat/thrusters/right/thrust", 10);
     
-    left_pos_pub_ = this->create_publisher<std_msgs::msg::Float64>("/wamv/thrusters/left/pos", 10);
-    right_pos_pub_ = this->create_publisher<std_msgs::msg::Float64>("/wamv/thrusters/right/pos", 10);
+    left_pos_pub_ = this->create_publisher<std_msgs::msg::Float64>("/boat/thrusters/left/pos", 10);
+    right_pos_pub_ = this->create_publisher<std_msgs::msg::Float64>("/boat/thrusters/right/pos", 10);
 
     // Subscriber para comandos do joystick (gamepad)
     joy_sub_ = this->create_subscription<sensor_msgs::msg::Joy>(
