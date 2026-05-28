@@ -9,6 +9,9 @@ find_package(sensor_msgs REQUIRED)
 find_package(std_msgs REQUIRED)
 find_package(nav_msgs REQUIRED)
 find_package(px4_msgs REQUIRED)
+find_package(tf2 REQUIRED)
+find_package(tf2_geometry_msgs REQUIRED)
+find_package(tf2_ros REQUIRED)
 
 # add executable boat_controller
 add_executable(boat_controller src/boat_controller.cpp)
@@ -22,7 +25,15 @@ add_executable(drone_tracker src/drone_tracker.cpp)
 target_include_directories(drone_tracker PUBLIC
   $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
   $<INSTALL_INTERFACE:include>)
-ament_target_dependencies(drone_tracker rclcpp nav_msgs px4_msgs std_msgs)
+ament_target_dependencies(drone_tracker 
+  rclcpp 
+  nav_msgs 
+  px4_msgs 
+  std_msgs
+  tf2
+  tf2_geometry_msgs
+  tf2_ros
+)
 
 # install
 install(DIRECTORY launch config
