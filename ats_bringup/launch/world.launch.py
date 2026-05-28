@@ -66,11 +66,5 @@ def generate_launch_description():
         SetEnvironmentVariable('GZ_SIM_RESOURCE_PATH', gz_resource_path),
         world_arg,
         paused_arg,
-        gz_sim,
-        Node(
-            package='foxglove_bridge',
-            executable='foxglove_bridge',
-            name='foxglove_bridge',
-            parameters=[{'use_sim_time': True}]
-        )
+        gz_sim
     ])

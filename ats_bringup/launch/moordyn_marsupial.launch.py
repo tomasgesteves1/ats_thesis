@@ -15,8 +15,6 @@ def generate_launch_description():
     boat_x, boat_y, boat_z = 0.0, 0.0, 0.2
     # Drone (Pousado no Convés)
     drone_world_x, drone_world_z = 0.3, 1.65
-    # Gancho (Onde o tether começa)
-    hook_world_x, hook_world_z = -0.5, 1.5
 
     # Caminhos PX4
     px4_dir = os.environ.get('PX4_DIR', os.path.expanduser('~/PX4-Autopilot'))
@@ -57,14 +55,6 @@ def generate_launch_description():
         output='screen'
     )
 
-    spawn_tether = Node(
-        package='ros_gz_sim',
-        executable='create',
-        arguments=['-world', 'wamv_world', '-file', os.path.join(local_models_dir, 'tether', 'model.sdf'),
-                   '-name', 'tether', '-x', str(hook_world_x), '-y', str(boat_y), '-z', str(hook_world_z)],
-        output='screen'
-    )
-
     # 3. Comando para Resume à Física
     unpause_gz = ExecuteProcess(
         cmd=['gz', 'service', '-s', '/world/wamv_world/control', 
@@ -75,25 +65,13 @@ def generate_launch_description():
         output='screen'
     )
 
-    # Sequenciamento: Barco+Drone -> (2s) -> Tether -> (8s) -> Unpause
-    delayed_spawn_tether = RegisterEventHandler(
+    # Sequenciamento: Espera 2s após o spawn das entidades para dar unpause
+    unpause_physics_handler = RegisterEventHandler(
         event_handler=OnProcessExit(
-            target_action=spawn_boat,
+            target_action=spawn_drone,
             on_exit=[
                 TimerAction(
                     period=2.0,
-                    actions=[spawn_tether]
-                )
-            ]
-        )
-    )
-
-    unpause_physics_handler = RegisterEventHandler(
-        event_handler=OnProcessExit(
-            target_action=spawn_tether,
-            on_exit=[
-                TimerAction(
-                    period=8.0,
                     actions=[unpause_gz]
                 )
             ]
@@ -110,7 +88,7 @@ def generate_launch_description():
     })
 
     px4_sitl_process = TimerAction(
-        period=12.0, 
+        period=5.0, 
         actions=[
             ExecuteProcess(
                 cmd=[os.path.join(px4_build_dir, 'bin', 'px4'), '-i', '1'],
@@ -157,7 +135,16 @@ def generate_launch_description():
         package='foxglove_bridge',
         executable='foxglove_bridge',
         name='foxglove_bridge',
-        parameters=[{'use_sim_time': True}]
+        parameters=[{
+            'use_sim_time': True,
+            'asset_uri_allowlist': ['.*']
+        }]
+    )
+
+    localization_launch = IncludeLaunchDescription(
+        PythonLaunchDescriptionSource(
+            os.path.join(get_package_share_directory('ats_localization'), 'launch', 'localization.launch.py')
+        )
     )
 
     return LaunchDescription([
@@ -165,10 +152,10 @@ def generate_launch_description():
         world_launch,
         spawn_boat,
         spawn_drone,
-        delayed_spawn_tether,
         unpause_physics_handler,
         px4_sitl_process,
         micro_ros_agent,
         bridge,
-        foxglove_bridge
+        foxglove_bridge,
+        localization_launch
     ])

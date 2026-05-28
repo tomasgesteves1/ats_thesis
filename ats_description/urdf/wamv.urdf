@@ -1,0 +1,10 @@
+<?xml version="1.0"?>
+<robot name="wamv">
+  <link name="boat/base_link">
+    <visual>
+      <geometry>
+        <mesh filename="package://ats_description/models/wamv/meshes/WAM-V-Base.dae"/>
+      </geometry>
+    </visual>
+  </link>
+</robot>

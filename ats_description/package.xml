@@ -4,7 +4,7 @@
   <name>ats_description</name>
   <version>0.0.0</version>
   <description>WAM-V and Tethered System description package</description>
-  <maintainer email="tomas@todo.todo">Tomas</maintainer>
+  <maintainer email="tomasesteves03@gmail.com">Tomas</maintainer>
   <license>TODO: License declaration</license>
 
   <buildtool_depend>ament_cmake</buildtool_depend>
