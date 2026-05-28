@@ -18,7 +18,7 @@ def generate_launch_description():
     # 2. Lançar o Controlador do Barco (WAM-V)
     usv_controller = Node(
         package='ats_control',
-        executable='usv_controller',
+        executable='boat_controller',
         name='usv_controller',
         output='screen'
     )
