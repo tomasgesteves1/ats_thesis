@@ -2,12 +2,8 @@
   ros__parameters:
     world_frame: "world"
     boat_frame: "boat/base_link"
-    boat_footprint_frame: "boat/footprint"
-    drone_map_frame: "drone/map"
-    drone_base_frame: "drone/base_link"
+    drone_frame: "drone/base_link"
     
     boat_odom_topic: "/boat/ground_truth/odometry"
-    drone_gt_topic: "/drone/ground_truth/odometry"
-    drone_px4_odom_topic: "/px4_1/fmu/out/vehicle_odometry"
-
-    stabilized_z: 0.0
+    drone_odom_topic: "/drone/ground_truth/odometry"
+    drone_z_offset: 0.265

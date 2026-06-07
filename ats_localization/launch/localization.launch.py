@@ -10,27 +10,14 @@ def generate_launch_description():
     params_file = os.path.join(pkg_localization, 'config', 'aligner_params.yaml')
 
     return LaunchDescription([
-        # 1. Frame Aligner Node
+        # Simplified Frame Aligner Node
+        # This node bridges /boat/ground_truth/odometry and /drone/ground_truth/odometry
+        # directly to TF frames 'boat/base_link' and 'drone/base_link' under 'world'.
         Node(
             package='ats_localization',
             executable='frame_aligner',
             name='frame_aligner',
             parameters=[params_file, {'use_sim_time': True}],
             output='screen'
-        ),
-
-        # 2. Static Transforms (Offsets)
-        Node(
-            package='tf2_ros',
-            executable='static_transform_publisher',
-            name='boat_anchor_publisher',
-            arguments=['-0.5', '0', '1.3', '0', '0', '0', 'boat/base_link', 'boat/tether_anchor']
-        ),
-        
-        Node(
-            package='tf2_ros',
-            executable='static_transform_publisher',
-            name='drone_hook_publisher',
-            arguments=['0', '0', '-0.1', '0', '0', '0', 'drone/base_link', 'drone/tether_hook']
-        ),
+        )
     ])
