@@ -43,9 +43,8 @@ public:
 private:
     void boat_callback(const nav_msgs::msg::Odometry::SharedPtr msg)
     {
-        // Ponto de ancoragem no barco: -0.5m atrás e 1.3m acima do centro
-        // TODO: Adicionar rotação baseada no msg->pose.pose.orientation
-        current_positions_[0] = msg->pose.pose.position.x - 0.5;
+        // Simplificado: Usar posição global do barco + offset Z de 1.3m (âncora)
+        current_positions_[0] = msg->pose.pose.position.x;
         current_positions_[1] = msg->pose.pose.position.y;
         current_positions_[2] = msg->pose.pose.position.z + 1.3;
 
@@ -54,7 +53,7 @@ private:
 
     void drone_callback(const nav_msgs::msg::Odometry::SharedPtr msg)
     {
-        // Ponto de ancoragem no drone: 0.2m abaixo do centro (Z global + offset)
+        // Simplificado: Usar posição global do drone - offset Z de 0.2m (gancho)
         current_positions_[3] = msg->pose.pose.position.x;
         current_positions_[4] = msg->pose.pose.position.y;
         current_positions_[5] = msg->pose.pose.position.z - 0.2;

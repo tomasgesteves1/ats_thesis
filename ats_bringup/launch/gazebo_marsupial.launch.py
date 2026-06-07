@@ -141,6 +141,7 @@ def generate_launch_description():
             '/wamv/thrusters/right/pos@std_msgs/msg/Float64]gz.msgs.Double',
             '/model/wamv/odometry@nav_msgs/msg/Odometry[gz.msgs.Odometry',
             '/model/x500/odometry@nav_msgs/msg/Odometry[gz.msgs.Odometry',
+            '/world/wamv_world/wrench@ros_gz_interfaces/msg/EntityWrench]gz.msgs.EntityWrench',
         ],
         remappings=[
             ('/wamv/thrusters/left/thrust', '/boat/thrusters/left/thrust'),
@@ -169,6 +170,14 @@ def generate_launch_description():
         )
     )
 
+    tether_node = Node(
+        package='ats_tether',
+        executable='ats_tether_node',
+        name='ats_tether_node',
+        parameters=[{'use_sim_time': True}],
+        output='screen'
+    )
+
     return LaunchDescription([
         set_gz_resource_path,
         world_launch,
@@ -180,5 +189,6 @@ def generate_launch_description():
         micro_ros_agent,
         bridge,
         foxglove_bridge,
-        localization_launch
+        localization_launch,
+        tether_node
     ])
