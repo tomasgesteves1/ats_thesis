@@ -31,7 +31,7 @@
     <plugin filename="gz-sim-contact-system" name="gz::sim::systems::Contact"> </plugin>
     <plugin filename="gz-sim-navsat-system" name="gz::sim::systems::NavSat"> </plugin>
     <plugin filename="gz-sim-air-pressure-system" name="gz::sim::systems::AirPressure"> </plugin>
-    <plugin filename="gz-sim-external-world-wrench-system" name="gz::sim::systems::ExternalWorldWrench"> </plugin>
+    <plugin filename="gz-sim-apply-link-wrench-system" name="gz::sim::systems::ApplyLinkWrench"> </plugin>
     <plugin
       filename="gz-sim-sensors-system"
       name="gz::sim::systems::Sensors">

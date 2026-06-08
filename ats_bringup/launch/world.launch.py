@@ -7,21 +7,15 @@ from launch.substitutions import LaunchConfiguration, PathJoinSubstitution, Pyth
 from launch_ros.actions import Node
 
 def generate_launch_description():
-    # Pacotes
+    # Pacotes locais
     pkg_ats_description = get_package_share_directory('ats_description')
     pkg_ats_gazebo = get_package_share_directory('ats_gazebo')
     pkg_ros_gz_sim = get_package_share_directory('ros_gz_sim')
-    pkg_vrx_gazebo = get_package_share_directory('vrx_gazebo')
-    pkg_wamv_description = get_package_share_directory('wamv_description')
-    pkg_wamv_gazebo = get_package_share_directory('wamv_gazebo')
 
-    # Configuração de Recursos do Gazebo
+    # Configuração de Recursos do Gazebo (Apenas pastas locais)
     gz_resource_path = os.pathsep.join([
         os.path.join(pkg_ats_description, 'models'),
-        os.path.join(pkg_ats_gazebo, 'models'),
-        os.path.join(pkg_vrx_gazebo, '..'),
-        os.path.join(pkg_wamv_description, '..'),
-        os.path.join(pkg_wamv_gazebo, '..')
+        os.path.join(pkg_ats_gazebo, 'models')
     ])
 
     # Argumentos
@@ -38,15 +32,6 @@ def generate_launch_description():
     )
 
     # Gazebo Sim
-    gz_args_base = [
-        '-v 1 ',
-        PathJoinSubstitution([pkg_ats_gazebo, 'worlds', LaunchConfiguration('world')]),
-        '.sdf'
-    ]
-
-    # Condicionalmente adicionar -r se NÃO estiver pausado
-    # Infelizmente o launch do ROS2 com listas é chato. Vamos usar uma PythonExpression.
-    
     gz_sim = IncludeLaunchDescription(
         PythonLaunchDescriptionSource(
             os.path.join(pkg_ros_gz_sim, 'launch', 'gz_sim.launch.py')

@@ -6,24 +6,28 @@ namespace ats_tether
 {
 
     TetherMoorDynSystem::TetherMoorDynSystem(const std::string &package_share_dir, rclcpp::Logger logger)
-        : logger_(logger)
+        : system_(nullptr), logger_(logger)
     {
         std::string lines_file = package_share_dir + "/config/lines.txt";
 
+        RCLCPP_INFO(logger_, "A carregar MoorDyn do ficheiro: %s", lines_file.c_str());
+
         if (!std::filesystem::exists(lines_file))
         {
-            RCLCPP_ERROR(logger_, "Ficheiro MoorDyn não encontrado: %s", lines_file.c_str());
+            RCLCPP_ERROR(logger_, "Ficheiro MoorDyn nao encontrado!");
             return;
         }
 
         system_ = MoorDyn_Create(lines_file.c_str());
         if (!system_)
         {
-            RCLCPP_ERROR(logger_, "Falha ao criar o sistema MoorDyn a partir de: %s", lines_file.c_str());
+            RCLCPP_ERROR(logger_, "MoorDyn_Create FALHOU! Verifique se a biblioteca MoorDyn esta bem instalada.");
         }
         else
         {
-            RCLCPP_INFO(logger_, "Sistema MoorDyn criado com sucesso: %s", lines_file.c_str());
+            unsigned int n_dof = 0;
+            MoorDyn_NCoupledDOF(system_, &n_dof);
+            RCLCPP_INFO(logger_, "MoorDyn_Create SUCESSO. Sistema espera %u graus de liberdade (DOF).", n_dof);
         }
     }
 
@@ -37,22 +41,29 @@ namespace ats_tether
 
     bool TetherMoorDynSystem::initialize(const std::vector<double> &initial_positions)
     {
-        if (!system_)
+        if (!system_) {
+            RCLCPP_ERROR(logger_, "Impossivel inicializar: o sistema MoorDyn e NULL.");
             return false;
+        }
 
-        // No MoorDyn v2, precisamos de fornecer posições e velocidades iniciais
-        // Como estamos a começar, as velocidades são zero.
+        unsigned int n_dof = 0;
+        MoorDyn_NCoupledDOF(system_, &n_dof);
+        if (initial_positions.size() != n_dof) {
+            RCLCPP_ERROR(logger_, "Tamanho do vetor ( %ld ) nao condiz com o esperado pelo MoorDyn ( %u ).", 
+                         initial_positions.size(), n_dof);
+            return false;
+        }
+
         std::vector<double> initial_velocities(initial_positions.size(), 0.0);
-
         int result = MoorDyn_Init(system_, initial_positions.data(), initial_velocities.data());
 
         if (result != MOORDYN_SUCCESS)
         {
-            RCLCPP_ERROR(logger_, "Falha na inicialização do MoorDyn! Código: %d", result);
+            RCLCPP_ERROR(logger_, "MoorDyn_Init FALHOU com codigo %d. Geometria inicial invalida?", result);
             return false;
         }
 
-        RCLCPP_INFO(logger_, "MoorDyn inicializado corretamente.");
+        RCLCPP_INFO(logger_, "MoorDyn inicializado corretamente!");
         return true;
     }
 

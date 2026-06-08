@@ -63,12 +63,25 @@ private:
 
     void check_initialization()
     {
-        if (!initialized_ && current_positions_[2] > 0.1 && current_positions_[5] > 0.1)
+        if (initialized_) return;
+
+        // Limitar as tentativas de inicialização para 1 por segundo
+        auto now = this->get_clock()->now();
+        if ((now - last_init_attempt_).seconds() < 1.0) return;
+        last_init_attempt_ = now;
+
+        bool boat_ready = std::abs(current_positions_[0]) > 0.001 || std::abs(current_positions_[1]) > 0.001 || current_positions_[2] > 0.1;
+        bool drone_ready = std::abs(current_positions_[3]) > 0.001 || std::abs(current_positions_[4]) > 0.001 || current_positions_[5] > 0.1;
+
+        if (boat_ready && drone_ready)
         {
             if (tether_physics_->initialize(current_positions_))
             {
                 initialized_ = true;
-                RCLCPP_INFO(this->get_logger(), "MoorDyn inicializado com as posições globais!");
+                RCLCPP_INFO(this->get_logger(), "MoorDyn inicializado com SUCESSO!");
+            }
+            else {
+                RCLCPP_ERROR(this->get_logger(), "MoorDyn_Init FALHOU. Verifique se o numero de pontos Coupled no lines.txt coincide (devem ser 2).");
             }
         }
     }
@@ -103,6 +116,7 @@ private:
     std::unique_ptr<ats_tether::TetherMoorDynSystem> tether_physics_;
     std::vector<double> current_positions_;
     bool initialized_;
+    rclcpp::Time last_init_attempt_{0, 0, RCL_ROS_TIME};
 
     rclcpp::Subscription<nav_msgs::msg::Odometry>::SharedPtr boat_sub_;
     rclcpp::Subscription<nav_msgs::msg::Odometry>::SharedPtr drone_sub_;
