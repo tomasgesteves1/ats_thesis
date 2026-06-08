@@ -12,6 +12,9 @@ find_package(px4_msgs REQUIRED)
 find_package(tf2 REQUIRED)
 find_package(tf2_geometry_msgs REQUIRED)
 find_package(tf2_ros REQUIRED)
+find_package(visualization_msgs REQUIRED)
+find_package(gz-transport13 REQUIRED)
+find_package(gz-msgs10 REQUIRED)
 
 # add executable boat_controller
 add_executable(boat_controller src/boat_controller.cpp)
@@ -35,6 +38,17 @@ ament_target_dependencies(drone_tracker
   tf2_ros
 )
 
+# add executable force_visualizer
+add_executable(force_visualizer src/force_visualizer.cpp)
+target_link_libraries(force_visualizer 
+  gz-transport13::gz-transport13
+  gz-msgs10::gz-msgs10
+)
+ament_target_dependencies(force_visualizer 
+  rclcpp 
+  visualization_msgs
+)
+
 # install
 install(DIRECTORY launch config
   DESTINATION share/${PROJECT_NAME}
@@ -44,6 +58,7 @@ install(DIRECTORY launch config
 install(TARGETS
   boat_controller
   drone_tracker
+  force_visualizer
   DESTINATION lib/${PROJECT_NAME}
 )
 

@@ -19,7 +19,7 @@ namespace ats_tether
         bool initialize(const std::vector<double> &initial_positions);
 
         // Avança a simulação no tempo
-        bool step(const std::vector<double> &current_positions, double dt, std::vector<double> &out_forces);
+        bool step(const std::vector<double> &current_positions, double dt, std::vector<double> &out_forces, std::vector<std::vector<double>> &out_cable_nodes);
 
     private:
         MoorDyn system_;

@@ -1,6 +1,8 @@
 #include <rclcpp/rclcpp.hpp>
 #include <nav_msgs/msg/odometry.hpp>
 #include <ros_gz_interfaces/msg/entity_wrench.hpp>
+#include <visualization_msgs/msg/marker.hpp>
+#include <geometry_msgs/msg/point.hpp>
 #include <ament_index_cpp/get_package_share_directory.hpp>
 #include "ats_tether/TetherMoorDynSystem.hpp"
 
@@ -31,6 +33,10 @@ public:
         // 5. Publicador para enviar forças para o Gazebo
         wrench_pub_ = this->create_publisher<ros_gz_interfaces::msg::EntityWrench>(
             "/world/wamv_world/wrench", 10);
+            
+        // Publicador para desenhar a catenaria do cabo
+        geometry_pub_ = this->create_publisher<visualization_msgs::msg::Marker>(
+            "/tether_geometry_marker", 10);
 
         // 6. Timer para correr a física a 50Hz (20ms)
         physics_timer_ = this->create_wall_timer(
@@ -56,7 +62,7 @@ private:
         // Simplificado: Usar posição global do drone - offset Z de 0.2m (gancho)
         current_positions_[3] = msg->pose.pose.position.x;
         current_positions_[4] = msg->pose.pose.position.y;
-        current_positions_[5] = msg->pose.pose.position.z - 0.2;
+        current_positions_[5] = msg->pose.pose.position.z + 0.26;
 
         check_initialization();
     }
@@ -91,13 +97,50 @@ private:
         if (!initialized_) return;
 
         std::vector<double> out_forces;
-        if (tether_physics_->step(current_positions_, 0.02, out_forces)) {
+        std::vector<std::vector<double>> cable_nodes;
+        
+        if (tether_physics_->step(current_positions_, 0.02, out_forces, cable_nodes)) {
             // Aplicar força no Barco
             publish_wrench(boat_link_name_, out_forces[0], out_forces[1], out_forces[2]);
 
             // Aplicar força no Drone
             publish_wrench(drone_link_name_, out_forces[3], out_forces[4], out_forces[5]);
+            
+            // Publicar geometria do cabo
+            publish_geometry(cable_nodes);
         }
+    }
+
+    void publish_geometry(const std::vector<std::vector<double>>& nodes)
+    {
+        if (nodes.empty()) return;
+
+        visualization_msgs::msg::Marker marker;
+        marker.header.frame_id = "world";
+        marker.header.stamp = this->get_clock()->now();
+        marker.ns = "tether_catenary";
+        marker.id = 0;
+        marker.type = visualization_msgs::msg::Marker::LINE_STRIP;
+        marker.action = visualization_msgs::msg::Marker::ADD;
+
+        // Largura da linha
+        marker.scale.x = 0.01; // 1 cm de espessura
+
+        // Cor do cabo (Preto ou Cinzento Escuro)
+        marker.color.r = 0.2;
+        marker.color.g = 0.2;
+        marker.color.b = 0.2;
+        marker.color.a = 1.0;
+
+        for (const auto& node_pos : nodes) {
+            geometry_msgs::msg::Point p;
+            p.x = node_pos[0];
+            p.y = node_pos[1];
+            p.z = node_pos[2];
+            marker.points.push_back(p);
+        }
+
+        geometry_pub_->publish(marker);
     }
 
     void publish_wrench(const std::string& entity_name, double fx, double fy, double fz)
@@ -121,6 +164,7 @@ private:
     rclcpp::Subscription<nav_msgs::msg::Odometry>::SharedPtr boat_sub_;
     rclcpp::Subscription<nav_msgs::msg::Odometry>::SharedPtr drone_sub_;
     rclcpp::Publisher<ros_gz_interfaces::msg::EntityWrench>::SharedPtr wrench_pub_;
+    rclcpp::Publisher<visualization_msgs::msg::Marker>::SharedPtr geometry_pub_;
     rclcpp::TimerBase::SharedPtr physics_timer_;
 
     // Nomes uniformizados das entidades no Gazebo

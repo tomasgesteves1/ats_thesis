@@ -2,7 +2,7 @@ MoorDyn v2 Input File
 ----------------------- LINE TYPES ------------------------------------------
 TypeName Diam Mass/m EA BA/-zeta EI Cd Ca CdAx CaAx Cl dF cF
 (name) (m) (kg/m) (N) (N-s/-) (N-m^2) (-) (-) (-) (-) (-) (-) (-)
-Tether 0.005 0.05 1000.0 -0.5 0.0 1.0 0.8 0.1 0.1 0.0 0.0 0.0
+Tether 0.005 0.1 10.0 -0.5 0.0 1.0 0.8 0.1 0.1 0.0 0.0 0.0
 ---------------------- POINTS ------------------------------------------------
 ID Attachment X Y Z Mass Volume CdA Ca
 (#) (word/ID) (m) (m) (m) (kg) (m^3) (m^2) (-)
@@ -11,7 +11,7 @@ ID Attachment X Y Z Mass Volume CdA Ca
 ---------------------- LINES -------------------------------------------------
 ID LineType AttachA AttachB UnstrLen NumSegs LineOutputs
 (#) (name) (#) (#) (m) (-) (-)
-1 Tether 1 2 5.0 20 p
+1 Tether 1 2 3.0 20 p
 ---------------------- OPTIONS -----------------------------------------------
 0.0001 dtM
 1.225 rho

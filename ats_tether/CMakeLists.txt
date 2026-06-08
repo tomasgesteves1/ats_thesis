@@ -11,6 +11,7 @@ find_package(ament_index_cpp REQUIRED)
 find_package(moordyn_vendor REQUIRED)
 find_package(ros_gz_interfaces REQUIRED)
 find_package(nav_msgs REQUIRED)
+find_package(visualization_msgs REQUIRED)
 
 add_library(TetherMoorDynSystem SHARED
   src/TetherMoorDynSystem.cpp
@@ -39,6 +40,7 @@ ament_target_dependencies(ats_tether_node
   rclcpp
   ros_gz_interfaces
   nav_msgs
+  visualization_msgs
 )
 
 install(TARGETS TetherMoorDynSystem ats_tether_node

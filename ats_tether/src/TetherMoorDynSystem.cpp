@@ -67,7 +67,7 @@ namespace ats_tether
         return true;
     }
 
-    bool TetherMoorDynSystem::step(const std::vector<double> &current_positions, double dt, std::vector<double> &out_forces)
+    bool TetherMoorDynSystem::step(const std::vector<double> &current_positions, double dt, std::vector<double> &out_forces, std::vector<std::vector<double>> &out_cable_nodes)
     {
         if (!system_)
             return false;
@@ -92,6 +92,19 @@ namespace ats_tether
             RCLCPP_ERROR_THROTTLE(logger_, *rclcpp::Clock::make_shared(), 1000, "Erro no MoorDyn_Step! Código: %d",
                                   result);
             return false;
+        }
+
+        // --- Extrair geometria do cabo (Linha 1) ---
+        out_cable_nodes.clear();
+        MoorDynLine line = MoorDyn_GetLine(system_, 1); // 1-indexed in MoorDyn
+        if (line) {
+            unsigned int n_nodes = 0;
+            MoorDyn_GetLineNumberNodes(line, &n_nodes);
+            for (unsigned int i = 0; i < n_nodes; ++i) {
+                double pos[3];
+                MoorDyn_GetLineNodePos(line, i, pos);
+                out_cable_nodes.push_back({pos[0], pos[1], pos[2]});
+            }
         }
 
         return true;
