@@ -119,7 +119,6 @@ def generate_launch_description():
             '/wamv/thrusters/right/pos@std_msgs/msg/Float64]gz.msgs.Double',
             '/model/wamv/odometry@nav_msgs/msg/Odometry[gz.msgs.Odometry',
             '/model/x500/odometry@nav_msgs/msg/Odometry[gz.msgs.Odometry',
-            '/world/wamv_world/wrench@ros_gz_interfaces/msg/EntityWrench]gz.msgs.EntityWrench',
         ],
         remappings=[
             ('/wamv/thrusters/left/thrust', '/boat/thrusters/left/thrust'),

@@ -1,8 +1,11 @@
 #include <rclcpp/rclcpp.hpp>
 #include <nav_msgs/msg/odometry.hpp>
-#include <ros_gz_interfaces/msg/entity_wrench.hpp>
 #include <ament_index_cpp/get_package_share_directory.hpp>
 #include "ats_tether/TetherMoorDynSystem.hpp"
+
+// Gazebo headers for direct communication
+#include <gz/transport/Node.hh>
+#include <gz/msgs/entity_wrench.pb.h>
 
 using namespace std::placeholders;
 
@@ -21,23 +24,22 @@ public:
         // [0,1,2] -> Boat, [3,4,5] -> Drone
         current_positions_.assign(6, 0.0);
 
-        // 4. Subscrever as poses globais do Gazebo
+        // 4. Subscrever as poses globais do Gazebo (via ROS bridge)
         boat_sub_ = this->create_subscription<nav_msgs::msg::Odometry>(
             "/boat/ground_truth/odometry", 10, std::bind(&AtsTetherNode::boat_callback, this, _1));
 
         drone_sub_ = this->create_subscription<nav_msgs::msg::Odometry>(
             "/drone/ground_truth/odometry", 10, std::bind(&AtsTetherNode::drone_callback, this, _1));
 
-        // 5. Publicador para enviar forças para o Gazebo
-        wrench_pub_ = this->create_publisher<ros_gz_interfaces::msg::EntityWrench>(
-            "/world/wamv_world/wrench", 10);
+        // 5. Publicador Gazebo nativo para forças
+        gz_wrench_pub_ = gz_node_.Advertise<gz::msgs::EntityWrench>("/world/wamv_world/wrench");
 
         // 6. Timer para correr a física a 50Hz (20ms)
         physics_timer_ = this->create_wall_timer(
             std::chrono::milliseconds(20),
             std::bind(&AtsTetherNode::physics_loop, this));
 
-        RCLCPP_INFO(this->get_logger(), "Nó AtsTether inicializado. Usando nomes uniformes 'boat' e 'drone'.");
+        RCLCPP_INFO(this->get_logger(), "Nó AtsTether inicializado. Usando publicador Gazebo nativo para evitar bugs do ROS Jazzy FastCDR.");
     }
 
 private:
@@ -102,17 +104,22 @@ private:
 
     void publish_wrench(const std::string& entity_name, double fx, double fy, double fz)
     {
-        ros_gz_interfaces::msg::EntityWrench msg;
-        msg.entity.name = entity_name;
-        msg.entity.type = 3; // LINK
-        msg.wrench.force.x = fx;
-        msg.wrench.force.y = fy;
-        msg.wrench.force.z = fz;
+        gz::msgs::EntityWrench msg;
+        msg.mutable_entity()->set_name(entity_name);
+        msg.mutable_entity()->set_type(gz::msgs::Entity::LINK);
         
-        wrench_pub_->publish(msg);
+        msg.mutable_wrench()->mutable_force()->set_x(fx);
+        msg.mutable_wrench()->mutable_force()->set_y(fy);
+        msg.mutable_wrench()->mutable_force()->set_z(fz);
+        
+        msg.mutable_wrench()->mutable_torque()->set_x(0.0);
+        msg.mutable_wrench()->mutable_torque()->set_y(0.0);
+        msg.mutable_wrench()->mutable_torque()->set_z(0.0);
+
+        gz_wrench_pub_.Publish(msg);
     }
 
-    // Membros
+    // Membros ROS 2
     std::unique_ptr<ats_tether::TetherMoorDynSystem> tether_physics_;
     std::vector<double> current_positions_;
     bool initialized_;
@@ -120,8 +127,11 @@ private:
 
     rclcpp::Subscription<nav_msgs::msg::Odometry>::SharedPtr boat_sub_;
     rclcpp::Subscription<nav_msgs::msg::Odometry>::SharedPtr drone_sub_;
-    rclcpp::Publisher<ros_gz_interfaces::msg::EntityWrench>::SharedPtr wrench_pub_;
     rclcpp::TimerBase::SharedPtr physics_timer_;
+
+    // Membros Gazebo Transport
+    gz::transport::Node gz_node_;
+    gz::transport::Node::Publisher gz_wrench_pub_;
 
     // Nomes uniformizados das entidades no Gazebo
     const std::string boat_link_name_ = "wamv::wamv/base_link";

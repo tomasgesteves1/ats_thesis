@@ -13,7 +13,6 @@
   <depend>gz-sim8</depend>
   <depend>ament_index_cpp</depend>
   <depend>moordyn_vendor</depend>
-  <depend>ros_gz_interfaces</depend>
   <depend>nav_msgs</depend>
 
 

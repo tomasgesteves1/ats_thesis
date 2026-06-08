@@ -9,8 +9,9 @@ find_package(ament_cmake REQUIRED)
 find_package(rclcpp REQUIRED)
 find_package(ament_index_cpp REQUIRED)
 find_package(moordyn_vendor REQUIRED)
-find_package(ros_gz_interfaces REQUIRED)
 find_package(nav_msgs REQUIRED)
+find_package(gz-transport13 REQUIRED)
+find_package(gz-msgs10 REQUIRED)
 
 add_library(TetherMoorDynSystem SHARED
   src/TetherMoorDynSystem.cpp
@@ -33,11 +34,14 @@ ament_target_dependencies(TetherMoorDynSystem
 
 add_executable(ats_tether_node src/ats_tether_node.cpp)
 
-target_link_libraries(ats_tether_node TetherMoorDynSystem)
+target_link_libraries(ats_tether_node 
+  TetherMoorDynSystem
+  gz-transport13::gz-transport13
+  gz-msgs10::gz-msgs10
+)
 
 ament_target_dependencies(ats_tether_node
   rclcpp
-  ros_gz_interfaces
   nav_msgs
 )
 
