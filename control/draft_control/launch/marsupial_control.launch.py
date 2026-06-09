@@ -5,19 +5,19 @@ from launch.actions import IncludeLaunchDescription
 from launch.launch_description_sources import PythonLaunchDescriptionSource
 
 def generate_launch_description():
-    pkg_ats_control = get_package_share_directory('ats_control')
+    pkg_draft_control = get_package_share_directory('draft_control')
 
-    # 1. Controlo do Barco (inclui Joystick)
+    # 1. Boat Control
     boat_control = IncludeLaunchDescription(
         PythonLaunchDescriptionSource(
-            os.path.join(pkg_ats_control, 'launch', 'boat_control.launch.py')
+            os.path.join(pkg_draft_control, 'launch', 'boat_control.launch.py')
         )
     )
 
-    # 2. Controlo do Drone (Tracking)
+    # 2. Drone Tracker
     drone_control = IncludeLaunchDescription(
         PythonLaunchDescriptionSource(
-            os.path.join(pkg_ats_control, 'launch', 'drone_control.launch.py')
+            os.path.join(pkg_draft_control, 'launch', 'drone_control.launch.py')
         )
     )
 

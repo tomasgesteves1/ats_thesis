@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.5)
-project(ats_control)
+project(draft_control)
 
 # find dependencies
 find_package(ament_cmake REQUIRED)

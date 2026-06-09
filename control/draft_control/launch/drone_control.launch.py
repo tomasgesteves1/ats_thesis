@@ -9,7 +9,7 @@ def generate_launch_description():
         DeclareLaunchArgument('wait_time_s', default_value='5.0'),
 
         Node(
-            package='ats_control',
+            package='draft_control',
             executable='drone_tracker',
             name='drone_tracker',
             parameters=[{
