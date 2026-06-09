@@ -1,12 +1,45 @@
 #pragma once
 
-#include <nav_msgs/msg/odometry.hpp>
-#include <geometry_msgs/msg/transform_stamped.hpp>
 #include <string>
 #include <vector>
-#include <rclcpp/time.hpp>
+#include <array>
 
 namespace frame_manager {
+
+/**
+ * @brief Pure C++ representation of Odometry data to decouple Pipeline from ROS messages.
+ */
+struct OdometryData {
+    struct {
+        double x;
+        double y;
+        double z;
+    } position;
+
+    struct {
+        double x;
+        double y;
+        double z;
+        double w;
+    } orientation;
+};
+
+/**
+ * @brief Pure C++ representation of a Transform.
+ */
+struct TransformData {
+    std::string frame_id;
+    std::string child_frame_id;
+    double stamp_sec;
+    
+    struct {
+        double x, y, z;
+    } translation;
+    
+    struct {
+        double x, y, z, w;
+    } rotation;
+};
 
 /**
  * @brief Configuration parameters for the Frame Manager Pipeline.
@@ -16,7 +49,6 @@ struct PipelineConfig {
     std::string boat_base_frame;
     std::string drone_base_frame;
     
-    // Explicit Mapping Offsets (Gazebo -> BaseLink)
     double boat_z_offset;
     double drone_z_offset;
     double boat_tether_z_offset;
@@ -27,24 +59,20 @@ public:
     explicit FrameManagerPipeline(const PipelineConfig& config);
 
     /**
-     * @brief Main processing logic. Creates the explicit mapping tree.
-     * Tree: world -> vehicle/ground_truth -> vehicle/base_link
+     * @brief Main processing logic. Pure C++ with no ROS dependencies.
      */
-    std::vector<geometry_msgs::msg::TransformStamped> run(
-        const nav_msgs::msg::Odometry::SharedPtr& boat_odom,
-        const nav_msgs::msg::Odometry::SharedPtr& drone_odom,
-        const rclcpp::Time& stamp);
+    std::vector<TransformData> run(
+        const OdometryData* boat_odom,
+        const OdometryData* drone_odom,
+        double stamp_sec);
 
 private:
-    /**
-     * @brief Creates the dynamic and static transforms for a vehicle.
-     */
     void process_vehicle(
-        const nav_msgs::msg::Odometry::SharedPtr& odom,
+        const OdometryData& odom,
         const std::string& base_frame_name,
         double z_offset,
-        const rclcpp::Time& stamp,
-        std::vector<geometry_msgs::msg::TransformStamped>& out_transforms);
+        double stamp_sec,
+        std::vector<TransformData>& out_transforms);
 
     PipelineConfig config_;
 };

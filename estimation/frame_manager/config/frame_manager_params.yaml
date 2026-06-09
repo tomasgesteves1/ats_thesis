@@ -5,9 +5,9 @@
     boat_frame: "boat/base_link"
     drone_frame: "drone/base_link"
     
-    # Odometry topics (Gazebo Ground Truth)
-    boat_odom_topic: "/boat/ground_truth/odometry"
-    drone_odom_topic: "/drone/ground_truth/odometry"
+    # Odometry topics (Relative - no leading slash)
+    boat_odom_topic: "boat/ground_truth/odometry"
+    drone_odom_topic: "drone/ground_truth/odometry"
     
     # Explicit Mapping Offsets (Gazebo -> BaseLink)
     boat_z_offset: 0.0

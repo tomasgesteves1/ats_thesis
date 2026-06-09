@@ -7,8 +7,8 @@ FrameManagerNode::FrameManagerNode() : Node("frame_manager") {
     this->declare_parameter<std::string>("world_frame", "world");
     this->declare_parameter<std::string>("boat_frame", "boat/base_link");
     this->declare_parameter<std::string>("drone_frame", "drone/base_link");
-    this->declare_parameter<std::string>("boat_odom_topic", "/boat/ground_truth/odometry");
-    this->declare_parameter<std::string>("drone_odom_topic", "/drone/ground_truth/odometry");
+    this->declare_parameter<std::string>("boat_odom_topic", "boat/ground_truth/odometry");
+    this->declare_parameter<std::string>("drone_odom_topic", "drone/ground_truth/odometry");
     this->declare_parameter<double>("boat_z_offset", 0.0);
     this->declare_parameter<double>("drone_z_offset", 0.265);
     this->declare_parameter<double>("boat_tether_z_offset", 1.3);
@@ -45,14 +45,57 @@ FrameManagerNode::FrameManagerNode() : Node("frame_manager") {
         std::chrono::duration<double>(period_sec),
         std::bind(&FrameManagerNode::timer_callback, this));
 
-    RCLCPP_INFO(this->get_logger(), "Frame Manager (Explicit Mapping) at %.2f Hz", hz);
+    RCLCPP_INFO(this->get_logger(), "Frame Manager (Gold Standard) initialized at %.2f Hz", hz);
 }
 
 void FrameManagerNode::timer_callback() {
-    auto transforms = pipeline_->run(last_boat_odom_, last_drone_odom_, this->now());
-    
-    if (!transforms.empty()) {
-        tf_broadcaster_->sendTransform(transforms);
+    // 1. Convert ROS messages to Pure C++ structs
+    std::unique_ptr<OdometryData> boat_data = nullptr;
+    if (last_boat_odom_) {
+        boat_data = std::make_unique<OdometryData>();
+        boat_data->position = {last_boat_odom_->pose.pose.position.x, 
+                               last_boat_odom_->pose.pose.position.y, 
+                               last_boat_odom_->pose.pose.position.z};
+        boat_data->orientation = {last_boat_odom_->pose.pose.orientation.x,
+                                  last_boat_odom_->pose.pose.orientation.y,
+                                  last_boat_odom_->pose.pose.orientation.z,
+                                  last_boat_odom_->pose.pose.orientation.w};
+    }
+
+    std::unique_ptr<OdometryData> drone_data = nullptr;
+    if (last_drone_odom_) {
+        drone_data = std::make_unique<OdometryData>();
+        drone_data->position = {last_drone_odom_->pose.pose.position.x, 
+                                last_drone_odom_->pose.pose.position.y, 
+                                last_drone_odom_->pose.pose.position.z};
+        drone_data->orientation = {last_drone_odom_->pose.pose.orientation.x,
+                                   last_drone_odom_->pose.pose.orientation.y,
+                                   last_drone_odom_->pose.pose.orientation.z,
+                                   last_drone_odom_->pose.pose.orientation.w};
+    }
+
+    // 2. Run Pure C++ Pipeline
+    double now_sec = this->now().seconds();
+    auto results = pipeline_->run(boat_data.get(), drone_data.get(), now_sec);
+
+    // 3. Convert results back to ROS messages for broadcasting
+    if (!results.empty()) {
+        std::vector<geometry_msgs::msg::TransformStamped> tf_msgs;
+        for (const auto& res : results) {
+            geometry_msgs::msg::TransformStamped m;
+            m.header.stamp = rclcpp::Time(static_cast<int64_t>(res.stamp_sec * 1e9), RCL_ROS_TIME);
+            m.header.frame_id = res.frame_id;
+            m.child_frame_id = res.child_frame_id;
+            m.transform.translation.x = res.translation.x;
+            m.transform.translation.y = res.translation.y;
+            m.transform.translation.z = res.translation.z;
+            m.transform.rotation.x = res.rotation.x;
+            m.transform.rotation.y = res.rotation.y;
+            m.transform.rotation.z = res.rotation.z;
+            m.transform.rotation.w = res.rotation.w;
+            tf_msgs.push_back(m);
+        }
+        tf_broadcaster_->sendTransform(tf_msgs);
     }
 }
 
