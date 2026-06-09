@@ -1042,7 +1042,7 @@
     <plugin name='gz::sim::systems::JointStatePublisher' filename='gz-sim-joint-state-publisher-system'/>
     <plugin name='gz::sim::systems::OdometryPublisher' filename='gz-sim-odometry-publisher-system'>
       <dimensions>3</dimensions>
-      <odom_publish_frequency>10.0</odom_publish_frequency>
+      <odom_publish_frequency>50.0</odom_publish_frequency>
       <odom_frame>map</odom_frame>
       <robot_base_frame>wamv/base_link</robot_base_frame>
     </plugin>

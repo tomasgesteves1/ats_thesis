@@ -163,9 +163,9 @@ def generate_launch_description():
         }]
     )
 
-    localization_launch = IncludeLaunchDescription(
+    frame_manager_launch = IncludeLaunchDescription(
         PythonLaunchDescriptionSource(
-            os.path.join(get_package_share_directory('ats_localization'), 'launch', 'localization.launch.py')
+            os.path.join(get_package_share_directory('frame_manager'), 'launch', 'frame_manager.launch.py')
         )
     )
 
@@ -180,5 +180,5 @@ def generate_launch_description():
         micro_ros_agent,
         bridge,
         foxglove_bridge,
-        localization_launch
+        frame_manager_launch
     ])

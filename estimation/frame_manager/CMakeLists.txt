@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.8)
-project(ats_localization)
+project(frame_manager)
 
 if(CMAKE_COMPILER_IS_GNUCXX OR CMAKE_CXX_COMPILER_ID MATCHES "Clang")
   add_compile_options(-Wall -Wextra -Wpedantic)
@@ -14,9 +14,18 @@ find_package(tf2 REQUIRED)
 find_package(tf2_geometry_msgs REQUIRED)
 find_package(tf2_ros REQUIRED)
 
+# Include directories
+include_directories(include)
+
 # Executables
-add_executable(frame_aligner src/frame_aligner.cpp)
-ament_target_dependencies(frame_aligner
+add_executable(frame_manager_node
+  src/frame_manager_main.cpp
+  src/frame_manager_node.cpp
+  src/frame_manager_pipeline.cpp
+  src/frame_manager_geometry.cpp
+)
+
+ament_target_dependencies(frame_manager_node
   rclcpp
   geometry_msgs
   nav_msgs
@@ -26,7 +35,7 @@ ament_target_dependencies(frame_aligner
 )
 
 install(TARGETS
-  frame_aligner
+  frame_manager_node
   DESTINATION lib/${PROJECT_NAME}
 )
 

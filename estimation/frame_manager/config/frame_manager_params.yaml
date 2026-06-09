@@ -1,9 +1,16 @@
-/frame_aligner:
+/frame_manager:
   ros__parameters:
+    # Coordinate frames
     world_frame: "world"
     boat_frame: "boat/base_link"
     drone_frame: "drone/base_link"
     
+    # Odometry topics (Gazebo Ground Truth)
     boat_odom_topic: "/boat/ground_truth/odometry"
     drone_odom_topic: "/drone/ground_truth/odometry"
+    
+    # Geometric offsets
     drone_z_offset: 0.265
+    
+    # Logic configuration
+    update_rate_hz: 30.0
