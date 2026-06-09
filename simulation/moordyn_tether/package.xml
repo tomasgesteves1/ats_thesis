@@ -1,22 +1,20 @@
 <?xml version="1.0"?>
 <?xml-model href="http://download.ros.org/schema/package_format3.xsd" schematypens="http://www.w3.org/2001/XMLSchema"?>
 <package format="3">
-  <name>ats_tether</name>
-  <version>0.0.0</version>
-  <description>TODO: Package description</description>
+  <name>moordyn_tether</name>
+  <version>0.1.0</version>
+  <description>ROS 2 bridge for MoorDyn tether physics simulation between UAV and USV</description>
   <maintainer email="tomasesteves03@gmail.com">tomas</maintainer>
-  <license>TODO: License declaration</license>
+  <license>Apache-2.0</license>
 
   <buildtool_depend>ament_cmake</buildtool_depend>
 
   <depend>rclcpp</depend>
-  <depend>gz-sim8</depend>
   <depend>ament_index_cpp</depend>
   <depend>moordyn_vendor</depend>
   <depend>ros_gz_interfaces</depend>
   <depend>nav_msgs</depend>
   <depend>visualization_msgs</depend>
-
 
   <test_depend>ament_lint_auto</test_depend>
   <test_depend>ament_lint_common</test_depend>

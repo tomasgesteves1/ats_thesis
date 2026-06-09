@@ -133,10 +133,15 @@ def generate_launch_description():
     )
 
     tether_node = Node(
-        package='ats_tether',
-        executable='ats_tether_node',
-        name='ats_tether_node',
-        parameters=[{'use_sim_time': True}],
+        package='moordyn_tether',
+        executable='moordyn_tether_node',
+        name='moordyn_tether_node',
+        parameters=[
+            os.path.join(
+                get_package_share_directory('moordyn_tether'),
+                'config', 'moordyn_tether.yaml'),
+            {'use_sim_time': True},
+        ],
         output='screen'
     )
 

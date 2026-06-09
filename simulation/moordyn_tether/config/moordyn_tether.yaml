@@ -1,0 +1,22 @@
+moordyn_tether_node:
+  ros__parameters:
+    # Attachment point offsets (meters above body origin)
+    boat_anchor_offset_z: 1.3
+    drone_hook_offset_z: 0.26
+
+    # Gazebo entity link names for wrench application
+    boat_link_name: "wamv::wamv/base_link"
+    drone_link_name: "x500::base_link"
+
+    # Physics loop rate (Hz)
+    physics_rate_hz: 50.0
+
+    # Topic names (relative unless prefixed with /)
+    boat_odom_topic: "boat/ground_truth/odometry"
+    drone_odom_topic: "drone/ground_truth/odometry"
+    wrench_topic: "/world/wamv_world/wrench"
+    marker_topic: "tether_geometry_marker"
+
+    # Marker visualization
+    marker_line_width: 0.01
+    marker_color: [0.2, 0.2, 0.2, 1.0]
