@@ -9,15 +9,19 @@ FrameManagerNode::FrameManagerNode() : Node("frame_manager") {
     this->declare_parameter<std::string>("drone_frame", "drone/base_link");
     this->declare_parameter<std::string>("boat_odom_topic", "/boat/ground_truth/odometry");
     this->declare_parameter<std::string>("drone_odom_topic", "/drone/ground_truth/odometry");
+    this->declare_parameter<double>("boat_z_offset", 0.0);
     this->declare_parameter<double>("drone_z_offset", 0.265);
+    this->declare_parameter<double>("boat_tether_z_offset", 1.3);
     this->declare_parameter<double>("update_rate_hz", 50.0);
 
     // Build pipeline config
     PipelineConfig config;
     config.world_frame = this->get_parameter("world_frame").as_string();
-    config.boat_frame = this->get_parameter("boat_frame").as_string();
-    config.drone_frame = this->get_parameter("drone_frame").as_string();
+    config.boat_base_frame = this->get_parameter("boat_frame").as_string();
+    config.drone_base_frame = this->get_parameter("drone_frame").as_string();
+    config.boat_z_offset = this->get_parameter("boat_z_offset").as_double();
     config.drone_z_offset = this->get_parameter("drone_z_offset").as_double();
+    config.boat_tether_z_offset = this->get_parameter("boat_tether_z_offset").as_double();
 
     pipeline_ = std::make_unique<FrameManagerPipeline>(config);
 
@@ -41,7 +45,7 @@ FrameManagerNode::FrameManagerNode() : Node("frame_manager") {
         std::chrono::duration<double>(period_sec),
         std::bind(&FrameManagerNode::timer_callback, this));
 
-    RCLCPP_INFO(this->get_logger(), "Frame Manager: Initialized at %.2f Hz", hz);
+    RCLCPP_INFO(this->get_logger(), "Frame Manager (Explicit Mapping) at %.2f Hz", hz);
 }
 
 void FrameManagerNode::timer_callback() {
