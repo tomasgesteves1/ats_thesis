@@ -1,10 +1,10 @@
 cmake_minimum_required(VERSION 3.5)
-project(ats_bringup)
+project(gazebo)
 
 find_package(ament_cmake REQUIRED)
 
-# Instala as pastas dentro de share/ats_bringup/
-install(DIRECTORY launch config rviz
+# Instala as pastas dentro de share/gazebo/
+install(DIRECTORY models worlds resource
   DESTINATION share/${PROJECT_NAME}
 )
 

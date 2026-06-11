@@ -6,7 +6,7 @@ from launch_ros.actions import Node
 from launch.substitutions import LaunchConfiguration
 
 def generate_launch_description():
-    pkg_ats_description = get_package_share_directory('ats_description')
+    pkg_description = get_package_share_directory('description')
     
     # Argumentos
     world_arg = DeclareLaunchArgument('world', default_value='wamv_world')
@@ -17,7 +17,7 @@ def generate_launch_description():
 
     # Configurar Resource Path
     gz_resource_path = os.environ.get('GZ_SIM_RESOURCE_PATH', '')
-    local_models_dir = os.path.join(pkg_ats_description, 'models')
+    local_models_dir = os.path.join(pkg_description, 'models')
     new_gz_resource_path = f"{local_models_dir}:{gz_resource_path}"
 
     # 1. Spawn do Drone via ROS 2 (comunica com o Gazebo que já está aberto)

@@ -8,14 +8,14 @@ from launch_ros.actions import Node
 
 def generate_launch_description():
     # Pacotes locais
-    pkg_ats_description = get_package_share_directory('ats_description')
-    pkg_ats_gazebo = get_package_share_directory('ats_gazebo')
+    pkg_description = get_package_share_directory('description')
+    pkg_gazebo = get_package_share_directory('gazebo')
     pkg_ros_gz_sim = get_package_share_directory('ros_gz_sim')
 
     # Configuração de Recursos do Gazebo (Apenas pastas locais)
     gz_resource_path = os.pathsep.join([
-        os.path.join(pkg_ats_description, 'models'),
-        os.path.join(pkg_ats_gazebo, 'models')
+        os.path.join(pkg_description, 'models'),
+        os.path.join(pkg_gazebo, 'models')
     ])
 
     # Argumentos
@@ -40,7 +40,7 @@ def generate_launch_description():
             'gz_args': [
                 PythonExpression(["'-r ' if '", LaunchConfiguration('paused'), "' == 'false' else ''"]),
                 '-v 1 ',
-                PathJoinSubstitution([pkg_ats_gazebo, 'worlds', LaunchConfiguration('world')]),
+                PathJoinSubstitution([pkg_gazebo, 'worlds', LaunchConfiguration('world')]),
                 '.sdf'
             ],
             'on_exit_shutdown': 'True'

@@ -3,7 +3,7 @@
   <link name="boat/base_link">
     <visual>
       <geometry>
-        <mesh filename="package://ats_description/models/wamv/meshes/WAM-V-Base.dae"/>
+        <mesh filename="package://description/models/wamv/meshes/WAM-V-Base.dae"/>
       </geometry>
     </visual>
   </link>

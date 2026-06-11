@@ -102,7 +102,7 @@ def generate_tether(num_links=10):
     return sdf
 
 if __name__ == "__main__":
-    tether_dir = "src/ats_description/models/tether"
+    tether_dir = "src/description/models/tether"
     os.makedirs(tether_dir, exist_ok=True)
     with open(os.path.join(tether_dir, "model.sdf"), "w") as f:
         f.write(generate_tether())

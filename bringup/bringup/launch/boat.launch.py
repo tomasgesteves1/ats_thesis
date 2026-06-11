@@ -8,8 +8,8 @@ from launch.launch_description_sources import PythonLaunchDescriptionSource
 
 def generate_launch_description():
     # Pacotes
-    pkg_ats_bringup = get_package_share_directory('ats_bringup')
-    pkg_ats_description = get_package_share_directory('ats_description')
+    pkg_bringup = get_package_share_directory('bringup')
+    pkg_description = get_package_share_directory('description')
     
     # Argumentos
     x_arg = DeclareLaunchArgument('x', default_value='0.0')
@@ -18,12 +18,12 @@ def generate_launch_description():
     world_arg = DeclareLaunchArgument('world', default_value='wamv_world')
 
     # Caminho para o modelo SDF local
-    boat_sdf_path = os.path.join(pkg_ats_description, 'models', 'wamv', 'model.sdf')
+    boat_sdf_path = os.path.join(pkg_description, 'models', 'wamv', 'model.sdf')
 
     # 1. Incluir o Mundo
     world_launch = IncludeLaunchDescription(
         PythonLaunchDescriptionSource(
-            os.path.join(pkg_ats_bringup, 'launch', 'world.launch.py')
+            os.path.join(pkg_bringup, 'launch', 'world.launch.py')
         ),
         launch_arguments={'world': LaunchConfiguration('world')}.items()
     )

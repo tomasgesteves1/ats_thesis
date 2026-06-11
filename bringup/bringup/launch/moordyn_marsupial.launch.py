@@ -7,8 +7,8 @@ from launch.launch_description_sources import PythonLaunchDescriptionSource
 from launch_ros.actions import Node
 
 def generate_launch_description():
-    pkg_ats_bringup = get_package_share_directory('ats_bringup')
-    pkg_ats_description = get_package_share_directory('ats_description')
+    pkg_bringup = get_package_share_directory('bringup')
+    pkg_description = get_package_share_directory('description')
     
     # 1. Configurações de Posição
     # Barco
@@ -21,7 +21,7 @@ def generate_launch_description():
     px4_build_dir = os.path.join(px4_dir, 'build', 'px4_sitl_default')
 
     # Configurar Caminhos de Recursos
-    local_models_dir = os.path.join(pkg_ats_description, 'models')
+    local_models_dir = os.path.join(pkg_description, 'models')
     gz_resource_path = os.environ.get('GZ_SIM_RESOURCE_PATH', '')
     new_gz_resource_path = f"{local_models_dir}:{gz_resource_path}"
 
@@ -33,7 +33,7 @@ def generate_launch_description():
     # 1. Mundo (Inicia Pausado)
     world_launch = IncludeLaunchDescription(
         PythonLaunchDescriptionSource(
-            os.path.join(pkg_ats_bringup, 'launch', 'world.launch.py')
+            os.path.join(pkg_bringup, 'launch', 'world.launch.py')
         ),
         launch_arguments={'world': 'wamv_world', 'paused': 'true'}.items()
     )
