@@ -1,19 +1,31 @@
 moordyn_tether_node:
   ros__parameters:
-    # Attachment point offsets (meters above body origin)
-    boat_anchor_offset_z: 1.3
-    drone_hook_offset_z: 0.26
+    # TF frame names for tether attachment points.
+    # anchor frames  → exact point where the tether is fixed (published by frame_manager).
+    # base   frames  → body center / base_link (used to compute the lever arm for
+    #                  the angular velocity contribution to anchor velocity).
+    boat_anchor_frame: "boat/tether_anchor"
+    boat_base_frame:   "boat/base_link"
+    drone_hook_frame:  "drone/base_link"
+    drone_base_frame:  "drone/base_link"
+
+    # Timeout for TF lookups (seconds). Physics step is skipped if any
+    # transform is unavailable within this window.
+    tf_timeout_s: 0.1
+
+    # Ground-truth odometry topics (body-frame velocities and orientation).
+    # Positions are taken from TF, not from these topics.
+    boat_odom_topic:  "boat/ground_truth/odometry"
+    drone_odom_topic: "drone/ground_truth/odometry"
 
     # Gazebo entity link names for wrench application
-    boat_link_name: "wamv::wamv/base_link"
+    boat_link_name:  "wamv::wamv/base_link"
     drone_link_name: "x500::base_link"
 
     # Physics loop rate (Hz)
     physics_rate_hz: 50.0
 
     # Topic names (relative unless prefixed with /)
-    boat_odom_topic: "boat/ground_truth/odometry"
-    drone_odom_topic: "drone/ground_truth/odometry"
     wrench_topic: "/world/wamv_world/wrench"
     marker_topic: "tether_geometry_marker"
 

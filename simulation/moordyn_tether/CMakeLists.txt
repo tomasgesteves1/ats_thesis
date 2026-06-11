@@ -11,6 +11,8 @@ find_package(ament_index_cpp REQUIRED)
 find_package(moordyn_vendor REQUIRED)
 find_package(ros_gz_interfaces REQUIRED)
 find_package(nav_msgs REQUIRED)
+find_package(tf2_ros REQUIRED)
+find_package(geometry_msgs REQUIRED)
 find_package(visualization_msgs REQUIRED)
 
 # --- Pipeline library (pure C++ + MoorDyn, no ROS) ---
@@ -41,6 +43,8 @@ ament_target_dependencies(moordyn_tether_node
   ament_index_cpp
   ros_gz_interfaces
   nav_msgs
+  tf2_ros
+  geometry_msgs
   visualization_msgs
 )
 

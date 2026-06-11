@@ -1,24 +1,27 @@
-MoorDyn v2 Input File
------------------------ LINE TYPES ------------------------------------------
-TypeName Diam Mass/m EA BA/-zeta EI Cd Ca CdAx CaAx Cl dF cF
-(name) (m) (kg/m) (N) (N-s/-) (N-m^2) (-) (-) (-) (-) (-) (-) (-)
-Tether 0.005 0.1 10.0 -0.5 0.0 1.0 0.8 0.1 0.1 0.0 0.0 0.0
----------------------- POINTS ------------------------------------------------
-ID Attachment X Y Z Mass Volume CdA Ca
-(#) (word/ID) (m) (m) (m) (kg) (m^3) (m^2) (-)
-1 Coupled 0.0 0.0 1.3 0.0 0.0 0.0 0.0
-2 Coupled 0.3 0.0 1.65 0.0 0.0 0.0 0.0
----------------------- LINES -------------------------------------------------
-ID LineType AttachA AttachB UnstrLen NumSegs LineOutputs
-(#) (name) (#) (#) (m) (-) (-)
-1 Tether 1 2 3.0 20 p
----------------------- OPTIONS -----------------------------------------------
-0.0001 dtM
-1.225 rho
-0.0 WtrDpth
-1e6 kBot
-1e5 cBot
----------------------- OUTPUTS -----------------------------------------------
-FairTen1
-AnchTen1
+--------------------- MoorDyn Input File ------------------------------------
+MoorDyn v2 - Micro-Tether de Máxima Estabilidade (O "Robotics Hack")
+---------------------- LINE TYPES ----------------------------------------------------------------------
+TypeName     Diam    Mass/m     EA     BA/-zeta    EI         Cd     Ca     CdAx    CaAx
+(name)       (m)     (kg/m)     (N)    (N-s/-)     (N-m^2)    (-)    (-)    (-)     (-)
+MicroTether  0.004   0.020      2000   -1          0.001      1.0    0.0    0.05    0.0
+---------------------- POINTS ---------------------------------------
+ID   Attachment  X       Y     Z      Mass   Volume  CdA    Ca
+(#)  (word/ID)   (m)     (m)   (m)    (kg)   (m^3)   (m^2)  (-)
+1    Coupled     0.0     0.0   1.3    0      0       0      0
+2    Coupled     0.3     0.0   1.65   0      0       0      0
+---------------------- LINES ----------------------------------------
+ID   LineType     AttachA  AttachB  UnstrLen  NumSegs  LineOutputs
+(#)  (name)       (ID)     (ID)     (m)       (-)      (-)
+1    MicroTether  1        2        3.0       15       ptv
+---------------------- OPTIONS -----------------------------------------
+1             writeLog      Write log file
+0.00004       dtM           time step to use in mooring integration (s)
+3000000       kbot          bottom stiffness (Pa/m)
+300000        cbot          bottom damping (Pa-s/m)
+9.81          g             gravity
+1025          rho           water density
+100.0         WtrDpth       Water depth
+---------------------- OUTPUTS -----------------------------------------
+FAIRTEN1
+ANCHTEN1
 ------------------------- need this line -------------------------------------
