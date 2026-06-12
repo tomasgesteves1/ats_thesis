@@ -16,15 +16,18 @@ find_package(geometry_msgs REQUIRED)
 find_package(visualization_msgs REQUIRED)
 
 # --- Pipeline library (pure C++ + MoorDyn, no ROS) ---
-add_library(tether_moordyn_pipeline SHARED
-  src/tether_moordyn_pipeline.cpp
+add_library(moordyn_tether_pipeline SHARED
+  src/moordyn_tether_pipeline.cpp
+  src/moordyn_tether_kinematics.cpp
+  src/moordyn_tether_winch.cpp
+  src/moordyn_tether_filter.cpp
 )
-target_include_directories(tether_moordyn_pipeline PUBLIC
+target_include_directories(moordyn_tether_pipeline PUBLIC
   $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
   $<INSTALL_INTERFACE:include>
   ${moordyn_vendor_INCLUDE_DIRS}
 )
-target_link_libraries(tether_moordyn_pipeline
+target_link_libraries(moordyn_tether_pipeline
   ${moordyn_vendor_LIBRARIES}
 )
 
@@ -37,7 +40,7 @@ target_include_directories(moordyn_tether_node PUBLIC
   $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
   $<INSTALL_INTERFACE:include>
 )
-target_link_libraries(moordyn_tether_node tether_moordyn_pipeline)
+target_link_libraries(moordyn_tether_node moordyn_tether_pipeline)
 ament_target_dependencies(moordyn_tether_node
   rclcpp
   ament_index_cpp
@@ -49,7 +52,7 @@ ament_target_dependencies(moordyn_tether_node
 )
 
 # --- Install ---
-install(TARGETS tether_moordyn_pipeline moordyn_tether_node
+install(TARGETS moordyn_tether_pipeline moordyn_tether_node
   DESTINATION lib/${PROJECT_NAME}
 )
 

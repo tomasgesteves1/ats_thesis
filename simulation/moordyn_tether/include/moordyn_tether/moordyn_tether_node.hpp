@@ -15,7 +15,7 @@
 #include <visualization_msgs/msg/marker_array.hpp>
 #include <std_msgs/msg/float64.hpp>
 
-#include "moordyn_tether/tether_moordyn_pipeline.hpp"
+#include "moordyn_tether/moordyn_tether_pipeline.hpp"
 
 namespace moordyn_tether
 {
@@ -25,7 +25,7 @@ namespace moordyn_tether
 /// Responsibilities (ROS glue only, no math):
 ///  - TF lookups for anchor and body-center frames → positions in world frame.
 ///  - Odometry subscriptions → body-frame velocities and orientation quaternion.
-///  - Assembles BodyState[2] and forwards it to TetherMoorDynPipeline.
+///  - Assembles BodyState[2] and forwards it to MoordynTetherPipeline.
 ///  - Publishes resulting EntityWrench forces and cable geometry Marker.
 class MoordynTetherNode : public rclcpp::Node
 {
@@ -80,9 +80,16 @@ private:
 
     // --- Virtual winch parameters ---
     bool   winch_enabled_;
+    std::string winch_mode_;
     double winch_slack_factor_;
+    double winch_target_tension_;
+    double winch_kp_tension_;
+    double winch_speed_limit_;
     double winch_min_length_;
     double winch_max_length_;
+
+    // --- Filter parameters ---
+    double force_filter_alpha_;
 
     // --- Aggregated kinematic state: [0]=boat, [1]=drone ---
     // Positions are filled by lookupBodyPositions() via TF.
@@ -94,7 +101,7 @@ private:
     bool drone_odom_received_{false};
 
     // --- MoorDyn pipeline ---
-    std::unique_ptr<TetherMoorDynPipeline> pipeline_;
+    std::unique_ptr<MoordynTetherPipeline> pipeline_;
     bool initialized_{false};
     rclcpp::Time last_init_attempt_{0, 0, RCL_ROS_TIME};
 

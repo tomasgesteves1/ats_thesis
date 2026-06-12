@@ -42,10 +42,23 @@ moordyn_tether_node:
     force_magnitude_boat_topic: "tether_force_boat_mag"
     force_magnitude_drone_topic: "tether_force_drone_mag"
 
-    # Virtual winch — adjusts unstretched cable length to track
-    # the straight-line distance between anchor points.
-    # Prevents slack cable sag without pulling the drone.
+    # Virtual Winch configuration
+    # Prevents slack cable sag or excessive pulling.
     winch_enabled: true
+    winch_mode: "tension"      # "geometric" (slack_factor) or "tension" (target_tension)
+    
+    # Geometric Mode:
     winch_slack_factor: 1.15   # 1.15 = 15 % extra cable beyond straight-line span
-    winch_min_length: 3.0      # CFL-safe minimum [m] (CFL≈0.023 with N=30, EA=100, dtM=0.0002)
+    
+    # Tension Mode:
+    winch_target_tension: 10.0 # Target tension to maintain [N]
+    winch_kp_tension: 5.0     # P-gain for winch speed (m/s per N of error)
+    winch_speed_limit: 10.0     # Max winch spooling speed [m/s]
+    
+    # Common Constraints:
+    winch_min_length: 1.5      # CFL-safe minimum [m] (CFL≈0.023 with N=30, EA=100, dtM=0.0002)
     winch_max_length: 50.0     # maximum unstretched length [m]
+
+    # Force filter
+    # Reduces high-frequency noise from the physics solver
+    force_filter_alpha: 0.2    # EMA smoothing factor (0.0 = max smoothing, 1.0 = raw signal)
