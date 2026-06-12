@@ -73,7 +73,7 @@ bool MoordynTetherPipeline::initialize(const std::array<BodyState, 2> & body_sta
     {
         const double span = Kinematics::distance3(body_states[0].anchor_pos,
                                                   body_states[1].anchor_pos);
-        winch_.update(line_, body_states, 0.0);
+        winch_.update(line_, body_states, 0.0, last_forces_);
         
         log(LogLevel::kInfo,
             "Winch: initial span = " + std::to_string(span) +
@@ -105,7 +105,7 @@ bool MoordynTetherPipeline::step(const std::array<BodyState, 2> & body_states,
     }
 
     // Apply virtual winch before the physics step.
-    winch_.update(line_, body_states, dt);
+    winch_.update(line_, body_states, dt, last_forces_);
 
     double pos[6];
     double vel[6];
@@ -132,6 +132,7 @@ bool MoordynTetherPipeline::step(const std::array<BodyState, 2> & body_states,
 
     // Apply exponential moving average filter to reduce noise/spikes.
     force_filter_.apply(out_forces, out_forces);
+    last_forces_ = out_forces;
 
     // Extract cable geometry (Line 1, 1-indexed in MoorDyn)
     out_cable_nodes.clear();

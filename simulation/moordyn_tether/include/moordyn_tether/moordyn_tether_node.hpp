@@ -84,6 +84,7 @@ private:
     double winch_slack_factor_;
     double winch_target_tension_;
     double winch_kp_tension_;
+    double winch_kd_tension_;
     double winch_speed_limit_;
     double winch_min_length_;
     double winch_max_length_;

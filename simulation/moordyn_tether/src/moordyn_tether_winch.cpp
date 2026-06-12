@@ -10,7 +10,7 @@ void VirtualWinch::setConfig(const WinchConfig & config)
     cfg_ = config;
 }
 
-void VirtualWinch::update(MoorDynLine line, const std::array<BodyState, 2> & body_states, double dt)
+void VirtualWinch::update(MoorDynLine line, const std::array<BodyState, 2> & body_states, double dt, const std::vector<double>& forces)
 {
     if (!cfg_.enabled || !line)
     {
@@ -27,22 +27,35 @@ void VirtualWinch::update(MoorDynLine line, const std::array<BodyState, 2> & bod
     }
     else if (cfg_.mode == WinchMode::TENSION)
     {
-        double current_tension = 0.0;
-        MoorDyn_GetLineFairTen(line, &current_tension);
-
-        double error = current_tension - cfg_.target_tension;
-        
-        // P-control: if tension is too high (error > 0), we need to release cable (delta_length > 0)
-        double delta_length = cfg_.kp_tension * error * dt;
-        
-        // Limit spooling speed
-        double max_delta = cfg_.winch_speed_limit * dt;
-        delta_length = std::clamp(delta_length, -max_delta, max_delta);
-
         double current_length = 0.0;
         MoorDyn_GetLineUnstretchedLength(line, &current_length);
-        
-        desired = current_length + delta_length;
+
+        if (forces.size() >= 3)
+        {
+            double fz = forces[2]; // Z-force exerted BY the mooring ON the boat
+            
+            double error = fz - cfg_.target_tension;
+            
+            double d_error = 0.0;
+            if (has_last_error_ && dt > 0.0)
+            {
+                d_error = (error - last_error_) / dt;
+            }
+            last_error_ = error;
+            has_last_error_ = true;
+
+            // PD-control
+            double delta_length = (cfg_.kp_tension * error + cfg_.kd_tension * d_error) * dt;
+            
+            double max_delta = cfg_.winch_speed_limit * dt;
+            delta_length = std::clamp(delta_length, -max_delta, max_delta);
+
+            desired = current_length + delta_length;
+        }
+        else
+        {
+            desired = current_length;
+        }
     }
 
     if (desired < cfg_.min_length)

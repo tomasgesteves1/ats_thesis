@@ -56,6 +56,7 @@ private:
     MoorDynLine  line_{nullptr};     ///< Cached handle to Line 1.
     VirtualWinch winch_;             ///< Winch logic delegator.
     ForceFilter  force_filter_;      ///< Noise filter for forces.
+    std::vector<double> last_forces_;///< Forces from the previous physics step.
     LogCallback  log_cb_;
 };
 

@@ -64,9 +64,10 @@ MoordynTetherNode::MoordynTetherNode(const rclcpp::NodeOptions & options)
     winch_enabled_      = this->declare_parameter("winch_enabled", false);
     winch_mode_         = this->declare_parameter("winch_mode", std::string("geometric"));
     winch_slack_factor_ = this->declare_parameter("winch_slack_factor", 1.15);
-    winch_target_tension_ = this->declare_parameter("winch_target_tension", 10.0);
-    winch_kp_tension_   = this->declare_parameter("winch_kp_tension", 0.01);
-    winch_speed_limit_  = this->declare_parameter("winch_speed_limit", 2.0);
+    winch_target_tension_ = this->declare_parameter("winch_target_tension", 1.0);
+    winch_kp_tension_   = this->declare_parameter("winch_kp_tension", 1.0);
+    winch_kd_tension_   = this->declare_parameter("winch_kd_tension", 0.1);
+    winch_speed_limit_  = this->declare_parameter("winch_speed_limit", 10.0);
     winch_min_length_   = this->declare_parameter("winch_min_length", 3.0);
     winch_max_length_   = this->declare_parameter("winch_max_length", 100.0);
 
@@ -99,6 +100,7 @@ MoordynTetherNode::MoordynTetherNode(const rclcpp::NodeOptions & options)
     wcfg.slack_factor  = winch_slack_factor_;
     wcfg.target_tension = winch_target_tension_;
     wcfg.kp_tension    = winch_kp_tension_;
+    wcfg.kd_tension    = winch_kd_tension_;
     wcfg.winch_speed_limit = winch_speed_limit_;
     wcfg.min_length    = winch_min_length_;
     wcfg.max_length    = winch_max_length_;

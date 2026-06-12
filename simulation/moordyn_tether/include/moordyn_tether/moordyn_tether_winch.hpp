@@ -26,9 +26,10 @@ struct WinchConfig
     double slack_factor{1.15};   ///< Multiplier on straight-line distance (>1.0).
 
     // --- Tension Mode Parameters ---
-    double target_tension{10.0};   ///< Target tension to maintain [N].
-    double kp_tension{0.01};       ///< Proportional gain for tension control [m/s per N].
-    double winch_speed_limit{2.0}; ///< Max spooling speed [m/s].
+    double target_tension{1.0};   ///< Target tension to maintain [N].
+    double kp_tension{1.0};       ///< Proportional gain for tension control [m/s per N].
+    double kd_tension{0.1};       ///< Derivative gain to damp oscillations [m/s per (N/s)].
+    double winch_speed_limit{10.0}; ///< Max spooling speed [m/s].
 
     // --- Constraints ---
     double min_length{3.0};      ///< Minimum unstretched length [m].
@@ -48,10 +49,12 @@ public:
     const WinchConfig & getConfig() const { return cfg_; }
 
     /// @brief Computes the desired unstretched length and applies it to MoorDyn.
-    void update(MoorDynLine line, const std::array<BodyState, 2> & body_states, double dt);
+    void update(MoorDynLine line, const std::array<BodyState, 2> & body_states, double dt, const std::vector<double>& forces);
 
 private:
     WinchConfig cfg_;
+    double last_error_{0.0};
+    bool   has_last_error_{false};
 };
 
 }  // namespace moordyn_tether

@@ -51,9 +51,10 @@ moordyn_tether_node:
     winch_slack_factor: 1.15   # 1.15 = 15 % extra cable beyond straight-line span
     
     # Tension Mode:
-    winch_target_tension: 10.0 # Target tension to maintain [N]
-    winch_kp_tension: 5.0     # P-gain for winch speed (m/s per N of error)
-    winch_speed_limit: 10.0     # Max winch spooling speed [m/s]
+    winch_target_tension: -0.1 # Target tension [N] on Z-axis (e.g., -0.5N pulling down)
+    winch_kp_tension: 1.8     # P-gain for winch speed (m/s per N of error)
+    winch_kd_tension: 0.1     # D-gain to damp oscillations
+    winch_speed_limit: 10.0   # Max winch spooling speed [m/s]
     
     # Common Constraints:
     winch_min_length: 1.5      # CFL-safe minimum [m] (CFL≈0.023 with N=30, EA=100, dtM=0.0002)
@@ -61,4 +62,4 @@ moordyn_tether_node:
 
     # Force filter
     # Reduces high-frequency noise from the physics solver
-    force_filter_alpha: 0.2    # EMA smoothing factor (0.0 = max smoothing, 1.0 = raw signal)
+    force_filter_alpha: 0.05    # EMA smoothing factor (0.0 = max smoothing, 1.0 = raw signal)
