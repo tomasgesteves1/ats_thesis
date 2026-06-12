@@ -31,6 +31,12 @@ def generate_launch_description():
         description='Iniciar simulação pausada'
     )
 
+    headless_arg = DeclareLaunchArgument(
+        'headless',
+        default_value='false',
+        description='Executar o Gazebo em modo headless (sem interface gráfica)'
+    )
+
     # Gazebo Sim
     gz_sim = IncludeLaunchDescription(
         PythonLaunchDescriptionSource(
@@ -38,6 +44,7 @@ def generate_launch_description():
         ),
         launch_arguments={
             'gz_args': [
+                PythonExpression(["'-s ' if '", LaunchConfiguration('headless'), "' == 'true' else ''"]),
                 PythonExpression(["'-r ' if '", LaunchConfiguration('paused'), "' == 'false' else ''"]),
                 '-v 1 ',
                 PathJoinSubstitution([pkg_gazebo, 'worlds', LaunchConfiguration('world')]),
@@ -51,5 +58,6 @@ def generate_launch_description():
         SetEnvironmentVariable('GZ_SIM_RESOURCE_PATH', gz_resource_path),
         world_arg,
         paused_arg,
+        headless_arg,
         gz_sim
     ])
