@@ -5,7 +5,7 @@ from launch.substitutions import LaunchConfiguration
 
 def generate_launch_description():
     return LaunchDescription([
-        DeclareLaunchArgument('follow_height', default_value='29.0'),
+        DeclareLaunchArgument('follow_height', default_value='5.0'),
         DeclareLaunchArgument('wait_time_s', default_value='5.0'),
 
         Node(

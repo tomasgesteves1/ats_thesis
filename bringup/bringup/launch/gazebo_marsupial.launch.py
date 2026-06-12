@@ -3,7 +3,7 @@ from ament_index_python.packages import get_package_share_directory, get_package
 from launch import LaunchDescription
 from launch.actions import ExecuteProcess, SetEnvironmentVariable, IncludeLaunchDescription, TimerAction, RegisterEventHandler, DeclareLaunchArgument
 from launch.substitutions import LaunchConfiguration
-from launch.event_handlers import OnProcessExit
+from launch.event_handlers import OnProcessExit, OnShutdown
 from launch.launch_description_sources import PythonLaunchDescriptionSource
 from launch_ros.actions import Node
 
@@ -149,6 +149,7 @@ def generate_launch_description():
             '/wamv/thrusters/right/pos@std_msgs/msg/Float64]gz.msgs.Double',
             '/model/wamv/odometry@nav_msgs/msg/Odometry[gz.msgs.Odometry',
             '/model/x500/odometry@nav_msgs/msg/Odometry[gz.msgs.Odometry',
+            '/world/wamv_world/stats@ros_gz_interfaces/msg/WorldStatistics[gz.msgs.WorldStatistics',
         ],
         remappings=[
             ('/wamv/thrusters/left/thrust', '/boat/thrusters/left/thrust'),
@@ -157,6 +158,7 @@ def generate_launch_description():
             ('/wamv/thrusters/right/pos', '/boat/thrusters/right/pos'),
             ('/model/wamv/odometry', '/boat/ground_truth/odometry'),
             ('/model/x500/odometry', '/drone/ground_truth/odometry'),
+            ('/world/wamv_world/stats', '/simulation/stats'),
         ],
         output='screen'
     )
@@ -177,6 +179,18 @@ def generate_launch_description():
         )
     )
 
+    # Cleanup do PX4
+    force_kill_px4 = RegisterEventHandler(
+        event_handler=OnShutdown(
+            on_shutdown=[
+                ExecuteProcess(
+                    cmd=['pkill', '-9', '-f', 'px4'],
+                    name='kill_px4'
+                )
+            ]
+        )
+    )
+
     return LaunchDescription([
         headless_arg,
         set_gz_resource_path,
@@ -189,5 +203,6 @@ def generate_launch_description():
         micro_ros_agent,
         bridge,
         foxglove_bridge,
-        frame_manager_launch
+        frame_manager_launch,
+        force_kill_px4
     ])

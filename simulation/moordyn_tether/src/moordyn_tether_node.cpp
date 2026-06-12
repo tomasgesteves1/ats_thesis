@@ -51,7 +51,8 @@ MoordynTetherNode::MoordynTetherNode(const rclcpp::NodeOptions & options)
 
     force_marker_topic_ = this->declare_parameter("force_marker_topic",
                               std::string("tether_force_markers"));
-    force_marker_scale_ = this->declare_parameter("force_marker_scale", 0.01);
+    force_marker_max_force_ = this->declare_parameter("force_marker_max_force", 10.0);
+    force_marker_max_length_ = this->declare_parameter("force_marker_max_length", 2.0);
     force_marker_color_ = this->declare_parameter("force_marker_color",
                               std::vector<double>{1.0, 0.0, 0.0, 1.0});
 
@@ -414,9 +415,28 @@ void MoordynTetherNode::publishForceMarkers(const std::vector<double> & out_forc
         p_start.z = anchor_pos[2];
 
         geometry_msgs::msg::Point p_end;
-        p_end.x = anchor_pos[0] + force[0] * force_marker_scale_;
-        p_end.y = anchor_pos[1] + force[1] * force_marker_scale_;
-        p_end.z = anchor_pos[2] + force[2] * force_marker_scale_;
+        double force_mag = std::sqrt(force[0]*force[0] + force[1]*force[1] + force[2]*force[2]);
+
+        if (force_mag < 1e-6)
+        {
+            p_end = p_start;
+            // Hide arrow if force is zero
+            marker.scale.x = 0.0;
+            marker.scale.y = 0.0;
+            marker.scale.z = 0.0;
+        }
+        else
+        {
+            // Cap the force magnitude
+            double capped_force = std::min(force_mag, force_marker_max_force_);
+            
+            // Map the capped force to the maximum length linearly
+            double display_length = (capped_force / force_marker_max_force_) * force_marker_max_length_;
+            
+            p_end.x = anchor_pos[0] + (force[0] / force_mag) * display_length;
+            p_end.y = anchor_pos[1] + (force[1] / force_mag) * display_length;
+            p_end.z = anchor_pos[2] + (force[2] / force_mag) * display_length;
+        }
 
         marker.points.push_back(p_start);
         marker.points.push_back(p_end);

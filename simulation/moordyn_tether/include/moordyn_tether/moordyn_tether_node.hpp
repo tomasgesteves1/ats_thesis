@@ -71,7 +71,8 @@ private:
 
     // --- Force marker parameters ---
     std::string force_marker_topic_;
-    double      force_marker_scale_;
+    double force_marker_max_force_;
+    double force_marker_max_length_;
     std::vector<double> force_marker_color_;
 
     // --- Force magnitude parameters ---

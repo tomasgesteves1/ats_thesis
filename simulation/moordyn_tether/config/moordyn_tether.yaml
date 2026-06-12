@@ -35,7 +35,8 @@ moordyn_tether_node:
 
     # Force Marker visualization (Arrow)
     force_marker_topic: "tether_force_markers"
-    force_marker_scale: 0.01  # scale factor: meters per Newton
+    force_marker_max_force: 10.0  # Force [N] that corresponds to the maximum arrow length
+    force_marker_max_length: 2.0  # Maximum length of the arrow [m]
     force_marker_color: [1.0, 0.0, 0.0, 1.0] # RGBA
 
     # Force magnitude topics for plotting
