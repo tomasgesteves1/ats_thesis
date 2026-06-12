@@ -161,7 +161,8 @@ bool TetherMoorDynPipeline::step(const std::array<BodyState, 2> & body_states,
         {
             double node_pos[3];
             MoorDyn_GetLineNodePos(line_, i, node_pos);
-            out_cable_nodes.push_back({node_pos[0], node_pos[1], node_pos[2]});
+            // Add the 100.0 offset back for visualization
+            out_cable_nodes.push_back({node_pos[0], node_pos[1], node_pos[2] + 100.0});
         }
     }
 
@@ -294,10 +295,10 @@ void TetherMoorDynPipeline::buildPositionVector(
 {
     pos[0] = states[0].anchor_pos[0];
     pos[1] = states[0].anchor_pos[1];
-    pos[2] = states[0].anchor_pos[2];
+    pos[2] = states[0].anchor_pos[2] - 100.0; // Z offset to trick MoorDyn into being underwater
     pos[3] = states[1].anchor_pos[0];
     pos[4] = states[1].anchor_pos[1];
-    pos[5] = states[1].anchor_pos[2];
+    pos[5] = states[1].anchor_pos[2] - 100.0; // Z offset to trick MoorDyn into being underwater
 }
 
 void TetherMoorDynPipeline::buildVelocityVector(

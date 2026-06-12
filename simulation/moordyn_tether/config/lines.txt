@@ -19,7 +19,7 @@ ID   LineType     AttachA  AttachB  UnstrLen  NumSegs  LineOutputs
 3000000       kbot          bottom stiffness (Pa/m)
 300000        cbot          bottom damping (Pa-s/m)
 9.81          g             gravity
-1.225         rho           fluid density (air)
+50         rho           fluid density (air)
 200.0         WtrDpth       Water depth (seabed far away)
 ---------------------- OUTPUTS -----------------------------------------
 FAIRTEN1
