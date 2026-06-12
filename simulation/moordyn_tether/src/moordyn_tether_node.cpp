@@ -7,6 +7,7 @@
 
 #include <chrono>
 #include <functional>
+#include <cmath>
 
 namespace moordyn_tether
 {
@@ -48,6 +49,23 @@ MoordynTetherNode::MoordynTetherNode(const rclcpp::NodeOptions & options)
     auto marker_topic     = this->declare_parameter("marker_topic",
                                 std::string("tether_geometry_marker"));
 
+    force_marker_topic_ = this->declare_parameter("force_marker_topic",
+                              std::string("tether_force_markers"));
+    force_marker_scale_ = this->declare_parameter("force_marker_scale", 0.01);
+    force_marker_color_ = this->declare_parameter("force_marker_color",
+                              std::vector<double>{1.0, 0.0, 0.0, 1.0});
+
+    force_mag_boat_topic_ = this->declare_parameter("force_magnitude_boat_topic",
+                              std::string("tether_force_boat_mag"));
+    force_mag_drone_topic_ = this->declare_parameter("force_magnitude_drone_topic",
+                              std::string("tether_force_drone_mag"));
+
+    // ---- Virtual winch parameters ----
+    winch_enabled_      = this->declare_parameter("winch_enabled", false);
+    winch_slack_factor_ = this->declare_parameter("winch_slack_factor", 1.15);
+    winch_min_length_   = this->declare_parameter("winch_min_length", 3.0);
+    winch_max_length_   = this->declare_parameter("winch_max_length", 100.0);
+
     // ---- TF2 buffer and listener ----
     tf_buffer_   = std::make_shared<tf2_ros::Buffer>(this->get_clock());
     tf_listener_ = std::make_shared<tf2_ros::TransformListener>(*tf_buffer_);
@@ -63,6 +81,14 @@ MoordynTetherNode::MoordynTetherNode(const rclcpp::NodeOptions & options)
             pipelineLogBridge(level, msg);
         });
 
+    // Forward winch configuration to the pipeline.
+    WinchConfig wcfg;
+    wcfg.enabled      = winch_enabled_;
+    wcfg.slack_factor  = winch_slack_factor_;
+    wcfg.min_length    = winch_min_length_;
+    wcfg.max_length    = winch_max_length_;
+    pipeline_->setWinchConfig(wcfg);
+
     // ---- Odometry subscriptions (velocity and orientation only) ----
     using std::placeholders::_1;
     boat_odom_sub_ = this->create_subscription<nav_msgs::msg::Odometry>(
@@ -77,6 +103,16 @@ MoordynTetherNode::MoordynTetherNode(const rclcpp::NodeOptions & options)
         wrench_topic, 10);
     geometry_pub_ = this->create_publisher<visualization_msgs::msg::Marker>(
         marker_topic, 10);
+    force_marker_pub_ = this->create_publisher<visualization_msgs::msg::MarkerArray>(
+        force_marker_topic_, 10);
+    force_mag_boat_pub_ = this->create_publisher<std_msgs::msg::Float64>(
+        force_mag_boat_topic_, 10);
+    force_mag_drone_pub_ = this->create_publisher<std_msgs::msg::Float64>(
+        force_mag_drone_topic_, 10);
+    distance_pub_ = this->create_publisher<std_msgs::msg::Float64>(
+        "~/tether_distance", 10);
+    tether_length_pub_ = this->create_publisher<std_msgs::msg::Float64>(
+        "~/tether_length", 10);
 
     // ---- Physics timer ----
     auto period_ms = static_cast<int>(1000.0 / physics_rate_hz_);
@@ -258,6 +294,23 @@ void MoordynTetherNode::physicsLoop()
         publishWrench(drone_link_name_,
                       out_forces[3], out_forces[4], out_forces[5]);
         publishGeometry(cable_nodes);
+        publishForceMarkers(out_forces);
+        publishForceMagnitudes(out_forces);
+
+        // Publish distance between anchors
+        const double dx = body_states_[0].anchor_pos[0] - body_states_[1].anchor_pos[0];
+        const double dy = body_states_[0].anchor_pos[1] - body_states_[1].anchor_pos[1];
+        const double dz = body_states_[0].anchor_pos[2] - body_states_[1].anchor_pos[2];
+        const double dist = std::sqrt(dx * dx + dy * dy + dz * dz);
+        
+        std_msgs::msg::Float64 dist_msg;
+        dist_msg.data = dist;
+        distance_pub_->publish(dist_msg);
+
+        // Publish exact tether unstretched length
+        std_msgs::msg::Float64 len_msg;
+        len_msg.data = pipeline_->getTetherLength();
+        tether_length_pub_->publish(len_msg);
     }
 }
 
@@ -306,6 +359,74 @@ void MoordynTetherNode::publishGeometry(
     }
 
     geometry_pub_->publish(marker);
+}
+
+void MoordynTetherNode::publishForceMarkers(const std::vector<double> & out_forces)
+{
+    if (out_forces.size() < 6) {
+        return;
+    }
+
+    visualization_msgs::msg::MarkerArray msg;
+
+    auto create_arrow = [this](int id, const double* anchor_pos, const double* force, const std::string& ns) {
+        visualization_msgs::msg::Marker marker;
+        marker.header.frame_id = "world";
+        marker.header.stamp    = this->get_clock()->now();
+        marker.ns              = ns;
+        marker.id              = id;
+        marker.type            = visualization_msgs::msg::Marker::ARROW;
+        marker.action          = visualization_msgs::msg::Marker::ADD;
+        
+        // Arrow scale: x is shaft diameter, y is head diameter, z is head length.
+        marker.scale.x = 0.05;
+        marker.scale.y = 0.1;
+        marker.scale.z = 0.1;
+        
+        marker.color.r = static_cast<float>(force_marker_color_[0]);
+        marker.color.g = static_cast<float>(force_marker_color_[1]);
+        marker.color.b = static_cast<float>(force_marker_color_[2]);
+        marker.color.a = static_cast<float>(force_marker_color_[3]);
+
+        geometry_msgs::msg::Point p_start;
+        p_start.x = anchor_pos[0];
+        p_start.y = anchor_pos[1];
+        p_start.z = anchor_pos[2];
+
+        geometry_msgs::msg::Point p_end;
+        p_end.x = anchor_pos[0] + force[0] * force_marker_scale_;
+        p_end.y = anchor_pos[1] + force[1] * force_marker_scale_;
+        p_end.z = anchor_pos[2] + force[2] * force_marker_scale_;
+
+        marker.points.push_back(p_start);
+        marker.points.push_back(p_end);
+
+        return marker;
+    };
+
+    msg.markers.push_back(create_arrow(0, body_states_[0].anchor_pos, &out_forces[0], "boat_force"));
+    msg.markers.push_back(create_arrow(1, body_states_[1].anchor_pos, &out_forces[3], "drone_force"));
+
+    force_marker_pub_->publish(msg);
+}
+
+void MoordynTetherNode::publishForceMagnitudes(const std::vector<double> & out_forces)
+{
+    if (out_forces.size() < 6) {
+        return;
+    }
+
+    auto calc_mag = [](double fx, double fy, double fz) {
+        return std::sqrt(fx * fx + fy * fy + fz * fz);
+    };
+
+    std_msgs::msg::Float64 boat_msg;
+    boat_msg.data = calc_mag(out_forces[0], out_forces[1], out_forces[2]);
+    force_mag_boat_pub_->publish(boat_msg);
+
+    std_msgs::msg::Float64 drone_msg;
+    drone_msg.data = calc_mag(out_forces[3], out_forces[4], out_forces[5]);
+    force_mag_drone_pub_->publish(drone_msg);
 }
 
 // ===========================================================================

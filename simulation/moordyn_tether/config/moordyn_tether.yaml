@@ -32,3 +32,20 @@ moordyn_tether_node:
     # Marker visualization
     marker_line_width: 0.01
     marker_color: [0.2, 0.2, 0.2, 1.0]
+
+    # Force Marker visualization (Arrow)
+    force_marker_topic: "tether_force_markers"
+    force_marker_scale: 0.01  # scale factor: meters per Newton
+    force_marker_color: [1.0, 0.0, 0.0, 1.0] # RGBA
+
+    # Force magnitude topics for plotting
+    force_magnitude_boat_topic: "tether_force_boat_mag"
+    force_magnitude_drone_topic: "tether_force_drone_mag"
+
+    # Virtual winch — adjusts unstretched cable length to track
+    # the straight-line distance between anchor points.
+    # Prevents slack cable sag without pulling the drone.
+    winch_enabled: true
+    winch_slack_factor: 1.15   # 1.15 = 15 % extra cable beyond straight-line span
+    winch_min_length: 3.0      # CFL-safe minimum [m] (CFL≈0.023 with N=30, EA=100, dtM=0.0002)
+    winch_max_length: 50.0     # maximum unstretched length [m]

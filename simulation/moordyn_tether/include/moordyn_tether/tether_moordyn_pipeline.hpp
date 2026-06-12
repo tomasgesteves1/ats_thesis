@@ -13,6 +13,20 @@ namespace moordyn_tether
 /// Log severity levels for the pipeline callback.
 enum class LogLevel { kInfo, kWarn, kError };
 
+/// @brief Configuration for the virtual winch.
+///
+/// When enabled, the pipeline adjusts the MoorDyn line's unstretched length
+/// each step so that it equals  (straight-line distance) × slack_factor.
+/// A slack_factor of 1.15 means the cable is always 15 % longer than the
+/// straight-line span, preventing both excessive sag and pulling the drone.
+struct WinchConfig
+{
+    bool   enabled{false};
+    double slack_factor{1.15};   ///< Multiplier on straight-line distance (>1.0).
+    double min_length{3.0};      ///< Minimum unstretched length [m].
+    double max_length{100.0};    ///< Maximum unstretched length [m].
+};
+
 /// Callback type for logging from the pure C++ pipeline.
 using LogCallback = std::function<void(LogLevel, const std::string &)>;
 
@@ -55,6 +69,10 @@ public:
     /// @return true on success.
     bool initialize(const std::array<BodyState, 2> & body_states);
 
+    /// @brief Update the winch configuration at runtime.
+    /// @param config New winch parameters.
+    void setWinchConfig(const WinchConfig & config);
+
     /// @brief Advance the physics simulation by dt seconds.
     /// @param body_states Current [boat, drone] kinematic states.
     /// @param dt Time step in seconds.
@@ -68,6 +86,10 @@ public:
 
     /// @return true if the MoorDyn system handle was created successfully.
     bool isValid() const { return system_ != nullptr; }
+
+    /// @brief Get the current unstretched length of the tether.
+    /// @return The unstretched length in meters, or 0.0 if not available.
+    double getTetherLength() const;
 
 private:
     // --- Math helpers (pure C++, no ROS, no Eigen) ---
@@ -88,11 +110,22 @@ private:
     /// Build a flat velocity vector [boat_anchor xyz, drone_anchor xyz] for MoorDyn.
     static void buildVelocityVector(const std::array<BodyState, 2> & states, double vel[6]);
 
+    // --- Virtual winch ---
+
+    /// Compute the desired unstretched length from anchor positions and
+    /// apply it to MoorDyn via SetLineUnstretchedLength.
+    void updateWinch(const std::array<BodyState, 2> & body_states);
+
+    /// Euclidean distance between two 3-D points.
+    static double distance3(const double a[3], const double b[3]);
+
     // --- Logging ---
     void log(LogLevel level, const std::string & msg) const;
 
-    MoorDyn    system_{nullptr};
-    LogCallback log_cb_;
+    MoorDyn      system_{nullptr};
+    MoorDynLine  line_{nullptr};     ///< Cached handle to Line 1.
+    WinchConfig  winch_cfg_;         ///< Current winch configuration.
+    LogCallback  log_cb_;
 };
 
 }  // namespace moordyn_tether

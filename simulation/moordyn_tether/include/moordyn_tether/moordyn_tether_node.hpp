@@ -12,6 +12,8 @@
 #include <tf2_ros/transform_listener.h>
 #include <ros_gz_interfaces/msg/entity_wrench.hpp>
 #include <visualization_msgs/msg/marker.hpp>
+#include <visualization_msgs/msg/marker_array.hpp>
+#include <std_msgs/msg/float64.hpp>
 
 #include "moordyn_tether/tether_moordyn_pipeline.hpp"
 
@@ -49,6 +51,8 @@ private:
                        double fx, double fy, double fz);
     void publishGeometry(
         const std::vector<std::vector<double>> & nodes);
+    void publishForceMarkers(const std::vector<double> & out_forces);
+    void publishForceMagnitudes(const std::vector<double> & out_forces);
 
     // --- Pipeline log bridge ---
     void pipelineLogBridge(LogLevel level, const std::string & msg);
@@ -64,6 +68,21 @@ private:
     double      physics_rate_hz_;
     double      marker_line_width_;
     std::vector<double> marker_color_;
+
+    // --- Force marker parameters ---
+    std::string force_marker_topic_;
+    double      force_marker_scale_;
+    std::vector<double> force_marker_color_;
+
+    // --- Force magnitude parameters ---
+    std::string force_mag_boat_topic_;
+    std::string force_mag_drone_topic_;
+
+    // --- Virtual winch parameters ---
+    bool   winch_enabled_;
+    double winch_slack_factor_;
+    double winch_min_length_;
+    double winch_max_length_;
 
     // --- Aggregated kinematic state: [0]=boat, [1]=drone ---
     // Positions are filled by lookupBodyPositions() via TF.
@@ -88,7 +107,12 @@ private:
     rclcpp::Subscription<nav_msgs::msg::Odometry>::SharedPtr drone_odom_sub_;
     rclcpp::Publisher<ros_gz_interfaces::msg::EntityWrench>::SharedPtr wrench_pub_;
     rclcpp::Publisher<visualization_msgs::msg::Marker>::SharedPtr      geometry_pub_;
-    rclcpp::TimerBase::SharedPtr physics_timer_;
+    rclcpp::Publisher<visualization_msgs::msg::MarkerArray>::SharedPtr force_marker_pub_;
+    rclcpp::Publisher<std_msgs::msg::Float64>::SharedPtr               force_mag_boat_pub_;
+    rclcpp::Publisher<std_msgs::msg::Float64>::SharedPtr               force_mag_drone_pub_;
+    rclcpp::Publisher<std_msgs::msg::Float64>::SharedPtr               distance_pub_;
+    rclcpp::Publisher<std_msgs::msg::Float64>::SharedPtr               tether_length_pub_;
+    rclcpp::TimerBase::SharedPtr                                       physics_timer_;
 };
 
 }  // namespace moordyn_tether

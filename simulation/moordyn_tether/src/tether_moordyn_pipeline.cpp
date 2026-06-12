@@ -71,6 +71,36 @@ bool TetherMoorDynPipeline::initialize(const std::array<BodyState, 2> & body_sta
     double vel[6] = {0.0, 0.0, 0.0, 0.0, 0.0, 0.0};  // zero velocity at init
     buildPositionVector(body_states, pos);
 
+    // Cache the Line 1 handle BEFORE init so we can set the initial length.
+    // MoorDyn_GetLine works after MoorDyn_Create (lines are parsed at create time).
+    line_ = MoorDyn_GetLine(system_, 1);
+    if (!line_)
+    {
+        log(LogLevel::kWarn, "Could not obtain Line 1 handle — virtual winch disabled.");
+    }
+
+    // If the winch is enabled, set the unstretched length before the static
+    // solve so that MoorDyn_Init arranges nodes for the correct cable span
+    // instead of draping excessive cable in a tiny gap.
+    if (winch_cfg_.enabled && line_)
+    {
+        const double span = distance3(body_states[0].anchor_pos,
+                                      body_states[1].anchor_pos);
+        double desired = span * winch_cfg_.slack_factor;
+        if (desired < winch_cfg_.min_length)
+        {
+            desired = winch_cfg_.min_length;
+        }
+        if (desired > winch_cfg_.max_length)
+        {
+            desired = winch_cfg_.max_length;
+        }
+        MoorDyn_SetLineUnstretchedLength(line_, desired);
+        log(LogLevel::kInfo,
+            "Winch: initial span = " + std::to_string(span) +
+            " m, setting UnstrLen = " + std::to_string(desired) + " m before init.");
+    }
+
     int result = MoorDyn_Init(system_, pos, vel);
     if (result != MOORDYN_SUCCESS)
     {
@@ -81,6 +111,7 @@ bool TetherMoorDynPipeline::initialize(const std::array<BodyState, 2> & body_sta
     }
 
     log(LogLevel::kInfo, "MoorDyn initialized successfully.");
+
     return true;
 }
 
@@ -93,6 +124,9 @@ bool TetherMoorDynPipeline::step(const std::array<BodyState, 2> & body_states,
     {
         return false;
     }
+
+    // Apply virtual winch before the physics step.
+    updateWinch(body_states);
 
     double pos[6];
     double vel[6];
@@ -119,20 +153,76 @@ bool TetherMoorDynPipeline::step(const std::array<BodyState, 2> & body_states,
 
     // Extract cable geometry (Line 1, 1-indexed in MoorDyn)
     out_cable_nodes.clear();
-    MoorDynLine line = MoorDyn_GetLine(system_, 1);
-    if (line)
+    if (line_)
     {
         unsigned int n_nodes = 0;
-        MoorDyn_GetLineNumberNodes(line, &n_nodes);
+        MoorDyn_GetLineNumberNodes(line_, &n_nodes);
         for (unsigned int i = 0; i < n_nodes; ++i)
         {
             double node_pos[3];
-            MoorDyn_GetLineNodePos(line, i, node_pos);
+            MoorDyn_GetLineNodePos(line_, i, node_pos);
             out_cable_nodes.push_back({node_pos[0], node_pos[1], node_pos[2]});
         }
     }
 
     return true;
+}
+
+// ===========================================================================
+// Virtual Winch
+// ===========================================================================
+
+void TetherMoorDynPipeline::setWinchConfig(const WinchConfig & config)
+{
+    winch_cfg_ = config;
+    log(LogLevel::kInfo,
+        "Winch config updated — enabled: " + std::string(config.enabled ? "true" : "false") +
+        ", slack_factor: " + std::to_string(config.slack_factor) +
+        ", min: " + std::to_string(config.min_length) +
+        ", max: " + std::to_string(config.max_length));
+}
+
+void TetherMoorDynPipeline::updateWinch(const std::array<BodyState, 2> & body_states)
+{
+    if (!winch_cfg_.enabled || !line_)
+    {
+        return;
+    }
+
+    const double span = distance3(body_states[0].anchor_pos,
+                                  body_states[1].anchor_pos);
+
+    // Desired length = straight-line distance × slack factor, clamped.
+    double desired = span * winch_cfg_.slack_factor;
+    if (desired < winch_cfg_.min_length)
+    {
+        desired = winch_cfg_.min_length;
+    }
+    if (desired > winch_cfg_.max_length)
+    {
+        desired = winch_cfg_.max_length;
+    }
+
+    MoorDyn_SetLineUnstretchedLength(line_, desired);
+}
+
+double TetherMoorDynPipeline::distance3(const double a[3], const double b[3])
+{
+    const double dx = b[0] - a[0];
+    const double dy = b[1] - a[1];
+    const double dz = b[2] - a[2];
+    return std::sqrt(dx * dx + dy * dy + dz * dz);
+}
+
+double TetherMoorDynPipeline::getTetherLength() const
+{
+    if (!line_)
+    {
+        return 0.0;
+    }
+    double len = 0.0;
+    MoorDyn_GetLineUnstretchedLength(line_, &len);
+    return len;
 }
 
 // ===========================================================================
