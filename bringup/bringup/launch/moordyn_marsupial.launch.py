@@ -171,14 +171,11 @@ def generate_launch_description():
         )
     )
 
-    # Cleanup do PX4
-    force_kill_px4 = RegisterEventHandler(
+    # Cleanup de processos Zombies (PX4)
+    force_kill_zombies = RegisterEventHandler(
         event_handler=OnShutdown(
             on_shutdown=[
-                ExecuteProcess(
-                    cmd=['pkill', '-9', '-f', 'px4'],
-                    name='kill_px4'
-                )
+                ExecuteProcess(cmd=['pkill', '-9', '-f', 'px4'], name='kill_px4')
             ]
         )
     )
@@ -196,5 +193,5 @@ def generate_launch_description():
         foxglove_bridge,
         frame_manager_launch,
         tether_node,
-        force_kill_px4
+        force_kill_zombies
     ])

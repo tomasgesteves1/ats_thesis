@@ -80,5 +80,8 @@
       <odom_frame>map</odom_frame>
       <robot_base_frame>base_link</robot_base_frame>
     </plugin>
+    <plugin filename="gz-sim-apply-link-wrench-system" name="gz::sim::systems::ApplyLinkWrench">
+      <link_name>base_link</link_name>
+    </plugin>
   </model>
 </sdf>
