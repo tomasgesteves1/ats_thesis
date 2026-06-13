@@ -12,6 +12,8 @@ def generate_launch_description():
         remappings=[
             # O tópico de odom do uav_mpc tem de se ligar à Odometria vinda do moordyn_marsupial
             ('odom', '/drone/ground_truth/odometry'),
+            # Subscrever o comprimento do cabo real do MoorDyn
+            ('tether_length', '/moordyn_tether_node/tether_length'),
         ]
     )
 

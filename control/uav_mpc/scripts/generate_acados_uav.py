@@ -8,7 +8,7 @@ def create_uav_model() -> AcadosModel:
     model_name = 'uav_tethered'
 
     # Constantes físicas
-    m = 1.5
+    m = 2.06
     g_vec = ca.vertcat(0.0, 0.0, -9.81)
     
     # Estados (x)
@@ -27,7 +27,7 @@ def create_uav_model() -> AcadosModel:
     
     p_params = ca.vertcat(p_anchor, T0, wc, eps)
 
-    # Dinâmica (A tua equação exata do dynamics.py)
+    # Dinâmica baseada no vetor que liga o drone à âncora
     s = p_anchor - p
     s_norm_eps = ca.sqrt(ca.dot(s, s) + eps**2)
     a_tether = ((T0 + wc * s_norm_eps) / m) * (s / s_norm_eps)
@@ -105,7 +105,7 @@ def generate_acados_ocp():
     # Valores default para os parâmetros [p_anchor_x, y, z, T0, wc, eps]
     ocp.parameter_values = np.array([0.0, 0.0, 0.0, 3.0, 0.2, 0.02])
     
-    # Limites (Constraints do parameters.py)
+    # Limites
     u_max = 2 * 9.81
     v_max = 1000.0
     L_max = 30.0
@@ -119,7 +119,7 @@ def generate_acados_ocp():
     ocp.constraints.ubx = np.array([v_max, v_max, v_max])
     ocp.constraints.idxbx = np.array([3, 4, 5])
     
-    # Limites da restrição não linear do cabo (Não limitar em 0 para evitar singularidade do Jacobiano)
+    # Limites da restrição não linear do cabo (lh <= h <= uh)
     ocp.constraints.lh = np.array([-10.0])
     ocp.constraints.uh = np.array([L_max**2])
     

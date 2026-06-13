@@ -3,10 +3,13 @@
 #include <rclcpp/rclcpp.hpp>
 #include <nav_msgs/msg/odometry.hpp>
 #include <geometry_msgs/msg/point.hpp>
+#include <std_msgs/msg/float64.hpp>
 #include <px4_msgs/msg/offboard_control_mode.hpp>
 #include <px4_msgs/msg/vehicle_attitude_setpoint.hpp>
 #include <px4_msgs/msg/vehicle_command.hpp>
 #include <visualization_msgs/msg/marker.hpp>
+#include <tf2_ros/transform_listener.h>
+#include <tf2_ros/buffer.h>
 #include <memory>
 
 #include "uav_mpc/uav_mpc_pipeline.hpp"
@@ -20,6 +23,7 @@ public:
 private:
     void odomCallback(const nav_msgs::msg::Odometry::SharedPtr msg);
     void targetCallback(const geometry_msgs::msg::Point::SharedPtr msg);
+    void tetherLengthCallback(const std_msgs::msg::Float64::SharedPtr msg);
     void controlLoop();
     void publishOffboardControlMode();
     void publishAttitudeSetpoint(const UavControlOutput& output);
@@ -28,7 +32,12 @@ private:
 
     rclcpp::Subscription<nav_msgs::msg::Odometry>::SharedPtr odom_sub_;
     rclcpp::Subscription<geometry_msgs::msg::Point>::SharedPtr target_sub_;
+    rclcpp::Subscription<std_msgs::msg::Float64>::SharedPtr tether_length_sub_;
     
+    // TF Listener
+    std::shared_ptr<tf2_ros::Buffer> tf_buffer_;
+    std::shared_ptr<tf2_ros::TransformListener> tf_listener_;
+
     // PX4 Publishers
     rclcpp::Publisher<px4_msgs::msg::OffboardControlMode>::SharedPtr offboard_control_mode_pub_;
     rclcpp::Publisher<px4_msgs::msg::VehicleAttitudeSetpoint>::SharedPtr attitude_setpoint_pub_;
@@ -37,6 +46,9 @@ private:
     // Visualization Publishers
     rclcpp::Publisher<visualization_msgs::msg::Marker>::SharedPtr predicted_trajectory_pub_;
     rclcpp::Publisher<visualization_msgs::msg::Marker>::SharedPtr target_point_pub_;
+
+    // MPC tether force publisher (relative topic)
+    rclcpp::Publisher<std_msgs::msg::Float64>::SharedPtr mpc_tether_force_pub_;
     
     rclcpp::TimerBase::SharedPtr timer_;
 

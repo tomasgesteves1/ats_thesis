@@ -14,7 +14,9 @@ namespace uav_mpc {
 
 UavMpcPipeline::UavMpcPipeline() 
     : qx_(0.0), qy_(0.0), qz_(0.0), qw_(1.0),
-      target_yaw_(0.0), target_initialized_(false) {
+      target_yaw_(0.0), target_initialized_(false),
+      anchor_x_(0.0), anchor_y_(0.0), anchor_z_(0.0),
+      L_tether_(3.0) {
     current_state_.resize(6, 0.0);
     current_reference_.resize(3, 0.0);
     
@@ -69,6 +71,23 @@ UavControlOutput UavMpcPipeline::computeControl() {
     for(int i=0; i<6; i++) x0[i] = current_state_[i];
     ocp_nlp_constraints_model_set(capsule->nlp_config, capsule->nlp_dims, capsule->nlp_in, capsule->nlp_out, 0, "lbx", x0);
     ocp_nlp_constraints_model_set(capsule->nlp_config, capsule->nlp_dims, capsule->nlp_in, capsule->nlp_out, 0, "ubx", x0);
+
+    // Dynamic tension including cable weight: T_0 = T_winch + rho * L * g
+    double T0_val = 0.1 + 0.020 * L_tether_ * 9.81;
+
+    // Parâmetros a passar ao ACADOS: [p_anchor_x, p_anchor_y, p_anchor_z, T0, wc, eps]
+    double p_params[6] = {
+        anchor_x_,
+        anchor_y_,
+        anchor_z_,
+        T0_val,  // T0: updated dynamically
+        0.0,  // wc: 0.0 stiffness
+        0.02  // eps: small offset
+    };
+
+    for (int i = 0; i <= capsule->nlp_solver_plan->N; i++) {
+        uav_tethered_acados_update_params(capsule, i, p_params, 6);
+    }
 
     // Resolver
     int status = uav_tethered_acados_solve(capsule);
@@ -163,6 +182,15 @@ UavControlOutput UavMpcPipeline::computeControl() {
 
     output.current_reference = current_reference_;
 
+    // 10. Calcular a magnitude da força que o MPC assume que o tether está a fazer
+    double dx = anchor_x_ - current_state_[0];
+    double dy = anchor_y_ - current_state_[1];
+    double dz = anchor_z_ - current_state_[2];
+    double s_dist = std::sqrt(dx*dx + dy*dy + dz*dz);
+    double eps = 0.02; // do generate_acados_uav.py
+    double s_norm_eps = std::sqrt(s_dist*s_dist + eps*eps);
+    output.mpc_tether_force_mag = T0_val * (s_dist / s_norm_eps);
+
     return output;
 }
 
@@ -209,6 +237,16 @@ void UavMpcPipeline::rotationMatrixToQuaternion(double R[3][3], float q[4]) cons
         q[2] = (R[1][2] + R[2][1]) / s; // y
         q[3] = 0.25 * s;                // z
     }
+}
+
+void UavMpcPipeline::updateAnchorPosition(double x, double y, double z) {
+    anchor_x_ = x;
+    anchor_y_ = y;
+    anchor_z_ = z;
+}
+
+void UavMpcPipeline::updateTetherLength(double length) {
+    L_tether_ = length;
 }
 
 } // namespace uav_mpc

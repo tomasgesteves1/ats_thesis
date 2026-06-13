@@ -16,6 +16,13 @@ UavMpcNode::UavMpcNode()
     target_sub_ = this->create_subscription<geometry_msgs::msg::Point>(
         "target_position", 10, std::bind(&UavMpcNode::targetCallback, this, std::placeholders::_1));
 
+    tether_length_sub_ = this->create_subscription<std_msgs::msg::Float64>(
+        "tether_length", 10, std::bind(&UavMpcNode::tetherLengthCallback, this, std::placeholders::_1));
+
+    // Inicialização do buffer e listener do TF
+    tf_buffer_   = std::make_shared<tf2_ros::Buffer>(this->get_clock());
+    tf_listener_ = std::make_shared<tf2_ros::TransformListener>(*tf_buffer_);
+
     // Configuração do QoS idêntico ao drone_tracker para PX4 (SensorDataQoS)
     auto qos = rclcpp::SensorDataQoS();
     offboard_control_mode_pub_ = this->create_publisher<px4_msgs::msg::OffboardControlMode>(
@@ -31,6 +38,10 @@ UavMpcNode::UavMpcNode()
     target_point_pub_ = this->create_publisher<visualization_msgs::msg::Marker>(
         "target_point", 10);
 
+    // Publicador para a magnitude da força estimada pelo MPC
+    mpc_tether_force_pub_ = this->create_publisher<std_msgs::msg::Float64>(
+        "mpc_tether_force_mag", 10);
+
     // Timer a 20Hz (0.05s) para igualar o dt do MPC
     timer_ = this->create_wall_timer(
         std::chrono::milliseconds(50), std::bind(&UavMpcNode::controlLoop, this));
@@ -41,6 +52,10 @@ UavMpcNode::UavMpcNode()
 void UavMpcNode::targetCallback(const geometry_msgs::msg::Point::SharedPtr msg) {
     RCLCPP_INFO(this->get_logger(), "Nova Referencia Recebida: [%.2f, %.2f, %.2f]", msg->x, msg->y, msg->z);
     pipeline_->setReference({msg->x, msg->y, msg->z});
+}
+
+void UavMpcNode::tetherLengthCallback(const std_msgs::msg::Float64::SharedPtr msg) {
+    pipeline_->updateTetherLength(msg->data);
 }
 
 void UavMpcNode::odomCallback(const nav_msgs::msg::Odometry::SharedPtr msg) {
@@ -75,6 +90,19 @@ void UavMpcNode::odomCallback(const nav_msgs::msg::Odometry::SharedPtr msg) {
 }
 
 void UavMpcNode::controlLoop() {
+    // Obter a posição exata da âncora via TF (world -> boat/tether_anchor)
+    try {
+        auto transform = tf_buffer_->lookupTransform("world", "boat/tether_anchor", tf2::TimePointZero);
+        pipeline_->updateAnchorPosition(
+            transform.transform.translation.x,
+            transform.transform.translation.y,
+            transform.transform.translation.z
+        );
+    } catch (const tf2::TransformException & ex) {
+        RCLCPP_WARN_THROTTLE(this->get_logger(), *this->get_clock(), 2000,
+            "Não foi possível obter transformação de world para boat/tether_anchor: %s", ex.what());
+    }
+
     // Pipeline realiza todos os cálculos e devolve a estrutura final
     UavControlOutput output = pipeline_->computeControl();
 
@@ -84,6 +112,11 @@ void UavMpcNode::controlLoop() {
     
     // Publicar visualização para RViz/Foxglove
     publishVisualizationMarkers(output);
+
+    // Publicar força estimada pelo modelo do MPC
+    std_msgs::msg::Float64 force_msg;
+    force_msg.data = output.mpc_tether_force_mag;
+    mpc_tether_force_pub_->publish(force_msg);
 
     // Enviar comandos de armar e mudar de modo após ~2 segundos (40 iterações a 20Hz)
     if (offboard_setpoint_counter_ >= 40 && offboard_setpoint_counter_ < 60) {

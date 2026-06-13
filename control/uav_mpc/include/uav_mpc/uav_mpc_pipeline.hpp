@@ -9,6 +9,7 @@ struct UavControlOutput {
     double thrust_normalized;
     std::vector<std::vector<double>> predicted_positions; // N+1 points of [x, y, z]
     std::vector<double> current_reference; // [x, y, z]
+    double mpc_tether_force_mag; // Tether force magnitude assumed by the MPC model (N)
 };
 
 class UavMpcPipeline {
@@ -18,6 +19,8 @@ public:
 
     void updateState(const std::vector<double>& state);
     void updateOrientation(double qx, double qy, double qz, double qw);
+    void updateAnchorPosition(double x, double y, double z);
+    void updateTetherLength(double length);
     void setReference(const std::vector<double>& ref);
     UavControlOutput computeControl();
 
@@ -30,6 +33,10 @@ private:
     double target_yaw_;
     bool target_initialized_;
     std::vector<double> current_reference_;
+
+    // Posição global da âncora do cabo e comprimento
+    double anchor_x_, anchor_y_, anchor_z_;
+    double L_tether_;
 
     // Funções auxiliares de matemática (atitude)
     void quaternionToEuler(double qx, double qy, double qz, double qw, double &roll, double &pitch, double &yaw) const;
