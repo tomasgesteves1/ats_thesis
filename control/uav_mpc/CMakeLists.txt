@@ -45,6 +45,7 @@ add_executable(uav_mpc_node
   src/uav_mpc_main.cpp
   src/uav_mpc_node.cpp
   src/uav_mpc_pipeline.cpp
+  src/uav_mpc_trajectory.cpp
 )
 target_include_directories(uav_mpc_node PUBLIC
   $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>

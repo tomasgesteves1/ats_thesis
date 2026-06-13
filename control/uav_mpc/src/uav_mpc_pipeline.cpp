@@ -16,7 +16,7 @@ UavMpcPipeline::UavMpcPipeline()
     : qx_(0.0), qy_(0.0), qz_(0.0), qw_(1.0),
       target_yaw_(0.0), target_initialized_(false),
       anchor_x_(0.0), anchor_y_(0.0), anchor_z_(0.0),
-      L_tether_(3.0) {
+      L_tether_(3.0), trajectory_type_(TrajectoryType::HOLD), time_(0.0) {
     current_state_.resize(6, 0.0);
     current_reference_.resize(3, 0.0);
     
@@ -50,17 +50,20 @@ void UavMpcPipeline::updateOrientation(double qx, double qy, double qz, double q
 void UavMpcPipeline::setReference(const std::vector<double>& ref) {
     if (ref.size() == 3) {
         current_reference_ = ref;
-        auto capsule = (uav_tethered_solver_capsule*)acados_ocp_capsule_;
-        // yref = [p_x, p_y, p_z, v_x, v_y, v_z, u_x, u_y, u_z]
-        // Control z reference is 9.81 to counteract gravity in steady state!
-        double yref[9] = {ref[0], ref[1], ref[2], 0.0, 0.0, 0.0, 0.0, 0.0, 9.81};
-        double yref_e[6] = {ref[0], ref[1], ref[2], 0.0, 0.0, 0.0};
-        
-        for (int i = 0; i < capsule->nlp_solver_plan->N; i++) {
-            ocp_nlp_cost_model_set(capsule->nlp_config, capsule->nlp_dims, capsule->nlp_in, i, "yref", yref);
-        }
-        ocp_nlp_cost_model_set(capsule->nlp_config, capsule->nlp_dims, capsule->nlp_in, capsule->nlp_solver_plan->N, "yref", yref_e);
     }
+}
+
+void UavMpcPipeline::setTrajectoryType(TrajectoryType type) {
+    if (trajectory_type_ != type) {
+        trajectory_type_ = type;
+        if (type == TrajectoryType::CIRCLE) {
+            time_ = 0.0;
+        }
+    }
+}
+
+void UavMpcPipeline::configureCircle(double radius, double omega, double height, double center_x, double center_y) {
+    trajectory_gen_.configureCircle(radius, omega, height, center_x, center_y);
 }
 
 UavControlOutput UavMpcPipeline::computeControl() {
@@ -71,6 +74,33 @@ UavControlOutput UavMpcPipeline::computeControl() {
     for(int i=0; i<6; i++) x0[i] = current_state_[i];
     ocp_nlp_constraints_model_set(capsule->nlp_config, capsule->nlp_dims, capsule->nlp_in, capsule->nlp_out, 0, "lbx", x0);
     ocp_nlp_constraints_model_set(capsule->nlp_config, capsule->nlp_dims, capsule->nlp_in, capsule->nlp_out, 0, "ubx", x0);
+
+    // Injetar referências no horizonte de predição
+    if (trajectory_type_ == TrajectoryType::CIRCLE) {
+        time_ += 0.05; // Incrementa 50ms (Ts)
+        for (int i = 0; i < capsule->nlp_solver_plan->N; i++) {
+            double t_stage = time_ + i * 0.05;
+            TrajectoryPoint pt = trajectory_gen_.getPoint(t_stage);
+            // yref = [p_x, p_y, p_z, v_x, v_y, v_z, u_x, u_y, u_z]
+            double yref[9] = {pt.px, pt.py, pt.pz, pt.vx, pt.vy, pt.vz, 0.0, 0.0, 9.81};
+            ocp_nlp_cost_model_set(capsule->nlp_config, capsule->nlp_dims, capsule->nlp_in, i, "yref", yref);
+        }
+        double t_terminal = time_ + capsule->nlp_solver_plan->N * 0.05;
+        TrajectoryPoint pt_e = trajectory_gen_.getPoint(t_terminal);
+        double yref_e[6] = {pt_e.px, pt_e.py, pt_e.pz, pt_e.vx, pt_e.vy, pt_e.vz};
+        ocp_nlp_cost_model_set(capsule->nlp_config, capsule->nlp_dims, capsule->nlp_in, capsule->nlp_solver_plan->N, "yref", yref_e);
+
+        // Atualizar current_reference_ para visualização no RViz
+        current_reference_ = {pt_e.px, pt_e.py, pt_e.pz};
+    } else {
+        // HOLD mode
+        double yref[9] = {current_reference_[0], current_reference_[1], current_reference_[2], 0.0, 0.0, 0.0, 0.0, 0.0, 9.81};
+        double yref_e[6] = {current_reference_[0], current_reference_[1], current_reference_[2], 0.0, 0.0, 0.0};
+        for (int i = 0; i < capsule->nlp_solver_plan->N; i++) {
+            ocp_nlp_cost_model_set(capsule->nlp_config, capsule->nlp_dims, capsule->nlp_in, i, "yref", yref);
+        }
+        ocp_nlp_cost_model_set(capsule->nlp_config, capsule->nlp_dims, capsule->nlp_in, capsule->nlp_solver_plan->N, "yref", yref_e);
+    }
 
     // Dynamic tension including cable weight: T_0 = T_winch + rho * L * g
     double T0_val = 0.1 + 0.020 * L_tether_ * 9.81;
@@ -190,6 +220,18 @@ UavControlOutput UavMpcPipeline::computeControl() {
     double eps = 0.02; // do generate_acados_uav.py
     double s_norm_eps = std::sqrt(s_dist*s_dist + eps*eps);
     output.mpc_tether_force_mag = T0_val * (s_dist / s_norm_eps);
+
+    // 11. Popular o caminho de referência para visualização no RViz
+    output.reference_path.clear();
+    if (trajectory_type_ == TrajectoryType::CIRCLE) {
+        std::vector<TrajectoryPoint> ref_path = trajectory_gen_.getReferencePath();
+        for (const auto& pt : ref_path) {
+            output.reference_path.push_back({pt.px, pt.py, pt.pz});
+        }
+    } else {
+        // HOLD mode: o caminho é apenas o ponto estático atual
+        output.reference_path.push_back({current_reference_[0], current_reference_[1], current_reference_[2]});
+    }
 
     return output;
 }

@@ -690,12 +690,12 @@ void uav_tethered_acados_setup_nlp_in(uav_tethered_solver_capsule* capsule, cons
     double* lubx = calloc(2*NBX, sizeof(double));
     double* lbx = lubx;
     double* ubx = lubx + NBX;
-    lbx[0] = -1.5;
-    ubx[0] = 1.5;
-    lbx[1] = -1.5;
-    ubx[1] = 1.5;
-    lbx[2] = -1.5;
-    ubx[2] = 1.5;
+    lbx[0] = -10;
+    ubx[0] = 10;
+    lbx[1] = -10;
+    ubx[1] = 10;
+    lbx[2] = -10;
+    ubx[2] = 10;
 
     for (int i = 1; i < N; i++)
     {

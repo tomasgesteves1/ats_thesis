@@ -9,6 +9,12 @@ UavMpcNode::UavMpcNode()
       
     pipeline_ = std::make_unique<UavMpcPipeline>();
 
+    // Declaração de parâmetros dinâmicos de trajetória (Regra 2 do CODE_STANDARDS.md)
+    this->declare_parameter<std::string>("trajectory_type", "hold");
+    this->declare_parameter<double>("circle_radius", 3.0);
+    this->declare_parameter<double>("circle_omega", 0.2);
+    this->declare_parameter<double>("circle_height", 10.0);
+
     // Namespace relativo (Regra 4 do CODE_STANDARDS.md)
     odom_sub_ = this->create_subscription<nav_msgs::msg::Odometry>(
         "odom", 10, std::bind(&UavMpcNode::odomCallback, this, std::placeholders::_1));
@@ -37,6 +43,8 @@ UavMpcNode::UavMpcNode()
         "predicted_trajectory", 10);
     target_point_pub_ = this->create_publisher<visualization_msgs::msg::Marker>(
         "target_point", 10);
+    reference_trajectory_pub_ = this->create_publisher<visualization_msgs::msg::Marker>(
+        "reference_trajectory", 10);
 
     // Publicador para a magnitude da força estimada pelo MPC
     mpc_tether_force_pub_ = this->create_publisher<std_msgs::msg::Float64>(
@@ -102,6 +110,19 @@ void UavMpcNode::controlLoop() {
         RCLCPP_WARN_THROTTLE(this->get_logger(), *this->get_clock(), 2000,
             "Não foi possível obter transformação de world para boat/tether_anchor: %s", ex.what());
     }
+
+    // Atualizar parâmetros dinâmicos da trajetória no pipeline
+    std::string traj_type = this->get_parameter("trajectory_type").as_string();
+    if (traj_type == "circle") {
+        pipeline_->setTrajectoryType(TrajectoryType::CIRCLE);
+    } else {
+        pipeline_->setTrajectoryType(TrajectoryType::HOLD);
+    }
+
+    double radius = this->get_parameter("circle_radius").as_double();
+    double omega = this->get_parameter("circle_omega").as_double();
+    double height = this->get_parameter("circle_height").as_double();
+    pipeline_->configureCircle(radius, omega, height);
 
     // Pipeline realiza todos os cálculos e devolve a estrutura final
     UavControlOutput output = pipeline_->computeControl();
@@ -234,6 +255,34 @@ void UavMpcNode::publishVisualizationMarkers(const UavControlOutput& output) {
         point_msg.color.a = 1.0;
 
         target_point_pub_->publish(point_msg);
+    }
+
+    // 3. Marcador da Trajetória de Referência Completa (ex: Círculo em azul)
+    if (!output.reference_path.empty()) {
+        visualization_msgs::msg::Marker ref_path_msg;
+        ref_path_msg.header.frame_id = "world";
+        ref_path_msg.header.stamp = current_time;
+        ref_path_msg.ns = "reference_trajectory";
+        ref_path_msg.id = 2;
+        ref_path_msg.type = visualization_msgs::msg::Marker::LINE_STRIP;
+        ref_path_msg.action = visualization_msgs::msg::Marker::ADD;
+        ref_path_msg.pose.orientation.w = 1.0;
+
+        // Configuração visual (azul brilhante)
+        ref_path_msg.scale.x = 0.03; // Espessura da linha
+        ref_path_msg.color.r = 0.0;
+        ref_path_msg.color.g = 0.5;
+        ref_path_msg.color.b = 1.0;
+        ref_path_msg.color.a = 0.9;
+
+        for (const auto& pos : output.reference_path) {
+            geometry_msgs::msg::Point p;
+            p.x = pos[0];
+            p.y = pos[1];
+            p.z = pos[2];
+            ref_path_msg.points.push_back(p);
+        }
+        reference_trajectory_pub_->publish(ref_path_msg);
     }
 }
 

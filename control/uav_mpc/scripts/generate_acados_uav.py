@@ -108,7 +108,7 @@ def generate_acados_ocp():
     
     # Limites
     u_max = 2 * 9.81
-    v_max = 1.5
+    v_max = 10.0
     L_max = 30.0
     
     # O drone NÃO PODE puxar-se para baixo! u_z >= 0

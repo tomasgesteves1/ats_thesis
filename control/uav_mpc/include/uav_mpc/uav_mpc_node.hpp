@@ -46,6 +46,7 @@ private:
     // Visualization Publishers
     rclcpp::Publisher<visualization_msgs::msg::Marker>::SharedPtr predicted_trajectory_pub_;
     rclcpp::Publisher<visualization_msgs::msg::Marker>::SharedPtr target_point_pub_;
+    rclcpp::Publisher<visualization_msgs::msg::Marker>::SharedPtr reference_trajectory_pub_;
 
     // MPC tether force publisher (relative topic)
     rclcpp::Publisher<std_msgs::msg::Float64>::SharedPtr mpc_tether_force_pub_;

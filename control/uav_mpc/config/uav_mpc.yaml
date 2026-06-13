@@ -1,0 +1,9 @@
+uav_mpc_node:
+  ros__parameters:
+    # Tipo de trajetória a seguir: "hold" ou "circle"
+    trajectory_type: "circle"
+
+    # Parâmetros da trajetória circular
+    circle_radius: 3.0
+    circle_omega: 1.67
+    circle_height: 10.0
