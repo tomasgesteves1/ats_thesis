@@ -6,6 +6,7 @@
 #include <px4_msgs/msg/offboard_control_mode.hpp>
 #include <px4_msgs/msg/vehicle_attitude_setpoint.hpp>
 #include <px4_msgs/msg/vehicle_command.hpp>
+#include <visualization_msgs/msg/marker.hpp>
 #include <memory>
 
 #include "uav_mpc/uav_mpc_pipeline.hpp"
@@ -21,8 +22,9 @@ private:
     void targetCallback(const geometry_msgs::msg::Point::SharedPtr msg);
     void controlLoop();
     void publishOffboardControlMode();
-    void publishAttitudeSetpoint(const std::vector<double>& control_cmd);
+    void publishAttitudeSetpoint(const UavControlOutput& output);
     void publishVehicleCommand(uint16_t command, float param1 = 0.0, float param2 = 0.0);
+    void publishVisualizationMarkers(const UavControlOutput& output);
 
     rclcpp::Subscription<nav_msgs::msg::Odometry>::SharedPtr odom_sub_;
     rclcpp::Subscription<geometry_msgs::msg::Point>::SharedPtr target_sub_;
@@ -31,20 +33,16 @@ private:
     rclcpp::Publisher<px4_msgs::msg::OffboardControlMode>::SharedPtr offboard_control_mode_pub_;
     rclcpp::Publisher<px4_msgs::msg::VehicleAttitudeSetpoint>::SharedPtr attitude_setpoint_pub_;
     rclcpp::Publisher<px4_msgs::msg::VehicleCommand>::SharedPtr vehicle_command_pub_;
+
+    // Visualization Publishers
+    rclcpp::Publisher<visualization_msgs::msg::Marker>::SharedPtr predicted_trajectory_pub_;
+    rclcpp::Publisher<visualization_msgs::msg::Marker>::SharedPtr target_point_pub_;
     
     rclcpp::TimerBase::SharedPtr timer_;
 
     std::unique_ptr<UavMpcPipeline> pipeline_;
     bool target_initialized_;
-    double target_yaw_;
     uint64_t offboard_setpoint_counter_;
-
-    // Último estado de atitude recebido da odometria
-    double qx_, qy_, qz_, qw_;
-
-    // Funções auxiliares matemáticas de atitude
-    void quaternionToEuler(double qx, double qy, double qz, double qw, double &roll, double &pitch, double &yaw);
-    void rotationMatrixToQuaternion(double R[3][3], float q[4]);
 };
 
 } // namespace uav_mpc

@@ -12,6 +12,7 @@ find_package(geometry_msgs REQUIRED)
 find_package(nav_msgs REQUIRED)
 find_package(ros_gz_interfaces REQUIRED)
 find_package(px4_msgs REQUIRED)
+find_package(visualization_msgs REQUIRED)
 
 # ACADOS (Installed globally)
 set(ACADOS_DIR "/home/tomas/acados")
@@ -55,6 +56,7 @@ ament_target_dependencies(uav_mpc_node
   nav_msgs
   ros_gz_interfaces
   px4_msgs
+  visualization_msgs
 )
 target_link_libraries(uav_mpc_node uav_acados_solver)
 
