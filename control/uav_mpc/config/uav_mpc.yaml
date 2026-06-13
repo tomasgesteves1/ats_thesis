@@ -3,7 +3,15 @@ uav_mpc_node:
     # Tipo de trajetória a seguir: "hold" ou "circle"
     trajectory_type: "circle"
 
+    # Ativar/Desativar modelo físico e restrições do tether
+    use_tether: false
+
     # Parâmetros da trajetória circular
     circle_radius: 3.0
     circle_omega: 1.67
     circle_height: 10.0
+
+    # Limites físicos dinâmicos do drone
+    v_max: 10.0       # Velocidade máxima (m/s)
+    u_max: 19.62     # Aceleração de empuxo máxima (m/s^2)
+    tau: 0.15        # Constante de tempo da dinâmica de atitude (s)

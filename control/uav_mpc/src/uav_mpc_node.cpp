@@ -9,11 +9,15 @@ UavMpcNode::UavMpcNode()
       
     pipeline_ = std::make_unique<UavMpcPipeline>();
 
-    // Declaração de parâmetros dinâmicos de trajetória (Regra 2 do CODE_STANDARDS.md)
+    // Declaração de parâmetros dinâmicos (Regra 2 do CODE_STANDARDS.md)
+    this->declare_parameter<bool>("use_tether", true);
     this->declare_parameter<std::string>("trajectory_type", "hold");
     this->declare_parameter<double>("circle_radius", 3.0);
     this->declare_parameter<double>("circle_omega", 0.2);
     this->declare_parameter<double>("circle_height", 10.0);
+    this->declare_parameter<double>("v_max", 10.0);
+    this->declare_parameter<double>("u_max", 19.62);
+    this->declare_parameter<double>("tau", 0.15);
 
     // Namespace relativo (Regra 4 do CODE_STANDARDS.md)
     odom_sub_ = this->create_subscription<nav_msgs::msg::Odometry>(
@@ -98,17 +102,25 @@ void UavMpcNode::odomCallback(const nav_msgs::msg::Odometry::SharedPtr msg) {
 }
 
 void UavMpcNode::controlLoop() {
-    // Obter a posição exata da âncora via TF (world -> boat/tether_anchor)
-    try {
-        auto transform = tf_buffer_->lookupTransform("world", "boat/tether_anchor", tf2::TimePointZero);
-        pipeline_->updateAnchorPosition(
-            transform.transform.translation.x,
-            transform.transform.translation.y,
-            transform.transform.translation.z
-        );
-    } catch (const tf2::TransformException & ex) {
-        RCLCPP_WARN_THROTTLE(this->get_logger(), *this->get_clock(), 2000,
-            "Não foi possível obter transformação de world para boat/tether_anchor: %s", ex.what());
+    bool use_tether = this->get_parameter("use_tether").as_bool();
+    pipeline_->setUseTether(use_tether);
+
+    if (use_tether) {
+        // Obter a posição exata da âncora via TF (world -> boat/tether_anchor)
+        try {
+            auto transform = tf_buffer_->lookupTransform("world", "boat/tether_anchor", tf2::TimePointZero);
+            pipeline_->updateAnchorPosition(
+                transform.transform.translation.x,
+                transform.transform.translation.y,
+                transform.transform.translation.z
+            );
+        } catch (const tf2::TransformException & ex) {
+            RCLCPP_WARN_THROTTLE(this->get_logger(), *this->get_clock(), 2000,
+                "Não foi possível obter transformação de world para boat/tether_anchor: %s", ex.what());
+        }
+    } else {
+        // Se desativado, mantém a âncora na origem
+        pipeline_->updateAnchorPosition(0.0, 0.0, 0.0);
     }
 
     // Atualizar parâmetros dinâmicos da trajetória no pipeline
@@ -123,6 +135,14 @@ void UavMpcNode::controlLoop() {
     double omega = this->get_parameter("circle_omega").as_double();
     double height = this->get_parameter("circle_height").as_double();
     pipeline_->configureCircle(radius, omega, height);
+
+    // Atualizar limites dinâmicos no pipeline
+    double v_max = this->get_parameter("v_max").as_double();
+    double u_max = this->get_parameter("u_max").as_double();
+    double tau = this->get_parameter("tau").as_double();
+    pipeline_->setVelocityLimit(v_max);
+    pipeline_->setInputLimit(u_max);
+    pipeline_->setAttitudeTimeConstant(tau);
 
     // Pipeline realiza todos os cálculos e devolve a estrutura final
     UavControlOutput output = pipeline_->computeControl();

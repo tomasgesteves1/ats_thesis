@@ -5,6 +5,7 @@ from launch.actions import ExecuteProcess, SetEnvironmentVariable, IncludeLaunch
 from launch.substitutions import LaunchConfiguration
 from launch.event_handlers import OnProcessExit, OnShutdown
 from launch.launch_description_sources import PythonLaunchDescriptionSource
+from launch.conditions import IfCondition
 from launch_ros.actions import Node
 
 def generate_launch_description():
@@ -36,6 +37,13 @@ def generate_launch_description():
         'headless',
         default_value='false',
         description='Executar o Gazebo em modo headless'
+    )
+
+    # Argumento Tether
+    use_tether_arg = DeclareLaunchArgument(
+        'use_tether',
+        default_value='true',
+        description='Ativar/Desativar simulação do cabo (tether)'
     )
 
     # 1. Mundo (Inicia Pausado)
@@ -146,6 +154,7 @@ def generate_launch_description():
         package='moordyn_tether',
         executable='moordyn_tether_node',
         name='moordyn_tether_node',
+        condition=IfCondition(LaunchConfiguration('use_tether')),
         parameters=[
             os.path.join(
                 get_package_share_directory('moordyn_tether'),
@@ -182,6 +191,7 @@ def generate_launch_description():
 
     return LaunchDescription([
         headless_arg,
+        use_tether_arg,
         set_gz_resource_path,
         world_launch,
         spawn_boat,

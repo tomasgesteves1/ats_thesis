@@ -31,6 +31,10 @@ public:
     void setReference(const std::vector<double>& ref);
     void setTrajectoryType(TrajectoryType type);
     void configureCircle(double radius, double omega, double height, double center_x = 0.0, double center_y = 0.0);
+    void setUseTether(bool use_tether);
+    void setVelocityLimit(double v_max);
+    void setInputLimit(double u_max);
+    void setAttitudeTimeConstant(double tau);
     UavControlOutput computeControl();
 
 private:
@@ -46,6 +50,10 @@ private:
     // Posição global da âncora do cabo e comprimento
     double anchor_x_, anchor_y_, anchor_z_;
     double L_tether_;
+    bool use_tether_;
+    double v_max_;
+    double u_max_;
+    double tau_;
 
     // Trajetória e tempo
     TrajectoryType trajectory_type_;
@@ -55,6 +63,7 @@ private:
     // Funções auxiliares de matemática (atitude)
     void quaternionToEuler(double qx, double qy, double qz, double qw, double &roll, double &pitch, double &yaw) const;
     void rotationMatrixToQuaternion(double R[3][3], float q[4]) const;
+    void rotateVectorByQuaternion(double qx, double qy, double qz, double qw, const double v_in[3], double v_out[3]) const;
 };
 
 } // namespace uav_mpc
