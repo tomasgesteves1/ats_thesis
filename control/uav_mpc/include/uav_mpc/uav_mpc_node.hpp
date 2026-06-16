@@ -7,6 +7,7 @@
 #include <px4_msgs/msg/offboard_control_mode.hpp>
 #include <px4_msgs/msg/vehicle_attitude_setpoint.hpp>
 #include <px4_msgs/msg/vehicle_command.hpp>
+#include <px4_msgs/msg/hover_thrust_estimate.hpp>
 #include <visualization_msgs/msg/marker.hpp>
 #include <tf2_ros/transform_listener.h>
 #include <tf2_ros/buffer.h>
@@ -24,6 +25,7 @@ private:
     void odomCallback(const nav_msgs::msg::Odometry::SharedPtr msg);
     void targetCallback(const geometry_msgs::msg::Point::SharedPtr msg);
     void tetherLengthCallback(const std_msgs::msg::Float64::SharedPtr msg);
+    void hoverThrustCallback(const px4_msgs::msg::HoverThrustEstimate::SharedPtr msg);
     void controlLoop();
     void publishOffboardControlMode();
     void publishAttitudeSetpoint(const UavControlOutput& output);
@@ -33,6 +35,7 @@ private:
     rclcpp::Subscription<nav_msgs::msg::Odometry>::SharedPtr odom_sub_;
     rclcpp::Subscription<geometry_msgs::msg::Point>::SharedPtr target_sub_;
     rclcpp::Subscription<std_msgs::msg::Float64>::SharedPtr tether_length_sub_;
+    rclcpp::Subscription<px4_msgs::msg::HoverThrustEstimate>::SharedPtr hover_thrust_sub_;
     
     // TF Listener
     std::shared_ptr<tf2_ros::Buffer> tf_buffer_;
@@ -56,6 +59,7 @@ private:
     std::unique_ptr<UavMpcPipeline> pipeline_;
     bool target_initialized_;
     uint64_t offboard_setpoint_counter_;
+    double px4_hover_thrust_;
 };
 
 } // namespace uav_mpc

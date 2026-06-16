@@ -5,7 +5,8 @@ namespace uav_mpc {
 UavMpcNode::UavMpcNode() 
     : Node("uav_mpc_node"), 
       target_initialized_(false), 
-      offboard_setpoint_counter_(0) {
+      offboard_setpoint_counter_(0),
+      px4_hover_thrust_(0.52) {
       
     pipeline_ = std::make_unique<UavMpcPipeline>();
 
@@ -31,12 +32,17 @@ UavMpcNode::UavMpcNode()
     tether_length_sub_ = this->create_subscription<std_msgs::msg::Float64>(
         "tether_length", 10, std::bind(&UavMpcNode::tetherLengthCallback, this, std::placeholders::_1));
 
+    // Configure QoS identical to drone_tracker for PX4 (SensorDataQoS)
+    auto qos = rclcpp::SensorDataQoS();
+    
+    // Subscribe to estimated hover thrust from PX4
+    hover_thrust_sub_ = this->create_subscription<px4_msgs::msg::HoverThrustEstimate>(
+        "/px4_1/fmu/out/hover_thrust_estimate", qos, std::bind(&UavMpcNode::hoverThrustCallback, this, std::placeholders::_1));
+
     // Initialize TF buffer and listener
     tf_buffer_   = std::make_shared<tf2_ros::Buffer>(this->get_clock());
     tf_listener_ = std::make_shared<tf2_ros::TransformListener>(*tf_buffer_);
 
-    // Configure QoS identical to drone_tracker for PX4 (SensorDataQoS)
-    auto qos = rclcpp::SensorDataQoS();
     offboard_control_mode_pub_ = this->create_publisher<px4_msgs::msg::OffboardControlMode>(
         "/px4_1/fmu/in/offboard_control_mode", qos);
     attitude_setpoint_pub_ = this->create_publisher<px4_msgs::msg::VehicleAttitudeSetpoint>(
@@ -70,6 +76,12 @@ void UavMpcNode::targetCallback(const geometry_msgs::msg::Point::SharedPtr msg) 
 
 void UavMpcNode::tetherLengthCallback(const std_msgs::msg::Float64::SharedPtr msg) {
     pipeline_->updateTetherLength(msg->data);
+}
+
+void UavMpcNode::hoverThrustCallback(const px4_msgs::msg::HoverThrustEstimate::SharedPtr msg) {
+    if (msg->valid) {
+        px4_hover_thrust_ = msg->hover_thrust;
+    }
 }
 
 void UavMpcNode::odomCallback(const nav_msgs::msg::Odometry::SharedPtr msg) {
@@ -150,12 +162,13 @@ void UavMpcNode::controlLoop() {
     // Execute calculations in the logic pipeline
     UavControlOutput output = pipeline_->computeControl();
 
-    // Log the raw MPC control inputs and their conversion to degrees (throttled to 1Hz)
-    double roll_deg = output.u_opt[0] * 180.0 / 3.14159265358979323846;
-    double pitch_deg = output.u_opt[1] * 180.0 / 3.14159265358979323846;
+    // Calculate dynamically normalized thrust using the real-time PX4 hover thrust estimate (throttled to 1Hz)
+    double thrust_normalized = (output.u_opt[2] / 9.81) * px4_hover_thrust_;
+    thrust_normalized = std::max(0.0, std::min(thrust_normalized, 1.0));
+
     RCLCPP_INFO_THROTTLE(this->get_logger(), *this->get_clock(), 1000,
-        "MPC Raw -> Roll: %.4f rad (%.2f deg) | Pitch: %.4f rad (%.2f deg) | Thrust: %.2f m/s^2",
-        output.u_opt[0], roll_deg, output.u_opt[1], pitch_deg, output.u_opt[2]);
+        "Thrust Normalization -> PX4 Hover: %.4f | MPC Raw: %.4f m/s^2 | MPC Normalized: %.4f",
+        px4_hover_thrust_, output.u_opt[2], thrust_normalized);
 
     // Always publish OffboardControlMode and VehicleAttitudeSetpoint to feed PX4 watchdog
     // publishOffboardControlMode();
@@ -210,7 +223,11 @@ void UavMpcNode::publishAttitudeSetpoint(const UavControlOutput& output) {
     
     att_msg.thrust_body[0] = 0.0f;
     att_msg.thrust_body[1] = 0.0f;
-    att_msg.thrust_body[2] = -static_cast<float>(output.thrust_normalized); // -Z in FRD frame is upward force
+    
+    // Normalize thrust using the real-time PX4 hover thrust estimate
+    double thrust_normalized = (output.u_opt[2] / 9.81) * px4_hover_thrust_;
+    thrust_normalized = std::max(0.0, std::min(thrust_normalized, 1.0));
+    att_msg.thrust_body[2] = -static_cast<float>(thrust_normalized); // -Z in FRD frame is upward force
 
     attitude_setpoint_pub_->publish(att_msg);
 }

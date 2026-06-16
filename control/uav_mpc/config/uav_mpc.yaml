@@ -16,6 +16,6 @@ uav_mpc_node:
 
     # Dynamic physical limits of the drone (less aggressive settings)
     v_max: 10.0           # Maximum velocity (m/s)
-    u_max: 15.0          # Maximum thrust acceleration (m/s^2)
-    hover_throttle: 0.52 # Normalized hover throttle command
+    u_max: 10.8          # Maximum thrust acceleration (m/s^2)
+    hover_throttle: 0.7265 # Normalized hover throttle command
     tilt_max: 0.4        # Maximum tilt angle (rad, ~11.5 deg)
