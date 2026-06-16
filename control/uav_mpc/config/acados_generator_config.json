@@ -1,0 +1,18 @@
+{
+  "prediction_horizon": {
+    "N": 20,
+    "Ts": 0.05
+  },
+  "weights": {
+    "Qp": [15.0, 15.0, 20.0],
+    "Qv": [1.0, 1.0, 1.0],
+    "R": [0.05, 0.05, 0.01]
+  },
+  "limits": {
+    "phi_max": 0.4,
+    "theta_max": 0.4,
+    "v_max": 3.0,
+    "a_T_min_scale": 0.1,
+    "a_T_max_scale": 1.2
+  }
+}

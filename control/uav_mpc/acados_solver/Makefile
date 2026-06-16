@@ -46,8 +46,6 @@ MODEL_OBJ := $(MODEL_SRC:.c=.o)
 OCP_SRC=
 
 
-OCP_SRC+= uav_tethered_constraints/uav_tethered_constr_h_fun_jac_uxt_zt.c
-OCP_SRC+= uav_tethered_constraints/uav_tethered_constr_h_fun.c
 
 OCP_SRC+= acados_solver_uav_tethered.c
 

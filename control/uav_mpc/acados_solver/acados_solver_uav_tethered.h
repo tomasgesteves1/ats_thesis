@@ -36,13 +36,13 @@
 #include "acados_c/ocp_nlp_interface.h"
 #include "acados_c/external_function_interface.h"
 
-#define UAV_TETHERED_NX     8
+#define UAV_TETHERED_NX     6
 #define UAV_TETHERED_NZ     0
 #define UAV_TETHERED_NU     3
-#define UAV_TETHERED_NP     8
+#define UAV_TETHERED_NP     1
 #define UAV_TETHERED_NP_GLOBAL     0
-#define UAV_TETHERED_NBX    5
-#define UAV_TETHERED_NBX0   8
+#define UAV_TETHERED_NBX    3
+#define UAV_TETHERED_NBX0   6
 #define UAV_TETHERED_NBU    3
 #define UAV_TETHERED_NSBX   0
 #define UAV_TETHERED_NSBU   0
@@ -61,11 +61,11 @@
 #define UAV_TETHERED_NG     0
 #define UAV_TETHERED_NBXN   0
 #define UAV_TETHERED_NGN    0
-#define UAV_TETHERED_NY0    11
-#define UAV_TETHERED_NY     11
-#define UAV_TETHERED_NYN    8
+#define UAV_TETHERED_NY0    9
+#define UAV_TETHERED_NY     9
+#define UAV_TETHERED_NYN    6
 #define UAV_TETHERED_N      20
-#define UAV_TETHERED_NH     1
+#define UAV_TETHERED_NH     0
 #define UAV_TETHERED_NHN    0
 #define UAV_TETHERED_NH0    0
 #define UAV_TETHERED_NPHI0  0
@@ -114,10 +114,6 @@ typedef struct uav_tethered_solver_capsule
 
 
     // constraints
-    external_function_external_param_casadi *nl_constr_h_fun_jac;
-    external_function_external_param_casadi *nl_constr_h_fun;
-
-
 
 
 

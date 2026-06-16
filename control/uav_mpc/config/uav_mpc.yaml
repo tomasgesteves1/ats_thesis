@@ -1,17 +1,21 @@
 uav_mpc_node:
   ros__parameters:
-    # Tipo de trajetória a seguir: "hold" ou "circle"
-    trajectory_type: "circle"
+    # Type of trajectory to follow: "hold" or "circle"
+    trajectory_type: "hold"
 
-    # Ativar/Desativar modelo físico e restrições do tether
+    # Enable/Disable physical model and constraints of the tether
     use_tether: false
 
-    # Parâmetros da trajetória circular
+    # Circular trajectory parameters
     circle_radius: 3.0
-    circle_omega: 1.67
+    circle_omega: 0.2
     circle_height: 10.0
 
-    # Limites físicos dinâmicos do drone
-    v_max: 10.0       # Velocidade máxima (m/s)
-    u_max: 19.62     # Aceleração de empuxo máxima (m/s^2)
-    tau: 0.15        # Constante de tempo da dinâmica de atitude (s)
+    # Hold mode height
+    hold_height: 6.0     # Target hovering altitude in hold mode (m)
+
+    # Dynamic physical limits of the drone (less aggressive settings)
+    v_max: 10.0           # Maximum velocity (m/s)
+    u_max: 15.0          # Maximum thrust acceleration (m/s^2)
+    hover_throttle: 0.52 # Normalized hover throttle command
+    tilt_max: 0.4        # Maximum tilt angle (rad, ~11.5 deg)

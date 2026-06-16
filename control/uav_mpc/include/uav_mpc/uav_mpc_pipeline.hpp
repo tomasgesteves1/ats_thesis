@@ -11,11 +11,12 @@ enum class TrajectoryType {
 };
 
 struct UavControlOutput {
-    double q_d[4]; // w, x, y, z
+    double q_d[4]; // w, x, y, z desired orientation
     double thrust_normalized;
+    double u_opt[3]; // raw optimal control command from MPC: [phi_cmd, theta_cmd, a_T]
     std::vector<std::vector<double>> predicted_positions; // N+1 points of [x, y, z]
     std::vector<double> current_reference; // [x, y, z]
-    std::vector<std::vector<double>> reference_path; // Points of the reference trajectory for visualization
+    std::vector<std::vector<double>> reference_path; // Reference trajectory points for visualization
     double mpc_tether_force_mag; // Tether force magnitude assumed by the MPC model (N)
 };
 
@@ -34,36 +35,33 @@ public:
     void setUseTether(bool use_tether);
     void setVelocityLimit(double v_max);
     void setInputLimit(double u_max);
-    void setAttitudeTimeConstant(double tau);
+    void setHoverThrottle(double hover_throttle);
+    void setTiltMax(double tilt_max);
     UavControlOutput computeControl();
 
 private:
     std::vector<double> current_state_;
     void* acados_ocp_capsule_;
     
-    // Atitude atual do drone
+    // Current drone attitude
     double qx_, qy_, qz_, qw_;
     double target_yaw_;
     bool target_initialized_;
     std::vector<double> current_reference_;
 
-    // Posição global da âncora do cabo e comprimento
+    // Global tether anchor position and length
     double anchor_x_, anchor_y_, anchor_z_;
     double L_tether_;
     bool use_tether_;
     double v_max_;
     double u_max_;
-    double tau_;
+    double hover_throttle_;
+    double tilt_max_;
 
-    // Trajetória e tempo
+    // Trajectory generator and time
     TrajectoryType trajectory_type_;
     UavMpcTrajectory trajectory_gen_;
     double time_;
-
-    // Funções auxiliares de matemática (atitude)
-    void quaternionToEuler(double qx, double qy, double qz, double qw, double &roll, double &pitch, double &yaw) const;
-    void rotationMatrixToQuaternion(double R[3][3], float q[4]) const;
-    void rotateVectorByQuaternion(double qx, double qy, double qz, double qw, const double v_in[3], double v_out[3]) const;
 };
 
 } // namespace uav_mpc

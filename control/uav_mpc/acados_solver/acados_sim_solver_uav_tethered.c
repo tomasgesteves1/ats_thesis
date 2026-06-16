@@ -45,8 +45,6 @@
 // example specific
 #include "uav_tethered_model/uav_tethered_model.h"
 #include "acados_sim_solver_uav_tethered.h"
-// initial value of stagewise parameters
-static const double p_init[] = {0,0,0,3,0.2,0.02,0,0.15,};
 
 // ** solver data **
 
@@ -184,16 +182,15 @@ int uav_tethered_acados_sim_create(uav_tethered_sim_solver_capsule * capsule)
 
     /* initialize parameter values */
     
-    double* p = malloc(np*sizeof(double));
-    memcpy(p, p_init, np*sizeof(double));
+    double* p = calloc(np, sizeof(double));
     uav_tethered_acados_sim_update_params(capsule, p, np);
     free(p);
 
 
     /* initialize input */
     // x
-    double x0[8];
-    for (int ii = 0; ii < 8; ii++)
+    double x0[6];
+    for (int ii = 0; ii < 6; ii++)
         x0[ii] = 0.0;
 
     sim_in_set(uav_tethered_sim_config, uav_tethered_sim_dims,
@@ -209,11 +206,11 @@ int uav_tethered_acados_sim_create(uav_tethered_sim_solver_capsule * capsule)
                uav_tethered_sim_in, "u", u0);
 
     // S_forw
-    double S_forw[88];
-    for (int ii = 0; ii < 88; ii++)
+    double S_forw[54];
+    for (int ii = 0; ii < 54; ii++)
         S_forw[ii] = 0.0;
-    for (int ii = 0; ii < 8; ii++)
-        S_forw[ii + ii * 8 ] = 1.0;
+    for (int ii = 0; ii < 6; ii++)
+        S_forw[ii + ii * 6 ] = 1.0;
 
 
     sim_in_set(uav_tethered_sim_config, uav_tethered_sim_dims,
