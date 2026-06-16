@@ -87,6 +87,12 @@ UavMpcNode::UavMpcNode()
     mpc_states_inputs_pub_ = this->create_publisher<std_msgs::msg::Float64MultiArray>(
         "mpc_states_and_inputs", 10);
 
+    // Path publishers (relative topics)
+    mpc_predicted_path_pub_ = this->create_publisher<nav_msgs::msg::Path>(
+        "mpc_predicted_path", 10);
+    mpc_reference_path_pub_ = this->create_publisher<nav_msgs::msg::Path>(
+        "mpc_reference_path", 10);
+
     // Timer at 20Hz (0.05s) to match the MPC dt
     timer_ = this->create_wall_timer(
         std::chrono::milliseconds(50), std::bind(&UavMpcNode::controlLoop, this));
@@ -264,31 +270,84 @@ void UavMpcNode::controlLoop() {
     force_msg.data = output.mpc_tether_force_mag;
     mpc_tether_force_pub_->publish(force_msg);
 
+    // Rotate linear velocities to world frame (ENU) for accurate velocity reference comparison
+    double v_body[3] = {
+        latest_odom_.twist.twist.linear.x,
+        latest_odom_.twist.twist.linear.y,
+        latest_odom_.twist.twist.linear.z
+    };
+    double v_world[3] = {0.0, 0.0, 0.0};
+    kinematics::rotateVectorByQuaternion(drone_qx, drone_qy, drone_qz, drone_qw, v_body, v_world);
+
     // Publish MPC telemetry states and inputs
     std_msgs::msg::Float64MultiArray telemetry_msg;
     telemetry_msg.data = {
         drone_x,                           // 0: State x (m)
         drone_y,                           // 1: State y (m)
         drone_z,                           // 2: State z (m)
-        latest_odom_.twist.twist.linear.x, // 3: State vx (m/s)
-        latest_odom_.twist.twist.linear.y, // 4: State vy (m/s)
-        latest_odom_.twist.twist.linear.z, // 5: State vz (m/s)
+        latest_odom_.twist.twist.linear.x, // 3: State vx (m/s) [body]
+        latest_odom_.twist.twist.linear.y, // 4: State vy (m/s) [body]
+        latest_odom_.twist.twist.linear.z, // 5: State vz (m/s) [body]
         output.u_opt[0],                   // 6: Input roll cmd (rad)
         output.u_opt[1],                   // 7: Input pitch cmd (rad)
         output.u_opt[2],                   // 8: Input thrust accel cmd (m/s^2)
         drone_roll,                        // 9: Current roll (rad)
         drone_pitch,                       // 10: Current pitch (rad)
-        drone_yaw                          // 11: Current yaw (rad)
+        drone_yaw,                         // 11: Current yaw (rad)
+        output.current_reference[0],       // 12: Reference x (m)
+        output.current_reference[1],       // 13: Reference y (m)
+        output.current_reference[2],       // 14: Reference z (m)
+        v_world[0],                        // 15: State vx world (m/s)
+        v_world[1],                        // 16: State vy world (m/s)
+        v_world[2],                        // 17: State vz world (m/s)
+        output.current_reference_velocity[0], // 18: Reference vx world (m/s)
+        output.current_reference_velocity[1], // 19: Reference vy world (m/s)
+        output.current_reference_velocity[2]  // 20: Reference vz world (m/s)
     };
     
     // Add layout descriptors for readability
     std_msgs::msg::MultiArrayDimension dim;
-    dim.label = "x,y,z,vx,vy,vz,roll_cmd,pitch_cmd,thrust_cmd,roll,pitch,yaw";
+    dim.label = "x,y,z,vx,vy,vz,roll_cmd,pitch_cmd,thrust_cmd,roll,pitch,yaw,ref_x,ref_y,ref_z,vx_world,vy_world,vz_world,ref_vx,ref_vy,ref_vz";
     dim.size = telemetry_msg.data.size();
     dim.stride = telemetry_msg.data.size();
     telemetry_msg.layout.dim.push_back(dim);
     
     mpc_states_inputs_pub_->publish(telemetry_msg);
+
+    // Publish MPC Predicted Path (nav_msgs/msg/Path)
+    auto current_time = this->get_clock()->now();
+    nav_msgs::msg::Path pred_path_msg;
+    pred_path_msg.header.frame_id = "world";
+    pred_path_msg.header.stamp = current_time;
+    
+    for (const auto& pos : output.predicted_positions) {
+        geometry_msgs::msg::PoseStamped pose;
+        pose.header.frame_id = "world";
+        pose.header.stamp = current_time;
+        pose.pose.position.x = pos[0];
+        pose.pose.position.y = pos[1];
+        pose.pose.position.z = pos[2];
+        pose.pose.orientation.w = 1.0;
+        pred_path_msg.poses.push_back(pose);
+    }
+    mpc_predicted_path_pub_->publish(pred_path_msg);
+
+    // Publish MPC Reference Path (nav_msgs/msg/Path)
+    nav_msgs::msg::Path ref_path_msg;
+    ref_path_msg.header.frame_id = "world";
+    ref_path_msg.header.stamp = current_time;
+    
+    for (const auto& pos : output.reference_path) {
+        geometry_msgs::msg::PoseStamped pose;
+        pose.header.frame_id = "world";
+        pose.header.stamp = current_time;
+        pose.pose.position.x = pos[0];
+        pose.pose.position.y = pos[1];
+        pose.pose.position.z = pos[2];
+        pose.pose.orientation.w = 1.0;
+        ref_path_msg.poses.push_back(pose);
+    }
+    mpc_reference_path_pub_->publish(ref_path_msg);
 }
 
 void UavMpcNode::publishOffboardControlMode() {

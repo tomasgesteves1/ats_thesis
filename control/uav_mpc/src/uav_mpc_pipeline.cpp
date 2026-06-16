@@ -16,6 +16,7 @@ UavMpcPipeline::UavMpcPipeline()
       trajectory_type_(TrajectoryType::HOLD), time_(0.0) {
     current_state_.resize(6, 0.0);
     current_reference_.resize(3, 0.0);
+    current_reference_velocity_.resize(3, 0.0);
     
     acados_ocp_capsule_ = uav_tethered_acados_create_capsule();
     int status = uav_tethered_acados_create((uav_tethered_solver_capsule*)acados_ocp_capsule_);
@@ -161,8 +162,10 @@ UavControlOutput UavMpcPipeline::computeControl() {
         double yref_e[8] = {pt_e.px, pt_e.py, pt_e.pz, pt_e.vx, pt_e.vy, pt_e.vz, 0.0, 0.0};
         ocp_nlp_cost_model_set(capsule->nlp_config, capsule->nlp_dims, capsule->nlp_in, capsule->nlp_solver_plan->N, "yref", yref_e);
 
-        // Update current reference for RViz visualization
-        current_reference_ = {pt_e.px, pt_e.py, pt_e.pz};
+        // Update current reference for RViz visualization (at start of prediction horizon)
+        TrajectoryPoint pt_start = trajectory_gen_.getPoint(time_);
+        current_reference_ = {pt_start.px, pt_start.py, pt_start.pz};
+        current_reference_velocity_ = {pt_start.vx, pt_start.vy, pt_start.vz};
     } else {
         // HOLD mode
         double yref[11] = {current_reference_[0], current_reference_[1], current_reference_[2], 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 9.81};
@@ -171,6 +174,7 @@ UavControlOutput UavMpcPipeline::computeControl() {
             ocp_nlp_cost_model_set(capsule->nlp_config, capsule->nlp_dims, capsule->nlp_in, i, "yref", yref);
         }
         ocp_nlp_cost_model_set(capsule->nlp_config, capsule->nlp_dims, capsule->nlp_in, capsule->nlp_solver_plan->N, "yref", yref_e);
+        current_reference_velocity_ = {0.0, 0.0, 0.0};
     }
 
     // Dynamic tension calculation
@@ -230,6 +234,7 @@ UavControlOutput UavMpcPipeline::computeControl() {
     }
 
     output.current_reference = current_reference_;
+    output.current_reference_velocity = current_reference_velocity_;
 
     // Calculate estimated tether force magnitude
     output.mpc_tether_force_mag = tether::estimateTetherForce(
@@ -238,11 +243,12 @@ UavControlOutput UavMpcPipeline::computeControl() {
         T0_val
     );
 
-    // Populate reference path for visualization
+    // Populate reference path for visualization (N points along the prediction horizon)
     output.reference_path.clear();
     if (trajectory_type_ == TrajectoryType::CIRCLE) {
-        std::vector<TrajectoryPoint> ref_path = trajectory_gen_.getReferencePath();
-        for (const auto& pt : ref_path) {
+        for (int i = 0; i <= capsule->nlp_solver_plan->N; i++) {
+            double t_stage = time_ + i * 0.05;
+            TrajectoryPoint pt = trajectory_gen_.getPoint(t_stage);
             output.reference_path.push_back({pt.px, pt.py, pt.pz});
         }
     } else {

@@ -2,6 +2,7 @@
 
 #include <rclcpp/rclcpp.hpp>
 #include <nav_msgs/msg/odometry.hpp>
+#include <nav_msgs/msg/path.hpp>
 #include <geometry_msgs/msg/point.hpp>
 #include <std_msgs/msg/float64.hpp>
 #include <std_msgs/msg/float64_multi_array.hpp>
@@ -61,6 +62,10 @@ private:
 
     // MPC debug states and inputs publisher (relative topic)
     rclcpp::Publisher<std_msgs::msg::Float64MultiArray>::SharedPtr mpc_states_inputs_pub_;
+
+    // Path publishers (relative topics)
+    rclcpp::Publisher<nav_msgs::msg::Path>::SharedPtr mpc_predicted_path_pub_;
+    rclcpp::Publisher<nav_msgs::msg::Path>::SharedPtr mpc_reference_path_pub_;
     
     rclcpp::TimerBase::SharedPtr timer_;
 

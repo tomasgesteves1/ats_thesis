@@ -16,6 +16,7 @@ struct UavControlOutput {
     double u_opt[3]; // raw optimal control command from MPC: [phi_cmd, theta_cmd, a_T]
     std::vector<std::vector<double>> predicted_positions; // N+1 points of [x, y, z]
     std::vector<double> current_reference; // [x, y, z]
+    std::vector<double> current_reference_velocity; // [vx, vy, vz]
     std::vector<std::vector<double>> reference_path; // Reference trajectory points for visualization
     double mpc_tether_force_mag; // Tether force magnitude assumed by the MPC model (N)
 };
@@ -48,6 +49,7 @@ private:
     double target_yaw_;
     bool target_initialized_;
     std::vector<double> current_reference_;
+    std::vector<double> current_reference_velocity_;
 
     // Global tether anchor position and length
     double anchor_x_, anchor_y_, anchor_z_;

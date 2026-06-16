@@ -1,7 +1,7 @@
 uav_mpc_node:
   ros__parameters:
     # Type of trajectory to follow: "hold" or "circle"
-    trajectory_type: "hold"
+    trajectory_type: "circle"
 
     # Enable/Disable physical model and constraints of the tether
     use_tether: false

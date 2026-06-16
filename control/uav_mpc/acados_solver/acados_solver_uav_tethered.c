@@ -481,15 +481,15 @@ void uav_tethered_acados_setup_nlp_in(uav_tethered_solver_capsule* capsule, cons
 
    double* W_0 = calloc(NY0*NY0, sizeof(double));
     // change only the non-zero elements:
-    W_0[0+(NY0) * 0] = 10;
-    W_0[1+(NY0) * 1] = 10;
-    W_0[2+(NY0) * 2] = 15;
-    W_0[3+(NY0) * 3] = 3;
-    W_0[4+(NY0) * 4] = 3;
-    W_0[5+(NY0) * 5] = 4;
-    W_0[8+(NY0) * 8] = 2.5;
-    W_0[9+(NY0) * 9] = 2.5;
-    W_0[10+(NY0) * 10] = 0.1;
+    W_0[0+(NY0) * 0] = 5;
+    W_0[1+(NY0) * 1] = 5;
+    W_0[2+(NY0) * 2] = 20;
+    W_0[3+(NY0) * 3] = 1;
+    W_0[4+(NY0) * 4] = 1;
+    W_0[5+(NY0) * 5] = 2;
+    W_0[8+(NY0) * 8] = 0.01;
+    W_0[9+(NY0) * 9] = 0.01;
+    W_0[10+(NY0) * 10] = 0.01;
     ocp_nlp_cost_model_set(nlp_config, nlp_dims, nlp_in, 0, "W", W_0);
     free(W_0);
     double* Vx_0 = calloc(NY0*NX, sizeof(double));
@@ -522,15 +522,15 @@ void uav_tethered_acados_setup_nlp_in(uav_tethered_solver_capsule* capsule, cons
     free(yref);
     double* W = calloc(NY*NY, sizeof(double));
     // change only the non-zero elements:
-    W[0+(NY) * 0] = 10;
-    W[1+(NY) * 1] = 10;
-    W[2+(NY) * 2] = 15;
-    W[3+(NY) * 3] = 3;
-    W[4+(NY) * 4] = 3;
-    W[5+(NY) * 5] = 4;
-    W[8+(NY) * 8] = 2.5;
-    W[9+(NY) * 9] = 2.5;
-    W[10+(NY) * 10] = 0.1;
+    W[0+(NY) * 0] = 5;
+    W[1+(NY) * 1] = 5;
+    W[2+(NY) * 2] = 20;
+    W[3+(NY) * 3] = 1;
+    W[4+(NY) * 4] = 1;
+    W[5+(NY) * 5] = 2;
+    W[8+(NY) * 8] = 0.01;
+    W[9+(NY) * 9] = 0.01;
+    W[10+(NY) * 10] = 0.01;
 
     for (int i = 1; i < N; i++)
     {
@@ -572,12 +572,12 @@ void uav_tethered_acados_setup_nlp_in(uav_tethered_solver_capsule* capsule, cons
 
     double* W_e = calloc(NYN*NYN, sizeof(double));
     // change only the non-zero elements:
-    W_e[0+(NYN) * 0] = 10;
-    W_e[1+(NYN) * 1] = 10;
-    W_e[2+(NYN) * 2] = 15;
-    W_e[3+(NYN) * 3] = 3;
-    W_e[4+(NYN) * 4] = 3;
-    W_e[5+(NYN) * 5] = 4;
+    W_e[0+(NYN) * 0] = 5;
+    W_e[1+(NYN) * 1] = 5;
+    W_e[2+(NYN) * 2] = 20;
+    W_e[3+(NYN) * 3] = 1;
+    W_e[4+(NYN) * 4] = 1;
+    W_e[5+(NYN) * 5] = 2;
     ocp_nlp_cost_model_set(nlp_config, nlp_dims, nlp_in, N, "W", W_e);
     free(W_e);
     double* Vx_e = calloc(NYN*NX, sizeof(double));
