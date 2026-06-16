@@ -38,7 +38,7 @@ public:
     void setInputLimit(double u_max);
     void setHoverThrottle(double hover_throttle);
     void setTiltMax(double tilt_max);
-    UavControlOutput computeControl();
+    UavControlOutput computeControl(double current_time);
 
 private:
     std::vector<double> current_state_;
@@ -63,7 +63,8 @@ private:
     // Trajectory generator and time
     TrajectoryType trajectory_type_;
     UavMpcTrajectory trajectory_gen_;
-    double time_;
+    double circle_start_time_;  // Sim time when circle mode was activated
+    static constexpr double Ts_ = 0.05;  // Control period (s)
 };
 
 } // namespace uav_mpc

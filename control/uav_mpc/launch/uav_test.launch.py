@@ -17,7 +17,7 @@ def generate_launch_description():
         executable='uav_mpc_node',
         name='uav_mpc_node',
         output='screen',
-        parameters=[config_file],
+        parameters=[config_file, {'use_sim_time': True}],
         remappings=[
             # O tópico de odom do uav_mpc tem de se ligar à Odometria vinda do moordyn_marsupial
             ('odom', '/drone/ground_truth/odometry'),

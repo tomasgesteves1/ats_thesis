@@ -64,7 +64,7 @@
 #define UAV_TETHERED_NY0    11
 #define UAV_TETHERED_NY     11
 #define UAV_TETHERED_NYN    8
-#define UAV_TETHERED_N      20
+#define UAV_TETHERED_N      40
 #define UAV_TETHERED_NH     0
 #define UAV_TETHERED_NHN    0
 #define UAV_TETHERED_NH0    0

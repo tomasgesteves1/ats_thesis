@@ -137,7 +137,7 @@ MoordynTetherNode::MoordynTetherNode(const rclcpp::NodeOptions & options)
 
     // ---- Physics timer ----
     auto period_ms = static_cast<int>(1000.0 / physics_rate_hz_);
-    physics_timer_ = this->create_wall_timer(
+    physics_timer_ = this->create_timer(
         std::chrono::milliseconds(period_ms),
         std::bind(&MoordynTetherNode::physicsLoop, this));
 

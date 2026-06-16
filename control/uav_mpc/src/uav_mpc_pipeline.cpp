@@ -13,7 +13,7 @@ UavMpcPipeline::UavMpcPipeline()
       anchor_x_(0.0), anchor_y_(0.0), anchor_z_(0.0),
       L_tether_(3.0), use_tether_(true), v_max_(2.0), u_max_(15.0),
       hover_throttle_(0.52), tilt_max_(0.2),
-      trajectory_type_(TrajectoryType::HOLD), time_(0.0) {
+      trajectory_type_(TrajectoryType::HOLD), circle_start_time_(-1.0) {
     current_state_.resize(6, 0.0);
     current_reference_.resize(3, 0.0);
     current_reference_velocity_.resize(3, 0.0);
@@ -55,7 +55,7 @@ void UavMpcPipeline::setTrajectoryType(TrajectoryType type) {
     if (trajectory_type_ != type) {
         trajectory_type_ = type;
         if (type == TrajectoryType::CIRCLE) {
-            time_ = 0.0;
+            circle_start_time_ = -1.0;  // Will be set on first computeControl call with valid time
         }
     }
 }
@@ -84,18 +84,12 @@ void UavMpcPipeline::setTiltMax(double tilt_max) {
     tilt_max_ = tilt_max;
 }
 
-UavControlOutput UavMpcPipeline::computeControl() {
+UavControlOutput UavMpcPipeline::computeControl(double current_time) {
     auto capsule = (uav_tethered_solver_capsule*)acados_ocp_capsule_;
     
     // Get current drone attitude angles in Euler representation
     double roll = 0.0, pitch = 0.0, yaw = 0.0;
     kinematics::quaternionToEuler(qx_, qy_, qz_, qw_, roll, pitch, yaw);
-
-    // Save initial yaw for control reference purposes if needed
-    if (!target_initialized_) {
-        target_yaw_ = yaw;
-        target_initialized_ = true;
-    }
 
     // Set current initial state (x0) in ACADOS: [x, y, z, vx, vy, vz, phi, theta]
     double x0[8];
@@ -114,18 +108,23 @@ UavControlOutput UavMpcPipeline::computeControl() {
     x0[6] = roll;
     x0[7] = pitch;
 
+    // Save initial yaw for control reference purposes if needed and warm start solver guesses once
+    if (!target_initialized_) {
+        target_yaw_ = yaw;
+        
+        double x_guess[8] = {x0[0], x0[1], x0[2], x0[3], x0[4], x0[5], x0[6], x0[7]};
+        double u_guess[3] = {0.0, 0.0, 9.81};
+        for (int i = 0; i <= capsule->nlp_solver_plan->N; i++) {
+            ocp_nlp_out_set(capsule->nlp_config, capsule->nlp_dims, capsule->nlp_out, capsule->nlp_in, i, "x", x_guess);
+        }
+        for (int i = 0; i < capsule->nlp_solver_plan->N; i++) {
+            ocp_nlp_out_set(capsule->nlp_config, capsule->nlp_dims, capsule->nlp_out, capsule->nlp_in, i, "u", u_guess);
+        }
+        target_initialized_ = true;
+    }
+
     ocp_nlp_constraints_model_set(capsule->nlp_config, capsule->nlp_dims, capsule->nlp_in, capsule->nlp_out, 0, "lbx", x0);
     ocp_nlp_constraints_model_set(capsule->nlp_config, capsule->nlp_dims, capsule->nlp_in, capsule->nlp_out, 0, "ubx", x0);
-
-    // Warm-start solver state and control guesses to avoid impossible transitions from zero initialization
-    double x_guess[8] = {x0[0], x0[1], x0[2], x0[3], x0[4], x0[5], x0[6], x0[7]};
-    double u_guess[3] = {0.0, 0.0, 9.81};
-    for (int i = 0; i <= capsule->nlp_solver_plan->N; i++) {
-        ocp_nlp_out_set(capsule->nlp_config, capsule->nlp_dims, capsule->nlp_out, capsule->nlp_in, i, "x", x_guess);
-    }
-    for (int i = 0; i < capsule->nlp_solver_plan->N; i++) {
-        ocp_nlp_out_set(capsule->nlp_config, capsule->nlp_dims, capsule->nlp_out, capsule->nlp_in, i, "u", u_guess);
-    }
 
     // Set state velocity and tilt bounds (lbx, ubx for stages 1...N)
     // idxbx = [3, 4, 5, 6, 7] corresponding to [vx, vy, vz, phi, theta]
@@ -148,22 +147,27 @@ UavControlOutput UavMpcPipeline::computeControl() {
 
     // Inject reference trajectory into the prediction horizon
     if (trajectory_type_ == TrajectoryType::CIRCLE) {
-        time_ += 0.05; // Increment by 50ms (Ts)
+        // Initialize circle start time on first call
+        if (circle_start_time_ < 0.0) {
+            circle_start_time_ = current_time;
+        }
+        double elapsed = current_time - circle_start_time_;
+
         for (int i = 0; i < capsule->nlp_solver_plan->N; i++) {
-            double t_stage = time_ + i * 0.05;
+            double t_stage = elapsed + i * Ts_;
             TrajectoryPoint pt = trajectory_gen_.getPoint(t_stage);
             // yref = [p_x, p_y, p_z, v_x, v_y, v_z, phi, theta, phi_dot_cmd, theta_dot_cmd, a_T]
             double yref[11] = {pt.px, pt.py, pt.pz, pt.vx, pt.vy, pt.vz, 0.0, 0.0, 0.0, 0.0, 9.81};
             ocp_nlp_cost_model_set(capsule->nlp_config, capsule->nlp_dims, capsule->nlp_in, i, "yref", yref);
         }
-        double t_terminal = time_ + capsule->nlp_solver_plan->N * 0.05;
+        double t_terminal = elapsed + capsule->nlp_solver_plan->N * Ts_;
         TrajectoryPoint pt_e = trajectory_gen_.getPoint(t_terminal);
         // yref_e = [p_x, p_y, p_z, v_x, v_y, v_z, phi, theta]
         double yref_e[8] = {pt_e.px, pt_e.py, pt_e.pz, pt_e.vx, pt_e.vy, pt_e.vz, 0.0, 0.0};
         ocp_nlp_cost_model_set(capsule->nlp_config, capsule->nlp_dims, capsule->nlp_in, capsule->nlp_solver_plan->N, "yref", yref_e);
 
         // Update current reference for RViz visualization (at start of prediction horizon)
-        TrajectoryPoint pt_start = trajectory_gen_.getPoint(time_);
+        TrajectoryPoint pt_start = trajectory_gen_.getPoint(elapsed);
         current_reference_ = {pt_start.px, pt_start.py, pt_start.pz};
         current_reference_velocity_ = {pt_start.vx, pt_start.vy, pt_start.vz};
     } else {
@@ -246,8 +250,9 @@ UavControlOutput UavMpcPipeline::computeControl() {
     // Populate reference path for visualization (N points along the prediction horizon)
     output.reference_path.clear();
     if (trajectory_type_ == TrajectoryType::CIRCLE) {
+        double elapsed_vis = (circle_start_time_ >= 0.0) ? (current_time - circle_start_time_) : 0.0;
         for (int i = 0; i <= capsule->nlp_solver_plan->N; i++) {
-            double t_stage = time_ + i * 0.05;
+            double t_stage = elapsed_vis + i * Ts_;
             TrajectoryPoint pt = trajectory_gen_.getPoint(t_stage);
             output.reference_path.push_back({pt.px, pt.py, pt.pz});
         }

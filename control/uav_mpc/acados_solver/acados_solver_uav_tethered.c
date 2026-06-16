@@ -453,7 +453,27 @@ void uav_tethered_acados_setup_nlp_in(uav_tethered_solver_capsule* capsule, cons
         cost_scaling[17] = 0.05;
         cost_scaling[18] = 0.05;
         cost_scaling[19] = 0.05;
-        cost_scaling[20] = 1;
+        cost_scaling[20] = 0.05;
+        cost_scaling[21] = 0.05;
+        cost_scaling[22] = 0.05;
+        cost_scaling[23] = 0.05;
+        cost_scaling[24] = 0.05;
+        cost_scaling[25] = 0.05;
+        cost_scaling[26] = 0.05;
+        cost_scaling[27] = 0.05;
+        cost_scaling[28] = 0.05;
+        cost_scaling[29] = 0.05;
+        cost_scaling[30] = 0.05;
+        cost_scaling[31] = 0.05;
+        cost_scaling[32] = 0.05;
+        cost_scaling[33] = 0.05;
+        cost_scaling[34] = 0.05;
+        cost_scaling[35] = 0.05;
+        cost_scaling[36] = 0.05;
+        cost_scaling[37] = 0.05;
+        cost_scaling[38] = 0.05;
+        cost_scaling[39] = 0.05;
+        cost_scaling[40] = 1;
         for (int i = 0; i <= N; i++)
         {
             ocp_nlp_cost_model_set(nlp_config, nlp_dims, nlp_in, i, "scaling", &cost_scaling[i]);
@@ -481,12 +501,12 @@ void uav_tethered_acados_setup_nlp_in(uav_tethered_solver_capsule* capsule, cons
 
    double* W_0 = calloc(NY0*NY0, sizeof(double));
     // change only the non-zero elements:
-    W_0[0+(NY0) * 0] = 5;
-    W_0[1+(NY0) * 1] = 5;
+    W_0[0+(NY0) * 0] = 20;
+    W_0[1+(NY0) * 1] = 20;
     W_0[2+(NY0) * 2] = 20;
-    W_0[3+(NY0) * 3] = 1;
-    W_0[4+(NY0) * 4] = 1;
-    W_0[5+(NY0) * 5] = 2;
+    W_0[3+(NY0) * 3] = 5;
+    W_0[4+(NY0) * 4] = 5;
+    W_0[5+(NY0) * 5] = 5;
     W_0[8+(NY0) * 8] = 0.01;
     W_0[9+(NY0) * 9] = 0.01;
     W_0[10+(NY0) * 10] = 0.01;
@@ -522,12 +542,12 @@ void uav_tethered_acados_setup_nlp_in(uav_tethered_solver_capsule* capsule, cons
     free(yref);
     double* W = calloc(NY*NY, sizeof(double));
     // change only the non-zero elements:
-    W[0+(NY) * 0] = 5;
-    W[1+(NY) * 1] = 5;
+    W[0+(NY) * 0] = 20;
+    W[1+(NY) * 1] = 20;
     W[2+(NY) * 2] = 20;
-    W[3+(NY) * 3] = 1;
-    W[4+(NY) * 4] = 1;
-    W[5+(NY) * 5] = 2;
+    W[3+(NY) * 3] = 5;
+    W[4+(NY) * 4] = 5;
+    W[5+(NY) * 5] = 5;
     W[8+(NY) * 8] = 0.01;
     W[9+(NY) * 9] = 0.01;
     W[10+(NY) * 10] = 0.01;
@@ -572,12 +592,12 @@ void uav_tethered_acados_setup_nlp_in(uav_tethered_solver_capsule* capsule, cons
 
     double* W_e = calloc(NYN*NYN, sizeof(double));
     // change only the non-zero elements:
-    W_e[0+(NYN) * 0] = 5;
-    W_e[1+(NYN) * 1] = 5;
+    W_e[0+(NYN) * 0] = 20;
+    W_e[1+(NYN) * 1] = 20;
     W_e[2+(NYN) * 2] = 20;
-    W_e[3+(NYN) * 3] = 1;
-    W_e[4+(NYN) * 4] = 1;
-    W_e[5+(NYN) * 5] = 2;
+    W_e[3+(NYN) * 3] = 5;
+    W_e[4+(NYN) * 4] = 5;
+    W_e[5+(NYN) * 5] = 5;
     ocp_nlp_cost_model_set(nlp_config, nlp_dims, nlp_in, N, "W", W_e);
     free(W_e);
     double* Vx_e = calloc(NYN*NX, sizeof(double));
@@ -689,12 +709,12 @@ void uav_tethered_acados_setup_nlp_in(uav_tethered_solver_capsule* capsule, cons
     double* lubx = calloc(2*NBX, sizeof(double));
     double* lbx = lubx;
     double* ubx = lubx + NBX;
-    lbx[0] = -10;
-    ubx[0] = 10;
-    lbx[1] = -10;
-    ubx[1] = 10;
-    lbx[2] = -10;
-    ubx[2] = 10;
+    lbx[0] = -5;
+    ubx[0] = 5;
+    lbx[1] = -5;
+    ubx[1] = 5;
+    lbx[2] = -5;
+    ubx[2] = 5;
     lbx[3] = -0.4;
     ubx[3] = 0.4;
     lbx[4] = -0.4;
@@ -812,7 +832,7 @@ static void uav_tethered_acados_create_set_opts(uav_tethered_solver_capsule* cap
     ocp_nlp_solver_opts_set(nlp_config, nlp_opts, "levenberg_marquardt", &levenberg_marquardt);
 
     /* options QP solver */
-    int qp_solver_cond_N;const int qp_solver_cond_N_ori = 20;
+    int qp_solver_cond_N;const int qp_solver_cond_N_ori = 40;
     qp_solver_cond_N = N < qp_solver_cond_N_ori ? N : qp_solver_cond_N_ori; // use the minimum value here
     ocp_nlp_solver_opts_set(nlp_config, nlp_opts, "qp_cond_N", &qp_solver_cond_N);
 

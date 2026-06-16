@@ -41,8 +41,8 @@ FrameManagerNode::FrameManagerNode() : Node("frame_manager") {
     double hz = this->get_parameter("update_rate_hz").as_double();
     double period_sec = 1.0 / std::max(0.1, hz);
     
-    timer_ = this->create_wall_timer(
-        std::chrono::duration<double>(period_sec),
+    timer_ = this->create_timer(
+        std::chrono::milliseconds(static_cast<int64_t>(period_sec * 1000.0)),
         std::bind(&FrameManagerNode::timer_callback, this));
 
     RCLCPP_INFO(this->get_logger(), "Frame Manager (Gold Standard) initialized at %.2f Hz", hz);

@@ -93,8 +93,8 @@ UavMpcNode::UavMpcNode()
     mpc_reference_path_pub_ = this->create_publisher<nav_msgs::msg::Path>(
         "mpc_reference_path", 10);
 
-    // Timer at 20Hz (0.05s) to match the MPC dt
-    timer_ = this->create_wall_timer(
+    // Timer at 20Hz (0.05s) using node's clock (sim time) to match the MPC dt
+    timer_ = this->create_timer(
         std::chrono::milliseconds(50), std::bind(&UavMpcNode::controlLoop, this));
 
     RCLCPP_INFO(this->get_logger(), "UAV MPC Node successfully initialized.");
@@ -218,8 +218,9 @@ void UavMpcNode::controlLoop() {
     pipeline_->updateState(state);
     pipeline_->updateOrientation(drone_qx, drone_qy, drone_qz, drone_qw);
 
-    // Execute calculations in the logic pipeline
-    UavControlOutput output = pipeline_->computeControl();
+    // Execute calculations in the logic pipeline (pass actual sim time)
+    double sim_time_s = this->get_clock()->now().seconds();
+    UavControlOutput output = pipeline_->computeControl(sim_time_s);
 
     // Calculate dynamically normalized thrust using the real-time PX4 hover thrust estimate (throttled to 1Hz)
     double thrust_normalized = (output.u_opt[2] / 9.81) * px4_hover_thrust_;

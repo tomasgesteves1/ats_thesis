@@ -13,8 +13,8 @@ UsvMpcNode::UsvMpcNode() : Node("usv_mpc_node") {
     // O output será standard Twist (cmd_vel) lido pelo VRX
     cmd_pub_ = this->create_publisher<geometry_msgs::msg::Twist>("cmd_vel", 10);
 
-    // Timer a 10Hz (0.1s)
-    timer_ = this->create_wall_timer(
+    // Timer a 10Hz (0.1s) using node's clock (sim time)
+    timer_ = this->create_timer(
         std::chrono::milliseconds(100), std::bind(&UsvMpcNode::controlLoop, this));
 
     RCLCPP_INFO(this->get_logger(), "USV Kinematic Planner Node inicializado.");
