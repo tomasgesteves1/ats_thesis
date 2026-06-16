@@ -11,8 +11,8 @@
   "limits": {
     "phi_max": 0.4,
     "theta_max": 0.4,
-    "v_max": 3.0,
+    "v_max": 10.0,
     "a_T_min_scale": 0.1,
-    "a_T_max_scale": 1.2
+    "a_T_max_scale": 1.1
   }
 }

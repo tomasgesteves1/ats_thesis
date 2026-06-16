@@ -85,18 +85,18 @@ void computeDesiredQuaternion(double phi_cmd, double theta_cmd, double yaw, doub
     R_enu[2][1] = c_theta * s_phi;
     R_enu[2][2] = c_theta * c_phi;
 
-    // Convert R_enu to R_d (NED/FRD) frame using rotation M: R_d = M * R_enu * M
+    // Convert R_enu to R_d (NED/FRD) frame using rotation: R_d = M_world * R_enu * M_body
     double R_d[3][3];
-    R_d[0][0] = R_enu[1][1];
-    R_d[0][1] = R_enu[1][0];
+    R_d[0][0] = R_enu[1][0];
+    R_d[0][1] = -R_enu[1][1];
     R_d[0][2] = -R_enu[1][2];
 
-    R_d[1][0] = R_enu[0][1];
-    R_d[1][1] = R_enu[0][0];
+    R_d[1][0] = R_enu[0][0];
+    R_d[1][1] = -R_enu[0][1];
     R_d[1][2] = -R_enu[0][2];
 
-    R_d[2][0] = -R_enu[2][1];
-    R_d[2][1] = -R_enu[2][0];
+    R_d[2][0] = -R_enu[2][0];
+    R_d[2][1] = R_enu[2][1];
     R_d[2][2] = R_enu[2][2];
 
     // Convert R_d to desired quaternion q_d (Hamiltonian [w, x, y, z] order for PX4)

@@ -1,4 +1,5 @@
 #include "uav_mpc/uav_mpc_node.hpp"
+#include "uav_mpc/uav_mpc_kinematics.hpp"
 
 namespace uav_mpc {
 
@@ -166,9 +167,21 @@ void UavMpcNode::controlLoop() {
     double thrust_normalized = (output.u_opt[2] / 9.81) * px4_hover_thrust_;
     thrust_normalized = std::max(0.0, std::min(thrust_normalized, 1.0));
 
+    // Reconstruct attitude setpoints in NED frame for validation
+    double roll_ned = 0.0, pitch_ned = 0.0, yaw_ned = 0.0;
+    kinematics::quaternionToEuler(output.q_d[1], output.q_d[2], output.q_d[3], output.q_d[0], roll_ned, pitch_ned, yaw_ned);
+
+    // Print attitude and thrust debug information throttled to 1Hz
+    const double rad_to_deg = 180.0 / 3.14159265358979323846;
     RCLCPP_INFO_THROTTLE(this->get_logger(), *this->get_clock(), 1000,
-        "Thrust Normalization -> PX4 Hover: %.4f | MPC Raw: %.4f m/s^2 | MPC Normalized: %.4f",
-        px4_hover_thrust_, output.u_opt[2], thrust_normalized);
+        "Offboard Debug -> MPC (ENU) Roll: %.2f, Pitch: %.2f deg | "
+        "Q_d: [%.4f, %.4f, %.4f, %.4f] | "
+        "NED Euler: Roll: %.2f, Pitch: %.2f, Yaw: %.2f deg | "
+        "Thrust Norm: %.4f",
+        output.u_opt[0] * rad_to_deg, output.u_opt[1] * rad_to_deg,
+        output.q_d[0], output.q_d[1], output.q_d[2], output.q_d[3],
+        roll_ned * rad_to_deg, pitch_ned * rad_to_deg, yaw_ned * rad_to_deg,
+        thrust_normalized);
 
     // Always publish OffboardControlMode and VehicleAttitudeSetpoint to feed PX4 watchdog
     // publishOffboardControlMode();
