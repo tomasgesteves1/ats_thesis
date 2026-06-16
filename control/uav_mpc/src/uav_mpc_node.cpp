@@ -1,6 +1,11 @@
 #include "uav_mpc/uav_mpc_node.hpp"
 #include "uav_mpc/uav_mpc_kinematics.hpp"
 #include <limits>
+#include <cmath>
+
+#ifndef M_PI
+#define M_PI 3.14159265358979323846
+#endif
 
 namespace uav_mpc {
 
@@ -77,6 +82,10 @@ UavMpcNode::UavMpcNode()
     // MPC tether force publisher (relative topic)
     mpc_tether_force_pub_ = this->create_publisher<std_msgs::msg::Float64>(
         "mpc_tether_force_mag", 10);
+
+    // MPC debug states and inputs publisher (relative topic)
+    mpc_states_inputs_pub_ = this->create_publisher<std_msgs::msg::Float64MultiArray>(
+        "mpc_states_and_inputs", 10);
 
     // Timer at 20Hz (0.05s) to match the MPC dt
     timer_ = this->create_wall_timer(
@@ -210,12 +219,16 @@ void UavMpcNode::controlLoop() {
     double thrust_normalized = (output.u_opt[2] / 9.81) * px4_hover_thrust_;
     thrust_normalized = std::max(0.0, std::min(thrust_normalized, 1.0));
 
-    // Print state machine and drone status throttled to 1Hz
+    // Calculate current Euler angles
+    double drone_roll = 0.0, drone_pitch = 0.0, drone_yaw = 0.0;
+    kinematics::quaternionToEuler(drone_qx, drone_qy, drone_qz, drone_qw, drone_roll, drone_pitch, drone_yaw);
+
+    // Print MPC optimal commands and current attitude throttled to 1Hz
     RCLCPP_INFO_THROTTLE(this->get_logger(), *this->get_clock(), 1000,
-        "[State Machine] State: %s | Z: %.2f m | Vz: %.2f m/s | MPC Thrust CMD: %.2f m/s^2",
-        state_machine_->getStateName(),
-        drone_z,
-        latest_odom_.twist.twist.linear.z,
+        "[MPC Output] Cmd - Roll: %.2f°, Pitch: %.2f°, Yaw: %.2f° | Thrust Accel: %.2f m/s^2",
+        output.u_opt[0] * 180.0 / M_PI,
+        output.u_opt[1] * 180.0 / M_PI,
+        drone_yaw * 180.0 / M_PI,
         output.u_opt[2]);
 
     // Update state machine transitions first
@@ -250,6 +263,32 @@ void UavMpcNode::controlLoop() {
     std_msgs::msg::Float64 force_msg;
     force_msg.data = output.mpc_tether_force_mag;
     mpc_tether_force_pub_->publish(force_msg);
+
+    // Publish MPC telemetry states and inputs
+    std_msgs::msg::Float64MultiArray telemetry_msg;
+    telemetry_msg.data = {
+        drone_x,                           // 0: State x (m)
+        drone_y,                           // 1: State y (m)
+        drone_z,                           // 2: State z (m)
+        latest_odom_.twist.twist.linear.x, // 3: State vx (m/s)
+        latest_odom_.twist.twist.linear.y, // 4: State vy (m/s)
+        latest_odom_.twist.twist.linear.z, // 5: State vz (m/s)
+        output.u_opt[0],                   // 6: Input roll cmd (rad)
+        output.u_opt[1],                   // 7: Input pitch cmd (rad)
+        output.u_opt[2],                   // 8: Input thrust accel cmd (m/s^2)
+        drone_roll,                        // 9: Current roll (rad)
+        drone_pitch,                       // 10: Current pitch (rad)
+        drone_yaw                          // 11: Current yaw (rad)
+    };
+    
+    // Add layout descriptors for readability
+    std_msgs::msg::MultiArrayDimension dim;
+    dim.label = "x,y,z,vx,vy,vz,roll_cmd,pitch_cmd,thrust_cmd,roll,pitch,yaw";
+    dim.size = telemetry_msg.data.size();
+    dim.stride = telemetry_msg.data.size();
+    telemetry_msg.layout.dim.push_back(dim);
+    
+    mpc_states_inputs_pub_->publish(telemetry_msg);
 }
 
 void UavMpcNode::publishOffboardControlMode() {

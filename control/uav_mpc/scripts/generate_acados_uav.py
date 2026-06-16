@@ -1,6 +1,8 @@
 import numpy as np
 import casadi as ca
 from acados_template import AcadosOcp, AcadosOcpSolver, AcadosModel
+import json
+import os
 
 def create_uav_model() -> AcadosModel:
     model_name = 'uav_tethered'
@@ -45,14 +47,22 @@ def create_uav_model() -> AcadosModel:
     return model
 
 def generate_acados_ocp():
+    # Load config file relative to the script directory
+    script_dir = os.path.dirname(os.path.abspath(__file__))
+    config_path = os.path.join(script_dir, '../config/acados_generator_config.json')
+    with open(config_path, 'r') as f:
+        config = json.load(f)
+
     # Load model
     model = create_uav_model()
     
     # Configure Optimal Control Problem (OCP)
     ocp = AcadosOcp()
     ocp.model = model
-    ocp.dims.N = 20  # Prediction Horizon
-    Ts = 0.05
+    
+    # Horizon dimensions from config
+    ocp.dims.N = config["prediction_horizon"]["N"]
+    Ts = config["prediction_horizon"]["Ts"]
     ocp.solver_options.tf = Ts * ocp.dims.N
     
     # Configure Costs (LINEAR_LS)
@@ -64,9 +74,12 @@ def generate_acados_ocp():
     ocp.cost.cost_type = 'LINEAR_LS'
     ocp.cost.cost_type_e = 'LINEAR_LS'
     
-    # Weight matrices
-    ocp.cost.W = np.diag([15.0, 15.0, 20.0, 2.0, 2.0, 2.0, 0.05, 0.05, 0.01])
-    ocp.cost.W_e = np.diag([15.0, 15.0, 20.0, 2.0, 2.0, 2.0])
+    # Weight matrices from config
+    Qp = config["weights"]["Qp"]
+    Qv = config["weights"]["Qv"]
+    R = config["weights"]["R"]
+    ocp.cost.W = np.diag(Qp + Qv + R)
+    ocp.cost.W_e = np.diag(Qp + Qv)
     
     ocp.cost.Vx = np.zeros((ny, nx))
     ocp.cost.Vx[:nx, :nx] = np.eye(nx)
@@ -82,18 +95,18 @@ def generate_acados_ocp():
     # Default parameters: [psi]
     ocp.parameter_values = np.array([0.0])
     
-    # Control input bounds [phi_cmd, theta_cmd, a_T]
-    phi_max = 0.2       # ~11.5 deg maximum tilt (less aggressive)
-    theta_max = 0.2
-    a_T_min = 0.1 * 9.81
-    a_T_max = 15.0      # Less aggressive thrust limit
+    # Control input bounds [phi_cmd, theta_cmd, a_T] from config
+    phi_max = config["limits"]["phi_max"]
+    theta_max = config["limits"]["theta_max"]
+    a_T_min = config["limits"]["a_T_min_scale"] * 9.81
+    a_T_max = config["limits"]["a_T_max_scale"] * 9.81
     
     ocp.constraints.lbu = np.array([-phi_max, -theta_max, a_T_min])
     ocp.constraints.ubu = np.array([phi_max, theta_max, a_T_max])
     ocp.constraints.idxbu = np.array([0, 1, 2])
     
-    # State bounds [v_x, v_y, v_z]
-    v_max = 2.0         # Less aggressive velocity limit
+    # State bounds [v_x, v_y, v_z] from config
+    v_max = config["limits"]["v_max"]
     ocp.constraints.lbx = np.array([-v_max, -v_max, -v_max])
     ocp.constraints.ubx = np.array([v_max, v_max, v_max])
     ocp.constraints.idxbx = np.array([3, 4, 5])

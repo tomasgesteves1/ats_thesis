@@ -86,14 +86,11 @@ void UavMpcStateMachine::update(const px4_msgs::msg::VehicleStatus& status,
             }
 
             // Must remain stable for 10 seconds (200 iterations at 20Hz)
-            // Commented out to stay in WAIT_FOR_TAKEOFF (test takeoff/hover stabilization only)
-            /*
             if (stable_iterations_ >= 200) {
                 RCLCPP_INFO(node_->get_logger(), "State transition: WAIT_FOR_TAKEOFF -> SWITCH_OFFBOARD. Drone stable at hover.");
                 state_ = UavState::SWITCH_OFFBOARD;
                 offboard_retry_counter_ = 0;
             }
-            */
             break;
         }
 
