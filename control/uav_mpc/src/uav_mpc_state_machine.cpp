@@ -27,7 +27,7 @@ const char* UavMpcStateMachine::getStateName() const {
 
 void UavMpcStateMachine::update(const px4_msgs::msg::VehicleStatus& status,
                                 const nav_msgs::msg::Odometry& odom,
-                                double hold_height,
+                                double takeoff_height,
                                 bool odom_valid) {
     switch (state_) {
         case UavState::STANDBY: {
@@ -60,8 +60,8 @@ void UavMpcStateMachine::update(const px4_msgs::msg::VehicleStatus& status,
         }
 
         case UavState::TAKEOFF: {
-            RCLCPP_INFO(node_->get_logger(), "Sending takeoff command to %.2f m...", hold_height);
-            send_cmd_cb_(px4_msgs::msg::VehicleCommand::VEHICLE_CMD_NAV_TAKEOFF, 0.0f, 0.0f, static_cast<float>(hold_height));
+            RCLCPP_INFO(node_->get_logger(), "Sending takeoff command to %.2f m...", takeoff_height);
+            send_cmd_cb_(px4_msgs::msg::VehicleCommand::VEHICLE_CMD_NAV_TAKEOFF, 0.0f, 0.0f, static_cast<float>(takeoff_height));
             
             RCLCPP_INFO(node_->get_logger(), "State transition: TAKEOFF -> WAIT_FOR_TAKEOFF.");
             state_ = UavState::WAIT_FOR_TAKEOFF;
@@ -72,11 +72,11 @@ void UavMpcStateMachine::update(const px4_msgs::msg::VehicleStatus& status,
         case UavState::WAIT_FOR_TAKEOFF: {
             double current_z = odom.pose.pose.position.z;
             double current_vz = odom.twist.twist.linear.z;
-            double height_error = std::abs(current_z - hold_height);
+            double height_error = std::abs(current_z - takeoff_height);
 
             RCLCPP_INFO_THROTTLE(node_->get_logger(), *node_->get_clock(), 2000,
                 "WAIT_FOR_TAKEOFF -> Z: %.2f m (target: %.2f m, error: %.2f m), Vz: %.2f m/s",
-                current_z, hold_height, height_error, current_vz);
+                current_z, takeoff_height, height_error, current_vz);
 
             // Wait until drone is at height and vertical velocity is near zero
             if (height_error < 0.20 && std::abs(current_vz) < 0.10) {
@@ -85,12 +85,15 @@ void UavMpcStateMachine::update(const px4_msgs::msg::VehicleStatus& status,
                 stable_iterations_ = 0;
             }
 
-            // Must remain stable for 2 seconds (40 iterations at 20Hz)
-            if (stable_iterations_ >= 40) {
+            // Must remain stable for 10 seconds (200 iterations at 20Hz)
+            // Commented out to stay in WAIT_FOR_TAKEOFF (test takeoff/hover stabilization only)
+            /*
+            if (stable_iterations_ >= 200) {
                 RCLCPP_INFO(node_->get_logger(), "State transition: WAIT_FOR_TAKEOFF -> SWITCH_OFFBOARD. Drone stable at hover.");
                 state_ = UavState::SWITCH_OFFBOARD;
                 offboard_retry_counter_ = 0;
             }
+            */
             break;
         }
 

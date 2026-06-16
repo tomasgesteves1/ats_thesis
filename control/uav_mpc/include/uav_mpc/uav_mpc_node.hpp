@@ -71,6 +71,7 @@ private:
     bool vehicle_status_received_;
     uint64_t offboard_setpoint_counter_;
     double px4_hover_thrust_;
+    uint8_t current_system_id_;
 };
 
 } // namespace uav_mpc

@@ -1,5 +1,6 @@
 #include "uav_mpc/uav_mpc_node.hpp"
 #include "uav_mpc/uav_mpc_kinematics.hpp"
+#include <limits>
 
 namespace uav_mpc {
 
@@ -9,7 +10,8 @@ UavMpcNode::UavMpcNode()
       odom_received_(false),
       vehicle_status_received_(false),
       offboard_setpoint_counter_(0),
-      px4_hover_thrust_(0.7265) {
+      px4_hover_thrust_(0.7265),
+      current_system_id_(2) {
       
     pipeline_ = std::make_unique<UavMpcPipeline>();
     state_machine_ = std::make_unique<UavMpcStateMachine>(
@@ -30,6 +32,7 @@ UavMpcNode::UavMpcNode()
     this->declare_parameter<double>("hover_throttle", 0.7265);
     this->declare_parameter<double>("tilt_max", 0.4);
     this->declare_parameter<double>("hold_height", 2.0);
+    this->declare_parameter<double>("takeoff_height", 4.0);
 
     // Relative namespaces for topics (Rule 4 of CODE_STANDARDS.md)
     odom_sub_ = this->create_subscription<nav_msgs::msg::Odometry>(
@@ -100,6 +103,7 @@ void UavMpcNode::hoverThrustCallback(const px4_msgs::msg::HoverThrustEstimate::S
 void UavMpcNode::vehicleStatusCallback(const px4_msgs::msg::VehicleStatus::SharedPtr msg) {
     latest_vehicle_status_ = *msg;
     vehicle_status_received_ = true;
+    current_system_id_ = msg->system_id;
 }
 
 void UavMpcNode::odomCallback(const nav_msgs::msg::Odometry::SharedPtr msg) {
@@ -227,12 +231,17 @@ void UavMpcNode::controlLoop() {
     com_odom.twist.twist.linear.y = latest_odom_.twist.twist.linear.y;
     com_odom.twist.twist.linear.z = latest_odom_.twist.twist.linear.z;
 
-    double hold_height = this->get_parameter("hold_height").as_double();
-    state_machine_->update(latest_vehicle_status_, com_odom, hold_height, odom_received_);
+    double takeoff_height = this->get_parameter("takeoff_height").as_double();
+    state_machine_->update(latest_vehicle_status_, com_odom, takeoff_height, odom_received_);
 
-    // Always publish OffboardControlMode and VehicleAttitudeSetpoint to feed PX4 watchdog
+    // Always publish OffboardControlMode to feed PX4 watchdog and allow offboard transition
     publishOffboardControlMode();
-    publishAttitudeSetpoint(output, state_machine_->getState());
+
+    // Only publish VehicleAttitudeSetpoint when transitioning to or active in Offboard mode
+    if (state_machine_->getState() == UavState::SWITCH_OFFBOARD ||
+        state_machine_->getState() == UavState::OFFBOARD_ACTIVE) {
+        publishAttitudeSetpoint(output, state_machine_->getState());
+    }
 
     // Publish RViz/Foxglove visualization markers
     publishVisualizationMarkers(output);
@@ -295,8 +304,11 @@ void UavMpcNode::publishVehicleCommand(uint16_t command, float param1, float par
     msg.command = command;
     msg.param1 = param1;
     msg.param2 = param2;
+    // Set param5 and param6 to NaN to ensure local takeoff (avoid Null Island bug)
+    msg.param5 = std::numeric_limits<float>::quiet_NaN();
+    msg.param6 = std::numeric_limits<float>::quiet_NaN();
     msg.param7 = param7;
-    msg.target_system = 2; // Drone x500
+    msg.target_system = current_system_id_;
     msg.target_component = 1;
     msg.source_system = 1;
     msg.source_component = 1;

@@ -1,7 +1,7 @@
 uav_mpc_node:
   ros__parameters:
     # Type of trajectory to follow: "hold" or "circle"
-    trajectory_type: "hold"
+    trajectory_type: "circle"
 
     # Enable/Disable physical model and constraints of the tether
     use_tether: false
@@ -13,6 +13,10 @@ uav_mpc_node:
 
     # Hold mode height
     hold_height: 6.0     # Target hovering altitude in hold mode (m)
+
+    # Takeoff height (used by PX4 takeoff command and state machine checks)
+    takeoff_height: 4.0
+
 
     # Dynamic physical limits of the drone (less aggressive settings)
     v_max: 10.0           # Maximum velocity (m/s)

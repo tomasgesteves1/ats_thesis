@@ -24,7 +24,7 @@ public:
 
     void update(const px4_msgs::msg::VehicleStatus& status,
                 const nav_msgs::msg::Odometry& odom,
-                double hold_height,
+                double takeoff_height,
                 bool odom_valid);
 
     UavState getState() const { return state_; }
