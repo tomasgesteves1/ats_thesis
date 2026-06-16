@@ -6,10 +6,18 @@ namespace uav_mpc {
 UavMpcNode::UavMpcNode() 
     : Node("uav_mpc_node"), 
       target_initialized_(false), 
+      odom_received_(false),
+      vehicle_status_received_(false),
       offboard_setpoint_counter_(0),
-      px4_hover_thrust_(0.52) {
+      px4_hover_thrust_(0.7265) {
       
     pipeline_ = std::make_unique<UavMpcPipeline>();
+    state_machine_ = std::make_unique<UavMpcStateMachine>(
+        this,
+        [this](uint16_t command, float param1, float param2, float param7) {
+            this->publishVehicleCommand(command, param1, param2, param7);
+        }
+    );
 
     // Declare dynamic parameters (Rule 2 of CODE_STANDARDS.md)
     this->declare_parameter<bool>("use_tether", true);
@@ -19,7 +27,7 @@ UavMpcNode::UavMpcNode()
     this->declare_parameter<double>("circle_height", 10.0);
     this->declare_parameter<double>("v_max", 10.0);
     this->declare_parameter<double>("u_max", 19.62);
-    this->declare_parameter<double>("hover_throttle", 0.52);
+    this->declare_parameter<double>("hover_throttle", 0.7265);
     this->declare_parameter<double>("tilt_max", 0.4);
     this->declare_parameter<double>("hold_height", 2.0);
 
@@ -39,6 +47,10 @@ UavMpcNode::UavMpcNode()
     // Subscribe to estimated hover thrust from PX4
     hover_thrust_sub_ = this->create_subscription<px4_msgs::msg::HoverThrustEstimate>(
         "/px4_1/fmu/out/hover_thrust_estimate", qos, std::bind(&UavMpcNode::hoverThrustCallback, this, std::placeholders::_1));
+
+    // Subscribe to vehicle status from PX4
+    vehicle_status_sub_ = this->create_subscription<px4_msgs::msg::VehicleStatus>(
+        "/px4_1/fmu/out/vehicle_status_v1", qos, std::bind(&UavMpcNode::vehicleStatusCallback, this, std::placeholders::_1));
 
     // Initialize TF buffer and listener
     tf_buffer_   = std::make_shared<tf2_ros::Buffer>(this->get_clock());
@@ -85,33 +97,14 @@ void UavMpcNode::hoverThrustCallback(const px4_msgs::msg::HoverThrustEstimate::S
     }
 }
 
-void UavMpcNode::odomCallback(const nav_msgs::msg::Odometry::SharedPtr msg) {
-    // Pure data passing, no maths here (Rule 1 of CODE_STANDARDS.md)
-    std::vector<double> state = {
-        msg->pose.pose.position.x,
-        msg->pose.pose.position.y,
-        msg->pose.pose.position.z,
-        msg->twist.twist.linear.x,
-        msg->twist.twist.linear.y,
-        msg->twist.twist.linear.z
-    };
-    pipeline_->updateState(state);
-    
-    // Pass current orientation to the pipeline
-    pipeline_->updateOrientation(
-        msg->pose.pose.orientation.x,
-        msg->pose.pose.orientation.y,
-        msg->pose.pose.orientation.z,
-        msg->pose.pose.orientation.w
-    );
+void UavMpcNode::vehicleStatusCallback(const px4_msgs::msg::VehicleStatus::SharedPtr msg) {
+    latest_vehicle_status_ = *msg;
+    vehicle_status_received_ = true;
+}
 
-    if (!target_initialized_) {
-        double hold_height = this->get_parameter("hold_height").as_double();
-        pipeline_->setReference({msg->pose.pose.position.x, msg->pose.pose.position.y, hold_height});
-        target_initialized_ = true;
-        RCLCPP_INFO(this->get_logger(), "Initial target set from odometry: X=%.2f, Y=%.2f, Z=%.2f", 
-                    msg->pose.pose.position.x, msg->pose.pose.position.y, hold_height);
-    }
+void UavMpcNode::odomCallback(const nav_msgs::msg::Odometry::SharedPtr msg) {
+    latest_odom_ = *msg;
+    odom_received_ = true;
 }
 
 void UavMpcNode::controlLoop() {
@@ -134,6 +127,40 @@ void UavMpcNode::controlLoop() {
     } else {
         // If disabled, keep anchor at origin
         pipeline_->updateAnchorPosition(0.0, 0.0, 0.0);
+    }
+
+    // Look up the drone COM pose (world -> drone/base_link)
+    double drone_x = 0.0, drone_y = 0.0, drone_z = 0.0;
+    double drone_qx = 0.0, drone_qy = 0.0, drone_qz = 0.0, drone_qw = 1.0;
+    bool tf_success = false;
+    
+    try {
+        auto transform = tf_buffer_->lookupTransform("world", "drone/base_link", tf2::TimePointZero);
+        drone_x = transform.transform.translation.x;
+        drone_y = transform.transform.translation.y;
+        drone_z = transform.transform.translation.z;
+        drone_qx = transform.transform.rotation.x;
+        drone_qy = transform.transform.rotation.y;
+        drone_qz = transform.transform.rotation.z;
+        drone_qw = transform.transform.rotation.w;
+        tf_success = true;
+    } catch (const tf2::TransformException & ex) {
+        RCLCPP_WARN_THROTTLE(this->get_logger(), *this->get_clock(), 2000,
+            "Could not obtain transform from world to drone/base_link: %s", ex.what());
+    }
+
+    if (!tf_success || !odom_received_) {
+        RCLCPP_WARN_THROTTLE(this->get_logger(), *this->get_clock(), 2000,
+            "Skipping control loop step: waiting for TF transform and odometry velocity.");
+        return;
+    }
+
+    if (!target_initialized_) {
+        double hold_height = this->get_parameter("hold_height").as_double();
+        pipeline_->setReference({drone_x, drone_y, hold_height});
+        target_initialized_ = true;
+        RCLCPP_INFO(this->get_logger(), "Initial target set from drone TF: X=%.2f, Y=%.2f, Z=%.2f", 
+                    drone_x, drone_y, hold_height);
     }
 
     // Update dynamic trajectory parameters
@@ -160,6 +187,18 @@ void UavMpcNode::controlLoop() {
     pipeline_->setHoverThrottle(hover_throttle);
     pipeline_->setTiltMax(tilt_max);
 
+    // Inject TF pose and latest velocity into the pipeline
+    std::vector<double> state = {
+        drone_x,
+        drone_y,
+        drone_z,
+        latest_odom_.twist.twist.linear.x,
+        latest_odom_.twist.twist.linear.y,
+        latest_odom_.twist.twist.linear.z
+    };
+    pipeline_->updateState(state);
+    pipeline_->updateOrientation(drone_qx, drone_qy, drone_qz, drone_qw);
+
     // Execute calculations in the logic pipeline
     UavControlOutput output = pipeline_->computeControl();
 
@@ -167,26 +206,34 @@ void UavMpcNode::controlLoop() {
     double thrust_normalized = (output.u_opt[2] / 9.81) * px4_hover_thrust_;
     thrust_normalized = std::max(0.0, std::min(thrust_normalized, 1.0));
 
-    // Reconstruct attitude setpoints in NED frame for validation
-    double roll_ned = 0.0, pitch_ned = 0.0, yaw_ned = 0.0;
-    kinematics::quaternionToEuler(output.q_d[1], output.q_d[2], output.q_d[3], output.q_d[0], roll_ned, pitch_ned, yaw_ned);
-
-    // Print attitude and thrust debug information throttled to 1Hz
-    const double rad_to_deg = 180.0 / 3.14159265358979323846;
+    // Print state machine and drone status throttled to 1Hz
     RCLCPP_INFO_THROTTLE(this->get_logger(), *this->get_clock(), 1000,
-        "Offboard Debug -> MPC (ENU) Roll: %.2f, Pitch: %.2f deg | "
-        "Q_d: [%.4f, %.4f, %.4f, %.4f] | "
-        "NED Euler: Roll: %.2f, Pitch: %.2f, Yaw: %.2f deg | "
-        "Thrust Norm: %.4f",
-        output.u_opt[0] * rad_to_deg, output.u_opt[1] * rad_to_deg,
-        output.q_d[0], output.q_d[1], output.q_d[2], output.q_d[3],
-        roll_ned * rad_to_deg, pitch_ned * rad_to_deg, yaw_ned * rad_to_deg,
-        thrust_normalized);
+        "[State Machine] State: %s | Z: %.2f m | Vz: %.2f m/s | MPC Thrust CMD: %.2f m/s^2",
+        state_machine_->getStateName(),
+        drone_z,
+        latest_odom_.twist.twist.linear.z,
+        output.u_opt[2]);
+
+    // Update state machine transitions first
+    nav_msgs::msg::Odometry com_odom;
+    com_odom.pose.pose.position.x = drone_x;
+    com_odom.pose.pose.position.y = drone_y;
+    com_odom.pose.pose.position.z = drone_z;
+    com_odom.pose.pose.orientation.x = drone_qx;
+    com_odom.pose.pose.orientation.y = drone_qy;
+    com_odom.pose.pose.orientation.z = drone_qz;
+    com_odom.pose.pose.orientation.w = drone_qw;
+    com_odom.twist.twist.linear.x = latest_odom_.twist.twist.linear.x;
+    com_odom.twist.twist.linear.y = latest_odom_.twist.twist.linear.y;
+    com_odom.twist.twist.linear.z = latest_odom_.twist.twist.linear.z;
+
+    double hold_height = this->get_parameter("hold_height").as_double();
+    state_machine_->update(latest_vehicle_status_, com_odom, hold_height, odom_received_);
 
     // Always publish OffboardControlMode and VehicleAttitudeSetpoint to feed PX4 watchdog
-    // publishOffboardControlMode();
-    // publishAttitudeSetpoint(output);
-    
+    publishOffboardControlMode();
+    publishAttitudeSetpoint(output, state_machine_->getState());
+
     // Publish RViz/Foxglove visualization markers
     publishVisualizationMarkers(output);
 
@@ -194,22 +241,6 @@ void UavMpcNode::controlLoop() {
     std_msgs::msg::Float64 force_msg;
     force_msg.data = output.mpc_tether_force_mag;
     mpc_tether_force_pub_->publish(force_msg);
-
-    // Arm and set mode after ~2 seconds (40 iterations at 20Hz)
-    /*
-    if (offboard_setpoint_counter_ >= 40 && offboard_setpoint_counter_ < 60) {
-        publishVehicleCommand(px4_msgs::msg::VehicleCommand::VEHICLE_CMD_DO_SET_MODE, 1.0, 6.0); // 1 = offboard, 6 = offboard submode
-        publishVehicleCommand(px4_msgs::msg::VehicleCommand::VEHICLE_CMD_COMPONENT_ARM_DISARM, 1.0); // 1.0 = arm
-        
-        if (offboard_setpoint_counter_ == 40) {
-            RCLCPP_INFO(this->get_logger(), "Activating Offboard Mode and Arming Drone on PX4...");
-        }
-    }
-    */
-
-    if (offboard_setpoint_counter_ < 60) {
-        offboard_setpoint_counter_++;
-    }
 }
 
 void UavMpcNode::publishOffboardControlMode() {
@@ -225,32 +256,46 @@ void UavMpcNode::publishOffboardControlMode() {
     offboard_control_mode_pub_->publish(msg);
 }
 
-void UavMpcNode::publishAttitudeSetpoint(const UavControlOutput& output) {
+void UavMpcNode::publishAttitudeSetpoint(const UavControlOutput& output, UavState state) {
     px4_msgs::msg::VehicleAttitudeSetpoint att_msg{};
     att_msg.timestamp = this->get_clock()->now().nanoseconds() / 1000;
     
-    att_msg.q_d[0] = output.q_d[0];
-    att_msg.q_d[1] = output.q_d[1];
-    att_msg.q_d[2] = output.q_d[2];
-    att_msg.q_d[3] = output.q_d[3];
-    
-    att_msg.thrust_body[0] = 0.0f;
-    att_msg.thrust_body[1] = 0.0f;
-    
-    // Normalize thrust using the real-time PX4 hover thrust estimate
-    double thrust_normalized = (output.u_opt[2] / 9.81) * px4_hover_thrust_;
-    thrust_normalized = std::max(0.0, std::min(thrust_normalized, 1.0));
-    att_msg.thrust_body[2] = -static_cast<float>(thrust_normalized); // -Z in FRD frame is upward force
+    if (state == UavState::STANDBY || state == UavState::ARMING) {
+        // Safe neutral standby on the ground
+        att_msg.q_d[0] = 1.0f; // w
+        att_msg.q_d[1] = 0.0f; // x
+        att_msg.q_d[2] = 0.0f; // y
+        att_msg.q_d[3] = 0.0f; // z
+        
+        att_msg.thrust_body[0] = 0.0f;
+        att_msg.thrust_body[1] = 0.0f;
+        att_msg.thrust_body[2] = 0.0f; // Zero thrust
+    } else {
+        // Stream MPC setpoints (for warm start during takeoff, and active control in offboard)
+        att_msg.q_d[0] = output.q_d[0];
+        att_msg.q_d[1] = output.q_d[1];
+        att_msg.q_d[2] = output.q_d[2];
+        att_msg.q_d[3] = output.q_d[3];
+        
+        att_msg.thrust_body[0] = 0.0f;
+        att_msg.thrust_body[1] = 0.0f;
+        
+        // Normalize thrust using the real-time PX4 hover thrust estimate
+        double thrust_normalized = (output.u_opt[2] / 9.81) * px4_hover_thrust_;
+        thrust_normalized = std::max(0.0, std::min(thrust_normalized, 1.0));
+        att_msg.thrust_body[2] = -static_cast<float>(thrust_normalized); // -Z in FRD frame is upward force
+    }
 
     attitude_setpoint_pub_->publish(att_msg);
 }
 
-void UavMpcNode::publishVehicleCommand(uint16_t command, float param1, float param2) {
+void UavMpcNode::publishVehicleCommand(uint16_t command, float param1, float param2, float param7) {
     px4_msgs::msg::VehicleCommand msg{};
     msg.timestamp = this->get_clock()->now().nanoseconds() / 1000;
     msg.command = command;
     msg.param1 = param1;
     msg.param2 = param2;
+    msg.param7 = param7;
     msg.target_system = 2; // Drone x500
     msg.target_component = 1;
     msg.source_system = 1;
