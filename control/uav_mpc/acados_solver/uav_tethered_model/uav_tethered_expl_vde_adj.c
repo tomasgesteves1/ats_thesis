@@ -50,12 +50,12 @@ extern "C" {
   #endif
 #endif
 
-static const casadi_int casadi_s0[3] = {6, 1, 1};
+static const casadi_int casadi_s0[3] = {8, 1, 1};
 static const casadi_int casadi_s1[3] = {3, 1, 1};
 static const casadi_int casadi_s2[3] = {1, 1, 1};
-static const casadi_int casadi_s3[3] = {9, 1, 1};
+static const casadi_int casadi_s3[3] = {11, 1, 1};
 
-/* uav_tethered_expl_vde_adj:(i0[6],i1[6],i2[3],i3)->(o0[9]) */
+/* uav_tethered_expl_vde_adj:(i0[8],i1[8],i2[3],i3)->(o0[11]) */
 static int casadi_f0(const casadi_real** arg, casadi_real** res, casadi_int* iw, casadi_real* w, int mem) {
   casadi_real a00, a01, a02, a03, a04, a05, a06, a07, a08, a09, a10, a11;
   casadi_real a12, a13, a14, a15;
@@ -69,7 +69,7 @@ static int casadi_f0(const casadi_real** arg, casadi_real** res, casadi_int* iw,
   if (res[0]!=0) res[0][4]=a00;
   a00=arg[1]? arg[1][2] : 0;
   if (res[0]!=0) res[0][5]=a00;
-  a00=arg[2]? arg[2][0] : 0;
+  a00=arg[0]? arg[0][6] : 0;
   a01=cos(a00);
   a02=arg[3]? arg[3][0] : 0;
   a03=sin(a02);
@@ -79,7 +79,7 @@ static int casadi_f0(const casadi_real** arg, casadi_real** res, casadi_int* iw,
   a07=(a03*a06);
   a07=(a01*a07);
   a00=sin(a00);
-  a08=arg[2]? arg[2][1] : 0;
+  a08=arg[0]? arg[0][7] : 0;
   a09=cos(a08);
   a10=arg[1]? arg[1][5] : 0;
   a11=(a04*a10);
@@ -113,6 +113,10 @@ static int casadi_f0(const casadi_real** arg, casadi_real** res, casadi_int* iw,
   a06=(a09*a06);
   a04=(a04+a06);
   if (res[0]!=0) res[0][7]=a04;
+  a04=arg[1]? arg[1][6] : 0;
+  if (res[0]!=0) res[0][8]=a04;
+  a04=arg[1]? arg[1][7] : 0;
+  if (res[0]!=0) res[0][9]=a04;
   a09=(a09*a01);
   a09=(a09*a10);
   a14=(a14*a01);
@@ -125,7 +129,7 @@ static int casadi_f0(const casadi_real** arg, casadi_real** res, casadi_int* iw,
   a12=(a12+a03);
   a12=(a12*a05);
   a09=(a09+a12);
-  if (res[0]!=0) res[0][8]=a09;
+  if (res[0]!=0) res[0][10]=a09;
   return 0;
 }
 

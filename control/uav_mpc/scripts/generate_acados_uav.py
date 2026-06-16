@@ -10,30 +10,34 @@ def create_uav_model() -> AcadosModel:
     # Gravitational acceleration
     g_vec = ca.vertcat(0.0, 0.0, -9.81)
     
-    # States (x): [p_x, p_y, p_z, v_x, v_y, v_z]
+    # States (x): [p_x, p_y, p_z, v_x, v_y, v_z, phi, theta]
     p = ca.SX.sym('p', 3)
     v = ca.SX.sym('v', 3)
-    x = ca.vertcat(p, v)
+    phi = ca.SX.sym('phi', 1)
+    theta = ca.SX.sym('theta', 1)
+    x = ca.vertcat(p, v, phi, theta)
 
-    # Controls (u): [phi_cmd, theta_cmd, a_T]
-    phi_cmd = ca.SX.sym('phi_cmd', 1)
-    theta_cmd = ca.SX.sym('theta_cmd', 1)
+    # Controls (u): [phi_dot_cmd, theta_dot_cmd, a_T]
+    phi_dot_cmd = ca.SX.sym('phi_dot_cmd', 1)
+    theta_dot_cmd = ca.SX.sym('theta_dot_cmd', 1)
     a_T = ca.SX.sym('a_T', 1)
-    u = ca.vertcat(phi_cmd, theta_cmd, a_T)
+    u = ca.vertcat(phi_dot_cmd, theta_dot_cmd, a_T)
 
     # Parameters (p): [psi] (yaw angle of the drone)
     psi = ca.SX.sym('psi', 1)
 
-    # Thrust acceleration in world frame (ENU) assuming instant attitude tracking
-    ax_thrust = a_T * (ca.cos(psi) * ca.sin(theta_cmd) * ca.cos(phi_cmd) + ca.sin(psi) * ca.sin(phi_cmd))
-    ay_thrust = a_T * (ca.sin(psi) * ca.sin(theta_cmd) * ca.cos(phi_cmd) - ca.cos(psi) * ca.sin(phi_cmd))
-    az_thrust = a_T * (ca.cos(theta_cmd) * ca.cos(phi_cmd))
+    # Thrust acceleration in world frame (ENU) using actual model states phi and theta
+    ax_thrust = a_T * (ca.cos(psi) * ca.sin(theta) * ca.cos(phi) + ca.sin(psi) * ca.sin(phi))
+    ay_thrust = a_T * (ca.sin(psi) * ca.sin(theta) * ca.cos(phi) - ca.cos(psi) * ca.sin(phi))
+    az_thrust = a_T * (ca.cos(theta) * ca.cos(phi))
     a_thrust = ca.vertcat(ax_thrust, ay_thrust, az_thrust)
 
-    # State derivatives
+    # State derivatives (dynamics)
     xdot_expr = ca.vertcat(
         v,
-        a_thrust + g_vec
+        a_thrust + g_vec,
+        phi_dot_cmd,
+        theta_dot_cmd
     )
 
     # ACADOS model formulation
@@ -78,8 +82,9 @@ def generate_acados_ocp():
     Qp = config["weights"]["Qp"]
     Qv = config["weights"]["Qv"]
     R = config["weights"]["R"]
-    ocp.cost.W = np.diag(Qp + Qv + R)
-    ocp.cost.W_e = np.diag(Qp + Qv)
+    Q_tilt = [0.0, 0.0]  # Penalization on attitude states (phi, theta)
+    ocp.cost.W = np.diag(Qp + Qv + Q_tilt + R)
+    ocp.cost.W_e = np.diag(Qp + Qv + Q_tilt)
     
     ocp.cost.Vx = np.zeros((ny, nx))
     ocp.cost.Vx[:nx, :nx] = np.eye(nx)
@@ -89,27 +94,29 @@ def generate_acados_ocp():
     
     # Default references
     ocp.cost.yref = np.zeros((ny,))
-    ocp.cost.yref[8] = 9.81  # Default a_T cancels gravity
+    ocp.cost.yref[10] = 9.81  # Default a_T cancels gravity (index 10 for thrust input)
     ocp.cost.yref_e = np.zeros((ny_e,))
     
     # Default parameters: [psi]
     ocp.parameter_values = np.array([0.0])
     
-    # Control input bounds [phi_cmd, theta_cmd, a_T] from config
-    phi_max = config["limits"]["phi_max"]
-    theta_max = config["limits"]["theta_max"]
+    # Control input bounds [phi_dot_cmd, theta_dot_cmd, a_T] from config
+    phi_dot_max = config["limits"]["phi_dot_max"]
+    theta_dot_max = config["limits"]["theta_dot_max"]
     a_T_min = config["limits"]["a_T_min_scale"] * 9.81
     a_T_max = config["limits"]["a_T_max_scale"] * 9.81
     
-    ocp.constraints.lbu = np.array([-phi_max, -theta_max, a_T_min])
-    ocp.constraints.ubu = np.array([phi_max, theta_max, a_T_max])
+    ocp.constraints.lbu = np.array([-phi_dot_max, -theta_dot_max, a_T_min])
+    ocp.constraints.ubu = np.array([phi_dot_max, theta_dot_max, a_T_max])
     ocp.constraints.idxbu = np.array([0, 1, 2])
     
-    # State bounds [v_x, v_y, v_z] from config
+    # State bounds [v_x, v_y, v_z, phi, theta] from config
     v_max = config["limits"]["v_max"]
-    ocp.constraints.lbx = np.array([-v_max, -v_max, -v_max])
-    ocp.constraints.ubx = np.array([v_max, v_max, v_max])
-    ocp.constraints.idxbx = np.array([3, 4, 5])
+    phi_max = config["limits"]["phi_max"]
+    theta_max = config["limits"]["theta_max"]
+    ocp.constraints.lbx = np.array([-v_max, -v_max, -v_max, -phi_max, -theta_max])
+    ocp.constraints.ubx = np.array([v_max, v_max, v_max, phi_max, theta_max])
+    ocp.constraints.idxbx = np.array([3, 4, 5, 6, 7])
     
     # Default initial state
     ocp.constraints.x0 = np.zeros(nx)
