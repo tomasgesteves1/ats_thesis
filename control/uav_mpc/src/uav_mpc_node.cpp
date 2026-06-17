@@ -16,7 +16,8 @@ UavMpcNode::UavMpcNode()
       vehicle_status_received_(false),
       offboard_setpoint_counter_(0),
       px4_hover_thrust_(0.7265),
-      current_system_id_(2) {
+      current_system_id_(2),
+      open_loop_test_(false) {
       
     pipeline_ = std::make_unique<UavMpcPipeline>();
     state_machine_ = std::make_unique<UavMpcStateMachine>(
@@ -27,6 +28,7 @@ UavMpcNode::UavMpcNode()
     );
 
     // Declare dynamic parameters (Rule 2 of CODE_STANDARDS.md)
+    this->declare_parameter<bool>("open_loop_test", false);
     this->declare_parameter<bool>("use_tether", true);
     this->declare_parameter<std::string>("trajectory_type", "hold");
     this->declare_parameter<double>("circle_radius", 3.0);
@@ -93,9 +95,15 @@ UavMpcNode::UavMpcNode()
     mpc_reference_path_pub_ = this->create_publisher<nav_msgs::msg::Path>(
         "mpc_reference_path", 10);
 
-    // Timer at 20Hz (0.05s) using node's clock (sim time) to match the MPC dt
+    // Open-loop test publishers (relative topics)
+    open_loop_predicted_path_pub_ = this->create_publisher<nav_msgs::msg::Path>(
+        "open_loop_predicted_path", 10);
+    open_loop_actual_path_pub_ = this->create_publisher<nav_msgs::msg::Path>(
+        "open_loop_actual_path", 10);
+
+    // Timer at 50Hz (0.02s) using node's clock (sim time) to match the MPC dt
     timer_ = this->create_timer(
-        std::chrono::milliseconds(50), std::bind(&UavMpcNode::controlLoop, this));
+        std::chrono::milliseconds(20), std::bind(&UavMpcNode::controlLoop, this));
 
     RCLCPP_INFO(this->get_logger(), "UAV MPC Node successfully initialized.");
 }
@@ -127,6 +135,9 @@ void UavMpcNode::odomCallback(const nav_msgs::msg::Odometry::SharedPtr msg) {
 }
 
 void UavMpcNode::controlLoop() {
+    open_loop_test_ = this->get_parameter("open_loop_test").as_bool();
+    pipeline_->setOpenLoopMode(open_loop_test_);
+
     bool use_tether = this->get_parameter("use_tether").as_bool();
     pipeline_->setUseTether(use_tether);
 
@@ -218,8 +229,57 @@ void UavMpcNode::controlLoop() {
     pipeline_->updateState(state);
     pipeline_->updateOrientation(drone_qx, drone_qy, drone_qz, drone_qw);
 
-    // Execute calculations in the logic pipeline (pass actual sim time)
+    // Update state machine transitions first
+    nav_msgs::msg::Odometry com_odom;
+    com_odom.pose.pose.position.x = drone_x;
+    com_odom.pose.pose.position.y = drone_y;
+    com_odom.pose.pose.position.z = drone_z;
+    com_odom.pose.pose.orientation.x = drone_qx;
+    com_odom.pose.pose.orientation.y = drone_qy;
+    com_odom.pose.pose.orientation.z = drone_qz;
+    com_odom.pose.pose.orientation.w = drone_qw;
+    com_odom.twist.twist.linear.x = latest_odom_.twist.twist.linear.x;
+    com_odom.twist.twist.linear.y = latest_odom_.twist.twist.linear.y;
+    com_odom.twist.twist.linear.z = latest_odom_.twist.twist.linear.z;
+
+    double takeoff_height = this->get_parameter("takeoff_height").as_double();
+    state_machine_->update(latest_vehicle_status_, com_odom, takeoff_height, odom_received_);
+
     double sim_time_s = this->get_clock()->now().seconds();
+
+    // Check transition to OFFBOARD_ACTIVE with open-loop test enabled
+    if (state_machine_->getState() == UavState::OFFBOARD_ACTIVE) {
+        if (open_loop_test_ && !pipeline_->isOpenLoopActive()) {
+            RCLCPP_INFO(this->get_logger(), "Transition to OFFBOARD_ACTIVE detected with open-loop test enabled. Capturing horizon...");
+            pipeline_->captureOpenLoopHorizon(sim_time_s);
+            
+            // Build and store the static open-loop predicted path
+            auto current_time_ros = this->get_clock()->now();
+            open_loop_predicted_path_.header.frame_id = "world";
+            open_loop_predicted_path_.header.stamp = current_time_ros;
+            open_loop_predicted_path_.poses.clear();
+            const auto& pred_positions = pipeline_->getCapturedPredictedPositions();
+            for (const auto& pos : pred_positions) {
+                geometry_msgs::msg::PoseStamped pose;
+                pose.header.frame_id = "world";
+                pose.header.stamp = current_time_ros;
+                pose.pose.position.x = pos[0];
+                pose.pose.position.y = pos[1];
+                pose.pose.position.z = pos[2];
+                pose.pose.orientation.w = 1.0;
+                open_loop_predicted_path_.poses.push_back(pose);
+            }
+            
+            // Clear the actual path followed
+            open_loop_actual_path_.header.frame_id = "world";
+            open_loop_actual_path_.header.stamp = current_time_ros;
+            open_loop_actual_path_.poses.clear();
+        }
+    } else {
+        pipeline_->resetOpenLoop();
+    }
+
+    // Execute calculations in the logic pipeline (pass actual sim time)
     UavControlOutput output = pipeline_->computeControl(sim_time_s);
 
     // Calculate dynamically normalized thrust using the real-time PX4 hover thrust estimate (throttled to 1Hz)
@@ -237,22 +297,6 @@ void UavMpcNode::controlLoop() {
         output.u_opt[1] * 180.0 / M_PI,
         drone_yaw * 180.0 / M_PI,
         output.u_opt[2]);
-
-    // Update state machine transitions first
-    nav_msgs::msg::Odometry com_odom;
-    com_odom.pose.pose.position.x = drone_x;
-    com_odom.pose.pose.position.y = drone_y;
-    com_odom.pose.pose.position.z = drone_z;
-    com_odom.pose.pose.orientation.x = drone_qx;
-    com_odom.pose.pose.orientation.y = drone_qy;
-    com_odom.pose.pose.orientation.z = drone_qz;
-    com_odom.pose.pose.orientation.w = drone_qw;
-    com_odom.twist.twist.linear.x = latest_odom_.twist.twist.linear.x;
-    com_odom.twist.twist.linear.y = latest_odom_.twist.twist.linear.y;
-    com_odom.twist.twist.linear.z = latest_odom_.twist.twist.linear.z;
-
-    double takeoff_height = this->get_parameter("takeoff_height").as_double();
-    state_machine_->update(latest_vehicle_status_, com_odom, takeoff_height, odom_received_);
 
     // Always publish OffboardControlMode to feed PX4 watchdog and allow offboard transition
     publishOffboardControlMode();
@@ -349,6 +393,31 @@ void UavMpcNode::controlLoop() {
         ref_path_msg.poses.push_back(pose);
     }
     mpc_reference_path_pub_->publish(ref_path_msg);
+
+    // Publish open-loop paths if active
+    if (pipeline_->isOpenLoopActive()) {
+        geometry_msgs::msg::PoseStamped actual_pose;
+        actual_pose.header.frame_id = "world";
+        actual_pose.header.stamp = current_time;
+        actual_pose.pose.position.x = drone_x;
+        actual_pose.pose.position.y = drone_y;
+        actual_pose.pose.position.z = drone_z;
+        actual_pose.pose.orientation.x = drone_qx;
+        actual_pose.pose.orientation.y = drone_qy;
+        actual_pose.pose.orientation.z = drone_qz;
+        actual_pose.pose.orientation.w = drone_qw;
+        open_loop_actual_path_.poses.push_back(actual_pose);
+        open_loop_actual_path_.header.stamp = current_time;
+
+        // Update timestamps on the predicted path for Foxglove
+        open_loop_predicted_path_.header.stamp = current_time;
+        for (auto& pose : open_loop_predicted_path_.poses) {
+            pose.header.stamp = current_time;
+        }
+
+        open_loop_predicted_path_pub_->publish(open_loop_predicted_path_);
+        open_loop_actual_path_pub_->publish(open_loop_actual_path_);
+    }
 }
 
 void UavMpcNode::publishOffboardControlMode() {

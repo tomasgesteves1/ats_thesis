@@ -40,6 +40,13 @@ public:
     void setTiltMax(double tilt_max);
     UavControlOutput computeControl(double current_time);
 
+    // Open-loop test support
+    void setOpenLoopMode(bool enabled);
+    void captureOpenLoopHorizon(double current_time);
+    void resetOpenLoop();
+    bool isOpenLoopActive() const;
+    const std::vector<std::vector<double>>& getCapturedPredictedPositions() const;
+
 private:
     std::vector<double> current_state_;
     void* acados_ocp_capsule_;
@@ -64,7 +71,25 @@ private:
     TrajectoryType trajectory_type_;
     UavMpcTrajectory trajectory_gen_;
     double circle_start_time_;  // Sim time when circle mode was activated
-    static constexpr double Ts_ = 0.05;  // Control period (s)
+    static constexpr double Ts_ = 0.02;  // Control period (s)
+
+    // Open-loop execution variables
+    bool open_loop_mode_enabled_;
+    bool open_loop_active_;
+    int open_loop_step_;
+    int N_horizon_;
+
+    struct OpenLoopControlStep {
+        double q_d[4];
+        double thrust_normalized;
+        double u_opt[3];
+        double reference[3];
+        double reference_velocity[3];
+        double mpc_tether_force_mag;
+    };
+    std::vector<OpenLoopControlStep> open_loop_steps_;
+    std::vector<std::vector<double>> open_loop_predicted_positions_;
 };
 
 } // namespace uav_mpc
+

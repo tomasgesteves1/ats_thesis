@@ -66,6 +66,10 @@ private:
     // Path publishers (relative topics)
     rclcpp::Publisher<nav_msgs::msg::Path>::SharedPtr mpc_predicted_path_pub_;
     rclcpp::Publisher<nav_msgs::msg::Path>::SharedPtr mpc_reference_path_pub_;
+
+    // Open-loop test publishers (relative topics)
+    rclcpp::Publisher<nav_msgs::msg::Path>::SharedPtr open_loop_predicted_path_pub_;
+    rclcpp::Publisher<nav_msgs::msg::Path>::SharedPtr open_loop_actual_path_pub_;
     
     rclcpp::TimerBase::SharedPtr timer_;
 
@@ -81,6 +85,11 @@ private:
     uint64_t offboard_setpoint_counter_;
     double px4_hover_thrust_;
     uint8_t current_system_id_;
+
+    // Open-loop variables
+    bool open_loop_test_;
+    nav_msgs::msg::Path open_loop_predicted_path_;
+    nav_msgs::msg::Path open_loop_actual_path_;
 };
 
 } // namespace uav_mpc

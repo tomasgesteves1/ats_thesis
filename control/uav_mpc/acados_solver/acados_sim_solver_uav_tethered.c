@@ -73,7 +73,7 @@ int uav_tethered_acados_sim_create(uav_tethered_sim_solver_capsule * capsule)
     const int np = UAV_TETHERED_NP;
     bool tmp_bool;
 
-    double Tsim = 0.05;
+    double Tsim = 0.02;
 
     capsule->acados_sim_mem = NULL;
 

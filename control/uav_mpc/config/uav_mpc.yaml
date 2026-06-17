@@ -1,5 +1,8 @@
 uav_mpc_node:
   ros__parameters:
+    # Open-loop test (captures first horizon in offboard and replays it)
+    open_loop_test: false
+
     # Type of trajectory to follow: "hold" or "circle"
     trajectory_type: "circle"
 
