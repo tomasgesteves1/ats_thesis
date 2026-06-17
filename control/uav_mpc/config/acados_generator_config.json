@@ -6,7 +6,8 @@
   "weights": {
     "Qp": [20.0, 20.0, 20.0],
     "Qv": [5.0, 5.0, 5.0],
-    "R": [0.01, 0.01, 0.01]
+    "Qtilt": [5.0, 5.0],
+    "R": [1.0, 1.0, 0.01]
   },
   "limits": {
     "phi_max": 0.4,
@@ -14,7 +15,7 @@
     "v_max": 5.0,
     "a_T_min_scale": 0.1,
     "a_T_max_scale": 1.1,
-    "phi_dot_max": 2.0,
-    "theta_dot_max": 2.0
+    "phi_dot_max": 0.8,
+    "theta_dot_max": 0.8
   }
 }

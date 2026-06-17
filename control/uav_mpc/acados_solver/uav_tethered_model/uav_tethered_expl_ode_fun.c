@@ -49,13 +49,13 @@ extern "C" {
   #endif
 #endif
 
-static const casadi_int casadi_s0[3] = {8, 1, 1};
+static const casadi_int casadi_s0[3] = {10, 1, 1};
 static const casadi_int casadi_s1[3] = {3, 1, 1};
 static const casadi_int casadi_s2[3] = {1, 1, 1};
 
-/* uav_tethered_expl_ode_fun:(i0[8],i1[3],i2)->(o0[8]) */
+/* uav_tethered_expl_ode_fun:(i0[10],i1[3],i2)->(o0[10]) */
 static int casadi_f0(const casadi_real** arg, casadi_real** res, casadi_int* iw, casadi_real* w, int mem) {
-  casadi_real a0, a1, a2, a3, a4, a5, a6, a7, a8;
+  casadi_real a0, a1, a2, a3, a4, a5, a6, a7, a8, a9;
   a0=arg[0]? arg[0][3] : 0;
   if (res[0]!=0) res[0][0]=a0;
   a0=arg[0]? arg[0][4] : 0;
@@ -72,27 +72,36 @@ static int casadi_f0(const casadi_real** arg, casadi_real** res, casadi_int* iw,
   a7=cos(a6);
   a5=(a5*a7);
   a1=sin(a1);
-  a6=sin(a6);
-  a8=(a1*a6);
-  a5=(a5+a8);
+  a8=sin(a6);
+  a9=(a1*a8);
+  a5=(a5+a9);
   a5=(a0*a5);
   if (res[0]!=0) res[0][3]=a5;
   a1=(a1*a4);
   a1=(a1*a7);
-  a2=(a2*a6);
+  a2=(a2*a8);
   a1=(a1-a2);
   a1=(a0*a1);
   if (res[0]!=0) res[0][4]=a1;
-  a3=cos(a3);
-  a3=(a3*a7);
-  a0=(a0*a3);
-  a3=-9.8100000000000005e+00;
-  a0=(a0+a3);
+  a1=cos(a3);
+  a1=(a1*a7);
+  a0=(a0*a1);
+  a1=-9.8100000000000005e+00;
+  a0=(a0+a1);
   if (res[0]!=0) res[0][5]=a0;
-  a0=arg[1]? arg[1][0] : 0;
+  a0=arg[0]? arg[0][8] : 0;
+  a0=(a0-a6);
+  a6=4.0000000000000002e-01;
+  a0=(a0/a6);
   if (res[0]!=0) res[0][6]=a0;
-  a0=arg[1]? arg[1][1] : 0;
+  a0=arg[0]? arg[0][9] : 0;
+  a0=(a0-a3);
+  a0=(a0/a6);
   if (res[0]!=0) res[0][7]=a0;
+  a0=arg[1]? arg[1][0] : 0;
+  if (res[0]!=0) res[0][8]=a0;
+  a0=arg[1]? arg[1][1] : 0;
+  if (res[0]!=0) res[0][9]=a0;
   return 0;
 }
 

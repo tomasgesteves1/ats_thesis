@@ -10,12 +10,14 @@ def create_uav_model() -> AcadosModel:
     # Gravitational acceleration
     g_vec = ca.vertcat(0.0, 0.0, -9.81)
     
-    # States (x): [p_x, p_y, p_z, v_x, v_y, v_z, phi, theta]
+    # States (x): [p_x, p_y, p_z, v_x, v_y, v_z, phi, theta, phi_cmd, theta_cmd]
     p = ca.SX.sym('p', 3)
     v = ca.SX.sym('v', 3)
     phi = ca.SX.sym('phi', 1)
     theta = ca.SX.sym('theta', 1)
-    x = ca.vertcat(p, v, phi, theta)
+    phi_cmd = ca.SX.sym('phi_cmd', 1)
+    theta_cmd = ca.SX.sym('theta_cmd', 1)
+    x = ca.vertcat(p, v, phi, theta, phi_cmd, theta_cmd)
 
     # Controls (u): [phi_dot_cmd, theta_dot_cmd, a_T]
     phi_dot_cmd = ca.SX.sym('phi_dot_cmd', 1)
@@ -32,10 +34,13 @@ def create_uav_model() -> AcadosModel:
     az_thrust = a_T * (ca.cos(theta) * ca.cos(phi))
     a_thrust = ca.vertcat(ax_thrust, ay_thrust, az_thrust)
 
-    # State derivatives (dynamics)
+    # State derivatives (dynamics with tau = 0.4s and state augmentation)
+    tau = 0.4
     xdot_expr = ca.vertcat(
         v,
         a_thrust + g_vec,
+        (phi_cmd - phi) / tau,
+        (theta_cmd - theta) / tau,
         phi_dot_cmd,
         theta_dot_cmd
     )
@@ -82,9 +87,10 @@ def generate_acados_ocp():
     Qp = config["weights"]["Qp"]
     Qv = config["weights"]["Qv"]
     R = config["weights"]["R"]
-    Q_tilt = [0.0, 0.0]  # Penalization on attitude states (phi, theta)
-    ocp.cost.W = np.diag(Qp + Qv + Q_tilt + R)
-    ocp.cost.W_e = np.diag(Qp + Qv + Q_tilt)
+    Q_tilt = config["weights"].get("Qtilt", [0.0, 0.0])  # Penalization on attitude states (phi, theta)
+    Q_tilt_cmd = [0.0, 0.0]  # Penalization on attitude commands (phi_cmd, theta_cmd)
+    ocp.cost.W = np.diag(Qp + Qv + Q_tilt + Q_tilt_cmd + R)
+    ocp.cost.W_e = np.diag(Qp + Qv + Q_tilt + Q_tilt_cmd)
     
     ocp.cost.Vx = np.zeros((ny, nx))
     ocp.cost.Vx[:nx, :nx] = np.eye(nx)
@@ -94,7 +100,7 @@ def generate_acados_ocp():
     
     # Default references
     ocp.cost.yref = np.zeros((ny,))
-    ocp.cost.yref[10] = 9.81  # Default a_T cancels gravity (index 10 for thrust input)
+    ocp.cost.yref[12] = 9.81  # Default a_T cancels gravity (index 12 for thrust input in 13-dimensional yref)
     ocp.cost.yref_e = np.zeros((ny_e,))
     
     # Default parameters: [psi]
@@ -110,13 +116,13 @@ def generate_acados_ocp():
     ocp.constraints.ubu = np.array([phi_dot_max, theta_dot_max, a_T_max])
     ocp.constraints.idxbu = np.array([0, 1, 2])
     
-    # State bounds [v_x, v_y, v_z, phi, theta] from config
+    # State bounds [v_x, v_y, v_z, phi, theta, phi_cmd, theta_cmd] from config
     v_max = config["limits"]["v_max"]
     phi_max = config["limits"]["phi_max"]
     theta_max = config["limits"]["theta_max"]
-    ocp.constraints.lbx = np.array([-v_max, -v_max, -v_max, -phi_max, -theta_max])
-    ocp.constraints.ubx = np.array([v_max, v_max, v_max, phi_max, theta_max])
-    ocp.constraints.idxbx = np.array([3, 4, 5, 6, 7])
+    ocp.constraints.lbx = np.array([-v_max, -v_max, -v_max, -phi_max, -theta_max, -phi_max, -theta_max])
+    ocp.constraints.ubx = np.array([v_max, v_max, v_max, phi_max, theta_max, phi_max, theta_max])
+    ocp.constraints.idxbx = np.array([3, 4, 5, 6, 7, 8, 9])
     
     # Default initial state
     ocp.constraints.x0 = np.zeros(nx)

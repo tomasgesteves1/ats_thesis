@@ -15,7 +15,8 @@ UavMpcPipeline::UavMpcPipeline()
       hover_throttle_(0.52), tilt_max_(0.2),
       trajectory_type_(TrajectoryType::HOLD), circle_start_time_(-1.0),
       open_loop_mode_enabled_(false), open_loop_active_(false),
-      open_loop_step_(0), N_horizon_(0) {
+      open_loop_step_(0), N_horizon_(0),
+      last_phi_cmd_(0.0), last_theta_cmd_(0.0), first_run_(true) {
     current_state_.resize(6, 0.0);
     current_reference_.resize(3, 0.0);
     current_reference_velocity_.resize(3, 0.0);
@@ -138,8 +139,8 @@ UavControlOutput UavMpcPipeline::computeControl(double current_time) {
     double roll = 0.0, pitch = 0.0, yaw = 0.0;
     kinematics::quaternionToEuler(qx_, qy_, qz_, qw_, roll, pitch, yaw);
 
-    // Set current initial state (x0) in ACADOS: [x, y, z, vx, vy, vz, phi, theta]
-    double x0[8];
+    // Set current initial state (x0) in ACADOS: [x, y, z, vx, vy, vz, phi, theta, phi_cmd, theta_cmd]
+    double x0[10];
     x0[0] = current_state_[0];
     x0[1] = current_state_[1];
     x0[2] = current_state_[2];
@@ -155,11 +156,19 @@ UavControlOutput UavMpcPipeline::computeControl(double current_time) {
     x0[6] = roll;
     x0[7] = pitch;
 
+    if (first_run_) {
+        last_phi_cmd_ = roll;
+        last_theta_cmd_ = pitch;
+        first_run_ = false;
+    }
+    x0[8] = last_phi_cmd_;
+    x0[9] = last_theta_cmd_;
+
     // Save initial yaw for control reference purposes if needed and warm start solver guesses once
     if (!target_initialized_) {
         target_yaw_ = yaw;
         
-        double x_guess[8] = {x0[0], x0[1], x0[2], x0[3], x0[4], x0[5], x0[6], x0[7]};
+        double x_guess[10] = {x0[0], x0[1], x0[2], x0[3], x0[4], x0[5], x0[6], x0[7], x0[8], x0[9]};
         double u_guess[3] = {0.0, 0.0, 9.81};
         for (int i = 0; i <= capsule->nlp_solver_plan->N; i++) {
             ocp_nlp_out_set(capsule->nlp_config, capsule->nlp_dims, capsule->nlp_out, capsule->nlp_in, i, "x", x_guess);
@@ -174,9 +183,9 @@ UavControlOutput UavMpcPipeline::computeControl(double current_time) {
     ocp_nlp_constraints_model_set(capsule->nlp_config, capsule->nlp_dims, capsule->nlp_in, capsule->nlp_out, 0, "ubx", x0);
 
     // Set state velocity and tilt bounds (lbx, ubx for stages 1...N)
-    // idxbx = [3, 4, 5, 6, 7] corresponding to [vx, vy, vz, phi, theta]
-    double lbx[5] = { -v_max_, -v_max_, -v_max_, -tilt_max_, -tilt_max_ };
-    double ubx[5] = {  v_max_,  v_max_,  v_max_,  tilt_max_,  tilt_max_ };
+    // idxbx = [3, 4, 5, 6, 7, 8, 9] corresponding to [vx, vy, vz, phi, theta, phi_cmd, theta_cmd]
+    double lbx[7] = { -v_max_, -v_max_, -v_max_, -tilt_max_, -tilt_max_, -tilt_max_, -tilt_max_ };
+    double ubx[7] = {  v_max_,  v_max_,  v_max_,  tilt_max_,  tilt_max_,  tilt_max_,  tilt_max_ };
     for (int i = 1; i <= capsule->nlp_solver_plan->N; i++) {
         ocp_nlp_constraints_model_set(capsule->nlp_config, capsule->nlp_dims, capsule->nlp_in, capsule->nlp_out, i, "lbx", lbx);
         ocp_nlp_constraints_model_set(capsule->nlp_config, capsule->nlp_dims, capsule->nlp_in, capsule->nlp_out, i, "ubx", ubx);
@@ -185,8 +194,8 @@ UavControlOutput UavMpcPipeline::computeControl(double current_time) {
     // Set control inputs bounds (lbu, ubu for stages 0...N-1)
     // idxbu = [0, 1, 2], corresponding to [phi_dot_cmd, theta_dot_cmd, a_T]
     // Slew rate limits: angular rate speed bounded at 2.0 rad/s (~115 deg/s)
-    double lbu[3] = { -2.0, -2.0, 0.1 * 9.81 };
-    double ubu[3] = {  2.0,  2.0, u_max_ };
+    double lbu[3] = { -0.8, -0.8, 0.1 * 9.81 };
+    double ubu[3] = {  0.8,  0.8, u_max_ };
     for (int i = 0; i < capsule->nlp_solver_plan->N; i++) {
         ocp_nlp_constraints_model_set(capsule->nlp_config, capsule->nlp_dims, capsule->nlp_in, capsule->nlp_out, i, "lbu", lbu);
         ocp_nlp_constraints_model_set(capsule->nlp_config, capsule->nlp_dims, capsule->nlp_in, capsule->nlp_out, i, "ubu", ubu);
@@ -203,14 +212,14 @@ UavControlOutput UavMpcPipeline::computeControl(double current_time) {
         for (int i = 0; i < capsule->nlp_solver_plan->N; i++) {
             double t_stage = elapsed + i * Ts_;
             TrajectoryPoint pt = trajectory_gen_.getPoint(t_stage);
-            // yref = [p_x, p_y, p_z, v_x, v_y, v_z, phi, theta, phi_dot_cmd, theta_dot_cmd, a_T]
-            double yref[11] = {pt.px, pt.py, pt.pz, pt.vx, pt.vy, pt.vz, 0.0, 0.0, 0.0, 0.0, 9.81};
+            // yref = [p_x, p_y, p_z, v_x, v_y, v_z, phi, theta, phi_cmd, theta_cmd, phi_dot_cmd, theta_dot_cmd, a_T]
+            double yref[13] = {pt.px, pt.py, pt.pz, pt.vx, pt.vy, pt.vz, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 9.81};
             ocp_nlp_cost_model_set(capsule->nlp_config, capsule->nlp_dims, capsule->nlp_in, i, "yref", yref);
         }
         double t_terminal = elapsed + capsule->nlp_solver_plan->N * Ts_;
         TrajectoryPoint pt_e = trajectory_gen_.getPoint(t_terminal);
-        // yref_e = [p_x, p_y, p_z, v_x, v_y, v_z, phi, theta]
-        double yref_e[8] = {pt_e.px, pt_e.py, pt_e.pz, pt_e.vx, pt_e.vy, pt_e.vz, 0.0, 0.0};
+        // yref_e = [p_x, p_y, p_z, v_x, v_y, v_z, phi, theta, phi_cmd, theta_cmd]
+        double yref_e[10] = {pt_e.px, pt_e.py, pt_e.pz, pt_e.vx, pt_e.vy, pt_e.vz, 0.0, 0.0, 0.0, 0.0};
         ocp_nlp_cost_model_set(capsule->nlp_config, capsule->nlp_dims, capsule->nlp_in, capsule->nlp_solver_plan->N, "yref", yref_e);
 
         // Update current reference for RViz visualization (at start of prediction horizon)
@@ -219,8 +228,8 @@ UavControlOutput UavMpcPipeline::computeControl(double current_time) {
         current_reference_velocity_ = {pt_start.vx, pt_start.vy, pt_start.vz};
     } else {
         // HOLD mode
-        double yref[11] = {current_reference_[0], current_reference_[1], current_reference_[2], 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 9.81};
-        double yref_e[8] = {current_reference_[0], current_reference_[1], current_reference_[2], 0.0, 0.0, 0.0, 0.0, 0.0};
+        double yref[13] = {current_reference_[0], current_reference_[1], current_reference_[2], 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 9.81};
+        double yref_e[10] = {current_reference_[0], current_reference_[1], current_reference_[2], 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0};
         for (int i = 0; i < capsule->nlp_solver_plan->N; i++) {
             ocp_nlp_cost_model_set(capsule->nlp_config, capsule->nlp_dims, capsule->nlp_in, i, "yref", yref);
         }
@@ -258,7 +267,7 @@ UavControlOutput UavMpcPipeline::computeControl(double current_time) {
         ocp_nlp_out_set(capsule->nlp_config, capsule->nlp_dims, capsule->nlp_out, capsule->nlp_in, N - 1, "u", u_temp);
 
         // 2. Shift dos estados (x_i = x_{i+1})
-        double x_temp[8];
+        double x_temp[10];
         for (int i = 0; i < N; i++) {
             ocp_nlp_out_get(capsule->nlp_config, capsule->nlp_dims, capsule->nlp_out, i + 1, "x", x_temp);
             ocp_nlp_out_set(capsule->nlp_config, capsule->nlp_dims, capsule->nlp_out, capsule->nlp_in, i, "x", x_temp);
@@ -279,13 +288,19 @@ UavControlOutput UavMpcPipeline::computeControl(double current_time) {
         std::cerr << "UavMpcPipeline: ACADOS solver failed with status: " << status << std::endl;
     }
 
-    // Extract predicted state at step 1 to read target attitude angles [phi_cmd, theta_cmd]
-    double x_step1[8] = {0.0};
+    // Extract predicted state at step 1 to read target attitude commands [phi_cmd, theta_cmd] (indices 8, 9)
+    double x_step1[10] = {0.0};
     if (status == 0) {
         ocp_nlp_out_get(capsule->nlp_config, capsule->nlp_dims, capsule->nlp_out, 1, "x", &x_step1);
     }
-    double phi_cmd = x_step1[6];
-    double theta_cmd = x_step1[7];
+    double phi_cmd = x_step1[8];
+    double theta_cmd = x_step1[9];
+
+    // Feedback update for the next iteration
+    if (status == 0) {
+        last_phi_cmd_ = phi_cmd;
+        last_theta_cmd_ = theta_cmd;
+    }
 
     UavControlOutput output;
 
@@ -303,7 +318,7 @@ UavControlOutput UavMpcPipeline::computeControl(double current_time) {
     output.thrust_normalized = std::max(0.0, std::min(thrust_normalized, 1.0));
 
     // Extract predicted trajectory positions
-    double x_step[8];
+    double x_step[10];
     for (int i = 0; i <= capsule->nlp_solver_plan->N; i++) {
         ocp_nlp_out_get(capsule->nlp_config, capsule->nlp_dims, capsule->nlp_out, i, "x", x_step);
         output.predicted_positions.push_back({x_step[0], x_step[1], x_step[2]});
@@ -358,8 +373,8 @@ void UavMpcPipeline::captureOpenLoopHorizon(double current_time) {
     double roll = 0.0, pitch = 0.0, yaw = 0.0;
     kinematics::quaternionToEuler(qx_, qy_, qz_, qw_, roll, pitch, yaw);
 
-    // Set current initial state (x0) in ACADOS: [x, y, z, vx, vy, vz, phi, theta]
-    double x0[8];
+    // Set current initial state (x0) in ACADOS: [x, y, z, vx, vy, vz, phi, theta, phi_cmd, theta_cmd]
+    double x0[10];
     x0[0] = current_state_[0];
     x0[1] = current_state_[1];
     x0[2] = current_state_[2];
@@ -374,11 +389,13 @@ void UavMpcPipeline::captureOpenLoopHorizon(double current_time) {
     x0[5] = v_world[2];
     x0[6] = roll;
     x0[7] = pitch;
+    x0[8] = last_phi_cmd_;
+    x0[9] = last_theta_cmd_;
 
     // Warm start solver guesses once if needed
     if (!target_initialized_) {
         target_yaw_ = yaw;
-        double x_guess[8] = {x0[0], x0[1], x0[2], x0[3], x0[4], x0[5], x0[6], x0[7]};
+        double x_guess[10] = {x0[0], x0[1], x0[2], x0[3], x0[4], x0[5], x0[6], x0[7], x0[8], x0[9]};
         double u_guess[3] = {0.0, 0.0, 9.81};
         for (int i = 0; i <= N; i++) {
             ocp_nlp_out_set(capsule->nlp_config, capsule->nlp_dims, capsule->nlp_out, capsule->nlp_in, i, "x", x_guess);
@@ -393,16 +410,16 @@ void UavMpcPipeline::captureOpenLoopHorizon(double current_time) {
     ocp_nlp_constraints_model_set(capsule->nlp_config, capsule->nlp_dims, capsule->nlp_in, capsule->nlp_out, 0, "ubx", x0);
 
     // Set state velocity and tilt bounds
-    double lbx[5] = { -v_max_, -v_max_, -v_max_, -tilt_max_, -tilt_max_ };
-    double ubx[5] = {  v_max_,  v_max_,  v_max_,  tilt_max_,  tilt_max_ };
+    double lbx[7] = { -v_max_, -v_max_, -v_max_, -tilt_max_, -tilt_max_, -tilt_max_, -tilt_max_ };
+    double ubx[7] = {  v_max_,  v_max_,  v_max_,  tilt_max_,  tilt_max_,  tilt_max_,  tilt_max_ };
     for (int i = 1; i <= N; i++) {
         ocp_nlp_constraints_model_set(capsule->nlp_config, capsule->nlp_dims, capsule->nlp_in, capsule->nlp_out, i, "lbx", lbx);
         ocp_nlp_constraints_model_set(capsule->nlp_config, capsule->nlp_dims, capsule->nlp_in, capsule->nlp_out, i, "ubx", ubx);
     }
 
     // Set control inputs bounds
-    double lbu[3] = { -2.0, -2.0, 0.1 * 9.81 };
-    double ubu[3] = {  2.0,  2.0, u_max_ };
+    double lbu[3] = { -0.8, -0.8, 0.1 * 9.81 };
+    double ubu[3] = {  0.8,  0.8, u_max_ };
     for (int i = 0; i < N; i++) {
         ocp_nlp_constraints_model_set(capsule->nlp_config, capsule->nlp_dims, capsule->nlp_in, capsule->nlp_out, i, "lbu", lbu);
         ocp_nlp_constraints_model_set(capsule->nlp_config, capsule->nlp_dims, capsule->nlp_in, capsule->nlp_out, i, "ubu", ubu);
@@ -418,20 +435,20 @@ void UavMpcPipeline::captureOpenLoopHorizon(double current_time) {
         for (int i = 0; i < N; i++) {
             double t_stage = elapsed + i * Ts_;
             TrajectoryPoint pt = trajectory_gen_.getPoint(t_stage);
-            double yref[11] = {pt.px, pt.py, pt.pz, pt.vx, pt.vy, pt.vz, 0.0, 0.0, 0.0, 0.0, 9.81};
+            double yref[13] = {pt.px, pt.py, pt.pz, pt.vx, pt.vy, pt.vz, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 9.81};
             ocp_nlp_cost_model_set(capsule->nlp_config, capsule->nlp_dims, capsule->nlp_in, i, "yref", yref);
         }
         double t_terminal = elapsed + N * Ts_;
         TrajectoryPoint pt_e = trajectory_gen_.getPoint(t_terminal);
-        double yref_e[8] = {pt_e.px, pt_e.py, pt_e.pz, pt_e.vx, pt_e.vy, pt_e.vz, 0.0, 0.0};
+        double yref_e[10] = {pt_e.px, pt_e.py, pt_e.pz, pt_e.vx, pt_e.vy, pt_e.vz, 0.0, 0.0, 0.0, 0.0};
         ocp_nlp_cost_model_set(capsule->nlp_config, capsule->nlp_dims, capsule->nlp_in, N, "yref", yref_e);
         
         TrajectoryPoint pt_start = trajectory_gen_.getPoint(elapsed);
         current_reference_ = {pt_start.px, pt_start.py, pt_start.pz};
         current_reference_velocity_ = {pt_start.vx, pt_start.vy, pt_start.vz};
     } else {
-        double yref[11] = {current_reference_[0], current_reference_[1], current_reference_[2], 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 9.81};
-        double yref_e[8] = {current_reference_[0], current_reference_[1], current_reference_[2], 0.0, 0.0, 0.0, 0.0, 0.0};
+        double yref[13] = {current_reference_[0], current_reference_[1], current_reference_[2], 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 9.81};
+        double yref_e[10] = {current_reference_[0], current_reference_[1], current_reference_[2], 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0};
         for (int i = 0; i < N; i++) {
             ocp_nlp_cost_model_set(capsule->nlp_config, capsule->nlp_dims, capsule->nlp_in, i, "yref", yref);
         }
@@ -456,7 +473,7 @@ void UavMpcPipeline::captureOpenLoopHorizon(double current_time) {
 
     // Retrieve predicted states
     for (int i = 0; i <= N; i++) {
-        double x_step[8];
+        double x_step[10];
         ocp_nlp_out_get(capsule->nlp_config, capsule->nlp_dims, capsule->nlp_out, i, "x", x_step);
         open_loop_predicted_positions_.push_back({x_step[0], x_step[1], x_step[2]});
     }
@@ -467,10 +484,10 @@ void UavMpcPipeline::captureOpenLoopHorizon(double current_time) {
         double u_val[3] = {0.0, 0.0, 0.0};
         ocp_nlp_out_get(capsule->nlp_config, capsule->nlp_dims, capsule->nlp_out, i, "u", u_val);
 
-        double x_next[8] = {0.0};
+        double x_next[10] = {0.0};
         ocp_nlp_out_get(capsule->nlp_config, capsule->nlp_dims, capsule->nlp_out, i + 1, "x", x_next);
-        double phi_cmd = x_next[6];
-        double theta_cmd = x_next[7];
+        double phi_cmd = x_next[8];
+        double theta_cmd = x_next[9];
 
         step_data.u_opt[0] = phi_cmd;
         step_data.u_opt[1] = theta_cmd;

@@ -89,6 +89,11 @@ private:
     };
     std::vector<OpenLoopControlStep> open_loop_steps_;
     std::vector<std::vector<double>> open_loop_predicted_positions_;
+
+    // Variables for augmented state feedback (Option B with rate constraints)
+    double last_phi_cmd_;
+    double last_theta_cmd_;
+    bool first_run_;
 };
 
 } // namespace uav_mpc
