@@ -34,8 +34,8 @@ def create_uav_model() -> AcadosModel:
     az_thrust = a_T * (ca.cos(theta) * ca.cos(phi))
     a_thrust = ca.vertcat(ax_thrust, ay_thrust, az_thrust)
 
-    # State derivatives (dynamics with tau = 0.4s and state augmentation)
-    tau = 0.4
+    # State derivatives (dynamics with tau = 0.15s and state augmentation)
+    tau = 0.15
     xdot_expr = ca.vertcat(
         v,
         a_thrust + g_vec,

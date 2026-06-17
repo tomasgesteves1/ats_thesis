@@ -519,9 +519,9 @@ void uav_tethered_acados_setup_nlp_in(uav_tethered_solver_capsule* capsule, cons
     W_0[5+(NY0) * 5] = 5;
     W_0[6+(NY0) * 6] = 5;
     W_0[7+(NY0) * 7] = 5;
-    W_0[10+(NY0) * 10] = 1;
-    W_0[11+(NY0) * 11] = 1;
-    W_0[12+(NY0) * 12] = 0.01;
+    W_0[10+(NY0) * 10] = 15;
+    W_0[11+(NY0) * 11] = 15;
+    W_0[12+(NY0) * 12] = 0.5;
     ocp_nlp_cost_model_set(nlp_config, nlp_dims, nlp_in, 0, "W", W_0);
     free(W_0);
     double* Vx_0 = calloc(NY0*NX, sizeof(double));
@@ -564,9 +564,9 @@ void uav_tethered_acados_setup_nlp_in(uav_tethered_solver_capsule* capsule, cons
     W[5+(NY) * 5] = 5;
     W[6+(NY) * 6] = 5;
     W[7+(NY) * 7] = 5;
-    W[10+(NY) * 10] = 1;
-    W[11+(NY) * 11] = 1;
-    W[12+(NY) * 12] = 0.01;
+    W[10+(NY) * 10] = 15;
+    W[11+(NY) * 11] = 15;
+    W[12+(NY) * 12] = 0.5;
 
     for (int i = 1; i < N; i++)
     {
@@ -707,7 +707,7 @@ void uav_tethered_acados_setup_nlp_in(uav_tethered_solver_capsule* capsule, cons
     lbu[1] = -0.8;
     ubu[1] = 0.8;
     lbu[2] = 0.981;
-    ubu[2] = 10.791000000000002;
+    ubu[2] = 15.696000000000002;
 
     for (int i = 0; i < N; i++)
     {
@@ -737,12 +737,12 @@ void uav_tethered_acados_setup_nlp_in(uav_tethered_solver_capsule* capsule, cons
     double* lubx = calloc(2*NBX, sizeof(double));
     double* lbx = lubx;
     double* ubx = lubx + NBX;
-    lbx[0] = -5;
-    ubx[0] = 5;
-    lbx[1] = -5;
-    ubx[1] = 5;
-    lbx[2] = -5;
-    ubx[2] = 5;
+    lbx[0] = -15;
+    ubx[0] = 15;
+    lbx[1] = -15;
+    ubx[1] = 15;
+    lbx[2] = -15;
+    ubx[2] = 15;
     lbx[3] = -0.4;
     ubx[3] = 0.4;
     lbx[4] = -0.4;
