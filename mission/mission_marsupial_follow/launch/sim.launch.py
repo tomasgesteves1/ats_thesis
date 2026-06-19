@@ -7,14 +7,24 @@ from launch.launch_description_sources import PythonLaunchDescriptionSource
 def generate_launch_description():
     pkg_bringup = get_package_share_directory('bringup')
     
+    from launch.actions import DeclareLaunchArgument
+    from launch.substitutions import LaunchConfiguration
+
+    use_tether_arg = DeclareLaunchArgument(
+        'use_tether',
+        default_value='true',
+        description='Whether to enable MoorDyn tether simulation'
+    )
+
     return LaunchDescription([
+        use_tether_arg,
         IncludeLaunchDescription(
             PythonLaunchDescriptionSource(
                 os.path.join(pkg_bringup, 'launch', 'moordyn_marsupial.launch.py')
             ),
             launch_arguments={
                 'headless': 'true',
-                'use_tether': 'true'
+                'use_tether': LaunchConfiguration('use_tether')
             }.items()
         )
     ])

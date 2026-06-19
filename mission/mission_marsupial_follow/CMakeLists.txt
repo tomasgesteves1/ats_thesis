@@ -11,6 +11,7 @@ find_package(rclcpp REQUIRED)
 find_package(geometry_msgs REQUIRED)
 find_package(nav_msgs REQUIRED)
 find_package(std_msgs REQUIRED)
+find_package(px4_msgs REQUIRED)
 
 # Include directories
 include_directories(include)
@@ -35,11 +36,21 @@ ament_target_dependencies(mission_marsupial_follow_node
   std_msgs
 )
 
+# 3. Custom Bootstrap Node executable
+add_executable(mission_marsupial_follow_bootstrap_node
+  src/mission_marsupial_follow_bootstrap_node.cpp
+)
+ament_target_dependencies(mission_marsupial_follow_bootstrap_node
+  rclcpp
+  px4_msgs
+)
+
 # Install targets
 install(
   TARGETS
   mission_marsupial_follow_pipeline
   mission_marsupial_follow_node
+  mission_marsupial_follow_bootstrap_node
   DESTINATION lib/${PROJECT_NAME}
 )
 

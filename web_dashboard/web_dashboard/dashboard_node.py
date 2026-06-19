@@ -195,6 +195,30 @@ class DashboardHTTPRequestHandler(http.server.BaseHTTPRequestHandler):
             self.wfile.write(json.dumps(missions_list).encode('utf-8'))
             return
 
+        elif self.path.startswith('/api/logs'):
+            import urllib.parse
+            query = urllib.parse.urlparse(self.path).query
+            query_params = urllib.parse.parse_qs(query)
+            log_type = query_params.get('type', ['control'])[0]
+
+            self.send_response(200)
+            self.send_header('Content-Type', 'text/plain; charset=utf-8')
+            self.send_header('Access-Control-Allow-Origin', '*')
+            self.end_headers()
+
+            log_path = f"log/{log_type}.log"
+            if os.path.exists(log_path):
+                try:
+                    with open(log_path, 'r') as f:
+                        lines = f.readlines()
+                        # Return last 100 lines
+                        self.wfile.write(''.join(lines[-100:]).encode('utf-8'))
+                except Exception as e:
+                    self.wfile.write(f"Error reading logs: {str(e)}".encode('utf-8'))
+            else:
+                self.wfile.write(b"No logs available.")
+            return
+
         elif self.path == '/api/telemetry':
             self.send_response(200)
             self.send_header('Content-Type', 'text/event-stream')
@@ -268,12 +292,23 @@ class DashboardHTTPRequestHandler(http.server.BaseHTTPRequestHandler):
             proc_type = params.get('type')
             if proc_type == 'simulation':
                 mission_id = params.get('mission_id')
+                user_param_inputs = params.get('params', {})
                 if not mission_id:
                     response = {'success': False, 'message': 'No mission selected to launch its simulation.'}
                 else:
-                    node.get_logger().info(f"Requesting simulation start for mission {mission_id}")
+                    node.get_logger().info(f"Requesting simulation start for mission {mission_id} with parameters: {user_param_inputs}")
                     req = StartSimulation.Request()
                     req.mission_id = mission_id
+                    
+                    keys = []
+                    values = []
+                    for k, v in user_param_inputs.items():
+                        keys.append(str(k))
+                        values.append(str(v))
+                    
+                    req.param_keys = keys
+                    req.param_values = values
+                    
                     res = node.call_service_sync(node.start_sim_client, req)
                     if res is not None:
                         response = {'success': res.success, 'message': res.message}
@@ -345,6 +380,20 @@ class DashboardHTTPRequestHandler(http.server.BaseHTTPRequestHandler):
             subprocess.run("pkill -9 -f 'micro-xrce-dds' || true", shell=True)
             
             response = {'success': True, 'message': f"Emergency stop executed. Stopped: {', '.join(stopped) if stopped else 'None'}"}
+
+        elif self.path == '/api/clear_logs':
+            log_type = params.get('type', 'control')
+            log_path = f"log/{log_type}.log"
+            response = {'success': False, 'message': 'Unknown log type'}
+
+            if log_type in ['control', 'simulation']:
+                try:
+                    if os.path.exists(log_path):
+                        with open(log_path, 'w') as f:
+                            f.truncate(0)
+                    response = {'success': True, 'message': f"Logs for {log_type} cleared successfully."}
+                except Exception as e:
+                    response = {'success': False, 'message': f"Failed to clear logs: {str(e)}"}
 
         self.wfile.write(json.dumps(response).encode('utf-8'))
 

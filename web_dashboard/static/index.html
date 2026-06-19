@@ -241,13 +241,31 @@
         </main>
         
         <!-- Bottom Logs Panel -->
-        <footer class="system-logs">
+        <footer class="system-logs" id="system-logs-panel">
             <div class="logs-header">
-                <h3><i class="fa-solid fa-terminal"></i> Histórico do Sistema</h3>
-                <button class="btn-clear" id="btn-clear-logs">Limpar</button>
+                <div class="log-header-left">
+                    <h3><i class="fa-solid fa-terminal"></i> Histórico</h3>
+                    <div class="log-tabs">
+                        <button class="log-tab active" data-type="gcs">Painel GCS</button>
+                        <button class="log-tab" data-type="control">Consola Controlo</button>
+                        <button class="log-tab" data-type="simulation">Consola Simulação</button>
+                    </div>
+                </div>
+                <div class="log-header-right" style="display: flex; align-items: center; gap: 1rem;">
+                    <button class="btn-clear" id="btn-clear-logs">Limpar</button>
+                    <button class="btn-clear" id="btn-toggle-expand" title="Expandir/Minimizar"><i class="fa-solid fa-expand" id="expand-icon"></i></button>
+                </div>
             </div>
-            <div class="logs-body" id="logs-console">
-                <div class="log-entry log-info">[GCS] Painel de controlo inicializado. Conecte-se ao servidor para iniciar telemetria.</div>
+            <div class="logs-body">
+                <div class="logs-content active" id="logs-console">
+                    <div class="log-entry log-info">[GCS] Painel de controlo inicializado. Conecte-se ao servidor para iniciar telemetria.</div>
+                </div>
+                <div class="logs-content" id="logs-control-container" style="display: none;">
+                    <pre class="console-pre" id="logs-control">A carregar logs de controlo...</pre>
+                </div>
+                <div class="logs-content" id="logs-simulation-container" style="display: none;">
+                    <pre class="console-pre" id="logs-simulation">A carregar logs de simulação...</pre>
+                </div>
             </div>
         </footer>
     </div>

@@ -26,7 +26,8 @@ public:
     bool start(const std::string& mission_id,
                const std::string& package,
                const std::string& launch_file,
-               const std::map<std::string, std::string>& launch_args);
+               const std::map<std::string, std::string>& launch_args,
+               const std::string& log_filename = "");
 
     // Stop active mission
     bool stop(double timeout_seconds = 5.0);

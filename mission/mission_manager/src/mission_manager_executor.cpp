@@ -8,6 +8,7 @@
 #include <vector>
 #include <thread>
 #include <chrono>
+#include <filesystem>
 
 namespace mission_manager {
 
@@ -21,7 +22,8 @@ MissionManagerExecutor::~MissionManagerExecutor() {
 bool MissionManagerExecutor::start(const std::string& mission_id,
                                    const std::string& package,
                                    const std::string& launch_file,
-                                   const std::map<std::string, std::string>& launch_args) {
+                                   const std::map<std::string, std::string>& launch_args,
+                                   const std::string& log_filename) {
     if (state_ != ExecutorState::IDLE && state_ != ExecutorState::ERROR) {
         std::cerr << "Cannot start mission. Executor is not IDLE." << std::endl;
         return false;
@@ -54,12 +56,22 @@ bool MissionManagerExecutor::start(const std::string& mission_id,
         // In child: Put child into its own process group
         setsid();
 
-        // Redirect output to /dev/null to match the original dashboard background behavior
-        int dev_null = open("/dev/null", O_WRONLY);
-        if (dev_null >= 0) {
-            dup2(dev_null, STDOUT_FILENO);
-            dup2(dev_null, STDERR_FILENO);
-            close(dev_null);
+        // Redirect output to log file or /dev/null
+        int fd = -1;
+        if (!log_filename.empty()) {
+            std::filesystem::create_directories("log");
+            std::string log_path = "log/" + log_filename + ".log";
+            fd = open(log_path.c_str(), O_WRONLY | O_CREAT | O_TRUNC, S_IRUSR | S_IWUSR | S_IRGRP | S_IROTH);
+        }
+
+        if (fd < 0) {
+            fd = open("/dev/null", O_WRONLY);
+        }
+
+        if (fd >= 0) {
+            dup2(fd, STDOUT_FILENO);
+            dup2(fd, STDERR_FILENO);
+            close(fd);
         }
 
         execvp("ros2", argv.data());

@@ -21,7 +21,9 @@ std::vector<MissionManifest> MissionManagerPipeline::listMissions() const {
     return registry_->getMissions();
 }
 
-bool MissionManagerPipeline::startSimulation(const std::string& mission_id, std::string& error_msg) {
+bool MissionManagerPipeline::startSimulation(const std::string& mission_id,
+                                             const std::map<std::string, std::string>& user_params,
+                                             std::string& error_msg) {
     auto manifest_opt = registry_->getMission(mission_id);
     if (!manifest_opt) {
         error_msg = "Mission manifest not found for id: " + mission_id;
@@ -32,7 +34,19 @@ bool MissionManagerPipeline::startSimulation(const std::string& mission_id, std:
         error_msg = "Mission has no simulation launch configured.";
         return false;
     }
-    return sim_executor_->start(manifest.id, manifest.simulation_launch.package, manifest.simulation_launch.file, manifest.simulation_launch.args);
+
+    // Resolve parameter overrides for simulation launch args
+    std::map<std::string, std::string> launch_args = manifest.simulation_launch.args;
+    for (const auto& param : manifest.user_params) {
+        if (!param.ros_mapping.launch_arg.empty()) {
+            auto it = user_params.find(param.key);
+            if (it != user_params.end()) {
+                launch_args[param.ros_mapping.launch_arg] = it->second;
+            }
+        }
+    }
+
+    return sim_executor_->start(manifest.id, manifest.simulation_launch.package, manifest.simulation_launch.file, launch_args, "simulation");
 }
 
 bool MissionManagerPipeline::stopSimulation(std::string& error_msg) {
@@ -100,7 +114,7 @@ bool MissionManagerPipeline::startMission(const std::string& mission_id,
         }
     }
 
-    return control_executor_->start(manifest.id, manifest.control_launch.package, manifest.control_launch.file, launch_args);
+    return control_executor_->start(manifest.id, manifest.control_launch.package, manifest.control_launch.file, launch_args, "control");
 }
 
 bool MissionManagerPipeline::stopMission(std::string& error_msg) {

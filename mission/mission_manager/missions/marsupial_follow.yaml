@@ -38,3 +38,10 @@ user_params:
     default: true
     ros_mapping:
       launch_arg: "predict_movement"
+
+  - key: "use_tether"
+    label: "Ativar Cabo (MoorDyn Tether)"
+    type: "bool"
+    default: true
+    ros_mapping:
+      launch_arg: "use_tether"

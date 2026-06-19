@@ -51,8 +51,30 @@ function addLog(message, type = 'info') {
 
 // Clear log helper
 btnClearLogs.addEventListener('click', () => {
-    logsConsole.innerHTML = '';
-    addLog('Logs limpos.', 'info');
+    if (activeLogType === 'gcs') {
+        logsConsole.innerHTML = '';
+        addLog('Logs limpos.', 'info');
+    } else {
+        // Clear log file on server
+        fetch('/api/clear_logs', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ type: activeLogType })
+        })
+        .then(res => res.json())
+        .then(data => {
+            if (data.success) {
+                const el = document.getElementById(`logs-${activeLogType}`);
+                if (el) {
+                    el.textContent = '';
+                }
+                addLog(`Consola de ${activeLogType === 'control' ? 'controlo' : 'simulação'} limpa.`, 'info');
+            }
+        })
+        .catch(err => {
+            console.error("Error clearing logs:", err);
+        });
+    }
 });
 
 // Periodic API status updates
@@ -118,8 +140,20 @@ btnStartSim.addEventListener('click', () => {
         addLog('Escolha uma missão primeiro para lançar a simulação.', 'warning');
         return;
     }
-    addLog(`A iniciar simulação para a missão ${selectedMission.toUpperCase()}...`, 'info');
-    postAPI('/api/launch', { type: 'simulation', mission_id: selectedMission });
+    
+    // Collect parameters
+    const paramInputs = dynamicParams.querySelectorAll('input, select');
+    const params = {};
+    paramInputs.forEach(input => {
+        if (input.type === 'checkbox') {
+            params[input.dataset.key] = input.checked;
+        } else {
+            params[input.dataset.key] = input.value;
+        }
+    });
+
+    addLog(`A iniciar simulação para a missão ${selectedMission.toUpperCase()} com parâmetros...`, 'info');
+    postAPI('/api/launch', { type: 'simulation', mission_id: selectedMission, params: params });
 });
 
 btnStopSim.addEventListener('click', () => {
@@ -579,3 +613,72 @@ connectTelemetry();
 fetchAndRenderMissions();
 setInterval(updateStatus, 1000); // Check status every second
 drawRadar(); // Start animation loop
+
+// Log tabs switching and polling logic
+const logTabs = document.querySelectorAll('.log-tab');
+let activeLogType = 'gcs';
+
+logTabs.forEach(tab => {
+    tab.addEventListener('click', () => {
+        logTabs.forEach(t => t.classList.remove('active'));
+        tab.classList.add('active');
+        activeLogType = tab.dataset.type;
+
+        // Hide all log content sections
+        document.getElementById('logs-console').style.display = 'none';
+        document.getElementById('logs-control-container').style.display = 'none';
+        document.getElementById('logs-simulation-container').style.display = 'none';
+
+        // Show selected section
+        if (activeLogType === 'gcs') {
+            document.getElementById('logs-console').style.display = 'block';
+        } else if (activeLogType === 'control') {
+            document.getElementById('logs-control-container').style.display = 'block';
+            updateConsoleLogs('control', 'logs-control');
+        } else if (activeLogType === 'simulation') {
+            document.getElementById('logs-simulation-container').style.display = 'block';
+            updateConsoleLogs('simulation', 'logs-simulation');
+        }
+    });
+});
+
+async function updateConsoleLogs(type, elementId) {
+    if (activeLogType !== type) return;
+    try {
+        const response = await fetch(`/api/logs?type=${type}`);
+        if (response.ok) {
+            const text = await response.text();
+            const el = document.getElementById(elementId);
+            if (el) {
+                el.textContent = text;
+                // Auto scroll to bottom
+                el.parentNode.scrollTop = el.parentNode.scrollHeight;
+            }
+        }
+    } catch (e) {
+        console.error("Error fetching logs:", e);
+    }
+}
+
+// Poll active console log tab every second
+setInterval(() => {
+    if (activeLogType === 'control') {
+        updateConsoleLogs('control', 'logs-control');
+    } else if (activeLogType === 'simulation') {
+        updateConsoleLogs('simulation', 'logs-simulation');
+    }
+}, 1000);
+
+// Maximize/minimize button toggle logic
+const btnToggleExpand = document.getElementById('btn-toggle-expand');
+const systemLogsPanel = document.getElementById('system-logs-panel');
+const expandIcon = document.getElementById('expand-icon');
+
+btnToggleExpand.addEventListener('click', () => {
+    systemLogsPanel.classList.toggle('expanded');
+    if (systemLogsPanel.classList.contains('expanded')) {
+        expandIcon.className = 'fa-solid fa-compress';
+    } else {
+        expandIcon.className = 'fa-solid fa-expand';
+    }
+});

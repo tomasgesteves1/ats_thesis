@@ -27,7 +27,9 @@ public:
     std::vector<MissionManifest> listMissions() const;
 
     // Start simulation for a mission
-    bool startSimulation(const std::string& mission_id, std::string& error_msg);
+    bool startSimulation(const std::string& mission_id,
+                         const std::map<std::string, std::string>& user_params,
+                         std::string& error_msg);
 
     // Stop simulation
     bool stopSimulation(std::string& error_msg);

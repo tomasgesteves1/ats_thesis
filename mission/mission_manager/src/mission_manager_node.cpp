@@ -156,8 +156,20 @@ void MissionManagerNode::handleStartSimulation(
     std::shared_ptr<mission_manager_interfaces::srv::StartSimulation::Response> response)
 {
     RCLCPP_INFO(this->get_logger(), "Received service request: start_simulation (mission_id: %s)", request->mission_id.c_str());
+
+    std::map<std::string, std::string> user_params;
+    if (request->param_keys.size() == request->param_values.size()) {
+        for (size_t i = 0; i < request->param_keys.size(); ++i) {
+            user_params[request->param_keys[i]] = request->param_values[i];
+        }
+    } else {
+        response->success = false;
+        response->message = "Mismatched parameter keys and values arrays size.";
+        return;
+    }
+
     std::string error_msg;
-    bool success = pipeline_->startSimulation(request->mission_id, error_msg);
+    bool success = pipeline_->startSimulation(request->mission_id, user_params, error_msg);
     response->success = success;
     response->message = success ? "Simulation started successfully." : error_msg;
 }

@@ -731,3 +731,64 @@ body {
     background: var(--bg-dark);
     color: var(--text-main);
 }
+
+/* Logs tabs styles */
+.log-header-left {
+    display: flex;
+    align-items: center;
+    gap: 1.5rem;
+}
+.log-tabs {
+    display: flex;
+    gap: 0.5rem;
+}
+.log-tab {
+    background: transparent;
+    border: 1px solid transparent;
+    color: var(--text-muted);
+    font-size: 0.75rem;
+    font-weight: 600;
+    padding: 0.25rem 0.6rem;
+    border-radius: 6px;
+    cursor: pointer;
+    transition: var(--transition);
+    outline: none;
+}
+.log-tab.active {
+    background: rgba(14, 165, 233, 0.15);
+    border-color: var(--primary);
+    color: var(--primary);
+}
+.log-tab:hover:not(.active) {
+    color: var(--text-main);
+    background: rgba(255, 255, 255, 0.05);
+}
+.logs-content {
+    height: 100%;
+    overflow-y: auto;
+}
+.console-pre {
+    margin: 0;
+    padding: 0.25rem 0.5rem;
+    font-family: 'Courier New', Courier, monospace;
+    font-size: 0.8rem;
+    line-height: 1.4;
+    white-space: pre-wrap;
+    word-break: break-all;
+    color: #a6accd;
+    background: rgba(0, 0, 0, 0.2);
+    border-radius: 6px;
+    height: calc(100% - 10px);
+}
+
+/* Expanded logs overlay layout */
+.system-logs.expanded {
+    position: fixed;
+    bottom: 20px;
+    left: 20px;
+    right: 20px;
+    height: calc(100vh - 120px) !important;
+    z-index: 9999;
+    background: #0b0f19 !important;
+    border: 1px solid var(--primary);
+}
