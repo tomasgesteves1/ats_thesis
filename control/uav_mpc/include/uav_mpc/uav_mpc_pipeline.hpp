@@ -33,6 +33,7 @@ public:
     void updateTetherLength(double length);
     void setReference(const std::vector<double>& ref);
     void setExternalReferencePath(const std::vector<TrajectoryPoint>& path);
+    void setCostWeights(double w_pos, double w_vel);
     void setTrajectoryType(TrajectoryType type);
     void configureCircle(double radius, double omega, double height, double center_x = 0.0, double center_y = 0.0);
     void setUseTether(bool use_tether);

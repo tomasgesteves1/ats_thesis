@@ -38,6 +38,7 @@ def generate_launch_description():
             {
                 'use_sim_time': True,
                 'trajectory_type': 'external', # Override to read external path
+                'weight_velocity': 0.1,        # Set velocity weight to almost null to improve catch-up transient
             }
         ],
         remappings=[

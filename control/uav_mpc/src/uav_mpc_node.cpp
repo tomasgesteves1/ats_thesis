@@ -40,6 +40,8 @@ UavMpcNode::UavMpcNode()
     this->declare_parameter<double>("tilt_max", 0.4);
     this->declare_parameter<double>("hold_height", 2.0);
     this->declare_parameter<double>("takeoff_height", 4.0);
+    this->declare_parameter<double>("weight_position", 20.0);
+    this->declare_parameter<double>("weight_velocity", 5.0);
 
     // Relative namespaces for topics (Rule 4 of CODE_STANDARDS.md)
     odom_sub_ = this->create_subscription<nav_msgs::msg::Odometry>(
@@ -259,6 +261,11 @@ void UavMpcNode::controlLoop() {
     pipeline_->setInputLimit(u_max);
     pipeline_->setHoverThrottle(hover_throttle);
     pipeline_->setTiltMax(tilt_max);
+
+    // Update cost weights dynamically
+    double w_pos = this->get_parameter("weight_position").as_double();
+    double w_vel = this->get_parameter("weight_velocity").as_double();
+    pipeline_->setCostWeights(w_pos, w_vel);
 
     // Inject TF pose and latest velocity into the pipeline
     std::vector<double> state = {

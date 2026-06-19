@@ -26,3 +26,7 @@ uav_mpc_node:
     u_max: 12.5          # Maximum thrust acceleration (m/s^2)
     hover_throttle: 0.7265 # Normalized hover throttle command
     tilt_max: 0.4        # Maximum tilt angle (rad, ~11.5 deg)
+
+    # Cost weights (adjustable dynamically)
+    weight_position: 20.0  # Weight for X, Y, Z position error
+    weight_velocity: 5.0   # Weight for Vx, Vy, Vz velocity error

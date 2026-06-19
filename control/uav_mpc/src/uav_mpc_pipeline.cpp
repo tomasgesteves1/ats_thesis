@@ -61,6 +61,55 @@ void UavMpcPipeline::setExternalReferencePath(const std::vector<TrajectoryPoint>
     external_reference_path_ = path;
 }
 
+void UavMpcPipeline::setCostWeights(double w_pos, double w_vel) {
+    auto capsule = (uav_tethered_solver_capsule*)acados_ocp_capsule_;
+    int N = capsule->nlp_solver_plan->N;
+    
+    // Stage 0: NY0 = 13
+    double W_0[13 * 13] = {0.0};
+    W_0[0 + 13 * 0] = w_pos;
+    W_0[1 + 13 * 1] = w_pos;
+    W_0[2 + 13 * 2] = w_pos;
+    W_0[3 + 13 * 3] = w_vel;
+    W_0[4 + 13 * 4] = w_vel;
+    W_0[5 + 13 * 5] = w_vel;
+    W_0[6 + 13 * 6] = 5.0;
+    W_0[7 + 13 * 7] = 5.0;
+    W_0[10 + 13 * 10] = 15.0;
+    W_0[11 + 13 * 11] = 15.0;
+    W_0[12 + 13 * 12] = 0.5;
+    ocp_nlp_cost_model_set(capsule->nlp_config, capsule->nlp_dims, capsule->nlp_in, 0, "W", W_0);
+
+    // Stages 1...N-1: NY = 13
+    double W[13 * 13] = {0.0};
+    W[0 + 13 * 0] = w_pos;
+    W[1 + 13 * 1] = w_pos;
+    W[2 + 13 * 2] = w_pos;
+    W[3 + 13 * 3] = w_vel;
+    W[4 + 13 * 4] = w_vel;
+    W[5 + 13 * 5] = w_vel;
+    W[6 + 13 * 6] = 5.0;
+    W[7 + 13 * 7] = 5.0;
+    W[10 + 13 * 10] = 15.0;
+    W[11 + 13 * 11] = 15.0;
+    W[12 + 13 * 12] = 0.5;
+    for (int i = 1; i < N; i++) {
+        ocp_nlp_cost_model_set(capsule->nlp_config, capsule->nlp_dims, capsule->nlp_in, i, "W", W);
+    }
+
+    // Terminal Stage N: NYN = 10
+    double W_e[10 * 10] = {0.0};
+    W_e[0 + 10 * 0] = w_pos;
+    W_e[1 + 10 * 1] = w_pos;
+    W_e[2 + 10 * 2] = w_pos;
+    W_e[3 + 10 * 3] = w_vel;
+    W_e[4 + 10 * 4] = w_vel;
+    W_e[5 + 10 * 5] = w_vel;
+    W_e[6 + 10 * 6] = 5.0;
+    W_e[7 + 10 * 7] = 5.0;
+    ocp_nlp_cost_model_set(capsule->nlp_config, capsule->nlp_dims, capsule->nlp_in, N, "W", W_e);
+}
+
 void UavMpcPipeline::setTrajectoryType(TrajectoryType type) {
     if (trajectory_type_ != type) {
         trajectory_type_ = type;
