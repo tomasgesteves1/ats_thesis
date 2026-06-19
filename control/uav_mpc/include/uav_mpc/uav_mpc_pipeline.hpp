@@ -7,7 +7,8 @@ namespace uav_mpc {
 
 enum class TrajectoryType {
     HOLD = 0,
-    CIRCLE = 1
+    CIRCLE = 1,
+    EXTERNAL = 2
 };
 
 struct UavControlOutput {
@@ -31,6 +32,7 @@ public:
     void updateAnchorPosition(double x, double y, double z);
     void updateTetherLength(double length);
     void setReference(const std::vector<double>& ref);
+    void setExternalReferencePath(const std::vector<TrajectoryPoint>& path);
     void setTrajectoryType(TrajectoryType type);
     void configureCircle(double radius, double omega, double height, double center_x = 0.0, double center_y = 0.0);
     void setUseTether(bool use_tether);
@@ -70,6 +72,7 @@ private:
     // Trajectory generator and time
     TrajectoryType trajectory_type_;
     UavMpcTrajectory trajectory_gen_;
+    std::vector<TrajectoryPoint> external_reference_path_;
     double circle_start_time_;  // Sim time when circle mode was activated
     static constexpr double Ts_ = 0.02;  // Control period (s)
 

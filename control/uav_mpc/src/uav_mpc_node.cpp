@@ -48,6 +48,9 @@ UavMpcNode::UavMpcNode()
     target_sub_ = this->create_subscription<geometry_msgs::msg::Point>(
         "target_position", 10, std::bind(&UavMpcNode::targetCallback, this, std::placeholders::_1));
 
+    trajectory_path_sub_ = this->create_subscription<nav_msgs::msg::Path>(
+        "reference_path", 10, std::bind(&UavMpcNode::trajectoryPathCallback, this, std::placeholders::_1));
+
     tether_length_sub_ = this->create_subscription<std_msgs::msg::Float64>(
         "tether_length", 10, std::bind(&UavMpcNode::tetherLengthCallback, this, std::placeholders::_1));
 
@@ -111,6 +114,44 @@ UavMpcNode::UavMpcNode()
 void UavMpcNode::targetCallback(const geometry_msgs::msg::Point::SharedPtr msg) {
     RCLCPP_INFO(this->get_logger(), "New reference received: [%.2f, %.2f, %.2f]", msg->x, msg->y, msg->z);
     pipeline_->setReference({msg->x, msg->y, msg->z});
+}
+
+void UavMpcNode::trajectoryPathCallback(const nav_msgs::msg::Path::SharedPtr msg) {
+    if (msg->poses.empty()) {
+        return;
+    }
+    
+    std::vector<TrajectoryPoint> path_points;
+    const double Ts = 0.02; // Control period (s)
+    size_t num_poses = msg->poses.size();
+    
+    path_points.resize(num_poses);
+    for (size_t i = 0; i < num_poses; ++i) {
+        path_points[i].px = msg->poses[i].pose.position.x;
+        path_points[i].py = msg->poses[i].pose.position.y;
+        path_points[i].pz = msg->poses[i].pose.position.z;
+    }
+    
+    // Compute velocities using finite difference
+    for (size_t i = 0; i < num_poses; ++i) {
+        if (i < num_poses - 1) {
+            path_points[i].vx = (path_points[i+1].px - path_points[i].px) / Ts;
+            path_points[i].vy = (path_points[i+1].py - path_points[i].py) / Ts;
+            path_points[i].vz = (path_points[i+1].pz - path_points[i].pz) / Ts;
+        } else {
+            if (num_poses > 1) {
+                path_points[i].vx = path_points[i-1].vx;
+                path_points[i].vy = path_points[i-1].vy;
+                path_points[i].vz = path_points[i-1].vz;
+            } else {
+                path_points[i].vx = 0.0;
+                path_points[i].vy = 0.0;
+                path_points[i].vz = 0.0;
+            }
+        }
+    }
+    
+    pipeline_->setExternalReferencePath(path_points);
 }
 
 void UavMpcNode::tetherLengthCallback(const std_msgs::msg::Float64::SharedPtr msg) {
@@ -197,6 +238,8 @@ void UavMpcNode::controlLoop() {
     std::string traj_type = this->get_parameter("trajectory_type").as_string();
     if (traj_type == "circle") {
         pipeline_->setTrajectoryType(TrajectoryType::CIRCLE);
+    } else if (traj_type == "external") {
+        pipeline_->setTrajectoryType(TrajectoryType::EXTERNAL);
     } else {
         pipeline_->setTrajectoryType(TrajectoryType::HOLD);
     }

@@ -28,6 +28,7 @@ public:
 private:
     void odomCallback(const nav_msgs::msg::Odometry::SharedPtr msg);
     void targetCallback(const geometry_msgs::msg::Point::SharedPtr msg);
+    void trajectoryPathCallback(const nav_msgs::msg::Path::SharedPtr msg);
     void tetherLengthCallback(const std_msgs::msg::Float64::SharedPtr msg);
     void hoverThrustCallback(const px4_msgs::msg::HoverThrustEstimate::SharedPtr msg);
     void vehicleStatusCallback(const px4_msgs::msg::VehicleStatus::SharedPtr msg);
@@ -39,6 +40,7 @@ private:
 
     rclcpp::Subscription<nav_msgs::msg::Odometry>::SharedPtr odom_sub_;
     rclcpp::Subscription<geometry_msgs::msg::Point>::SharedPtr target_sub_;
+    rclcpp::Subscription<nav_msgs::msg::Path>::SharedPtr trajectory_path_sub_;
     rclcpp::Subscription<std_msgs::msg::Float64>::SharedPtr tether_length_sub_;
     rclcpp::Subscription<px4_msgs::msg::HoverThrustEstimate>::SharedPtr hover_thrust_sub_;
     rclcpp::Subscription<px4_msgs::msg::VehicleStatus>::SharedPtr vehicle_status_sub_;

@@ -25,6 +25,9 @@ UavMpcPipeline::UavMpcPipeline()
     int status = uav_tethered_acados_create((uav_tethered_solver_capsule*)acados_ocp_capsule_);
     if (status) {
         std::cerr << "UavMpcPipeline: Failed to create ACADOS solver!" << std::endl;
+    } else {
+        auto capsule = (uav_tethered_solver_capsule*)acados_ocp_capsule_;
+        N_horizon_ = capsule->nlp_solver_plan->N;
     }
 }
 
@@ -52,6 +55,10 @@ void UavMpcPipeline::setReference(const std::vector<double>& ref) {
     if (ref.size() == 3) {
         current_reference_ = ref;
     }
+}
+
+void UavMpcPipeline::setExternalReferencePath(const std::vector<TrajectoryPoint>& path) {
+    external_reference_path_ = path;
 }
 
 void UavMpcPipeline::setTrajectoryType(TrajectoryType type) {
@@ -226,6 +233,30 @@ UavControlOutput UavMpcPipeline::computeControl(double current_time) {
         TrajectoryPoint pt_start = trajectory_gen_.getPoint(elapsed);
         current_reference_ = {pt_start.px, pt_start.py, pt_start.pz};
         current_reference_velocity_ = {pt_start.vx, pt_start.vy, pt_start.vz};
+    } else if (trajectory_type_ == TrajectoryType::EXTERNAL) {
+        int N = capsule->nlp_solver_plan->N;
+        if (external_reference_path_.size() >= static_cast<size_t>(N + 1)) {
+            for (int i = 0; i < N; i++) {
+                const auto& pt = external_reference_path_[i];
+                double yref[13] = {pt.px, pt.py, pt.pz, pt.vx, pt.vy, pt.vz, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 9.81};
+                ocp_nlp_cost_model_set(capsule->nlp_config, capsule->nlp_dims, capsule->nlp_in, i, "yref", yref);
+            }
+            const auto& pt_e = external_reference_path_[N];
+            double yref_e[10] = {pt_e.px, pt_e.py, pt_e.pz, pt_e.vx, pt_e.vy, pt_e.vz, 0.0, 0.0, 0.0, 0.0};
+            ocp_nlp_cost_model_set(capsule->nlp_config, capsule->nlp_dims, capsule->nlp_in, N, "yref", yref_e);
+
+            current_reference_ = {external_reference_path_[0].px, external_reference_path_[0].py, external_reference_path_[0].pz};
+            current_reference_velocity_ = {external_reference_path_[0].vx, external_reference_path_[0].vy, external_reference_path_[0].vz};
+        } else {
+            // Fallback to HOLD mode reference
+            double yref[13] = {current_reference_[0], current_reference_[1], current_reference_[2], 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 9.81};
+            double yref_e[10] = {current_reference_[0], current_reference_[1], current_reference_[2], 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0};
+            for (int i = 0; i < N; i++) {
+                ocp_nlp_cost_model_set(capsule->nlp_config, capsule->nlp_dims, capsule->nlp_in, i, "yref", yref);
+            }
+            ocp_nlp_cost_model_set(capsule->nlp_config, capsule->nlp_dims, capsule->nlp_in, N, "yref", yref_e);
+            current_reference_velocity_ = {0.0, 0.0, 0.0};
+        }
     } else {
         // HOLD mode
         double yref[13] = {current_reference_[0], current_reference_[1], current_reference_[2], 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 9.81};
@@ -341,6 +372,10 @@ UavControlOutput UavMpcPipeline::computeControl(double current_time) {
         for (int i = 0; i <= capsule->nlp_solver_plan->N; i++) {
             double t_stage = elapsed_vis + i * Ts_;
             TrajectoryPoint pt = trajectory_gen_.getPoint(t_stage);
+            output.reference_path.push_back({pt.px, pt.py, pt.pz});
+        }
+    } else if (trajectory_type_ == TrajectoryType::EXTERNAL) {
+        for (const auto& pt : external_reference_path_) {
             output.reference_path.push_back({pt.px, pt.py, pt.pz});
         }
     } else {
