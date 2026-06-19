@@ -51,19 +51,15 @@ def generate_launch_description():
         ]
     )
 
-    # 3. PX4 Bootstrap Node (Handles Arming, Takeoff, Offboard mode switch)
+    # 3. Custom Bootstrap Node (Handles Arming, immediately sets OFFBOARD mode to let MPC takeoff)
     uav_bootstrap_node = Node(
-        package='draft_control',
-        executable='px4_bootstrap_node',
+        package='test_uav_circle',
+        executable='test_uav_circle_bootstrap_node',
         name='uav_bootstrap_node',
         output='screen',
         parameters=[{
             'use_sim_time': True,
-            'takeoff_height': 7.0,
-        }],
-        remappings=[
-            ('odom', '/drone/ground_truth/odometry'),
-        ]
+        }]
     )
 
     return LaunchDescription([

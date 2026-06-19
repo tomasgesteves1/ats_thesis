@@ -11,6 +11,7 @@ find_package(rclcpp REQUIRED)
 find_package(geometry_msgs REQUIRED)
 find_package(nav_msgs REQUIRED)
 find_package(std_msgs REQUIRED)
+find_package(px4_msgs REQUIRED)
 
 # Include directories
 include_directories(include)
@@ -35,11 +36,21 @@ ament_target_dependencies(test_uav_circle_node
   std_msgs
 )
 
+# 3. Custom Bootstrap Node executable
+add_executable(test_uav_circle_bootstrap_node
+  src/test_uav_circle_bootstrap_node.cpp
+)
+ament_target_dependencies(test_uav_circle_bootstrap_node
+  rclcpp
+  px4_msgs
+)
+
 # Install targets
 install(
   TARGETS
   test_uav_circle_pipeline
   test_uav_circle_node
+  test_uav_circle_bootstrap_node
   DESTINATION lib/${PROJECT_NAME}
 )
 
