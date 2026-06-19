@@ -29,7 +29,7 @@ def generate_launch_description():
 
     # 2. UAV Circle Trajectory Generator Node
     uav_circle_node = Node(
-        package='uav_trajectory',
+        package='trajectory_generator',
         executable='uav_trajectory_circle_node',
         name='uav_trajectory_circle_node',
         output='screen',

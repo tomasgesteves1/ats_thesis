@@ -1,7 +1,7 @@
-#include "uav_trajectory/uav_trajectory_boat_follower_node.hpp"
+#include "trajectory_generator/trajectory_generator_uav_boat_follower_node.hpp"
 #include <geometry_msgs/msg/pose_stamped.hpp>
 
-namespace uav_trajectory {
+namespace trajectory_generator {
 
 // Helper to rotate vector from body frame to world frame using quaternion
 static void rotateVectorByQuaternion(double qx, double qy, double qz, double qw, 
@@ -49,7 +49,7 @@ UavTrajectoryBoatFollowerNode::UavTrajectoryBoatFollowerNode()
     this->declare_parameter<std::string>("world_frame", "world");
     this->declare_parameter<bool>("predict_movement", true);
 
-    pipeline_ = std::make_unique<UavTrajectoryPipeline>();
+    pipeline_ = std::make_unique<TrajectoryPipeline>();
 
     // Relative subscriber & publisher (Rule 4 of CODE_STANDARDS.md)
     auto qos = rclcpp::SensorDataQoS();
@@ -135,4 +135,4 @@ void UavTrajectoryBoatFollowerNode::timerCallback() {
     path_pub_->publish(path_msg);
 }
 
-} // namespace uav_trajectory
+} // namespace trajectory_generator

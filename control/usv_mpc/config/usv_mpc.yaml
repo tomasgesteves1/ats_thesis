@@ -1,0 +1,6 @@
+# USV Kinematic NMPC Parameters
+usv_mpc_node:
+  ros__parameters:
+    use_sim_time: true
+    trajectory_type: "hold" # "hold" or "external"
+    control_period: 0.1     # Controller time step (s)

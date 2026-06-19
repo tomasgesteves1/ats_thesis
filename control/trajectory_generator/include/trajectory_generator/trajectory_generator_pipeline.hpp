@@ -2,20 +2,20 @@
 
 #include <vector>
 
-namespace uav_trajectory {
+namespace trajectory_generator {
 
-struct UavTrajectoryPoint {
+struct TrajectoryPoint {
     double px, py, pz;
     double vx, vy, vz;
 };
 
-class UavTrajectoryPipeline {
+class TrajectoryPipeline {
 public:
-    UavTrajectoryPipeline() = default;
-    ~UavTrajectoryPipeline() = default;
+    TrajectoryPipeline() = default;
+    ~TrajectoryPipeline() = default;
 
     // Generate circular trajectory points starting from `start_time`
-    std::vector<UavTrajectoryPoint> generateCircle(
+    std::vector<TrajectoryPoint> generateCircle(
         double start_time,
         double radius,
         double omega,
@@ -26,7 +26,7 @@ public:
         double dt) const;
 
     // Generate boat follower trajectory points based on predicted future positions of the boat
-    std::vector<UavTrajectoryPoint> generateBoatFollower(
+    std::vector<TrajectoryPoint> generateBoatFollower(
         double start_time,
         double boat_x,
         double boat_y,
@@ -42,4 +42,4 @@ public:
         bool predict_movement = true) const;
 };
 
-} // namespace uav_trajectory
+} // namespace trajectory_generator

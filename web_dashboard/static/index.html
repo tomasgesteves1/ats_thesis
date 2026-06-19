@@ -1,0 +1,271 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Tethered UAV-USV Control Panel</title>
+    <!-- Montserrat & Inter Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Montserrat:wght@500;600;700;800&display=swap" rel="stylesheet">
+    <!-- FontAwesome for Premium Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="index.css">
+</head>
+<body>
+    <div class="app-container">
+        <!-- Sidebar/Header -->
+        <header class="main-header">
+            <div class="logo-area">
+                <i class="fa-solid fa-anchor-lock logo-icon"></i>
+                <div class="logo-text">
+                    <h1>Tethered UAV-USV</h1>
+                    <span>Ground Control Station</span>
+                </div>
+            </div>
+            <div class="connection-status" id="connection-status">
+                <span class="status-dot disconnected"></span>
+                <span class="status-label">Disconnected</span>
+            </div>
+            <button class="btn btn-danger btn-emergency" id="btn-emergency">
+                <i class="fa-solid fa-triangle-exclamation"></i> PARAGEM DE EMERGÊNCIA
+            </button>
+        </header>
+
+        <!-- Main Dashboard Grid -->
+        <main class="dashboard-grid">
+            
+            <!-- COLUMN 1: CONTROLS & LAUNCHERS -->
+            <section class="dashboard-col grid-controls">
+                
+                <!-- Card 1: Simulation control -->
+                <div class="card card-glow">
+                    <div class="card-header">
+                        <h2><i class="fa-solid fa-cubes"></i> 1. Simulação Gazebo</h2>
+                        <span class="badge badge-inactive" id="status-sim">Inativa</span>
+                    </div>
+                    <div class="card-body">
+                        <p class="card-desc">Iniciar o ambiente físico do Gazebo Harmonic, MoorDyn, PX4 SITL e bridges de comunicação.</p>
+                        
+                        <div class="form-group">
+                            <label class="form-label" for="sim-type">Configuração da Simulação:</label>
+                            <select id="sim-type" class="form-select">
+                                <option value="cooperative" selected>Cooperativa (Drone + Barco)</option>
+                                <option value="individual">Individual (Apenas Barco)</option>
+                            </select>
+                        </div>
+                        
+                        <div class="form-group" id="tether-group">
+                            <label class="switch-container">
+                                <input type="checkbox" id="sim-tether" checked>
+                                <span class="slider"></span>
+                                <span class="switch-label">Ativar Cabo (MoorDyn Tether)</span>
+                            </label>
+                        </div>
+
+
+                        <div class="action-buttons">
+                            <button class="btn btn-primary" id="btn-start-sim">
+                                <i class="fa-solid fa-play"></i> Iniciar Gazebo
+                            </button>
+                            <button class="btn btn-secondary" id="btn-stop-sim" disabled>
+                                <i class="fa-solid fa-stop"></i> Parar Gazebo
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Card 2: Mission Control -->
+                <div class="card card-glow">
+                    <div class="card-header">
+                        <h2><i class="fa-solid fa-route"></i> 2. Controlo de Missões</h2>
+                        <span class="badge badge-inactive" id="status-mission">Nenhuma</span>
+                    </div>
+                    <div class="card-body">
+                        <p class="card-desc">Escolha e lance a missão desejada para os controladores cooperativos.</p>
+                        
+                        <div class="mission-selector">
+                            <button class="mission-btn" id="mission-circle">
+                                <div class="mission-icon"><i class="fa-solid fa-circle-notch"></i></div>
+                                <div class="mission-info">
+                                    <h3>Trajetória Circular</h3>
+                                    <p>Drone descreve um círculo e USV permanece fixo.</p>
+                                </div>
+                            </button>
+                            
+                            <button class="mission-btn" id="mission-marsupial">
+                                <div class="mission-icon"><i class="fa-solid fa-ship"></i></div>
+                                <div class="mission-info">
+                                    <h3>Seguimento de Barco</h3>
+                                    <p>O drone segue e mantém-se a pairar por cima do WAM-V.</p>
+                                </div>
+                            </button>
+
+                            <button class="mission-btn" id="mission-boat-mpc">
+                                <div class="mission-icon"><i class="fa-solid fa-compass"></i></div>
+                                <div class="mission-info">
+                                    <h3>MPC Individual Barco</h3>
+                                    <p>O barco navega de forma autónoma para a origem usando MPC cinemático.</p>
+                                </div>
+                            </button>
+                        </div>
+
+                        <div class="action-buttons margin-top">
+                            <button class="btn btn-success" id="btn-launch-mission" disabled>
+                                <i class="fa-solid fa-rocket"></i> Lançar Missão
+                            </button>
+                            <button class="btn btn-secondary" id="btn-stop-mission" disabled>
+                                <i class="fa-solid fa-ban"></i> Terminar Missão
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- COLUMN 2: TELEMETRY -->
+            <section class="dashboard-col grid-telemetry">
+                
+                <!-- Subgrid for UAV / USV / Tether -->
+                <div class="telemetry-grid">
+                    
+                    <!-- Card 3: UAV Telemetry -->
+                    <div class="card card-telemetry">
+                        <div class="card-header border-uav">
+                            <h2><i class="fa-solid fa-helicopter"></i> Drone (x500)</h2>
+                            <div class="uav-mode-badges">
+                                <span class="badge badge-uav-arm disarmed" id="uav-armed">STANDBY</span>
+                                <span class="badge badge-uav-mode" id="uav-mode">OFFLINE</span>
+                            </div>
+                        </div>
+                        <div class="card-body tel-body">
+                            <!-- Battery Progress -->
+                            <div class="battery-widget">
+                                <div class="battery-header">
+                                    <span>Bateria UAV</span>
+                                    <span id="uav-bat-val">100% (16.8V)</span>
+                                </div>
+                                <div class="battery-bar-container">
+                                    <div class="battery-bar" id="uav-bat-bar" style="width: 100%;"></div>
+                                </div>
+                            </div>
+                            
+                            <div class="tel-grid">
+                                <div class="tel-item">
+                                    <span class="tel-label">Posição X</span>
+                                    <span class="tel-val" id="uav-x">0.00 <small>m</small></span>
+                                </div>
+                                <div class="tel-item">
+                                    <span class="tel-label">Posição Y</span>
+                                    <span class="tel-val" id="uav-y">0.00 <small>m</small></span>
+                                </div>
+                                <div class="tel-item">
+                                    <span class="tel-label">Posição Z (Alt)</span>
+                                    <span class="tel-val highlight-val" id="uav-z">0.00 <small>m</small></span>
+                                </div>
+                                <div class="tel-item">
+                                    <span class="tel-label">Velocidade Vz</span>
+                                    <span class="tel-val" id="uav-vz">0.00 <small>m/s</small></span>
+                                </div>
+                                <div class="tel-item">
+                                    <span class="tel-label">Yaw</span>
+                                    <span class="tel-val" id="uav-yaw">0.0 <small>°</small></span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Card 4: USV Telemetry -->
+                    <div class="card card-telemetry">
+                        <div class="card-header border-usv">
+                            <h2><i class="fa-solid fa-ship"></i> Barco (WAM-V)</h2>
+                        </div>
+                        <div class="card-body tel-body">
+                            <div class="tel-grid mt-adjust">
+                                <div class="tel-item">
+                                    <span class="tel-label">Posição X</span>
+                                    <span class="tel-val" id="usv-x">0.00 <small>m</small></span>
+                                </div>
+                                <div class="tel-item">
+                                    <span class="tel-label">Posição Y</span>
+                                    <span class="tel-val" id="usv-y">0.00 <small>m</small></span>
+                                </div>
+                                <div class="tel-item">
+                                    <span class="tel-label">Posição Z</span>
+                                    <span class="tel-val" id="usv-z">0.00 <small>m</small></span>
+                                </div>
+                                <div class="tel-item">
+                                    <span class="tel-label">Velocidade Vx</span>
+                                    <span class="tel-val" id="usv-vx">0.00 <small>m/s</small></span>
+                                </div>
+                                <div class="tel-item">
+                                    <span class="tel-label">Yaw</span>
+                                    <span class="tel-val" id="usv-yaw">0.0 <small>°</small></span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Card 5: Tether status -->
+                    <div class="card card-telemetry">
+                        <div class="card-header border-tether">
+                            <h2><i class="fa-solid fa-link"></i> Cabo Físico (Tether)</h2>
+                        </div>
+                        <div class="card-body tel-body">
+                            <div class="tel-grid mt-adjust">
+                                <div class="tel-item">
+                                    <span class="tel-label">Comprimento Cabo</span>
+                                    <span class="tel-val highlight-tether" id="tether-length">0.00 <small>m</small></span>
+                                </div>
+                                <div class="tel-item">
+                                    <span class="tel-label">Distância Linear</span>
+                                    <span class="tel-val" id="tether-dist">0.00 <small>m</small></span>
+                                </div>
+                                <div class="tel-item">
+                                    <span class="tel-label">Tensão no Drone</span>
+                                    <span class="tel-val highlight-tension" id="tension-drone">0.00 <small>N</small></span>
+                                </div>
+                                <div class="tel-item">
+                                    <span class="tel-label">Tensão no Barco</span>
+                                    <span class="tel-val highlight-tension" id="tension-boat">0.00 <small>N</small></span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- COLUMN 3: RADAR / 2D TOP VIEW -->
+            <section class="dashboard-col grid-radar">
+                <div class="card card-radar h-full">
+                    <div class="card-header">
+                        <h2><i class="fa-solid fa-bullseye"></i> Vista de Topo 2D (Radar)</h2>
+                    </div>
+                    <div class="card-body canvas-container">
+                        <canvas id="radar-canvas"></canvas>
+                        <div class="radar-legend">
+                            <span class="legend-item"><span class="legend-dot dot-boat"></span> WAM-V</span>
+                            <span class="legend-item"><span class="legend-dot dot-drone"></span> Drone (x500)</span>
+                            <span class="legend-item"><span class="legend-dot dot-tether"></span> Cabo</span>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+        </main>
+        
+        <!-- Bottom Logs Panel -->
+        <footer class="system-logs">
+            <div class="logs-header">
+                <h3><i class="fa-solid fa-terminal"></i> Histórico do Sistema</h3>
+                <button class="btn-clear" id="btn-clear-logs">Limpar</button>
+            </div>
+            <div class="logs-body" id="logs-console">
+                <div class="log-entry log-info">[GCS] Painel de controlo inicializado. Conecte-se ao servidor para iniciar telemetria.</div>
+            </div>
+        </footer>
+    </div>
+
+    <!-- Script connection -->
+    <script src="index.js"></script>
+</body>
+</html>

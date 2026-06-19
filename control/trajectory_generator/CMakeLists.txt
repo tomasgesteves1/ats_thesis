@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.8)
-project(uav_trajectory)
+project(trajectory_generator)
 
 if(CMAKE_COMPILER_IS_GNUCXX OR CMAKE_CXX_COMPILER_ID MATCHES "Clang")
   add_compile_options(-Wall -Wextra -Wpedantic)
@@ -19,17 +19,18 @@ find_package(tf2_geometry_msgs REQUIRED)
 include_directories(include)
 
 # 1. Shared library for logic pipeline (Rule 1 of CODE_STANDARDS.md)
-add_library(uav_trajectory_pipeline
-  src/uav_trajectory_pipeline.cpp
+add_library(trajectory_pipeline
+  src/trajectory_generator_pipeline.cpp
 )
 
 # 2. Executables for nodes
+# UAV Circle
 add_executable(uav_trajectory_circle_node
-  src/uav_trajectory_circle_node.cpp
-  src/uav_trajectory_circle_main.cpp
+  src/trajectory_generator_uav_circle_node.cpp
+  src/trajectory_generator_uav_circle_main.cpp
 )
 target_link_libraries(uav_trajectory_circle_node
-  uav_trajectory_pipeline
+  trajectory_pipeline
 )
 ament_target_dependencies(uav_trajectory_circle_node
   rclcpp
@@ -41,14 +42,33 @@ ament_target_dependencies(uav_trajectory_circle_node
   tf2_geometry_msgs
 )
 
+# UAV Boat Follower
 add_executable(uav_trajectory_boat_follower_node
-  src/uav_trajectory_boat_follower_node.cpp
-  src/uav_trajectory_boat_follower_main.cpp
+  src/trajectory_generator_uav_boat_follower_node.cpp
+  src/trajectory_generator_uav_boat_follower_main.cpp
 )
 target_link_libraries(uav_trajectory_boat_follower_node
-  uav_trajectory_pipeline
+  trajectory_pipeline
 )
 ament_target_dependencies(uav_trajectory_boat_follower_node
+  rclcpp
+  geometry_msgs
+  nav_msgs
+  std_msgs
+  tf2
+  tf2_ros
+  tf2_geometry_msgs
+)
+
+# USV Circle
+add_executable(usv_trajectory_circle_node
+  src/trajectory_generator_usv_circle_node.cpp
+  src/trajectory_generator_usv_circle_main.cpp
+)
+target_link_libraries(usv_trajectory_circle_node
+  trajectory_pipeline
+)
+ament_target_dependencies(usv_trajectory_circle_node
   rclcpp
   geometry_msgs
   nav_msgs
@@ -61,9 +81,10 @@ ament_target_dependencies(uav_trajectory_boat_follower_node
 # 3. Install targets
 install(
   TARGETS
-  uav_trajectory_pipeline
+  trajectory_pipeline
   uav_trajectory_circle_node
   uav_trajectory_boat_follower_node
+  usv_trajectory_circle_node
   DESTINATION lib/${PROJECT_NAME}
 )
 

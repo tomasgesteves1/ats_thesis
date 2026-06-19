@@ -1,23 +1,23 @@
-#include "uav_trajectory/uav_trajectory_circle_node.hpp"
+#include "trajectory_generator/trajectory_generator_usv_circle_node.hpp"
 #include <geometry_msgs/msg/pose_stamped.hpp>
 
-namespace uav_trajectory {
+namespace trajectory_generator {
 
-UavTrajectoryCircleNode::UavTrajectoryCircleNode() 
-    : Node("uav_trajectory_circle_node") 
+UsvTrajectoryCircleNode::UsvTrajectoryCircleNode() 
+    : Node("usv_trajectory_circle_node") 
 {
     // Declare parameters (Rule 2 of CODE_STANDARDS.md)
-    this->declare_parameter<double>("circle_radius", 3.0);
-    this->declare_parameter<double>("circle_omega", 0.2);
-    this->declare_parameter<double>("circle_height", 7.0);
+    this->declare_parameter<double>("circle_radius", 10.0);
+    this->declare_parameter<double>("circle_omega", 0.05); // 0.05 rad/s * 10m = 0.5 m/s surge
+    this->declare_parameter<double>("circle_height", 0.0);  // Water level
     this->declare_parameter<double>("circle_center_x", 0.0);
     this->declare_parameter<double>("circle_center_y", 0.0);
-    this->declare_parameter<int>("horizon_stages", 50);
-    this->declare_parameter<double>("control_period", 0.02);
-    this->declare_parameter<double>("update_rate_hz", 50.0);
+    this->declare_parameter<int>("horizon_stages", 20);      // Matching N=20 of usv_mpc
+    this->declare_parameter<double>("control_period", 0.1);  // Matching dt=0.1s of usv_mpc
+    this->declare_parameter<double>("update_rate_hz", 10.0); // 10Hz update rate
     this->declare_parameter<std::string>("world_frame", "world");
 
-    pipeline_ = std::make_unique<UavTrajectoryPipeline>();
+    pipeline_ = std::make_unique<TrajectoryPipeline>();
 
     // Relative publisher (Rule 4 of CODE_STANDARDS.md)
     path_pub_ = this->create_publisher<nav_msgs::msg::Path>("reference_path", 10);
@@ -27,13 +27,13 @@ UavTrajectoryCircleNode::UavTrajectoryCircleNode()
 
     timer_ = this->create_wall_timer(
         std::chrono::milliseconds(static_cast<int64_t>(period_ms)),
-        std::bind(&UavTrajectoryCircleNode::timerCallback, this)
+        std::bind(&UsvTrajectoryCircleNode::timerCallback, this)
     );
 
-    RCLCPP_INFO(this->get_logger(), "UAV Trajectory Circle Node initialized.");
+    RCLCPP_INFO(this->get_logger(), "USV Trajectory Circle Node initialized.");
 }
 
-void UavTrajectoryCircleNode::timerCallback() {
+void UsvTrajectoryCircleNode::timerCallback() {
     double now_sec = this->get_clock()->now().seconds();
 
     double radius = this->get_parameter("circle_radius").as_double();
@@ -67,4 +67,4 @@ void UavTrajectoryCircleNode::timerCallback() {
     path_pub_->publish(path_msg);
 }
 
-} // namespace uav_trajectory
+} // namespace trajectory_generator

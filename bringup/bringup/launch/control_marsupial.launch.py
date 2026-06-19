@@ -50,7 +50,7 @@ def generate_launch_description():
 
     # 3. UAV Boat Follower Trajectory Generator Node
     uav_follower_node = Node(
-        package='uav_trajectory',
+        package='trajectory_generator',
         executable='uav_trajectory_boat_follower_node',
         name='uav_trajectory_boat_follower_node',
         output='screen',

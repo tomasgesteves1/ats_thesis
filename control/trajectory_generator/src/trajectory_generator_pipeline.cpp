@@ -1,9 +1,9 @@
-#include "uav_trajectory/uav_trajectory_pipeline.hpp"
+#include "trajectory_generator/trajectory_generator_pipeline.hpp"
 #include <cmath>
 
-namespace uav_trajectory {
+namespace trajectory_generator {
 
-std::vector<UavTrajectoryPoint> UavTrajectoryPipeline::generateCircle(
+std::vector<TrajectoryPoint> TrajectoryPipeline::generateCircle(
     double start_time,
     double radius,
     double omega,
@@ -13,12 +13,12 @@ std::vector<UavTrajectoryPoint> UavTrajectoryPipeline::generateCircle(
     int steps,
     double dt) const
 {
-    std::vector<UavTrajectoryPoint> points;
+    std::vector<TrajectoryPoint> points;
     points.reserve(steps + 1);
 
     for (int i = 0; i <= steps; ++i) {
         double t = start_time + i * dt;
-        UavTrajectoryPoint pt;
+        TrajectoryPoint pt;
         pt.px = center_x + radius * std::cos(omega * t);
         pt.py = center_y + radius * std::sin(omega * t);
         pt.pz = height;
@@ -33,7 +33,7 @@ std::vector<UavTrajectoryPoint> UavTrajectoryPipeline::generateCircle(
     return points;
 }
 
-std::vector<UavTrajectoryPoint> UavTrajectoryPipeline::generateBoatFollower(
+std::vector<TrajectoryPoint> TrajectoryPipeline::generateBoatFollower(
     double start_time,
     double boat_x,
     double boat_y,
@@ -49,11 +49,11 @@ std::vector<UavTrajectoryPoint> UavTrajectoryPipeline::generateBoatFollower(
     bool predict_movement) const
 {
     (void)start_time; // Unused for relative predictions
-    std::vector<UavTrajectoryPoint> points;
+    std::vector<TrajectoryPoint> points;
     points.reserve(steps + 1);
 
     for (int i = 0; i <= steps; ++i) {
-        UavTrajectoryPoint pt;
+        TrajectoryPoint pt;
         
         if (predict_movement) {
             double elapsed = i * dt;
@@ -89,4 +89,4 @@ std::vector<UavTrajectoryPoint> UavTrajectoryPipeline::generateBoatFollower(
     return points;
 }
 
-} // namespace uav_trajectory
+} // namespace trajectory_generator

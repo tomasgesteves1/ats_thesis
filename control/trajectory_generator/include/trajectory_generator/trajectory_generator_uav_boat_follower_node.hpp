@@ -4,9 +4,9 @@
 #include <nav_msgs/msg/path.hpp>
 #include <nav_msgs/msg/odometry.hpp>
 #include <memory>
-#include "uav_trajectory/uav_trajectory_pipeline.hpp"
+#include "trajectory_generator/trajectory_generator_pipeline.hpp"
 
-namespace uav_trajectory {
+namespace trajectory_generator {
 
 class UavTrajectoryBoatFollowerNode : public rclcpp::Node {
 public:
@@ -21,7 +21,7 @@ private:
     rclcpp::TimerBase::SharedPtr timer_;
 
     nav_msgs::msg::Odometry::SharedPtr latest_boat_odom_;
-    std::unique_ptr<UavTrajectoryPipeline> pipeline_;
+    std::unique_ptr<TrajectoryPipeline> pipeline_;
 };
 
-} // namespace uav_trajectory
+} // namespace trajectory_generator
