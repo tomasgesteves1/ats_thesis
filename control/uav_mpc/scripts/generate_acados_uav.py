@@ -124,6 +124,22 @@ def generate_acados_ocp():
     ocp.constraints.ubx = np.array([v_max, v_max, v_max, phi_max, theta_max, phi_max, theta_max])
     ocp.constraints.idxbx = np.array([3, 4, 5, 6, 7, 8, 9])
     
+    # Soft constraints for states: soften all 7 box constraints
+    ocp.constraints.idxsbx = np.array([0, 1, 2, 3, 4, 5, 6])
+    
+    # Slack variables penalty costs
+    ns = 7
+    slack_weights = config.get("slack_weights", {"zl": 100.0, "zu": 100.0, "Zl": 1000.0, "Zu": 1000.0})
+    zl_val = slack_weights.get("zl", 100.0)
+    zu_val = slack_weights.get("zu", 100.0)
+    Zl_val = slack_weights.get("Zl", 1000.0)
+    Zu_val = slack_weights.get("Zu", 1000.0)
+    
+    ocp.cost.zl = zl_val * np.ones((ns,))
+    ocp.cost.zu = zu_val * np.ones((ns,))
+    ocp.cost.Zl = Zl_val * np.ones((ns,))
+    ocp.cost.Zu = Zu_val * np.ones((ns,))
+    
     # Default initial state
     ocp.constraints.x0 = np.zeros(nx)
     

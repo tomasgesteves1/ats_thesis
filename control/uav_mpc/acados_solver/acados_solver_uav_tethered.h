@@ -44,7 +44,7 @@
 #define UAV_TETHERED_NBX    7
 #define UAV_TETHERED_NBX0   10
 #define UAV_TETHERED_NBU    3
-#define UAV_TETHERED_NSBX   0
+#define UAV_TETHERED_NSBX   7
 #define UAV_TETHERED_NSBU   0
 #define UAV_TETHERED_NSH    0
 #define UAV_TETHERED_NSH0   0
@@ -55,7 +55,7 @@
 #define UAV_TETHERED_NSPHIN 0
 #define UAV_TETHERED_NSPHI0 0
 #define UAV_TETHERED_NSBXN  0
-#define UAV_TETHERED_NS     0
+#define UAV_TETHERED_NS     7
 #define UAV_TETHERED_NS0    0
 #define UAV_TETHERED_NSN    0
 #define UAV_TETHERED_NG     0

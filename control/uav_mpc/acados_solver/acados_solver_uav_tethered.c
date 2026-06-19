@@ -638,6 +638,50 @@ void uav_tethered_acados_setup_nlp_in(uav_tethered_solver_capsule* capsule, cons
 
 
 
+    // slacks
+    double* zlumem = calloc(4*NS, sizeof(double));
+    double* Zl = zlumem+NS*0;
+    double* Zu = zlumem+NS*1;
+    double* zl = zlumem+NS*2;
+    double* zu = zlumem+NS*3;
+    // change only the non-zero elements:
+    Zl[0] = 1000;
+    Zl[1] = 1000;
+    Zl[2] = 1000;
+    Zl[3] = 1000;
+    Zl[4] = 1000;
+    Zl[5] = 1000;
+    Zl[6] = 1000;
+    Zu[0] = 1000;
+    Zu[1] = 1000;
+    Zu[2] = 1000;
+    Zu[3] = 1000;
+    Zu[4] = 1000;
+    Zu[5] = 1000;
+    Zu[6] = 1000;
+    zl[0] = 100;
+    zl[1] = 100;
+    zl[2] = 100;
+    zl[3] = 100;
+    zl[4] = 100;
+    zl[5] = 100;
+    zl[6] = 100;
+    zu[0] = 100;
+    zu[1] = 100;
+    zu[2] = 100;
+    zu[3] = 100;
+    zu[4] = 100;
+    zu[5] = 100;
+    zu[6] = 100;
+
+    for (int i = 1; i < N; i++)
+    {
+        ocp_nlp_cost_model_set(nlp_config, nlp_dims, nlp_in, i, "Zl", Zl);
+        ocp_nlp_cost_model_set(nlp_config, nlp_dims, nlp_in, i, "Zu", Zu);
+        ocp_nlp_cost_model_set(nlp_config, nlp_dims, nlp_in, i, "zl", zl);
+        ocp_nlp_cost_model_set(nlp_config, nlp_dims, nlp_in, i, "zu", zu);
+    }
+    free(zlumem);
 
 
 
@@ -768,6 +812,33 @@ void uav_tethered_acados_setup_nlp_in(uav_tethered_solver_capsule* capsule, cons
 
 
 
+
+    // ocp_nlp_constraints_model_set(nlp_config, nlp_dims, nlp_in, nlp_out, 0, "idxsbx", idxsbx);
+    // ocp_nlp_constraints_model_set(nlp_config, nlp_dims, nlp_in, nlp_out, 0, "lsbx", lsbx);
+    // ocp_nlp_constraints_model_set(nlp_config, nlp_dims, nlp_in, nlp_out, 0, "usbx", usbx);
+
+    // soft bounds on x
+    int* idxsbx = malloc(NSBX * sizeof(int));
+    idxsbx[0] = 0;
+    idxsbx[1] = 1;
+    idxsbx[2] = 2;
+    idxsbx[3] = 3;
+    idxsbx[4] = 4;
+    idxsbx[5] = 5;
+    idxsbx[6] = 6;
+
+    double* lusbx = calloc(2*NSBX, sizeof(double));
+    double* lsbx = lusbx;
+    double* usbx = lusbx + NSBX;
+
+    for (int i = 1; i < N; i++)
+    {
+        ocp_nlp_constraints_model_set(nlp_config, nlp_dims, nlp_in, nlp_out, i, "idxsbx", idxsbx);
+        ocp_nlp_constraints_model_set(nlp_config, nlp_dims, nlp_in, nlp_out, i, "lsbx", lsbx);
+        ocp_nlp_constraints_model_set(nlp_config, nlp_dims, nlp_in, nlp_out, i, "usbx", usbx);
+    }
+    free(idxsbx);
+    free(lusbx);
 
 
 
