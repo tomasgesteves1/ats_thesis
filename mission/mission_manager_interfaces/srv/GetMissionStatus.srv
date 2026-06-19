@@ -1,0 +1,5 @@
+---
+string control_state
+string sim_state
+string active_mission_id
+string active_mission_name

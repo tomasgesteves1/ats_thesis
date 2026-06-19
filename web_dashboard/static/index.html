@@ -47,7 +47,7 @@
                     <div class="card-body">
                         <p class="card-desc">Iniciar o ambiente físico do Gazebo Harmonic, MoorDyn, PX4 SITL e bridges de comunicação.</p>
                         
-                        <div class="form-group">
+                        <div class="form-group" id="sim-type-wrapper" style="display: none;">
                             <label class="form-label" for="sim-type">Configuração da Simulação:</label>
                             <select id="sim-type" class="form-select">
                                 <option value="cooperative" selected>Cooperativa (Drone + Barco)</option>
@@ -55,13 +55,17 @@
                             </select>
                         </div>
                         
-                        <div class="form-group" id="tether-group">
+                        <div class="form-group" id="tether-group" style="display: none;">
                             <label class="switch-container">
                                 <input type="checkbox" id="sim-tether" checked>
                                 <span class="slider"></span>
                                 <span class="switch-label">Ativar Cabo (MoorDyn Tether)</span>
                             </label>
                         </div>
+
+                        <p style="color: rgba(255,255,255,0.6); font-size: 0.85rem; margin-bottom: 15px; line-height: 1.4;">
+                            <i class="fa-solid fa-circle-info" style="color: var(--primary);"></i> A configuração da simulação e dos veículos é definida automaticamente de acordo com a missão selecionada.
+                        </p>
 
 
                         <div class="action-buttons">
@@ -84,30 +88,13 @@
                     <div class="card-body">
                         <p class="card-desc">Escolha e lance a missão desejada para os controladores cooperativos.</p>
                         
-                        <div class="mission-selector">
-                            <button class="mission-btn" id="mission-circle">
-                                <div class="mission-icon"><i class="fa-solid fa-circle-notch"></i></div>
-                                <div class="mission-info">
-                                    <h3>Trajetória Circular</h3>
-                                    <p>Drone descreve um círculo e USV permanece fixo.</p>
-                                </div>
-                            </button>
-                            
-                            <button class="mission-btn" id="mission-marsupial">
-                                <div class="mission-icon"><i class="fa-solid fa-ship"></i></div>
-                                <div class="mission-info">
-                                    <h3>Seguimento de Barco</h3>
-                                    <p>O drone segue e mantém-se a pairar por cima do WAM-V.</p>
-                                </div>
-                            </button>
-
-                            <button class="mission-btn" id="mission-boat-mpc">
-                                <div class="mission-icon"><i class="fa-solid fa-compass"></i></div>
-                                <div class="mission-info">
-                                    <h3>MPC Individual Barco</h3>
-                                    <p>O barco navega de forma autónoma para a origem usando MPC cinemático.</p>
-                                </div>
-                            </button>
+                        <div class="mission-selector" id="mission-selector">
+                            <p style="color: rgba(255,255,255,0.4); text-align: center; padding: 10px;">A carregar missões...</p>
+                        </div>
+                        
+                        <div id="mission-params-container" style="display: none; margin-top: 15px; border-top: 1px solid rgba(255,255,255,0.1); padding-top: 15px;">
+                            <h4 style="margin-bottom: 12px; font-size: 0.85rem; color: #38bdf8; text-transform: uppercase; font-family: Montserrat; letter-spacing: 0.5px;">Ajustar Parâmetros</h4>
+                            <div id="dynamic-params"></div>
                         </div>
 
                         <div class="action-buttons margin-top">

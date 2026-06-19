@@ -1,6 +1,7 @@
 // State management
 let currentTelemetry = null;
-let selectedMission = null; // 'circle' or 'marsupial'
+let selectedMission = null; 
+let loadedMissions = []; 
 let activeStatus = {
     simulation_running: false,
     mission_running: false,
@@ -19,9 +20,9 @@ const simTether = document.getElementById('sim-tether');
 const connectionStatus = document.getElementById('connection-status');
 const logsConsole = document.getElementById('logs-console');
 const btnClearLogs = document.getElementById('btn-clear-logs');
-const missionCircle = document.getElementById('mission-circle');
-const missionMarsupial = document.getElementById('mission-marsupial');
-const missionBoatMpc = document.getElementById('mission-boat-mpc');
+const missionSelector = document.getElementById('mission-selector');
+const missionParamsContainer = document.getElementById('mission-params-container');
+const dynamicParams = document.getElementById('dynamic-params');
 const simType = document.getElementById('sim-type');
 const tetherGroup = document.getElementById('tether-group');
 
@@ -113,25 +114,12 @@ async function postAPI(endpoint, data = {}) {
 
 // Event listeners for launcher controls
 btnStartSim.addEventListener('click', () => {
-    const typeSim = simType.value;
-    const useTether = simTether.checked;
-    
-    if (typeSim === 'cooperative') {
-        addLog(`A iniciar simulação cooperativa (Cabo Tether: ${useTether ? 'Sim' : 'Não'})...`, 'info');
-        postAPI('/api/launch', { type: 'simulation', sim_type: 'cooperative', use_tether: useTether });
-    } else {
-        addLog('A iniciar simulação individual do barco (sem drone)...', 'info');
-        postAPI('/api/launch', { type: 'simulation', sim_type: 'individual' });
+    if (!selectedMission) {
+        addLog('Escolha uma missão primeiro para lançar a simulação.', 'warning');
+        return;
     }
-});
-
-// Show/Hide tether options based on simulation type
-simType.addEventListener('change', () => {
-    if (simType.value === 'individual') {
-        tetherGroup.style.display = 'none';
-    } else {
-        tetherGroup.style.display = 'block';
-    }
+    addLog(`A iniciar simulação para a missão ${selectedMission.toUpperCase()}...`, 'info');
+    postAPI('/api/launch', { type: 'simulation', mission_id: selectedMission });
 });
 
 btnStopSim.addEventListener('click', () => {
@@ -144,8 +132,20 @@ btnLaunchMission.addEventListener('click', () => {
         addLog('Escolha uma missão primeiro.', 'warning');
         return;
     }
-    addLog(`A lançar missão: ${selectedMission.toUpperCase()}...`, 'info');
-    postAPI('/api/launch', { type: 'mission', name: selectedMission });
+    
+    // Collect parameters
+    const paramInputs = dynamicParams.querySelectorAll('input, select');
+    const params = {};
+    paramInputs.forEach(input => {
+        if (input.type === 'checkbox') {
+            params[input.dataset.key] = input.checked;
+        } else {
+            params[input.dataset.key] = input.value;
+        }
+    });
+
+    addLog(`A lançar missão: ${selectedMission.toUpperCase()} com parâmetros: ${JSON.stringify(params)}...`, 'info');
+    postAPI('/api/launch', { type: 'mission', name: selectedMission, params: params });
 });
 
 btnStopMission.addEventListener('click', () => {
@@ -158,35 +158,177 @@ btnEmergency.addEventListener('click', () => {
     postAPI('/api/emergency_stop');
 });
 
-// Mission selector logic
-missionCircle.addEventListener('click', () => {
-    if (activeStatus.mission_running) return;
-    selectedMission = 'circle';
-    missionCircle.classList.add('selected');
-    missionMarsupial.classList.remove('selected');
-    btnLaunchMission.disabled = !activeStatus.simulation_running;
-    addLog('Missão selecionada: Trajetória Circular.', 'info');
-});
+// Render dynamic missions
+async function fetchAndRenderMissions() {
+    try {
+        const response = await fetch('/api/missions');
+        if (!response.ok) throw new Error('Failed to fetch missions');
+        loadedMissions = await response.json();
+        
+        missionSelector.innerHTML = '';
+        if (loadedMissions.length === 0) {
+            missionSelector.innerHTML = '<p style="color: rgba(255,255,255,0.4); text-align: center; padding: 10px;">Nenhuma missão encontrada.</p>';
+            return;
+        }
+        
+        const iconMap = {
+            'circle': 'fa-circle-notch',
+            'link': 'fa-link',
+            'anchor': 'fa-anchor',
+            'radar': 'fa-bullseye'
+        };
 
-missionMarsupial.addEventListener('click', () => {
-    if (activeStatus.mission_running) return;
-    selectedMission = 'marsupial';
-    missionMarsupial.classList.add('selected');
-    missionCircle.classList.remove('selected');
-    missionBoatMpc.classList.remove('selected');
-    btnLaunchMission.disabled = !activeStatus.simulation_running;
-    addLog('Missão selecionada: Seguimento de Barco.', 'info');
-});
+        loadedMissions.forEach(m => {
+            const btn = document.createElement('button');
+            btn.className = 'mission-btn';
+            btn.dataset.id = m.id;
+            
+            const iconClass = iconMap[m.icon] || 'fa-route';
+            
+            btn.innerHTML = `
+                <div class="mission-icon"><i class="fa-solid ${iconClass}"></i></div>
+                <div class="mission-info">
+                    <h3>${m.name}</h3>
+                    <p>${m.description}</p>
+                </div>
+            `;
+            
+            btn.addEventListener('click', () => {
+                if (activeStatus.mission_running) return;
+                selectMission(m.id);
+            });
+            
+            missionSelector.appendChild(btn);
+        });
+        
+        if (loadedMissions.length > 0 && !selectedMission) {
+            selectMission(loadedMissions[0].id);
+        }
+    } catch (err) {
+        addLog(`Erro ao carregar missões: ${err.message}`, 'error');
+        missionSelector.innerHTML = '<p style="color: #ef4444; text-align: center; padding: 10px;">Erro ao carregar missões.</p>';
+    }
+}
 
-missionBoatMpc.addEventListener('click', () => {
-    if (activeStatus.mission_running) return;
-    selectedMission = 'boat_mpc';
-    missionBoatMpc.classList.add('selected');
-    missionCircle.classList.remove('selected');
-    missionMarsupial.classList.remove('selected');
+function selectMission(missionId) {
+    selectedMission = missionId;
+    
+    const buttons = missionSelector.querySelectorAll('.mission-btn');
+    buttons.forEach(btn => {
+        if (btn.dataset.id === missionId) {
+            btn.classList.add('selected');
+        } else {
+            btn.classList.remove('selected');
+        }
+    });
+    
+    const mission = loadedMissions.find(m => m.id === missionId);
+    if (!mission) return;
+    
+    dynamicParams.innerHTML = '';
+    
+    if (mission.user_params && mission.user_params.length > 0) {
+        missionParamsContainer.style.display = 'block';
+        
+        mission.user_params.forEach(p => {
+            const group = document.createElement('div');
+            group.className = 'form-group';
+            group.style.marginBottom = '12px';
+            
+            const label = document.createElement('label');
+            label.className = 'form-label';
+            label.style.display = 'block';
+            label.style.marginBottom = '4px';
+            label.style.fontSize = '0.8rem';
+            label.innerHTML = `${p.label} ${p.unit ? `(<small>${p.unit}</small>)` : ''}:`;
+            group.appendChild(label);
+            
+            let input;
+            if (p.type === 'bool') {
+                const switchContainer = document.createElement('label');
+                switchContainer.className = 'switch-container';
+                
+                input = document.createElement('input');
+                input.type = 'checkbox';
+                input.dataset.key = p.key;
+                input.checked = p.default === 'true' || p.default === true;
+                
+                const slider = document.createElement('span');
+                slider.className = 'slider';
+                
+                const labelText = document.createElement('span');
+                labelText.className = 'switch-label';
+                labelText.textContent = p.label;
+                
+                switchContainer.appendChild(input);
+                switchContainer.appendChild(slider);
+                switchContainer.appendChild(labelText);
+                
+                label.style.display = 'none';
+                group.appendChild(switchContainer);
+            } else if (p.type === 'float' || p.type === 'int') {
+                const sliderWrapper = document.createElement('div');
+                sliderWrapper.style.display = 'flex';
+                sliderWrapper.style.alignItems = 'center';
+                sliderWrapper.style.gap = '10px';
+                
+                input = document.createElement('input');
+                input.type = 'range';
+                input.className = 'form-range';
+                input.style.flex = '1';
+                input.dataset.key = p.key;
+                input.min = p.min;
+                input.max = p.max;
+                input.step = p.type === 'float' ? '0.1' : '1';
+                input.value = p.default;
+                
+                const valBubble = document.createElement('span');
+                valBubble.style.minWidth = '45px';
+                valBubble.style.textAlign = 'right';
+                valBubble.style.fontSize = '0.85rem';
+                valBubble.style.fontFamily = 'monospace';
+                valBubble.style.color = '#38bdf8';
+                valBubble.textContent = `${p.default}${p.unit ? p.unit : ''}`;
+                
+                input.addEventListener('input', () => {
+                    valBubble.textContent = `${input.value}${p.unit ? p.unit : ''}`;
+                });
+                
+                sliderWrapper.appendChild(input);
+                sliderWrapper.appendChild(valBubble);
+                group.appendChild(sliderWrapper);
+            } else if (p.type === 'enum') {
+                input = document.createElement('select');
+                input.className = 'form-select';
+                input.dataset.key = p.key;
+                
+                p.options.forEach(opt => {
+                    const o = document.createElement('option');
+                    o.value = opt;
+                    o.text = opt;
+                    if (opt === p.default) o.selected = true;
+                    input.appendChild(o);
+                });
+                group.appendChild(input);
+            } else {
+                input = document.createElement('input');
+                input.type = 'text';
+                input.className = 'form-input';
+                input.style.width = '100%';
+                input.dataset.key = p.key;
+                input.value = p.default;
+                group.appendChild(input);
+            }
+            
+            dynamicParams.appendChild(group);
+        });
+    } else {
+        missionParamsContainer.style.display = 'none';
+    }
+    
     btnLaunchMission.disabled = !activeStatus.simulation_running;
-    addLog('Missão selecionada: MPC Individual Barco.', 'info');
-});
+    addLog(`Missão selecionada: ${mission.name}.`, 'info');
+}
 
 // SSE connection for telemetry
 let eventSource = null;
@@ -434,5 +576,6 @@ function drawRadar() {
 
 // Start connections
 connectTelemetry();
+fetchAndRenderMissions();
 setInterval(updateStatus, 1000); // Check status every second
 drawRadar(); // Start animation loop

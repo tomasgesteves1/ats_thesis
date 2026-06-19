@@ -49,6 +49,17 @@ ament_target_dependencies(force_visualizer
   visualization_msgs
 )
 
+# add executable px4_bootstrap_node
+add_executable(px4_bootstrap_node src/px4_bootstrap_node.cpp)
+target_include_directories(px4_bootstrap_node PUBLIC
+  $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
+  $<INSTALL_INTERFACE:include>)
+ament_target_dependencies(px4_bootstrap_node
+  rclcpp
+  nav_msgs
+  px4_msgs
+)
+
 # install
 install(DIRECTORY launch config
   DESTINATION share/${PROJECT_NAME}
@@ -59,6 +70,7 @@ install(TARGETS
   boat_controller
   drone_tracker
   force_visualizer
+  px4_bootstrap_node
   DESTINATION lib/${PROJECT_NAME}
 )
 

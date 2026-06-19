@@ -17,6 +17,9 @@ from nav_msgs.msg import Odometry
 from std_msgs.msg import Float64
 from px4_msgs.msg import BatteryStatus, VehicleStatus
 
+# Mission manager interfaces
+from mission_manager_interfaces.srv import ListMissions, StartMission, StopMission, GetMissionStatus, StartSimulation, StopSimulation
+
 # Thread-safe telemetry storage
 class TelemetryData:
     def __init__(self):
@@ -138,15 +141,58 @@ class DashboardHTTPRequestHandler(http.server.BaseHTTPRequestHandler):
             self.send_header('Access-Control-Allow-Origin', '*')
             self.end_headers()
             
-            sim_running = node.processes['simulation'] is not None and node.processes['simulation'].poll() is None
-            mission_running = node.processes['mission'] is not None and node.processes['mission'].poll() is None
+            sim_running = False
+            mission_running = False
+            active_mission = 'None'
+            
+            req = GetMissionStatus.Request()
+            res = node.call_service_sync(node.status_client, req)
+            if res is not None:
+                sim_running = (res.sim_state in ['STARTING', 'RUNNING'])
+                mission_running = (res.control_state in ['STARTING', 'RUNNING', 'STOPPING'])
+                active_mission = res.active_mission_id if (mission_running or sim_running) else 'None'
             
             status = {
                 'simulation_running': sim_running,
                 'mission_running': mission_running,
-                'active_mission': node.active_mission_name if mission_running else 'None'
+                'active_mission': active_mission
             }
             self.wfile.write(json.dumps(status).encode('utf-8'))
+            return
+
+        elif self.path == '/api/missions':
+            self.send_response(200)
+            self.send_header('Content-Type', 'application/json')
+            self.send_header('Access-Control-Allow-Origin', '*')
+            self.end_headers()
+
+            req = ListMissions.Request()
+            res = node.call_service_sync(node.list_client, req)
+            
+            missions_list = []
+            if res is not None:
+                for mission in res.missions:
+                    user_params = []
+                    for param in mission.user_params:
+                        user_params.append({
+                            'key': param.key,
+                            'label': param.label,
+                            'type': param.type,
+                            'default': param.default_value,
+                            'min': param.min_value,
+                            'max': param.max_value,
+                            'unit': param.unit,
+                            'options': list(param.options)
+                        })
+                    missions_list.append({
+                        'id': mission.id,
+                        'name': mission.name,
+                        'description': mission.description,
+                        'category': mission.category,
+                        'icon': mission.icon,
+                        'user_params': user_params
+                    })
+            self.wfile.write(json.dumps(missions_list).encode('utf-8'))
             return
 
         elif self.path == '/api/telemetry':
@@ -221,98 +267,83 @@ class DashboardHTTPRequestHandler(http.server.BaseHTTPRequestHandler):
         if self.path == '/api/launch':
             proc_type = params.get('type')
             if proc_type == 'simulation':
-                sim_type = params.get('sim_type', 'cooperative')
-                if sim_type == 'individual':
-                    cmd = "ros2 launch bringup boat.launch.py"
+                mission_id = params.get('mission_id')
+                if not mission_id:
+                    response = {'success': False, 'message': 'No mission selected to launch its simulation.'}
                 else:
-                    use_tether = params.get('use_tether', True)
-                    tether_str = 'true' if use_tether else 'false'
-                    cmd = f"ros2 launch bringup moordyn_marsupial.launch.py use_tether:={tether_str}"
-                
-                if node.processes['simulation'] is not None and node.processes['simulation'].poll() is None:
-                    response = {'success': False, 'message': 'Simulation is already running.'}
-                else:
-                    node.get_logger().info(f"Launching Simulation: {cmd}")
-                    # Launch in a new process group so we can terminate it and all child processes cleanly
-                    proc = subprocess.Popen(cmd, shell=True, preexec_fn=os.setsid, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
-                    node.processes['simulation'] = proc
-                    response = {'success': True, 'message': 'Simulation launched successfully.'}
+                    node.get_logger().info(f"Requesting simulation start for mission {mission_id}")
+                    req = StartSimulation.Request()
+                    req.mission_id = mission_id
+                    res = node.call_service_sync(node.start_sim_client, req)
+                    if res is not None:
+                        response = {'success': res.success, 'message': res.message}
+                    else:
+                        response = {'success': False, 'message': 'Failed to communicate with mission manager simulation service.'}
                     
             elif proc_type == 'mission':
-                mission_name = params.get('name')
-                if mission_name == 'circle':
-                    cmd = "ros2 launch bringup control_circle.launch.py"
-                elif mission_name == 'marsupial':
-                    cmd = "ros2 launch bringup control_marsupial.launch.py"
-                elif mission_name == 'boat_mpc':
-                    cmd = "ros2 launch usv_mpc usv_mpc.launch.py"
+                mission_id = params.get('name')
+                user_param_inputs = params.get('params', {})
+                
+                req = StartMission.Request()
+                req.mission_id = mission_id
+                
+                keys = []
+                values = []
+                for k, v in user_param_inputs.items():
+                    keys.append(str(k))
+                    values.append(str(v))
+                
+                req.param_keys = keys
+                req.param_values = values
+                
+                node.get_logger().info(f"Requesting mission start for {mission_id} with parameters: {user_param_inputs}")
+                res = node.call_service_sync(node.start_client, req)
+                if res is not None:
+                    response = {'success': res.success, 'message': res.message}
                 else:
-                    cmd = None
-
-                if not cmd:
-                    response = {'success': False, 'message': f"Invalid mission name: {mission_name}"}
-                elif node.processes['mission'] is not None and node.processes['mission'].poll() is None:
-                    response = {'success': False, 'message': 'A mission is already running. Stop it first.'}
-                else:
-                    node.get_logger().info(f"Launching Mission '{mission_name}': {cmd}")
-                    proc = subprocess.Popen(cmd, shell=True, preexec_fn=os.setsid, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
-                    node.processes['mission'] = proc
-                    node.active_mission_name = mission_name
-                    response = {'success': True, 'message': f"Mission '{mission_name}' launched successfully."}
+                    response = {'success': False, 'message': 'Failed to communicate with mission manager service.'}
 
         elif self.path == '/api/stop':
             proc_type = params.get('type')
-            if proc_type in ['simulation', 'mission']:
-                proc = node.processes[proc_type]
-                if proc is not None and proc.poll() is None:
-                    node.get_logger().info(f"Stopping {proc_type} (PID {proc.pid})...")
-                    try:
-                        # Kill the entire process group
-                        os.killpg(os.getpgid(proc.pid), signal.SIGTERM)
-                        # Wait for process exit
-                        for _ in range(30):
-                            if proc.poll() is not None:
-                                break
-                            time.sleep(0.1)
-                        if proc.poll() is None:
-                            os.killpg(os.getpgid(proc.pid), signal.SIGKILL)
-                        
-                        node.processes[proc_type] = None
-                        if proc_type == 'mission':
-                            node.active_mission_name = 'None'
-                            
-                        # Extra cleanup for simulation
-                        if proc_type == 'simulation':
-                            node.get_logger().info("Running extra cleanup for Gazebo, PX4, and Micro-XRCE-DDS...")
-                            subprocess.run("pkill -9 -f 'gz sim' || true", shell=True)
-                            subprocess.run("pkill -9 -f 'ruby' || true", shell=True)
-                            subprocess.run("pkill -9 -f 'px4' || true", shell=True)
-                            subprocess.run("pkill -9 -f 'micro-xrce-dds' || true", shell=True)
-                            
-                        response = {'success': True, 'message': f"{proc_type.capitalize()} stopped successfully."}
-                    except Exception as e:
-                        response = {'success': False, 'message': f"Failed to kill {proc_type}: {str(e)}"}
+            if proc_type == 'simulation':
+                node.get_logger().info("Requesting simulation stop...")
+                req = StopSimulation.Request()
+                res = node.call_service_sync(node.stop_sim_client, req)
+                if res is not None:
+                    response = {'success': res.success, 'message': res.message}
                 else:
-                    response = {'success': False, 'message': f"{proc_type.capitalize()} is not running."}
+                    response = {'success': False, 'message': 'Failed to communicate with mission manager simulation service.'}
+            elif proc_type == 'mission':
+                req = StopMission.Request()
+                node.get_logger().info("Requesting mission stop...")
+                res = node.call_service_sync(node.stop_client, req)
+                if res is not None:
+                    response = {'success': res.success, 'message': res.message}
+                else:
+                    response = {'success': False, 'message': 'Failed to communicate with mission manager service.'}
 
         elif self.path == '/api/emergency_stop':
-            # Stop everything
             node.get_logger().warn("EMERGENCY STOP REQUESTED!")
             stopped = []
-            for name, proc in node.processes.items():
-                if proc is not None and proc.poll() is None:
-                    try:
-                        os.killpg(os.getpgid(proc.pid), signal.SIGTERM)
-                        node.processes[name] = None
-                        stopped.append(name)
-                    except Exception:
-                        pass
-            # Force kill all simulation components
+            
+            # Stop mission
+            req_mission = StopMission.Request()
+            res_mission = node.call_service_sync(node.stop_client, req_mission)
+            if res_mission is not None and res_mission.success:
+                stopped.append('mission')
+            
+            # Stop simulation
+            req_sim = StopSimulation.Request()
+            res_sim = node.call_service_sync(node.stop_sim_client, req_sim)
+            if res_sim is not None and res_sim.success:
+                stopped.append('simulation')
+            
+            # Force kill leftovers on host as fallback
             subprocess.run("pkill -9 -f 'gz sim' || true", shell=True)
             subprocess.run("pkill -9 -f 'ruby' || true", shell=True)
             subprocess.run("pkill -9 -f 'px4' || true", shell=True)
             subprocess.run("pkill -9 -f 'micro-xrce-dds' || true", shell=True)
-            node.active_mission_name = 'None'
+            
             response = {'success': True, 'message': f"Emergency stop executed. Stopped: {', '.join(stopped) if stopped else 'None'}"}
 
         self.wfile.write(json.dumps(response).encode('utf-8'))
@@ -328,11 +359,15 @@ class DashboardNode(Node):
         self.telemetry = TelemetryData()
         
         # Track subprocesses
-        self.processes = {
-            'simulation': None,
-            'mission': None
-        }
-        self.active_mission_name = 'None'
+        self.processes = {}
+
+        # Service clients for mission manager
+        self.list_client = self.create_client(ListMissions, '/mission_manager_node/list_missions')
+        self.start_client = self.create_client(StartMission, '/mission_manager_node/start_mission')
+        self.stop_client = self.create_client(StopMission, '/mission_manager_node/stop_mission')
+        self.status_client = self.create_client(GetMissionStatus, '/mission_manager_node/get_mission_status')
+        self.start_sim_client = self.create_client(StartSimulation, '/mission_manager_node/start_simulation')
+        self.stop_sim_client = self.create_client(StopSimulation, '/mission_manager_node/stop_simulation')
 
         # Subscriptions
         qos_best_effort = QoSProfile(
@@ -399,6 +434,24 @@ class DashboardNode(Node):
         )
 
         self.get_logger().info("Web Dashboard Node Initialized.")
+
+    def call_service_sync(self, client, request, timeout_sec=2.0):
+        if not client.service_is_ready():
+            ready = client.wait_for_service(timeout_sec)
+            if not ready:
+                return None
+        
+        future = client.call_async(request)
+        start_time = time.time()
+        while time.time() - start_time < timeout_sec:
+            if future.done():
+                try:
+                    return future.result()
+                except Exception as e:
+                    self.get_logger().error(f"Service call failed: {e}")
+                    return None
+            time.sleep(0.05)
+        return None
 
     def cleanup_processes(self):
         # Kill any remaining subprocesses upon shutdown

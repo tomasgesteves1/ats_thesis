@@ -1,0 +1,22 @@
+id: "boat_mpc"
+name: "MPC Individual Barco"
+description: "Controlador MPC para manter posição (Hold) ou seguir referências do barco"
+category: "test"
+icon: "anchor"
+
+requires:
+  simulation: "individual"
+  tether: false
+  vehicles: ["usv"]
+
+simulation_launch:
+  package: "mission_boat_mpc"
+  file: "sim.launch.py"
+  args: {}
+
+control_launch:
+  package: "mission_boat_mpc"
+  file: "control.launch.py"
+  args: {}
+
+user_params: []

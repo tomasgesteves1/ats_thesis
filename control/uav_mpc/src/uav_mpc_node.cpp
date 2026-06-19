@@ -20,12 +20,6 @@ UavMpcNode::UavMpcNode()
       open_loop_test_(false) {
       
     pipeline_ = std::make_unique<UavMpcPipeline>();
-    state_machine_ = std::make_unique<UavMpcStateMachine>(
-        this,
-        [this](uint16_t command, float param1, float param2, float param7) {
-            this->publishVehicleCommand(command, param1, param2, param7);
-        }
-    );
 
     // Declare dynamic parameters (Rule 2 of CODE_STANDARDS.md)
     this->declare_parameter<bool>("open_loop_test", false);
@@ -279,28 +273,12 @@ void UavMpcNode::controlLoop() {
     pipeline_->updateState(state);
     pipeline_->updateOrientation(drone_qx, drone_qy, drone_qz, drone_qw);
 
-    // Update state machine transitions first
-    nav_msgs::msg::Odometry com_odom;
-    com_odom.pose.pose.position.x = drone_x;
-    com_odom.pose.pose.position.y = drone_y;
-    com_odom.pose.pose.position.z = drone_z;
-    com_odom.pose.pose.orientation.x = drone_qx;
-    com_odom.pose.pose.orientation.y = drone_qy;
-    com_odom.pose.pose.orientation.z = drone_qz;
-    com_odom.pose.pose.orientation.w = drone_qw;
-    com_odom.twist.twist.linear.x = latest_odom_.twist.twist.linear.x;
-    com_odom.twist.twist.linear.y = latest_odom_.twist.twist.linear.y;
-    com_odom.twist.twist.linear.z = latest_odom_.twist.twist.linear.z;
-
-    double takeoff_height = this->get_parameter("takeoff_height").as_double();
-    state_machine_->update(latest_vehicle_status_, com_odom, takeoff_height, odom_received_);
-
     double sim_time_s = this->get_clock()->now().seconds();
 
-    // Check transition to OFFBOARD_ACTIVE with open-loop test enabled
-    if (state_machine_->getState() == UavState::OFFBOARD_ACTIVE) {
+    // Check transition to OFFBOARD with open-loop test enabled
+    if (latest_vehicle_status_.nav_state == px4_msgs::msg::VehicleStatus::NAVIGATION_STATE_OFFBOARD) {
         if (open_loop_test_ && !pipeline_->isOpenLoopActive()) {
-            RCLCPP_INFO(this->get_logger(), "Transition to OFFBOARD_ACTIVE detected with open-loop test enabled. Capturing horizon...");
+            RCLCPP_INFO(this->get_logger(), "Transition to OFFBOARD detected with open-loop test enabled. Capturing horizon...");
             pipeline_->captureOpenLoopHorizon(sim_time_s);
             
             // Build and store the static open-loop predicted path
@@ -351,11 +329,8 @@ void UavMpcNode::controlLoop() {
     // Always publish OffboardControlMode to feed PX4 watchdog and allow offboard transition
     publishOffboardControlMode();
 
-    // Only publish VehicleAttitudeSetpoint when transitioning to or active in Offboard mode
-    if (state_machine_->getState() == UavState::SWITCH_OFFBOARD ||
-        state_machine_->getState() == UavState::OFFBOARD_ACTIVE) {
-        publishAttitudeSetpoint(output, state_machine_->getState());
-    }
+    // Always publish VehicleAttitudeSetpoint to allow offboard transition
+    publishAttitudeSetpoint(output);
 
     // Publish RViz/Foxglove visualization markers
     publishVisualizationMarkers(output);
@@ -483,35 +458,22 @@ void UavMpcNode::publishOffboardControlMode() {
     offboard_control_mode_pub_->publish(msg);
 }
 
-void UavMpcNode::publishAttitudeSetpoint(const UavControlOutput& output, UavState state) {
+void UavMpcNode::publishAttitudeSetpoint(const UavControlOutput& output) {
     px4_msgs::msg::VehicleAttitudeSetpoint att_msg{};
     att_msg.timestamp = this->get_clock()->now().nanoseconds() / 1000;
     
-    if (state == UavState::STANDBY || state == UavState::ARMING) {
-        // Safe neutral standby on the ground
-        att_msg.q_d[0] = 1.0f; // w
-        att_msg.q_d[1] = 0.0f; // x
-        att_msg.q_d[2] = 0.0f; // y
-        att_msg.q_d[3] = 0.0f; // z
-        
-        att_msg.thrust_body[0] = 0.0f;
-        att_msg.thrust_body[1] = 0.0f;
-        att_msg.thrust_body[2] = 0.0f; // Zero thrust
-    } else {
-        // Stream MPC setpoints (for warm start during takeoff, and active control in offboard)
-        att_msg.q_d[0] = output.q_d[0];
-        att_msg.q_d[1] = output.q_d[1];
-        att_msg.q_d[2] = output.q_d[2];
-        att_msg.q_d[3] = output.q_d[3];
-        
-        att_msg.thrust_body[0] = 0.0f;
-        att_msg.thrust_body[1] = 0.0f;
-        
-        // Normalize thrust using the real-time PX4 hover thrust estimate
-        double thrust_normalized = (output.u_opt[2] / 9.81) * px4_hover_thrust_;
-        thrust_normalized = std::max(0.0, std::min(thrust_normalized, 1.0));
-        att_msg.thrust_body[2] = -static_cast<float>(thrust_normalized); // -Z in FRD frame is upward force
-    }
+    att_msg.q_d[0] = output.q_d[0];
+    att_msg.q_d[1] = output.q_d[1];
+    att_msg.q_d[2] = output.q_d[2];
+    att_msg.q_d[3] = output.q_d[3];
+    
+    att_msg.thrust_body[0] = 0.0f;
+    att_msg.thrust_body[1] = 0.0f;
+    
+    // Normalize thrust using the real-time PX4 hover thrust estimate
+    double thrust_normalized = (output.u_opt[2] / 9.81) * px4_hover_thrust_;
+    thrust_normalized = std::max(0.0, std::min(thrust_normalized, 1.0));
+    att_msg.thrust_body[2] = -static_cast<float>(thrust_normalized); // -Z in FRD frame is upward force
 
     attitude_setpoint_pub_->publish(att_msg);
 }

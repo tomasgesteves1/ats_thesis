@@ -17,7 +17,6 @@
 #include <memory>
 
 #include "uav_mpc/uav_mpc_pipeline.hpp"
-#include "uav_mpc/uav_mpc_state_machine.hpp"
 
 namespace uav_mpc {
 
@@ -34,7 +33,7 @@ private:
     void vehicleStatusCallback(const px4_msgs::msg::VehicleStatus::SharedPtr msg);
     void controlLoop();
     void publishOffboardControlMode();
-    void publishAttitudeSetpoint(const UavControlOutput& output, UavState state);
+    void publishAttitudeSetpoint(const UavControlOutput& output);
     void publishVehicleCommand(uint16_t command, float param1 = 0.0, float param2 = 0.0, float param7 = 0.0);
     void publishVisualizationMarkers(const UavControlOutput& output);
 
@@ -76,7 +75,6 @@ private:
     rclcpp::TimerBase::SharedPtr timer_;
 
     std::unique_ptr<UavMpcPipeline> pipeline_;
-    std::unique_ptr<UavMpcStateMachine> state_machine_;
 
     px4_msgs::msg::VehicleStatus latest_vehicle_status_;
     nav_msgs::msg::Odometry latest_odom_;

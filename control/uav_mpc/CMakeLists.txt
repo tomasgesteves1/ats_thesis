@@ -48,7 +48,6 @@ add_executable(uav_mpc_node
   src/uav_mpc_trajectory.cpp
   src/uav_mpc_kinematics.cpp
   src/uav_mpc_tether.cpp
-  src/uav_mpc_state_machine.cpp
 )
 target_include_directories(uav_mpc_node PUBLIC
   $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
