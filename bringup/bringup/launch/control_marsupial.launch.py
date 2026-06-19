@@ -1,14 +1,22 @@
 import os
 from ament_index_python.packages import get_package_share_directory
 from launch import LaunchDescription
-from launch.actions import IncludeLaunchDescription
+from launch.actions import IncludeLaunchDescription, DeclareLaunchArgument
 from launch.launch_description_sources import PythonLaunchDescriptionSource
 from launch_ros.actions import Node
+from launch.substitutions import LaunchConfiguration
 
 def generate_launch_description():
     # Package directories
     pkg_draft_control = get_package_share_directory('draft_control')
     pkg_uav_mpc = get_package_share_directory('uav_mpc')
+
+    # Launch configuration arguments
+    predict_movement_arg = DeclareLaunchArgument(
+        'predict_movement',
+        default_value='true',
+        description='Whether to predict future boat position (dynamic CV model) or output static repeated current boat position'
+    )
     
     # 1. Boat Joystick Control
     # This launches both the joy driver and the boat controller node
@@ -54,6 +62,7 @@ def generate_launch_description():
                 'horizon_stages': 50,
                 'control_period': 0.02,
                 'update_rate_hz': 50.0,
+                'predict_movement': LaunchConfiguration('predict_movement'),
             }
         ],
         remappings=[
@@ -63,6 +72,7 @@ def generate_launch_description():
     )
 
     return LaunchDescription([
+        predict_movement_arg,
         boat_control,
         uav_mpc_node,
         uav_follower_node

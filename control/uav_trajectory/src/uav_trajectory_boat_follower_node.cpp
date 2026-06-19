@@ -47,6 +47,7 @@ UavTrajectoryBoatFollowerNode::UavTrajectoryBoatFollowerNode()
     this->declare_parameter<double>("control_period", 0.02);
     this->declare_parameter<double>("update_rate_hz", 50.0);
     this->declare_parameter<std::string>("world_frame", "world");
+    this->declare_parameter<bool>("predict_movement", true);
 
     pipeline_ = std::make_unique<UavTrajectoryPipeline>();
 
@@ -89,6 +90,7 @@ void UavTrajectoryBoatFollowerNode::timerCallback() {
     int steps = this->get_parameter("horizon_stages").as_int();
     double dt = this->get_parameter("control_period").as_double();
     std::string world_frame = this->get_parameter("world_frame").as_string();
+    bool predict_movement = this->get_parameter("predict_movement").as_bool();
 
     // Extract current boat position and orientation in world frame
     double boat_x = latest_boat_odom_->pose.pose.position.x;
@@ -112,7 +114,7 @@ void UavTrajectoryBoatFollowerNode::timerCallback() {
 
     auto points = pipeline_->generateBoatFollower(
         now_sec, boat_x, boat_y, boat_z, v_world[0], v_world[1], v_world[2],
-        offset_x, offset_y, offset_z, steps, dt
+        offset_x, offset_y, offset_z, steps, dt, predict_movement
     );
 
     auto path_msg = nav_msgs::msg::Path();

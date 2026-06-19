@@ -38,7 +38,8 @@ public:
         double offset_y,
         double offset_z,
         int steps,
-        double dt) const;
+        double dt,
+        bool predict_movement = true) const;
 };
 
 } // namespace uav_trajectory
