@@ -1,0 +1,47 @@
+id: "test_uav_tracking"
+name: "Test UAV Tracking"
+description: "UAV follows the boat controlled via joystick maintaining a vertical offset"
+category: "cooperative"
+icon: "link"
+
+requires:
+  simulation: "cooperative"
+  tether: true
+  vehicles: ["uav", "usv"]
+
+simulation_launch:
+  package: "test_uav_tracking"
+  file: "sim.launch.py"
+  args: {}
+
+control_launch:
+  package: "test_uav_tracking"
+  file: "control.launch.py"
+  args:
+    predict_movement: "true"
+
+user_params:
+  - key: "altitude_offset"
+    label: "Vertical Offset (above the boat)"
+    type: "float"
+    default: 6.0
+    min: 3.0
+    max: 15.0
+    unit: "m"
+    ros_mapping:
+      node: "uav_trajectory_boat_follower_node"
+      param: "offset_z"
+
+  - key: "predict_movement"
+    label: "Predict boat movement"
+    type: "bool"
+    default: true
+    ros_mapping:
+      launch_arg: "predict_movement"
+
+  - key: "use_tether"
+    label: "Enable Tether (MoorDyn)"
+    type: "bool"
+    default: true
+    ros_mapping:
+      launch_arg: "use_tether"

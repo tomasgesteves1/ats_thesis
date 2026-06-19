@@ -1,0 +1,43 @@
+id: "test_usv_circle"
+name: "Test USV Circle"
+description: "Boat MPC test on a circular trajectory"
+category: "test"
+icon: "circle"
+
+requires:
+  simulation: "cooperative"
+  tether: false
+  vehicles: ["usv"]
+
+simulation_launch:
+  package: "test_usv_circle"
+  file: "sim.launch.py"
+  args: {}
+
+control_launch:
+  package: "test_usv_circle"
+  file: "control.launch.py"
+  args: {}
+
+user_params:
+  - key: "radius"
+    label: "Circle Radius"
+    type: "float"
+    default: 15.0
+    min: 5.0
+    max: 50.0
+    unit: "m"
+    ros_mapping:
+      node: "usv_trajectory_circle_node"
+      param: "circle_radius"
+
+  - key: "omega"
+    label: "Angular Speed"
+    type: "float"
+    default: 0.08
+    min: 0.02
+    max: 0.5
+    unit: "rad/s"
+    ros_mapping:
+      node: "usv_trajectory_circle_node"
+      param: "circle_omega"

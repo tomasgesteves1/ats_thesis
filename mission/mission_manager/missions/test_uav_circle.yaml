@@ -1,0 +1,54 @@
+id: "test_uav_circle"
+name: "Test UAV Circle"
+description: "Drone MPC test on a constant altitude circular trajectory"
+category: "test"
+icon: "circle"
+
+requires:
+  simulation: "cooperative"
+  tether: true
+  vehicles: ["uav"]
+
+simulation_launch:
+  package: "test_uav_circle"
+  file: "sim.launch.py"
+  args: {}
+
+control_launch:
+  package: "test_uav_circle"
+  file: "control.launch.py"
+  args: {}
+
+user_params:
+  - key: "radius"
+    label: "Circle Radius"
+    type: "float"
+    default: 3.0
+    min: 1.0
+    max: 20.0
+    unit: "m"
+    ros_mapping:
+      node: "uav_trajectory_circle_node"
+      param: "circle_radius"
+
+  - key: "altitude"
+    label: "Altitude"
+    type: "float"
+    default: 7.0
+    min: 3.0
+    max: 25.0
+    unit: "m"
+    ros_mapping:
+      node: "uav_trajectory_circle_node"
+      param: "circle_height"
+
+  - key: "speed"
+    label: "Angular Speed"
+    type: "float"
+    default: 0.2
+    min: 0.05
+    max: 1.0
+    unit: "rad/s"
+    ros_mapping:
+      node: "uav_trajectory_circle_node"
+      param: "circle_omega"

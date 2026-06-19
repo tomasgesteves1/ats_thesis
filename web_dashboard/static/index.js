@@ -53,7 +53,7 @@ function addLog(message, type = 'info') {
 btnClearLogs.addEventListener('click', () => {
     if (activeLogType === 'gcs') {
         logsConsole.innerHTML = '';
-        addLog('Logs limpos.', 'info');
+        addLog('Logs cleared.', 'info');
     } else {
         // Clear log file on server
         fetch('/api/clear_logs', {
@@ -68,7 +68,7 @@ btnClearLogs.addEventListener('click', () => {
                 if (el) {
                     el.textContent = '';
                 }
-                addLog(`Consola de ${activeLogType === 'control' ? 'controlo' : 'simulação'} limpa.`, 'info');
+                addLog(`${activeLogType === 'control' ? 'Control' : 'Simulation'} console cleared.`, 'info');
             }
         })
         .catch(err => {
@@ -87,12 +87,12 @@ async function updateStatus() {
         // Update simulation UI
         if (activeStatus.simulation_running) {
             statusSim.className = 'badge badge-active';
-            statusSim.textContent = 'Ativa';
+            statusSim.textContent = 'Active';
             btnStartSim.disabled = true;
             btnStopSim.disabled = false;
         } else {
             statusSim.className = 'badge badge-inactive';
-            statusSim.textContent = 'Inativa';
+            statusSim.textContent = 'Inactive';
             btnStartSim.disabled = false;
             btnStopSim.disabled = true;
         }
@@ -105,7 +105,7 @@ async function updateStatus() {
             btnStopMission.disabled = false;
         } else {
             statusMission.className = 'badge badge-inactive';
-            statusMission.textContent = 'Nenhuma';
+            statusMission.textContent = 'None';
             btnLaunchMission.disabled = !activeStatus.simulation_running || !selectedMission;
             btnStopMission.disabled = true;
         }
@@ -137,7 +137,7 @@ async function postAPI(endpoint, data = {}) {
 // Event listeners for launcher controls
 btnStartSim.addEventListener('click', () => {
     if (!selectedMission) {
-        addLog('Escolha uma missão primeiro para lançar a simulação.', 'warning');
+        addLog('Select a mission first to start the simulation.', 'warning');
         return;
     }
     
@@ -152,18 +152,18 @@ btnStartSim.addEventListener('click', () => {
         }
     });
 
-    addLog(`A iniciar simulação para a missão ${selectedMission.toUpperCase()} com parâmetros...`, 'info');
+    addLog(`Starting simulation for mission ${selectedMission.toUpperCase()} with parameters...`, 'info');
     postAPI('/api/launch', { type: 'simulation', mission_id: selectedMission, params: params });
 });
 
 btnStopSim.addEventListener('click', () => {
-    addLog('A parar simulação...', 'info');
+    addLog('Stopping simulation...', 'info');
     postAPI('/api/stop', { type: 'simulation' });
 });
 
 btnLaunchMission.addEventListener('click', () => {
     if (!selectedMission) {
-        addLog('Escolha uma missão primeiro.', 'warning');
+        addLog('Select a mission first.', 'warning');
         return;
     }
     
@@ -178,17 +178,17 @@ btnLaunchMission.addEventListener('click', () => {
         }
     });
 
-    addLog(`A lançar missão: ${selectedMission.toUpperCase()} com parâmetros: ${JSON.stringify(params)}...`, 'info');
+    addLog(`Launching mission: ${selectedMission.toUpperCase()} with parameters: ${JSON.stringify(params)}...`, 'info');
     postAPI('/api/launch', { type: 'mission', name: selectedMission, params: params });
 });
 
 btnStopMission.addEventListener('click', () => {
-    addLog('A parar missão ativa...', 'info');
+    addLog('Stopping active mission...', 'info');
     postAPI('/api/stop', { type: 'mission' });
 });
 
 btnEmergency.addEventListener('click', () => {
-    addLog('!!! PARAGEM DE EMERGÊNCIA SOLICITADA !!!', 'error');
+    addLog('!!! EMERGENCY STOP REQUESTED !!!', 'error');
     postAPI('/api/emergency_stop');
 });
 
@@ -201,7 +201,7 @@ async function fetchAndRenderMissions() {
         
         missionSelector.innerHTML = '';
         if (loadedMissions.length === 0) {
-            missionSelector.innerHTML = '<p style="color: rgba(255,255,255,0.4); text-align: center; padding: 10px;">Nenhuma missão encontrada.</p>';
+            missionSelector.innerHTML = '<p style="color: rgba(255,255,255,0.4); text-align: center; padding: 10px;">No missions found.</p>';
             return;
         }
         
@@ -239,8 +239,8 @@ async function fetchAndRenderMissions() {
             selectMission(loadedMissions[0].id);
         }
     } catch (err) {
-        addLog(`Erro ao carregar missões: ${err.message}`, 'error');
-        missionSelector.innerHTML = '<p style="color: #ef4444; text-align: center; padding: 10px;">Erro ao carregar missões.</p>';
+        addLog(`Error loading missions: ${err.message}`, 'error');
+        missionSelector.innerHTML = '<p style="color: #ef4444; text-align: center; padding: 10px;">Error loading missions.</p>';
     }
 }
 
@@ -361,7 +361,7 @@ function selectMission(missionId) {
     }
     
     btnLaunchMission.disabled = !activeStatus.simulation_running;
-    addLog(`Missão selecionada: ${mission.name}.`, 'info');
+    addLog(`Mission selected: ${mission.name}.`, 'info');
 }
 
 // SSE connection for telemetry
@@ -377,14 +377,14 @@ function connectTelemetry() {
     eventSource.onopen = () => {
         connectionStatus.querySelector('.status-dot').className = 'status-dot connected';
         connectionStatus.querySelector('.status-label').textContent = 'Connected';
-        addLog('GCS Web Server conectado.', 'success');
+        addLog('GCS Web Server connected.', 'success');
         updateStatus();
     };
 
     eventSource.onerror = (err) => {
         connectionStatus.querySelector('.status-dot').className = 'status-dot disconnected';
         connectionStatus.querySelector('.status-label').textContent = 'Disconnected';
-        addLog('GCS Web Server desconectado. A tentar reconectar...', 'warning');
+        addLog('GCS Web Server disconnected. Reconnecting...', 'warning');
         eventSource.close();
         
         // Reconnect after 2 seconds
@@ -496,7 +496,7 @@ function drawRadar() {
         ctx.fillStyle = 'rgba(255, 255, 255, 0.2)';
         ctx.font = `${Math.round(w * 0.04)}px sans-serif`;
         ctx.textAlign = 'center';
-        ctx.fillText('AGUARDANDO TELEMETRIA', cx, cy);
+        ctx.fillText('WAITING FOR TELEMETRY', cx, cy);
         return;
     }
 

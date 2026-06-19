@@ -28,7 +28,7 @@
                 <span class="status-label">Disconnected</span>
             </div>
             <button class="btn btn-danger btn-emergency" id="btn-emergency">
-                <i class="fa-solid fa-triangle-exclamation"></i> PARAGEM DE EMERGÊNCIA
+                <i class="fa-solid fa-triangle-exclamation"></i> EMERGENCY STOP
             </button>
         </header>
 
@@ -41,17 +41,17 @@
                 <!-- Card 1: Simulation control -->
                 <div class="card card-glow">
                     <div class="card-header">
-                        <h2><i class="fa-solid fa-cubes"></i> 1. Simulação Gazebo</h2>
-                        <span class="badge badge-inactive" id="status-sim">Inativa</span>
+                        <h2><i class="fa-solid fa-cubes"></i> 1. Gazebo Simulation</h2>
+                        <span class="badge badge-inactive" id="status-sim">Inactive</span>
                     </div>
                     <div class="card-body">
-                        <p class="card-desc">Iniciar o ambiente físico do Gazebo Harmonic, MoorDyn, PX4 SITL e bridges de comunicação.</p>
+                        <p class="card-desc">Start the physical Gazebo Harmonic environment, MoorDyn, PX4 SITL, and communication bridges.</p>
                         
                         <div class="form-group" id="sim-type-wrapper" style="display: none;">
-                            <label class="form-label" for="sim-type">Configuração da Simulação:</label>
+                            <label class="form-label" for="sim-type">Simulation Configuration:</label>
                             <select id="sim-type" class="form-select">
-                                <option value="cooperative" selected>Cooperativa (Drone + Barco)</option>
-                                <option value="individual">Individual (Apenas Barco)</option>
+                                <option value="cooperative" selected>Cooperative (Drone + Boat)</option>
+                                <option value="individual">Individual (Boat Only)</option>
                             </select>
                         </div>
                         
@@ -59,21 +59,21 @@
                             <label class="switch-container">
                                 <input type="checkbox" id="sim-tether" checked>
                                 <span class="slider"></span>
-                                <span class="switch-label">Ativar Cabo (MoorDyn Tether)</span>
+                                <span class="switch-label">Enable Tether (MoorDyn Tether)</span>
                             </label>
                         </div>
 
                         <p style="color: rgba(255,255,255,0.6); font-size: 0.85rem; margin-bottom: 15px; line-height: 1.4;">
-                            <i class="fa-solid fa-circle-info" style="color: var(--primary);"></i> A configuração da simulação e dos veículos é definida automaticamente de acordo com a missão selecionada.
+                            <i class="fa-solid fa-circle-info" style="color: var(--primary);"></i> Simulation and vehicle configuration is defined automatically according to the selected mission.
                         </p>
 
 
                         <div class="action-buttons">
                             <button class="btn btn-primary" id="btn-start-sim">
-                                <i class="fa-solid fa-play"></i> Iniciar Gazebo
+                                <i class="fa-solid fa-play"></i> Start Gazebo
                             </button>
                             <button class="btn btn-secondary" id="btn-stop-sim" disabled>
-                                <i class="fa-solid fa-stop"></i> Parar Gazebo
+                                <i class="fa-solid fa-stop"></i> Stop Gazebo
                             </button>
                         </div>
                     </div>
@@ -82,27 +82,27 @@
                 <!-- Card 2: Mission Control -->
                 <div class="card card-glow">
                     <div class="card-header">
-                        <h2><i class="fa-solid fa-route"></i> 2. Controlo de Missões</h2>
-                        <span class="badge badge-inactive" id="status-mission">Nenhuma</span>
+                        <h2><i class="fa-solid fa-route"></i> 2. Mission Control</h2>
+                        <span class="badge badge-inactive" id="status-mission">None</span>
                     </div>
                     <div class="card-body">
-                        <p class="card-desc">Escolha e lance a missão desejada para os controladores cooperativos.</p>
+                        <p class="card-desc">Choose and launch the desired mission for the cooperative controllers.</p>
                         
                         <div class="mission-selector" id="mission-selector">
-                            <p style="color: rgba(255,255,255,0.4); text-align: center; padding: 10px;">A carregar missões...</p>
+                            <p style="color: rgba(255,255,255,0.4); text-align: center; padding: 10px;">Loading missions...</p>
                         </div>
                         
                         <div id="mission-params-container" style="display: none; margin-top: 15px; border-top: 1px solid rgba(255,255,255,0.1); padding-top: 15px;">
-                            <h4 style="margin-bottom: 12px; font-size: 0.85rem; color: #38bdf8; text-transform: uppercase; font-family: Montserrat; letter-spacing: 0.5px;">Ajustar Parâmetros</h4>
+                            <h4 style="margin-bottom: 12px; font-size: 0.85rem; color: #38bdf8; text-transform: uppercase; font-family: Montserrat; letter-spacing: 0.5px;">Adjust Parameters</h4>
                             <div id="dynamic-params"></div>
                         </div>
 
                         <div class="action-buttons margin-top">
                             <button class="btn btn-success" id="btn-launch-mission" disabled>
-                                <i class="fa-solid fa-rocket"></i> Lançar Missão
+                                <i class="fa-solid fa-rocket"></i> Launch Mission
                             </button>
                             <button class="btn btn-secondary" id="btn-stop-mission" disabled>
-                                <i class="fa-solid fa-ban"></i> Terminar Missão
+                                <i class="fa-solid fa-ban"></i> Terminate Mission
                             </button>
                         </div>
                     </div>
@@ -128,7 +128,7 @@
                             <!-- Battery Progress -->
                             <div class="battery-widget">
                                 <div class="battery-header">
-                                    <span>Bateria UAV</span>
+                                    <span>UAV Battery</span>
                                     <span id="uav-bat-val">100% (16.8V)</span>
                                 </div>
                                 <div class="battery-bar-container">
@@ -138,19 +138,19 @@
                             
                             <div class="tel-grid">
                                 <div class="tel-item">
-                                    <span class="tel-label">Posição X</span>
+                                    <span class="tel-label">Position X</span>
                                     <span class="tel-val" id="uav-x">0.00 <small>m</small></span>
                                 </div>
                                 <div class="tel-item">
-                                    <span class="tel-label">Posição Y</span>
+                                    <span class="tel-label">Position Y</span>
                                     <span class="tel-val" id="uav-y">0.00 <small>m</small></span>
                                 </div>
                                 <div class="tel-item">
-                                    <span class="tel-label">Posição Z (Alt)</span>
+                                    <span class="tel-label">Position Z (Alt)</span>
                                     <span class="tel-val highlight-val" id="uav-z">0.00 <small>m</small></span>
                                 </div>
                                 <div class="tel-item">
-                                    <span class="tel-label">Velocidade Vz</span>
+                                    <span class="tel-label">Velocity Vz</span>
                                     <span class="tel-val" id="uav-vz">0.00 <small>m/s</small></span>
                                 </div>
                                 <div class="tel-item">
@@ -164,24 +164,24 @@
                     <!-- Card 4: USV Telemetry -->
                     <div class="card card-telemetry">
                         <div class="card-header border-usv">
-                            <h2><i class="fa-solid fa-ship"></i> Barco (WAM-V)</h2>
+                            <h2><i class="fa-solid fa-ship"></i> Boat (WAM-V)</h2>
                         </div>
                         <div class="card-body tel-body">
                             <div class="tel-grid mt-adjust">
                                 <div class="tel-item">
-                                    <span class="tel-label">Posição X</span>
+                                    <span class="tel-label">Position X</span>
                                     <span class="tel-val" id="usv-x">0.00 <small>m</small></span>
                                 </div>
                                 <div class="tel-item">
-                                    <span class="tel-label">Posição Y</span>
+                                    <span class="tel-label">Position Y</span>
                                     <span class="tel-val" id="usv-y">0.00 <small>m</small></span>
                                 </div>
                                 <div class="tel-item">
-                                    <span class="tel-label">Posição Z</span>
+                                    <span class="tel-label">Position Z</span>
                                     <span class="tel-val" id="usv-z">0.00 <small>m</small></span>
                                 </div>
                                 <div class="tel-item">
-                                    <span class="tel-label">Velocidade Vx</span>
+                                    <span class="tel-label">Velocity Vx</span>
                                     <span class="tel-val" id="usv-vx">0.00 <small>m/s</small></span>
                                 </div>
                                 <div class="tel-item">
@@ -195,24 +195,24 @@
                     <!-- Card 5: Tether status -->
                     <div class="card card-telemetry">
                         <div class="card-header border-tether">
-                            <h2><i class="fa-solid fa-link"></i> Cabo Físico (Tether)</h2>
+                            <h2><i class="fa-solid fa-link"></i> Physical Tether</h2>
                         </div>
                         <div class="card-body tel-body">
                             <div class="tel-grid mt-adjust">
                                 <div class="tel-item">
-                                    <span class="tel-label">Comprimento Cabo</span>
+                                    <span class="tel-label">Tether Length</span>
                                     <span class="tel-val highlight-tether" id="tether-length">0.00 <small>m</small></span>
                                 </div>
                                 <div class="tel-item">
-                                    <span class="tel-label">Distância Linear</span>
+                                    <span class="tel-label">Linear Distance</span>
                                     <span class="tel-val" id="tether-dist">0.00 <small>m</small></span>
                                 </div>
                                 <div class="tel-item">
-                                    <span class="tel-label">Tensão no Drone</span>
+                                    <span class="tel-label">Drone Tension</span>
                                     <span class="tel-val highlight-tension" id="tension-drone">0.00 <small>N</small></span>
                                 </div>
                                 <div class="tel-item">
-                                    <span class="tel-label">Tensão no Barco</span>
+                                    <span class="tel-label">Boat Tension</span>
                                     <span class="tel-val highlight-tension" id="tension-boat">0.00 <small>N</small></span>
                                 </div>
                             </div>
@@ -225,14 +225,14 @@
             <section class="dashboard-col grid-radar">
                 <div class="card card-radar h-full">
                     <div class="card-header">
-                        <h2><i class="fa-solid fa-bullseye"></i> Vista de Topo 2D (Radar)</h2>
+                        <h2><i class="fa-solid fa-bullseye"></i> 2D Top-Down View (Radar)</h2>
                     </div>
                     <div class="card-body canvas-container">
                         <canvas id="radar-canvas"></canvas>
                         <div class="radar-legend">
                             <span class="legend-item"><span class="legend-dot dot-boat"></span> WAM-V</span>
                             <span class="legend-item"><span class="legend-dot dot-drone"></span> Drone (x500)</span>
-                            <span class="legend-item"><span class="legend-dot dot-tether"></span> Cabo</span>
+                            <span class="legend-item"><span class="legend-dot dot-tether"></span> Tether</span>
                         </div>
                     </div>
                 </div>
@@ -244,27 +244,27 @@
         <footer class="system-logs" id="system-logs-panel">
             <div class="logs-header">
                 <div class="log-header-left">
-                    <h3><i class="fa-solid fa-terminal"></i> Histórico</h3>
+                    <h3><i class="fa-solid fa-terminal"></i> Console History</h3>
                     <div class="log-tabs">
-                        <button class="log-tab active" data-type="gcs">Painel GCS</button>
-                        <button class="log-tab" data-type="control">Consola Controlo</button>
-                        <button class="log-tab" data-type="simulation">Consola Simulação</button>
+                        <button class="log-tab active" data-type="gcs">GCS Panel</button>
+                        <button class="log-tab" data-type="control">Control Console</button>
+                        <button class="log-tab" data-type="simulation">Simulation Console</button>
                     </div>
                 </div>
                 <div class="log-header-right" style="display: flex; align-items: center; gap: 1rem;">
-                    <button class="btn-clear" id="btn-clear-logs">Limpar</button>
-                    <button class="btn-clear" id="btn-toggle-expand" title="Expandir/Minimizar"><i class="fa-solid fa-expand" id="expand-icon"></i></button>
+                    <button class="btn-clear" id="btn-clear-logs">Clear</button>
+                    <button class="btn-clear" id="btn-toggle-expand" title="Expand/Minimize"><i class="fa-solid fa-expand" id="expand-icon"></i></button>
                 </div>
             </div>
             <div class="logs-body">
                 <div class="logs-content active" id="logs-console">
-                    <div class="log-entry log-info">[GCS] Painel de controlo inicializado. Conecte-se ao servidor para iniciar telemetria.</div>
+                    <div class="log-entry log-info">[GCS] Control panel initialized. Connect to the server to start telemetry.</div>
                 </div>
                 <div class="logs-content" id="logs-control-container" style="display: none;">
-                    <pre class="console-pre" id="logs-control">A carregar logs de controlo...</pre>
+                    <pre class="console-pre" id="logs-control">Loading control logs...</pre>
                 </div>
                 <div class="logs-content" id="logs-simulation-container" style="display: none;">
-                    <pre class="console-pre" id="logs-simulation">A carregar logs de simulação...</pre>
+                    <pre class="console-pre" id="logs-simulation">Loading simulation logs...</pre>
                 </div>
             </div>
         </footer>
