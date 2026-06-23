@@ -9,6 +9,8 @@ UsvMpcPipeline::UsvMpcPipeline() {
     current_state_.resize(6, 0.0);
     current_reference_.resize(6, 0.0);
     trajectory_type_ = 0; // Default: HOLD
+    last_control_ = {0.0, 0.0, 0.0};
+    has_valid_solution_ = false;
     
     acados_ocp_capsule_ = usv_dynamic_acados_create_capsule();
     int status = usv_dynamic_acados_create((usv_dynamic_solver_capsule*)acados_ocp_capsule_);
@@ -132,28 +134,42 @@ std::vector<double> UsvMpcPipeline::computeControl() {
     // 3. Solve OCP
     int status = usv_dynamic_acados_solve(capsule);
     
-    double u_opt[3] = {0.0, 0.0, 0.0};
-    if (status == 0) {
+    if (status == 0 || status == 2) {
+        double u_opt[3] = {0.0, 0.0, 0.0};
         ocp_nlp_out_get(capsule->nlp_config, capsule->nlp_dims, capsule->nlp_out, 0, "u", &u_opt);
+        last_control_ = {u_opt[0], u_opt[1], u_opt[2]};
+        has_valid_solution_ = true;
     } else {
-        std::cerr << "UsvMpcPipeline: ACADOS solver falhou com status: " << status << std::endl;
+        std::cerr << "UsvMpcPipeline: ACADOS solver falhou criticamente com status: " << status << std::endl;
+        last_control_[0] *= 0.8;
+        last_control_[1] *= 0.8;
+        last_control_[2] *= 0.8;
+        has_valid_solution_ = false;
     }
 
-    return {u_opt[0], u_opt[1], u_opt[2]};
+    return last_control_;
 }
 
 std::vector<std::vector<double>> UsvMpcPipeline::getPredictedStates() {
     auto capsule = (usv_dynamic_solver_capsule*)acados_ocp_capsule_;
     int N = USV_DYNAMIC_N;
-    std::vector<std::vector<double>> trajectory;
-    trajectory.reserve(N + 1);
     
-    for (int i = 0; i <= N; i++) {
-        double x_pred[6] = {0.0};
-        ocp_nlp_out_get(capsule->nlp_config, capsule->nlp_dims, capsule->nlp_out, i, "x", &x_pred);
-        trajectory.push_back({x_pred[0], x_pred[1], x_pred[2], x_pred[3], x_pred[4], x_pred[5]});
+    if (has_valid_solution_) {
+        std::vector<std::vector<double>> trajectory;
+        trajectory.reserve(N + 1);
+        for (int i = 0; i <= N; i++) {
+            double x_pred[6] = {0.0};
+            ocp_nlp_out_get(capsule->nlp_config, capsule->nlp_dims, capsule->nlp_out, i, "x", &x_pred);
+            trajectory.push_back({x_pred[0], x_pred[1], x_pred[2], x_pred[3], x_pred[4], x_pred[5]});
+        }
+        last_trajectory_ = trajectory;
+        has_valid_solution_ = false;
+    } else if (last_trajectory_.empty()) {
+        std::vector<std::vector<double>> trajectory(N + 1, current_state_);
+        return trajectory;
     }
-    return trajectory;
+    
+    return last_trajectory_;
 }
 
 } // namespace usv_mpc

@@ -29,6 +29,9 @@ private:
     std::vector<double> current_reference_;
     std::vector<TrajectoryPoint> external_reference_path_;
     int trajectory_type_; // 0: HOLD, 1: EXTERNAL
+    std::vector<double> last_control_;
+    std::vector<std::vector<double>> last_trajectory_;
+    bool has_valid_solution_;
     void* acados_ocp_capsule_;
 };
 
