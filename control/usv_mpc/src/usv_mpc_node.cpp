@@ -14,6 +14,7 @@ UsvMpcNode::UsvMpcNode()
     // Declare parameters (Rule 2 of CODE_STANDARDS.md)
     this->declare_parameter<std::string>("trajectory_type", "hold");
     this->declare_parameter<double>("control_period", 0.1);
+    this->declare_parameter<bool>("mode_open_loop", false);
 
     // Relative subscriptions & publishers (Rule 4 of CODE_STANDARDS.md)
     odom_sub_ = this->create_subscription<nav_msgs::msg::Odometry>(
@@ -25,14 +26,17 @@ UsvMpcNode::UsvMpcNode()
     trajectory_path_sub_ = this->create_subscription<nav_msgs::msg::Path>(
         "reference_path", 10, std::bind(&UsvMpcNode::trajectoryPathCallback, this, std::placeholders::_1));
 
-    // Output is standard Twist (cmd_vel)
-    cmd_pub_ = this->create_publisher<geometry_msgs::msg::Twist>("cmd_vel", 10);
+    // Output is virtual forces and moment at CG
+    wrench_pub_ = this->create_publisher<geometry_msgs::msg::WrenchStamped>("cmd_wrench", 10);
+
+    // Publisher for visualization of MPC prediction horizon
+    mpc_horizon_pub_ = this->create_publisher<nav_msgs::msg::Path>("mpc_horizon", 10);
 
     // Timer at 10Hz (0.1s) matching control period of usv_mpc
     timer_ = this->create_timer(
         std::chrono::milliseconds(100), std::bind(&UsvMpcNode::controlLoop, this));
 
-    RCLCPP_INFO(this->get_logger(), "USV Kinematic MPC Planner Node inicializado.");
+    RCLCPP_INFO(this->get_logger(), "USV Dynamic MPC Planner Node inicializado.");
 }
 
 void UsvMpcNode::odomCallback(const nav_msgs::msg::Odometry::SharedPtr msg) {
@@ -48,12 +52,15 @@ void UsvMpcNode::odomCallback(const nav_msgs::msg::Odometry::SharedPtr msg) {
     std::vector<double> state = {
         msg->pose.pose.position.x,
         msg->pose.pose.position.y,
-        yaw
+        yaw,
+        msg->twist.twist.linear.x,  // u (surge velocity in body frame)
+        msg->twist.twist.linear.y,  // v (sway velocity in body frame)
+        msg->twist.twist.angular.z  // r (yaw rate)
     };
     pipeline_->updateState(state);
 
     if (!target_initialized_) {
-        pipeline_->setReference({state[0], state[1], state[2]});
+        pipeline_->setReference({state[0], state[1], state[2], 0.0, 0.0, 0.0});
         target_initialized_ = true;
         RCLCPP_INFO(this->get_logger(), "Holding initial boat position: X=%.2f, Y=%.2f, Yaw=%.2f", 
                     state[0], state[1], state[2]);
@@ -62,7 +69,7 @@ void UsvMpcNode::odomCallback(const nav_msgs::msg::Odometry::SharedPtr msg) {
 
 void UsvMpcNode::targetCallback(const geometry_msgs::msg::Point::SharedPtr msg) {
     RCLCPP_INFO(this->get_logger(), "Novo setpoint recebido para o Barco: [%.2f, %.2f]", msg->x, msg->y);
-    pipeline_->setReference({msg->x, msg->y, 0.0});
+    pipeline_->setReference({msg->x, msg->y, 0.0, 0.0, 0.0, 0.0});
 }
 
 void UsvMpcNode::trajectoryPathCallback(const nav_msgs::msg::Path::SharedPtr msg) {
@@ -100,7 +107,7 @@ void UsvMpcNode::trajectoryPathCallback(const nav_msgs::msg::Path::SharedPtr msg
             // v = xdot * cos(yaw) + ydot * sin(yaw)
             path_points[i].v = dx * std::cos(path_points[i].psi) + dy * std::sin(path_points[i].psi);
             
-            // w = yaw_dot (properly unwrapped yaw differences could be added, but standard difference is fine here)
+            // w = yaw_dot
             double diff_psi = path_points[i+1].psi - path_points[i].psi;
             // Normalize yaw difference to [-pi, pi]
             while (diff_psi > M_PI) diff_psi -= 2.0 * M_PI;
@@ -121,6 +128,13 @@ void UsvMpcNode::trajectoryPathCallback(const nav_msgs::msg::Path::SharedPtr msg
 }
 
 void UsvMpcNode::controlLoop() {
+    bool mode_open_loop = false;
+    this->get_parameter("mode_open_loop", mode_open_loop);
+    if (mode_open_loop) {
+        // Bypass MPC when testing in open-loop mode
+        return;
+    }
+
     std::string traj_type = this->get_parameter("trajectory_type").as_string();
     if (traj_type == "external") {
         pipeline_->setTrajectoryType(1);
@@ -130,11 +144,41 @@ void UsvMpcNode::controlLoop() {
 
     std::vector<double> control_cmd = pipeline_->computeControl();
 
-    geometry_msgs::msg::Twist cmd_msg;
-    if (control_cmd.size() == 2) {
-        cmd_msg.linear.x = control_cmd[0];   // Surge velocity (v)
-        cmd_msg.angular.z = control_cmd[1];  // Yaw rate (w)
-        cmd_pub_->publish(cmd_msg);
+    geometry_msgs::msg::WrenchStamped wrench_msg;
+    wrench_msg.header.stamp = this->now();
+    wrench_msg.header.frame_id = "boat/base_link";
+
+    if (control_cmd.size() == 3) {
+        wrench_msg.wrench.force.x = control_cmd[0];  // X force (Surge)
+        wrench_msg.wrench.force.y = control_cmd[1];  // Y force (Sway)
+        wrench_msg.wrench.torque.z = control_cmd[2]; // N moment (Yaw)
+        wrench_pub_->publish(wrench_msg);
+
+        // Publish predicted horizon trajectory
+        auto pred_states = pipeline_->getPredictedStates();
+        auto horizon_path = nav_msgs::msg::Path();
+        horizon_path.header.stamp = wrench_msg.header.stamp;
+        horizon_path.header.frame_id = "world"; // Global simulation frame
+
+        for (const auto& state : pred_states) {
+            geometry_msgs::msg::PoseStamped pose;
+            pose.header.stamp = horizon_path.header.stamp;
+            pose.header.frame_id = horizon_path.header.frame_id;
+            pose.pose.position.x = state[0];
+            pose.pose.position.y = state[1];
+            pose.pose.position.z = 0.0;
+            
+            // Convert heading (yaw) to quaternion analytically
+            double yaw = state[2];
+            double half_yaw = yaw * 0.5;
+            pose.pose.orientation.x = 0.0;
+            pose.pose.orientation.y = 0.0;
+            pose.pose.orientation.z = std::sin(half_yaw);
+            pose.pose.orientation.w = std::cos(half_yaw);
+            
+            horizon_path.poses.push_back(pose);
+        }
+        mpc_horizon_pub_->publish(horizon_path);
     }
 }
 

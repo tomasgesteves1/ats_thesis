@@ -29,10 +29,10 @@ link_directories(
 
 # Build ACADOS generated code as a static library
 add_library(usv_acados_solver STATIC
-  acados_solver/acados_solver_usv_kinematic.c
-  acados_solver/usv_kinematic_model/usv_kinematic_expl_ode_fun.c
-  acados_solver/usv_kinematic_model/usv_kinematic_expl_vde_forw.c
-  acados_solver/usv_kinematic_model/usv_kinematic_expl_vde_adj.c
+  acados_solver/acados_solver_usv_dynamic.c
+  acados_solver/usv_dynamic_model/usv_dynamic_expl_ode_fun.c
+  acados_solver/usv_dynamic_model/usv_dynamic_expl_vde_forw.c
+  acados_solver/usv_dynamic_model/usv_dynamic_expl_vde_adj.c
 )
 target_link_libraries(usv_acados_solver acados hpipm blasfeo)
 
@@ -56,7 +56,24 @@ ament_target_dependencies(usv_mpc_node
 )
 target_link_libraries(usv_mpc_node usv_acados_solver)
 
-install(TARGETS usv_mpc_node
+# Thruster Mapper Node
+add_executable(thruster_mapper_node
+  src/thruster_mapper_node.cpp
+)
+ament_target_dependencies(thruster_mapper_node
+  rclcpp
+  std_msgs
+  geometry_msgs
+)
+
+install(TARGETS usv_mpc_node thruster_mapper_node
+  DESTINATION lib/${PROJECT_NAME}
+)
+
+install(PROGRAMS
+  scripts/generate_excitation.py
+  scripts/validate_model.py
+  scripts/wamv_model.py
   DESTINATION lib/${PROJECT_NAME}
 )
 

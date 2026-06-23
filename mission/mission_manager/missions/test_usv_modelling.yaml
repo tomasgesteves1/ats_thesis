@@ -1,0 +1,22 @@
+id: "test_usv_modelling"
+name: "Test USV Modelling"
+description: "Launch WAM-V in Gazebo with gamepad teleop for system identification and modelling validation"
+category: "test"
+icon: "anchor"
+
+requires:
+  simulation: "cooperative"
+  tether: false
+  vehicles: ["usv"]
+
+simulation_launch:
+  package: "test_usv_modelling"
+  file: "sim.launch.py"
+  args: {}
+
+control_launch:
+  package: "test_usv_modelling"
+  file: "control.launch.py"
+  args: {}
+
+user_params: []

@@ -1,0 +1,20 @@
+<?xml version="1.0"?>
+<?xml-model href="http://download.ros.org/schema/package_format3.xsd" schematypens="http://www.w3.org/2001/XMLSchema"?>
+<package format="3">
+  <name>test_usv_modelling</name>
+  <version>0.0.0</version>
+  <description>USV Modelling Test Mission package to launch the simulation and teleoperation nodes for system identification.</description>
+  <maintainer email="tomas@todo.todo">tomas</maintainer>
+  <license>TODO: License declaration</license>
+
+  <buildtool_depend>ament_cmake</buildtool_depend>
+
+  <depend>rclcpp</depend>
+  <depend>joy</depend>
+  <depend>draft_control</depend>
+  <depend>bringup</depend>
+
+  <export>
+    <build_type>ament_cmake</build_type>
+  </export>
+</package>

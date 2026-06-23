@@ -37,9 +37,9 @@
 # model
 MODEL_SRC=
 
-MODEL_SRC+= usv_kinematic_model/usv_kinematic_expl_ode_fun.c
-MODEL_SRC+= usv_kinematic_model/usv_kinematic_expl_vde_forw.c
-MODEL_SRC+= usv_kinematic_model/usv_kinematic_expl_vde_adj.c
+MODEL_SRC+= usv_dynamic_model/usv_dynamic_expl_ode_fun.c
+MODEL_SRC+= usv_dynamic_model/usv_dynamic_expl_vde_forw.c
+MODEL_SRC+= usv_dynamic_model/usv_dynamic_expl_vde_adj.c
 
 MODEL_OBJ := $(MODEL_SRC:.c=.o)
 # optimal control problem - mostly CasADi exports
@@ -47,19 +47,19 @@ OCP_SRC=
 
 
 
-OCP_SRC+= acados_solver_usv_kinematic.c
+OCP_SRC+= acados_solver_usv_dynamic.c
 
 OCP_OBJ := $(OCP_SRC:.c=.o)
 # for sim solver
-SIM_SRC= acados_sim_solver_usv_kinematic.c
+SIM_SRC= acados_sim_solver_usv_dynamic.c
 SIM_OBJ := $(SIM_SRC:.c=.o)
 
 # for target example_sim
-EX_SIM_SRC= main_sim_usv_kinematic.c
+EX_SIM_SRC= main_sim_usv_dynamic.c
 EX_SIM_OBJ := $(EX_SIM_SRC:.c=.o)
 EX_SIM_EXE := $(EX_SIM_SRC:.c=)
 # for target example
-EX_SRC= main_usv_kinematic.c
+EX_SRC= main_usv_dynamic.c
 EX_OBJ := $(EX_SRC:.c=.o)
 EX_EXE := $(EX_SRC:.c=)
 
@@ -101,8 +101,8 @@ LDLIBS+= -lm
 LDLIBS+= 
 
 # libraries
-LIBACADOS_SOLVER=libacados_solver_usv_kinematic.so
-LIBACADOS_OCP_SOLVER=libacados_ocp_solver_usv_kinematic.so
+LIBACADOS_SOLVER=libacados_solver_usv_dynamic.so
+LIBACADOS_OCP_SOLVER=libacados_ocp_solver_usv_dynamic.so
 LIBACADOS_SIM_SOLVER=lib$(SIM_SRC:.c=.so)
 
 # virtual targets
@@ -153,7 +153,7 @@ ocp_cython: ocp_cython_o
 	-o acados_ocp_solver_pyx.so \
 	-Wl,-rpath=$(LIB_PATH) \
 	acados_ocp_solver_pyx.o \
-	$(abspath .)/libacados_ocp_solver_usv_kinematic.so \
+	$(abspath .)/libacados_ocp_solver_usv_dynamic.so \
 	$(LDFLAGS) $(LDLIBS)
 
 
@@ -182,7 +182,7 @@ sim_cython: sim_cython_o
 	-o acados_sim_solver_pyx.so \
 	-Wl,-rpath=$(LIB_PATH) \
 	acados_sim_solver_pyx.o \
-	$(abspath .)/libacados_sim_solver_usv_kinematic.so \
+	$(abspath .)/libacados_sim_solver_usv_dynamic.so \
 	$(LDFLAGS) $(LDLIBS)
 
 clean:
@@ -194,13 +194,13 @@ clean_ocp_shared_lib:
 	$(RM) $(OCP_OBJ)
 
 clean_ocp_cython:
-	$(RM) libacados_ocp_solver_usv_kinematic.so
-	$(RM) acados_solver_usv_kinematic.o
+	$(RM) libacados_ocp_solver_usv_dynamic.so
+	$(RM) acados_solver_usv_dynamic.o
 	$(RM) acados_ocp_solver_pyx.so
 	$(RM) acados_ocp_solver_pyx.o
 
 clean_sim_cython:
-	$(RM) libacados_sim_solver_usv_kinematic.so
-	$(RM) acados_sim_solver_usv_kinematic.o
+	$(RM) libacados_sim_solver_usv_dynamic.so
+	$(RM) acados_sim_solver_usv_dynamic.o
 	$(RM) acados_sim_solver_pyx.so
 	$(RM) acados_sim_solver_pyx.o

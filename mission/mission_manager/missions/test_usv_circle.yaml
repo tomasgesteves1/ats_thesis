@@ -1,6 +1,6 @@
 id: "test_usv_circle"
-name: "Test USV Circle"
-description: "Boat MPC test on a circular trajectory"
+name: "Test USV MPC & Thrusters"
+description: "Comprehensive testing for WAM-V NMPC (Circle, Step Response, and Open-loop Thruster validation)"
 category: "test"
 icon: "circle"
 
@@ -28,8 +28,7 @@ user_params:
     max: 50.0
     unit: "m"
     ros_mapping:
-      node: "usv_trajectory_circle_node"
-      param: "circle_radius"
+      launch_arg: "circle_radius"
 
   - key: "omega"
     label: "Angular Speed"
@@ -39,5 +38,78 @@ user_params:
     max: 0.5
     unit: "rad/s"
     ros_mapping:
-      node: "usv_trajectory_circle_node"
-      param: "circle_omega"
+      launch_arg: "circle_omega"
+
+  - key: "mode_step"
+    label: "Enable Step Response"
+    type: "bool"
+    default: false
+    ros_mapping:
+      launch_arg: "mode_step"
+
+  - key: "mode_open_loop"
+    label: "Enable Open-loop Test"
+    type: "bool"
+    default: false
+    ros_mapping:
+      launch_arg: "mode_open_loop"
+
+  - key: "step_x"
+    label: "Step X Target"
+    type: "float"
+    default: 10.0
+    min: -30.0
+    max: 30.0
+    unit: "m"
+    ros_mapping:
+      launch_arg: "step_x"
+
+  - key: "step_y"
+    label: "Step Y Target"
+    type: "float"
+    default: 0.0
+    min: -30.0
+    max: 30.0
+    unit: "m"
+    ros_mapping:
+      launch_arg: "step_y"
+
+  - key: "step_yaw"
+    label: "Step Yaw Target"
+    type: "float"
+    default: 0.0
+    min: -180.0
+    max: 180.0
+    unit: "deg"
+    ros_mapping:
+      launch_arg: "step_yaw"
+
+  - key: "open_loop_X"
+    label: "Open-Loop Force X"
+    type: "float"
+    default: 500.0
+    min: -2000.0
+    max: 3000.0
+    unit: "N"
+    ros_mapping:
+      launch_arg: "open_loop_X"
+
+  - key: "open_loop_Y"
+    label: "Open-Loop Force Y"
+    type: "float"
+    default: 0.0
+    min: -1500.0
+    max: 1500.0
+    unit: "N"
+    ros_mapping:
+      launch_arg: "open_loop_Y"
+
+  - key: "open_loop_N"
+    label: "Open-Loop Moment N"
+    type: "float"
+    default: 0.0
+    min: -2000.0
+    max: 2000.0
+    unit: "Nm"
+    ros_mapping:
+      launch_arg: "open_loop_N"

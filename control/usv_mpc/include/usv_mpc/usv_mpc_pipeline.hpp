@@ -22,6 +22,7 @@ public:
     void setExternalReferencePath(const std::vector<TrajectoryPoint>& path);
     void setTrajectoryType(int type); // 0: HOLD, 1: EXTERNAL
     std::vector<double> computeControl();
+    std::vector<std::vector<double>> getPredictedStates();
 
 private:
     std::vector<double> current_state_;
