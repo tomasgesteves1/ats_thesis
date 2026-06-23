@@ -52,3 +52,10 @@ user_params:
     ros_mapping:
       node: "uav_trajectory_circle_node"
       param: "circle_omega"
+
+  - key: "use_tether"
+    label: "Enable Tether (MoorDyn)"
+    type: "bool"
+    default: true
+    ros_mapping:
+      launch_arg: "use_tether"
