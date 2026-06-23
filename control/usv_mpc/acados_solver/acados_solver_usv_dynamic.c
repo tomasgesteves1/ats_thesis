@@ -471,15 +471,15 @@ void usv_dynamic_acados_setup_nlp_in(usv_dynamic_solver_capsule* capsule, const 
 
    double* W_0 = calloc(NY0*NY0, sizeof(double));
     // change only the non-zero elements:
-    W_0[0+(NY0) * 0] = 40;
-    W_0[1+(NY0) * 1] = 40;
+    W_0[0+(NY0) * 0] = 150;
+    W_0[1+(NY0) * 1] = 150;
     W_0[2+(NY0) * 2] = 150;
     W_0[3+(NY0) * 3] = 2;
     W_0[4+(NY0) * 4] = 40;
     W_0[5+(NY0) * 5] = 1;
-    W_0[6+(NY0) * 6] = 0.001;
-    W_0[7+(NY0) * 7] = 0.01;
-    W_0[8+(NY0) * 8] = 0.001;
+    W_0[6+(NY0) * 6] = 0.0001;
+    W_0[7+(NY0) * 7] = 0.001;
+    W_0[8+(NY0) * 8] = 0.0005;
     ocp_nlp_cost_model_set(nlp_config, nlp_dims, nlp_in, 0, "W", W_0);
     free(W_0);
     double* Vx_0 = calloc(NY0*NX, sizeof(double));
@@ -509,15 +509,15 @@ void usv_dynamic_acados_setup_nlp_in(usv_dynamic_solver_capsule* capsule, const 
     free(yref);
     double* W = calloc(NY*NY, sizeof(double));
     // change only the non-zero elements:
-    W[0+(NY) * 0] = 40;
-    W[1+(NY) * 1] = 40;
+    W[0+(NY) * 0] = 150;
+    W[1+(NY) * 1] = 150;
     W[2+(NY) * 2] = 150;
     W[3+(NY) * 3] = 2;
     W[4+(NY) * 4] = 40;
     W[5+(NY) * 5] = 1;
-    W[6+(NY) * 6] = 0.001;
-    W[7+(NY) * 7] = 0.01;
-    W[8+(NY) * 8] = 0.001;
+    W[6+(NY) * 6] = 0.0001;
+    W[7+(NY) * 7] = 0.001;
+    W[8+(NY) * 8] = 0.0005;
 
     for (int i = 1; i < N; i++)
     {
@@ -557,8 +557,8 @@ void usv_dynamic_acados_setup_nlp_in(usv_dynamic_solver_capsule* capsule, const 
 
     double* W_e = calloc(NYN*NYN, sizeof(double));
     // change only the non-zero elements:
-    W_e[0+(NYN) * 0] = 40;
-    W_e[1+(NYN) * 1] = 40;
+    W_e[0+(NYN) * 0] = 150;
+    W_e[1+(NYN) * 1] = 150;
     W_e[2+(NYN) * 2] = 150;
     W_e[3+(NYN) * 3] = 2;
     W_e[4+(NYN) * 4] = 40;

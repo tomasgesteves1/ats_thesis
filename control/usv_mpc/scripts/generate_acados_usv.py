@@ -42,17 +42,17 @@ def generate_acados_ocp():
     ocp.cost.cost_type_e = 'LINEAR_LS'
     
     # Weights (Q for states, R for controls)
-    Qx = 40.0
-    Qy = 40.0
-    Qpsi = 150.0  # Heavily penalize heading (yaw) error to force tangent alignment
+    Qx = 150.0    # Heavily increased to eliminate position lag
+    Qy = 150.0    # Heavily increased to eliminate position lag
+    Qpsi = 150.0  # Keep heading aligned tangent to circle
     Qu = 2.0
-    Qv = 40.0     # Heavily penalize sway velocity (v) to prevent lateral sliding/drift
+    Qv = 40.0     # Suppress sway sliding
     Qr = 1.0
     
     # Control input penalties (regularization)
-    Rx = 0.001    # Surge force penalty
-    Ry = 0.01     # Sway force penalty (increased to discourage crab-walking)
-    Rn = 0.001    # Yaw moment penalty (reduced to allow agile steering)
+    Rx = 0.0001   # Greatly reduced to allow necessary thrust to overcome drag
+    Ry = 0.001    # Reduced to allow necessary sway correction
+    Rn = 0.0005   # Reduced to allow quick steering response
     
     ocp.cost.W = np.diag([Qx, Qy, Qpsi, Qu, Qv, Qr, Rx, Ry, Rn])
     ocp.cost.W_e = np.diag([Qx, Qy, Qpsi, Qu, Qv, Qr])
