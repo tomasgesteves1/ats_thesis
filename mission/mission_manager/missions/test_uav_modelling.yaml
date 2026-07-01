@@ -1,0 +1,72 @@
+id: "test_uav_modelling"
+name: "Test UAV Modelling"
+description: "Launch WAM-V and Drone in Gazebo to perform automated trajectory steps (doublets) for closed-loop system identification and MPC model improvement"
+category: "test"
+icon: "wind"
+
+requires:
+  simulation: "cooperative"
+  tether: false
+  vehicles: ["uav"]
+
+simulation_launch:
+  package: "test_uav_modelling"
+  file: "sim.launch.py"
+  args: {}
+
+control_launch:
+  package: "test_uav_modelling"
+  file: "control.launch.py"
+  args: {}
+
+user_params:
+  - key: "takeoff_height"
+    label: "Takeoff Height"
+    type: "float"
+    default: 4.0
+    min: 2.0
+    max: 10.0
+    unit: "m"
+    ros_mapping:
+      node: "uav_excitation_node"
+      param: "takeoff_height"
+
+  - key: "step_amplitude_xy"
+    label: "Step Amplitude XY"
+    type: "float"
+    default: 3.0
+    min: 0.5
+    max: 6.0
+    unit: "m"
+    ros_mapping:
+      node: "uav_excitation_node"
+      param: "step_amplitude_xy"
+
+  - key: "step_amplitude_z"
+    label: "Step Amplitude Z"
+    type: "float"
+    default: 1.5
+    min: 0.5
+    max: 4.0
+    unit: "m"
+    ros_mapping:
+      node: "uav_excitation_node"
+      param: "step_amplitude_z"
+
+  - key: "step_duration"
+    label: "Step Duration"
+    type: "float"
+    default: 8.0
+    min: 2.0
+    max: 15.0
+    unit: "s"
+    ros_mapping:
+      node: "uav_excitation_node"
+      param: "step_duration"
+
+  - key: "use_tether"
+    label: "Enable Tether (MoorDyn)"
+    type: "bool"
+    default: false
+    ros_mapping:
+      launch_arg: "use_tether"
