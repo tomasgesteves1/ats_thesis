@@ -462,10 +462,12 @@ void UavMpcNode::publishAttitudeSetpoint(const UavControlOutput& output) {
     px4_msgs::msg::VehicleAttitudeSetpoint att_msg{};
     att_msg.timestamp = this->get_clock()->now().nanoseconds() / 1000;
     
-    att_msg.q_d[0] = output.q_d[0];
-    att_msg.q_d[1] = output.q_d[1];
-    att_msg.q_d[2] = output.q_d[2];
-    att_msg.q_d[3] = output.q_d[3];
+    double q_d[4];
+    uav_mpc::kinematics::computeDesiredQuaternion(output.u_opt[0], output.u_opt[1], 0.0, q_d);
+    att_msg.q_d[0] = static_cast<float>(q_d[0]);
+    att_msg.q_d[1] = static_cast<float>(q_d[1]);
+    att_msg.q_d[2] = static_cast<float>(q_d[2]);
+    att_msg.q_d[3] = static_cast<float>(q_d[3]);
     
     att_msg.thrust_body[0] = 0.0f;
     att_msg.thrust_body[1] = 0.0f;
