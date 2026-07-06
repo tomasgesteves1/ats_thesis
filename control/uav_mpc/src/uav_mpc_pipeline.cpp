@@ -70,10 +70,10 @@ void UavMpcPipeline::setCostWeights(double w_pos, double w_vel) {
     double W_0[13 * 13] = {0.0};
     W_0[0 + 13 * 0] = w_pos;
     W_0[1 + 13 * 1] = w_pos;
-    W_0[2 + 13 * 2] = w_pos;
+    W_0[2 + 13 * 2] = 3.0 * w_pos;  // Prioritize altitude tracking (Z)
     W_0[3 + 13 * 3] = w_vel;
     W_0[4 + 13 * 4] = w_vel;
-    W_0[5 + 13 * 5] = w_vel;
+    W_0[5 + 13 * 5] = 1.5 * w_vel;  // Moderate vertical damping (Z velocity)
     W_0[6 + 13 * 6] = 5.0;
     W_0[7 + 13 * 7] = 5.0;
     W_0[10 + 13 * 10] = 15.0;
@@ -85,10 +85,10 @@ void UavMpcPipeline::setCostWeights(double w_pos, double w_vel) {
     double W[13 * 13] = {0.0};
     W[0 + 13 * 0] = w_pos;
     W[1 + 13 * 1] = w_pos;
-    W[2 + 13 * 2] = w_pos;
+    W[2 + 13 * 2] = 3.0 * w_pos;  // Prioritize altitude tracking (Z)
     W[3 + 13 * 3] = w_vel;
     W[4 + 13 * 4] = w_vel;
-    W[5 + 13 * 5] = w_vel;
+    W[5 + 13 * 5] = 1.5 * w_vel;  // Moderate vertical damping (Z velocity)
     W[6 + 13 * 6] = 5.0;
     W[7 + 13 * 7] = 5.0;
     W[10 + 13 * 10] = 15.0;
@@ -102,10 +102,10 @@ void UavMpcPipeline::setCostWeights(double w_pos, double w_vel) {
     double W_e[10 * 10] = {0.0};
     W_e[0 + 10 * 0] = w_pos;
     W_e[1 + 10 * 1] = w_pos;
-    W_e[2 + 10 * 2] = w_pos;
+    W_e[2 + 10 * 2] = 3.0 * w_pos;  // Prioritize altitude tracking (Z)
     W_e[3 + 10 * 3] = w_vel;
     W_e[4 + 10 * 4] = w_vel;
-    W_e[5 + 10 * 5] = w_vel;
+    W_e[5 + 10 * 5] = 1.5 * w_vel;  // Moderate vertical damping (Z velocity)
     W_e[6 + 10 * 6] = 5.0;
     W_e[7 + 10 * 7] = 5.0;
     ocp_nlp_cost_model_set(capsule->nlp_config, capsule->nlp_dims, capsule->nlp_in, N, "W", W_e);
@@ -191,6 +191,49 @@ UavControlOutput UavMpcPipeline::computeControl(double current_time) {
     }
 
     auto capsule = (uav_tethered_solver_capsule*)acados_ocp_capsule_;
+
+    // Project reference positions to be inside a safe fraction of the tether length (e.g. 95%)
+    // to prevent control fight and oscillations at the boundary.
+    auto get_boat_pos = [&](int stage_idx) -> std::pair<double, double> {
+        double x_b = anchor_x_;
+        double y_b = anchor_y_;
+        if (use_tether_ && has_boat_horizon_ && !boat_horizon_.empty()) {
+            double t = stage_idx * Ts_;
+            double boat_Ts = 0.1;
+            double idx_f = t / boat_Ts;
+            size_t j = static_cast<size_t>(std::floor(idx_f));
+            if (j < boat_horizon_.size() - 1) {
+                double alpha = idx_f - j;
+                x_b = (1.0 - alpha) * boat_horizon_[j][0] + alpha * boat_horizon_[j+1][0];
+                y_b = (1.0 - alpha) * boat_horizon_[j][1] + alpha * boat_horizon_[j+1][1];
+            } else {
+                x_b = boat_horizon_.back()[0];
+                y_b = boat_horizon_.back()[1];
+            }
+        }
+        return {x_b, y_b};
+    };
+
+    auto project_reference = [&](int stage_idx, double rx, double ry, double rz) -> std::vector<double> {
+        if (!use_tether_) {
+            return {rx, ry, rz};
+        }
+        auto b_pos = get_boat_pos(stage_idx);
+        double dx = rx - b_pos.first;
+        double dy = ry - b_pos.second;
+        double dz = rz; // Boat Z is assumed 0 in XY projection constraint
+        double d = std::sqrt(dx * dx + dy * dy + dz * dz);
+        double L_safe = 1.0 * L_tether_;
+        if (d > L_safe) {
+            double scale = L_safe / d;
+            return {
+                b_pos.first + dx * scale,
+                b_pos.second + dy * scale,
+                dz * scale
+            };
+        }
+        return {rx, ry, rz};
+    };
     
     // Get current drone attitude angles in Euler representation
     double roll = 0.0, pitch = 0.0, yaw = 0.0;
@@ -269,14 +312,16 @@ UavControlOutput UavMpcPipeline::computeControl(double current_time) {
         for (int i = 0; i < capsule->nlp_solver_plan->N; i++) {
             double t_stage = elapsed + i * Ts_;
             TrajectoryPoint pt = trajectory_gen_.getPoint(t_stage);
+            auto proj = project_reference(i, pt.px, pt.py, pt.pz);
             // yref = [p_x, p_y, p_z, v_x, v_y, v_z, phi, theta, phi_cmd, theta_cmd, phi_dot_cmd, theta_dot_cmd, a_T]
-            double yref[13] = {pt.px, pt.py, pt.pz, pt.vx, pt.vy, pt.vz, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 9.81};
+            double yref[13] = {proj[0], proj[1], proj[2], pt.vx, pt.vy, pt.vz, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 9.81};
             ocp_nlp_cost_model_set(capsule->nlp_config, capsule->nlp_dims, capsule->nlp_in, i, "yref", yref);
         }
         double t_terminal = elapsed + capsule->nlp_solver_plan->N * Ts_;
         TrajectoryPoint pt_e = trajectory_gen_.getPoint(t_terminal);
+        auto proj_e = project_reference(capsule->nlp_solver_plan->N, pt_e.px, pt_e.py, pt_e.pz);
         // yref_e = [p_x, p_y, p_z, v_x, v_y, v_z, phi, theta, phi_cmd, theta_cmd]
-        double yref_e[10] = {pt_e.px, pt_e.py, pt_e.pz, pt_e.vx, pt_e.vy, pt_e.vz, 0.0, 0.0, 0.0, 0.0};
+        double yref_e[10] = {proj_e[0], proj_e[1], proj_e[2], pt_e.vx, pt_e.vy, pt_e.vz, 0.0, 0.0, 0.0, 0.0};
         ocp_nlp_cost_model_set(capsule->nlp_config, capsule->nlp_dims, capsule->nlp_in, capsule->nlp_solver_plan->N, "yref", yref_e);
 
         // Update current reference for RViz visualization (at start of prediction horizon)
@@ -288,11 +333,13 @@ UavControlOutput UavMpcPipeline::computeControl(double current_time) {
         if (external_reference_path_.size() >= static_cast<size_t>(N + 1)) {
             for (int i = 0; i < N; i++) {
                 const auto& pt = external_reference_path_[i];
-                double yref[13] = {pt.px, pt.py, pt.pz, pt.vx, pt.vy, pt.vz, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 9.81};
+                auto proj = project_reference(i, pt.px, pt.py, pt.pz);
+                double yref[13] = {proj[0], proj[1], proj[2], pt.vx, pt.vy, pt.vz, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 9.81};
                 ocp_nlp_cost_model_set(capsule->nlp_config, capsule->nlp_dims, capsule->nlp_in, i, "yref", yref);
             }
             const auto& pt_e = external_reference_path_[N];
-            double yref_e[10] = {pt_e.px, pt_e.py, pt_e.pz, pt_e.vx, pt_e.vy, pt_e.vz, 0.0, 0.0, 0.0, 0.0};
+            auto proj_e = project_reference(N, pt_e.px, pt_e.py, pt_e.pz);
+            double yref_e[10] = {proj_e[0], proj_e[1], proj_e[2], pt_e.vx, pt_e.vy, pt_e.vz, 0.0, 0.0, 0.0, 0.0};
             ocp_nlp_cost_model_set(capsule->nlp_config, capsule->nlp_dims, capsule->nlp_in, N, "yref", yref_e);
 
             current_reference_ = {external_reference_path_[0].px, external_reference_path_[0].py, external_reference_path_[0].pz};
