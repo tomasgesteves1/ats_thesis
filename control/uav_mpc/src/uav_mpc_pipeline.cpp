@@ -11,6 +11,7 @@ UavMpcPipeline::UavMpcPipeline()
     : qx_(0.0), qy_(0.0), qz_(0.0), qw_(1.0),
       target_yaw_(0.0), target_initialized_(false),
       anchor_x_(0.0), anchor_y_(0.0), anchor_z_(0.0),
+      has_boat_horizon_(false),
       L_tether_(3.0), use_tether_(true), v_max_(2.0), u_max_(15.0),
       hover_throttle_(0.52), tilt_max_(0.2),
       trajectory_type_(TrajectoryType::HOLD), circle_start_time_(-1.0),
@@ -323,13 +324,42 @@ UavControlOutput UavMpcPipeline::computeControl(double current_time) {
         T0_val = tether::calculateWinchTension(L_tether_);
     }
 
-    // Set parameters in ACADOS: [psi]
-    double p_params[1] = {
-        yaw
-    };
+    // Update path and terminal constraint bounds: 0 <= h(x,u,p) <= L_tether^2
+    double lh_val[1] = {0.0};
+    double uh_val[1] = {use_tether_ ? (L_tether_ * L_tether_) : 1e6}; // If not using tether, set upper limit to 1000m^2
+    for (int i = 0; i < N_horizon_; i++) {
+        ocp_nlp_constraints_model_set(capsule->nlp_config, capsule->nlp_dims, capsule->nlp_in, capsule->nlp_out, i, "lh", lh_val);
+        ocp_nlp_constraints_model_set(capsule->nlp_config, capsule->nlp_dims, capsule->nlp_in, capsule->nlp_out, i, "uh", uh_val);
+    }
+    ocp_nlp_constraints_model_set(capsule->nlp_config, capsule->nlp_dims, capsule->nlp_in, capsule->nlp_out, N_horizon_, "lh", lh_val);
+    ocp_nlp_constraints_model_set(capsule->nlp_config, capsule->nlp_dims, capsule->nlp_in, capsule->nlp_out, N_horizon_, "uh", uh_val);
 
-    for (int i = 0; i <= capsule->nlp_solver_plan->N; i++) {
-        uav_tethered_acados_update_params(capsule, i, p_params, 1);
+    // Set parameters in ACADOS: [psi, x_boat, y_boat] for each stage
+    for (int i = 0; i <= N_horizon_; i++) {
+        double x_boat = anchor_x_;
+        double y_boat = anchor_y_;
+
+        if (use_tether_ && has_boat_horizon_ && !boat_horizon_.empty()) {
+            double t = i * Ts_;
+            double boat_Ts = 0.1; // USV MPC control period
+            double idx_f = t / boat_Ts;
+            size_t j = static_cast<size_t>(std::floor(idx_f));
+            if (j < boat_horizon_.size() - 1) {
+                double alpha = idx_f - j;
+                x_boat = (1.0 - alpha) * boat_horizon_[j][0] + alpha * boat_horizon_[j+1][0];
+                y_boat = (1.0 - alpha) * boat_horizon_[j][1] + alpha * boat_horizon_[j+1][1];
+            } else {
+                x_boat = boat_horizon_.back()[0];
+                y_boat = boat_horizon_.back()[1];
+            }
+        }
+
+        double p_params[3] = {
+            yaw,
+            x_boat,
+            y_boat
+        };
+        uav_tethered_acados_update_params(capsule, i, p_params, 3);
     }
 
     // Se já foi inicializado, fazemos shifting da solução anterior para o warm start do novo ciclo
@@ -440,6 +470,11 @@ void UavMpcPipeline::updateAnchorPosition(double x, double y, double z) {
     anchor_z_ = z;
 }
 
+void UavMpcPipeline::updateBoatHorizon(const std::vector<std::vector<double>>& boat_horizon) {
+    boat_horizon_ = boat_horizon;
+    has_boat_horizon_ = !boat_horizon.empty();
+}
+
 void UavMpcPipeline::updateTetherLength(double length) {
     L_tether_ = length;
 }
@@ -541,9 +576,43 @@ void UavMpcPipeline::captureOpenLoopHorizon(double current_time) {
     }
 
     double T0_val = use_tether_ ? tether::calculateWinchTension(L_tether_) : 0.0;
-    double p_params[1] = { yaw };
-    for (int i = 0; i <= N; i++) {
-        uav_tethered_acados_update_params(capsule, i, p_params, 1);
+    
+    // Update path and terminal constraint bounds: 0 <= h(x,u,p) <= L_tether^2
+    double lh_val[1] = {0.0};
+    double uh_val[1] = {use_tether_ ? (L_tether_ * L_tether_) : 1e6};
+    for (int i = 0; i < N_horizon_; i++) {
+        ocp_nlp_constraints_model_set(capsule->nlp_config, capsule->nlp_dims, capsule->nlp_in, capsule->nlp_out, i, "lh", lh_val);
+        ocp_nlp_constraints_model_set(capsule->nlp_config, capsule->nlp_dims, capsule->nlp_in, capsule->nlp_out, i, "uh", uh_val);
+    }
+    ocp_nlp_constraints_model_set(capsule->nlp_config, capsule->nlp_dims, capsule->nlp_in, capsule->nlp_out, N_horizon_, "lh", lh_val);
+    ocp_nlp_constraints_model_set(capsule->nlp_config, capsule->nlp_dims, capsule->nlp_in, capsule->nlp_out, N_horizon_, "uh", uh_val);
+
+    // Set parameters in ACADOS: [psi, x_boat, y_boat] for each stage
+    for (int i = 0; i <= N_horizon_; i++) {
+        double x_boat = anchor_x_;
+        double y_boat = anchor_y_;
+
+        if (use_tether_ && has_boat_horizon_ && !boat_horizon_.empty()) {
+            double t = i * Ts_;
+            double boat_Ts = 0.1; // USV MPC control period
+            double idx_f = t / boat_Ts;
+            size_t j = static_cast<size_t>(std::floor(idx_f));
+            if (j < boat_horizon_.size() - 1) {
+                double alpha = idx_f - j;
+                x_boat = (1.0 - alpha) * boat_horizon_[j][0] + alpha * boat_horizon_[j+1][0];
+                y_boat = (1.0 - alpha) * boat_horizon_[j][1] + alpha * boat_horizon_[j+1][1];
+            } else {
+                x_boat = boat_horizon_.back()[0];
+                y_boat = boat_horizon_.back()[1];
+            }
+        }
+
+        double p_params[3] = {
+            yaw,
+            x_boat,
+            y_boat
+        };
+        uav_tethered_acados_update_params(capsule, i, p_params, 3);
     }
 
     // Solve OCP

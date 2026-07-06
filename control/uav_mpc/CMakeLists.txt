@@ -37,6 +37,8 @@ add_library(uav_acados_solver STATIC
   acados_solver/uav_tethered_model/uav_tethered_expl_vde_adj.c
   acados_solver/uav_tethered_constraints/uav_tethered_constr_h_fun_jac_uxt_zt.c
   acados_solver/uav_tethered_constraints/uav_tethered_constr_h_fun.c
+  acados_solver/uav_tethered_constraints/uav_tethered_constr_h_e_fun_jac_uxt_zt.c
+  acados_solver/uav_tethered_constraints/uav_tethered_constr_h_e_fun.c
 )
 target_link_libraries(uav_acados_solver acados hpipm blasfeo)
 

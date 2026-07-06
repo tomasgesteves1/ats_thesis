@@ -43,6 +43,7 @@
 #include "uav_tethered_model/uav_tethered_model.h"
 
 
+#include "uav_tethered_constraints/uav_tethered_constraints.h"
 
 
 
@@ -344,6 +345,16 @@ void uav_tethered_acados_create_setup_functions(uav_tethered_solver_capsule* cap
     ext_fun_opts.external_workspace = true;
     if (N > 0)
     {
+        // constraints.constr_type == "BGH" and dims.nh > 0
+        capsule->nl_constr_h_fun_jac = (external_function_external_param_casadi *) malloc(sizeof(external_function_external_param_casadi)*(N-1));
+        for (int i = 0; i < N-1; i++) {
+            MAP_CASADI_FNC(nl_constr_h_fun_jac[i], uav_tethered_constr_h_fun_jac_uxt_zt);
+        }
+        capsule->nl_constr_h_fun = (external_function_external_param_casadi *) malloc(sizeof(external_function_external_param_casadi)*(N-1));
+        for (int i = 0; i < N-1; i++) {
+            MAP_CASADI_FNC(nl_constr_h_fun[i], uav_tethered_constr_h_fun);
+        }
+    
 
 
 
@@ -368,6 +379,10 @@ void uav_tethered_acados_create_setup_functions(uav_tethered_solver_capsule* cap
 
     
     } // N > 0
+    MAP_CASADI_FNC(nl_constr_h_e_fun_jac, uav_tethered_constr_h_e_fun_jac_uxt_zt);
+    MAP_CASADI_FNC(nl_constr_h_e_fun, uav_tethered_constr_h_e_fun);
+    
+    
 
 #undef MAP_CASADI_FNC
 }
@@ -652,6 +667,7 @@ void uav_tethered_acados_setup_nlp_in(uav_tethered_solver_capsule* capsule, cons
     Zl[4] = 1000;
     Zl[5] = 1000;
     Zl[6] = 1000;
+    Zl[7] = 10000;
     Zu[0] = 1000;
     Zu[1] = 1000;
     Zu[2] = 1000;
@@ -659,6 +675,7 @@ void uav_tethered_acados_setup_nlp_in(uav_tethered_solver_capsule* capsule, cons
     Zu[4] = 1000;
     Zu[5] = 1000;
     Zu[6] = 1000;
+    Zu[7] = 10000;
     zl[0] = 100;
     zl[1] = 100;
     zl[2] = 100;
@@ -666,6 +683,7 @@ void uav_tethered_acados_setup_nlp_in(uav_tethered_solver_capsule* capsule, cons
     zl[4] = 100;
     zl[5] = 100;
     zl[6] = 100;
+    zl[7] = 500;
     zu[0] = 100;
     zu[1] = 100;
     zu[2] = 100;
@@ -673,6 +691,7 @@ void uav_tethered_acados_setup_nlp_in(uav_tethered_solver_capsule* capsule, cons
     zu[4] = 100;
     zu[5] = 100;
     zu[6] = 100;
+    zu[7] = 500;
 
     for (int i = 1; i < N; i++)
     {
@@ -684,6 +703,24 @@ void uav_tethered_acados_setup_nlp_in(uav_tethered_solver_capsule* capsule, cons
     free(zlumem);
 
 
+    // slacks terminal
+    double* zluemem = calloc(4*NSN, sizeof(double));
+    double* Zl_e = zluemem+NSN*0;
+    double* Zu_e = zluemem+NSN*1;
+    double* zl_e = zluemem+NSN*2;
+    double* zu_e = zluemem+NSN*3;
+
+    // change only the non-zero elements:
+    Zl_e[0] = 10000;
+    Zu_e[0] = 10000;
+    zl_e[0] = 500;
+    zu_e[0] = 500;
+
+    ocp_nlp_cost_model_set(nlp_config, nlp_dims, nlp_in, N, "Zl", Zl_e);
+    ocp_nlp_cost_model_set(nlp_config, nlp_dims, nlp_in, N, "Zu", Zu_e);
+    ocp_nlp_cost_model_set(nlp_config, nlp_dims, nlp_in, N, "zl", zl_e);
+    ocp_nlp_cost_model_set(nlp_config, nlp_dims, nlp_in, N, "zu", zu_e);
+    free(zluemem);
 
     /**** Constraints ****/
 
@@ -806,6 +843,25 @@ void uav_tethered_acados_setup_nlp_in(uav_tethered_solver_capsule* capsule, cons
     free(lubx);
 
 
+    // set up nonlinear constraints for stage 1 to N-1
+    double* luh = calloc(2*NH, sizeof(double));
+    double* lh = luh;
+    double* uh = luh + NH;
+    uh[0] = 225;
+
+    for (int i = 1; i < N; i++)
+    {
+        ocp_nlp_constraints_model_set_external_param_fun(nlp_config, nlp_dims, nlp_in, i, "nl_constr_h_fun_jac",
+                                      &capsule->nl_constr_h_fun_jac[i-1]);
+        ocp_nlp_constraints_model_set_external_param_fun(nlp_config, nlp_dims, nlp_in, i, "nl_constr_h_fun",
+                                      &capsule->nl_constr_h_fun[i-1]);
+        
+        ocp_nlp_constraints_model_set(nlp_config, nlp_dims, nlp_in, nlp_out, i, "lh", lh);
+        ocp_nlp_constraints_model_set(nlp_config, nlp_dims, nlp_in, nlp_out, i, "uh", uh);
+        
+        
+    }
+    free(luh);
 
 
 
@@ -841,6 +897,21 @@ void uav_tethered_acados_setup_nlp_in(uav_tethered_solver_capsule* capsule, cons
     free(lusbx);
 
 
+    // set up soft bounds for nonlinear constraints
+    int* idxsh = malloc(NSH * sizeof(int));
+    idxsh[0] = 0;
+    double* lush = calloc(2*NSH, sizeof(double));
+    double* lsh = lush;
+    double* ush = lush + NSH;
+
+    for (int i = 1; i < N; i++)
+    {
+        ocp_nlp_constraints_model_set(nlp_config, nlp_dims, nlp_in, nlp_out, i, "idxsh", idxsh);
+        ocp_nlp_constraints_model_set(nlp_config, nlp_dims, nlp_in, nlp_out, i, "lsh", lsh);
+        ocp_nlp_constraints_model_set(nlp_config, nlp_dims, nlp_in, nlp_out, i, "ush", ush);
+    }
+    free(idxsh);
+    free(lush);
 
 
 
@@ -850,6 +921,24 @@ void uav_tethered_acados_setup_nlp_in(uav_tethered_solver_capsule* capsule, cons
 
 
 
+    // set up nonlinear constraints for last stage
+    double* luh_e = calloc(2*NHN, sizeof(double));
+    double* lh_e = luh_e;
+    double* uh_e = luh_e + NHN;
+    uh_e[0] = 225;
+
+    ocp_nlp_constraints_model_set_external_param_fun(nlp_config, nlp_dims, nlp_in, N, "nl_constr_h_fun_jac", &capsule->nl_constr_h_e_fun_jac);
+    ocp_nlp_constraints_model_set_external_param_fun(nlp_config, nlp_dims, nlp_in, N, "nl_constr_h_fun", &capsule->nl_constr_h_e_fun);
+    
+    ocp_nlp_constraints_model_set(nlp_config, nlp_dims, nlp_in, nlp_out, N, "lh", lh_e);
+    ocp_nlp_constraints_model_set(nlp_config, nlp_dims, nlp_in, nlp_out, N, "uh", uh_e);
+    
+    
+    free(luh_e);
+
+
+
+    /* terminal soft constraints */
 
 
 
@@ -858,8 +947,18 @@ void uav_tethered_acados_setup_nlp_in(uav_tethered_solver_capsule* capsule, cons
 
 
 
+    // set up soft bounds for nonlinear constraints
+    int* idxsh_e = malloc(NSHN * sizeof(int));
+    idxsh_e[0] = 0;
+    double* lush_e = calloc(2*NSHN, sizeof(double));
+    double* lsh_e = lush_e;
+    double* ush_e = lush_e + NSHN;
 
-
+    ocp_nlp_constraints_model_set(nlp_config, nlp_dims, nlp_in, nlp_out, N, "idxsh", idxsh_e);
+    ocp_nlp_constraints_model_set(nlp_config, nlp_dims, nlp_in, nlp_out, N, "lsh", lsh_e);
+    ocp_nlp_constraints_model_set(nlp_config, nlp_dims, nlp_in, nlp_out, N, "ush", ush_e);
+    free(idxsh_e);
+    free(lush_e);
 
 
 
@@ -1160,7 +1259,7 @@ int uav_tethered_acados_update_params(uav_tethered_solver_capsule* capsule, int 
 {
     int solver_status = 0;
 
-    int casadi_np = 1;
+    int casadi_np = 3;
     if (casadi_np != np) {
         printf("acados_update_params: trying to set %i parameters for external functions."
             " External function has %i parameters. Exiting.\n", np, casadi_np);
@@ -1243,6 +1342,15 @@ int uav_tethered_acados_free(uav_tethered_solver_capsule* capsule)
     // cost
 
     // constraints
+    for (int i = 0; i < N-1; i++)
+    {
+        external_function_external_param_casadi_free(&capsule->nl_constr_h_fun_jac[i]);
+        external_function_external_param_casadi_free(&capsule->nl_constr_h_fun[i]);
+    }
+    free(capsule->nl_constr_h_fun_jac);
+    free(capsule->nl_constr_h_fun);
+    external_function_external_param_casadi_free(&capsule->nl_constr_h_e_fun_jac);
+    external_function_external_param_casadi_free(&capsule->nl_constr_h_e_fun);
 
 
 

@@ -25,8 +25,11 @@ def create_uav_model() -> AcadosModel:
     a_T = ca.SX.sym('a_T', 1)
     u = ca.vertcat(phi_dot_cmd, theta_dot_cmd, a_T)
 
-    # Parameters (p): [psi] (yaw angle of the drone)
+    # Parameters (p): [psi, x_boat, y_boat]
     psi = ca.SX.sym('psi', 1)
+    x_boat = ca.SX.sym('x_boat', 1)
+    y_boat = ca.SX.sym('y_boat', 1)
+    p_param = ca.vertcat(psi, x_boat, y_boat)
 
     # Thrust acceleration in world frame (ENU) using actual model states phi and theta
     ax_thrust = a_T * (ca.cos(psi) * ca.sin(theta) * ca.cos(phi) + ca.sin(psi) * ca.sin(phi))
@@ -45,12 +48,18 @@ def create_uav_model() -> AcadosModel:
         theta_dot_cmd
     )
 
+    # Nonlinear distance constraint h (3D distance squared between drone XYZ and boat projection at XY with Z=0)
+    # Drone position coordinates are states index 0, 1, 2 (p vector)
+    h_expr = (p[0] - x_boat)**2 + (p[1] - y_boat)**2 + p[2]**2
+
     # ACADOS model formulation
     model = AcadosModel()
     model.f_expl_expr = xdot_expr
     model.x = x
     model.u = u
-    model.p = psi
+    model.p = p_param
+    model.con_h_expr = h_expr
+    model.con_h_expr_e = h_expr
     model.name = model_name
 
     return model
@@ -103,8 +112,8 @@ def generate_acados_ocp():
     ocp.cost.yref[12] = 9.81  # Default a_T cancels gravity (index 12 for thrust input in 13-dimensional yref)
     ocp.cost.yref_e = np.zeros((ny_e,))
     
-    # Default parameters: [psi]
-    ocp.parameter_values = np.array([0.0])
+    # Default parameters: [psi, x_boat, y_boat]
+    ocp.parameter_values = np.array([0.0, 0.0, 0.0])
     
     # Control input bounds [phi_dot_cmd, theta_dot_cmd, a_T] from config
     phi_dot_max = config["limits"]["phi_dot_max"]
@@ -124,21 +133,53 @@ def generate_acados_ocp():
     ocp.constraints.ubx = np.array([v_max, v_max, v_max, phi_max, theta_max, phi_max, theta_max])
     ocp.constraints.idxbx = np.array([3, 4, 5, 6, 7, 8, 9])
     
+    # Path nonlinear constraint bounds: lh <= h(x,u,p) <= uh (distance squared: 0 <= distance^2 <= L_max^2)
+    # Default tether length limit is 15.0m (15^2 = 225.0). This will be updated dynamically in C++.
+    L_tether_max_default = 15.0
+    ocp.constraints.lh = np.array([0.0])
+    ocp.constraints.uh = np.array([L_tether_max_default**2])
+    
     # Soft constraints for states: soften all 7 box constraints
     ocp.constraints.idxsbx = np.array([0, 1, 2, 3, 4, 5, 6])
     
-    # Slack variables penalty costs
-    ns = 7
+    # Soften upper bound of nonlinear constraint h (index 0 of h constraints)
+    ocp.constraints.idxsh = np.array([0])
+    
+    # Slack variables penalty costs (7 state bounds slacks + 1 nonlinear constraint slack = 8 slacks)
+    ns = 8
     slack_weights = config.get("slack_weights", {"zl": 100.0, "zu": 100.0, "Zl": 1000.0, "Zu": 1000.0})
     zl_val = slack_weights.get("zl", 100.0)
     zu_val = slack_weights.get("zu", 100.0)
     Zl_val = slack_weights.get("Zl", 1000.0)
     Zu_val = slack_weights.get("Zu", 1000.0)
     
-    ocp.cost.zl = zl_val * np.ones((ns,))
-    ocp.cost.zu = zu_val * np.ones((ns,))
-    ocp.cost.Zl = Zl_val * np.ones((ns,))
-    ocp.cost.Zu = Zu_val * np.ones((ns,))
+    zl_vec = np.ones(ns) * zl_val
+    zu_vec = np.ones(ns) * zu_val
+    Zl_vec = np.ones(ns) * Zl_val
+    Zu_vec = np.ones(ns) * Zu_val
+    
+    # Give higher penalty to the tether distance constraint violation to keep it tight
+    zl_vec[7] = 500.0
+    zu_vec[7] = 500.0
+    Zl_vec[7] = 10000.0
+    Zu_vec[7] = 10000.0
+    
+    ocp.cost.zl = zl_vec
+    ocp.cost.zu = zu_vec
+    ocp.cost.Zl = Zl_vec
+    ocp.cost.Zu = Zu_vec
+
+    # Terminal nonlinear constraint bounds
+    ocp.constraints.lh_e = np.array([0.0])
+    ocp.constraints.uh_e = np.array([L_tether_max_default**2])
+    
+    # Soften terminal nonlinear constraint
+    ocp.constraints.idxsh_e = np.array([0])
+    ns_e = 1
+    ocp.cost.zl_e = 500.0 * np.ones((ns_e,))
+    ocp.cost.zu_e = 500.0 * np.ones((ns_e,))
+    ocp.cost.Zl_e = 10000.0 * np.ones((ns_e,))
+    ocp.cost.Zu_e = 10000.0 * np.ones((ns_e,))
     
     # Default initial state
     ocp.constraints.x0 = np.zeros(nx)

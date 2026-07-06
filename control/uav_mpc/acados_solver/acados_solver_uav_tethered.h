@@ -39,25 +39,25 @@
 #define UAV_TETHERED_NX     10
 #define UAV_TETHERED_NZ     0
 #define UAV_TETHERED_NU     3
-#define UAV_TETHERED_NP     1
+#define UAV_TETHERED_NP     3
 #define UAV_TETHERED_NP_GLOBAL     0
 #define UAV_TETHERED_NBX    7
 #define UAV_TETHERED_NBX0   10
 #define UAV_TETHERED_NBU    3
 #define UAV_TETHERED_NSBX   7
 #define UAV_TETHERED_NSBU   0
-#define UAV_TETHERED_NSH    0
+#define UAV_TETHERED_NSH    1
 #define UAV_TETHERED_NSH0   0
 #define UAV_TETHERED_NSG    0
 #define UAV_TETHERED_NSPHI  0
-#define UAV_TETHERED_NSHN   0
+#define UAV_TETHERED_NSHN   1
 #define UAV_TETHERED_NSGN   0
 #define UAV_TETHERED_NSPHIN 0
 #define UAV_TETHERED_NSPHI0 0
 #define UAV_TETHERED_NSBXN  0
-#define UAV_TETHERED_NS     7
+#define UAV_TETHERED_NS     8
 #define UAV_TETHERED_NS0    0
-#define UAV_TETHERED_NSN    0
+#define UAV_TETHERED_NSN    1
 #define UAV_TETHERED_NG     0
 #define UAV_TETHERED_NBXN   0
 #define UAV_TETHERED_NGN    0
@@ -65,8 +65,8 @@
 #define UAV_TETHERED_NY     13
 #define UAV_TETHERED_NYN    10
 #define UAV_TETHERED_N      50
-#define UAV_TETHERED_NH     0
-#define UAV_TETHERED_NHN    0
+#define UAV_TETHERED_NH     1
+#define UAV_TETHERED_NHN    1
 #define UAV_TETHERED_NH0    0
 #define UAV_TETHERED_NPHI0  0
 #define UAV_TETHERED_NPHI   0
@@ -114,10 +114,18 @@ typedef struct uav_tethered_solver_capsule
 
 
     // constraints
+    external_function_external_param_casadi *nl_constr_h_fun_jac;
+    external_function_external_param_casadi *nl_constr_h_fun;
 
 
 
 
+
+
+
+
+    external_function_external_param_casadi nl_constr_h_e_fun_jac;
+    external_function_external_param_casadi nl_constr_h_e_fun;
 
 
 

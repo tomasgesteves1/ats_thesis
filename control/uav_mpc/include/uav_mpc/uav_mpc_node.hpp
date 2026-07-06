@@ -31,6 +31,7 @@ private:
     void tetherLengthCallback(const std_msgs::msg::Float64::SharedPtr msg);
     void hoverThrustCallback(const px4_msgs::msg::HoverThrustEstimate::SharedPtr msg);
     void vehicleStatusCallback(const px4_msgs::msg::VehicleStatus::SharedPtr msg);
+    void boatHorizonCallback(const nav_msgs::msg::Path::SharedPtr msg);
     void controlLoop();
     void publishOffboardControlMode();
     void publishAttitudeSetpoint(const UavControlOutput& output);
@@ -43,6 +44,7 @@ private:
     rclcpp::Subscription<std_msgs::msg::Float64>::SharedPtr tether_length_sub_;
     rclcpp::Subscription<px4_msgs::msg::HoverThrustEstimate>::SharedPtr hover_thrust_sub_;
     rclcpp::Subscription<px4_msgs::msg::VehicleStatus>::SharedPtr vehicle_status_sub_;
+    rclcpp::Subscription<nav_msgs::msg::Path>::SharedPtr boat_horizon_sub_;
     
     // TF Listener
     std::shared_ptr<tf2_ros::Buffer> tf_buffer_;
@@ -85,6 +87,7 @@ private:
     uint64_t offboard_setpoint_counter_;
     double px4_hover_thrust_;
     uint8_t current_system_id_;
+    rclcpp::Time last_boat_horizon_time_;
 
     // Open-loop variables
     bool open_loop_test_;

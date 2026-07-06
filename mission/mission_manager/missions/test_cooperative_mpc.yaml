@@ -1,0 +1,82 @@
+id: "test_cooperative_mpc"
+name: "Cooperative UAV-USV MPC"
+description: "Cooperative control of USV and UAV with tether limit soft constraint"
+category: "test"
+icon: "anchor"
+
+requires:
+  simulation: "cooperative"
+  tether: true
+  vehicles: ["uav", "usv"]
+
+simulation_launch:
+  package: "test_cooperative_mpc"
+  file: "sim.launch.py"
+  args: {}
+
+control_launch:
+  package: "test_cooperative_mpc"
+  file: "control.launch.py"
+  args: {}
+
+user_params:
+  - key: "usv_radius"
+    label: "Boat Circle Radius"
+    type: "float"
+    default: 15.0
+    min: 5.0
+    max: 30.0
+    unit: "m"
+    ros_mapping:
+      node: "usv_trajectory_circle_node"
+      param: "circle_radius"
+
+  - key: "uav_radius"
+    label: "Drone Circle Radius"
+    type: "float"
+    default: 5.0
+    min: 1.0
+    max: 20.0
+    unit: "m"
+    ros_mapping:
+      node: "uav_trajectory_circle_node"
+      param: "circle_radius"
+
+  - key: "speed"
+    label: "Angular Speed"
+    type: "float"
+    default: 0.05
+    min: 0.01
+    max: 0.2
+    unit: "rad/s"
+    ros_mapping:
+      node: "usv_trajectory_circle_node"
+      param: "circle_omega"
+
+  - key: "uav_altitude"
+    label: "Drone Altitude"
+    type: "float"
+    default: 8.0
+    min: 3.0
+    max: 20.0
+    unit: "m"
+    ros_mapping:
+      node: "uav_trajectory_circle_node"
+      param: "circle_height"
+
+  - key: "use_tether"
+    label: "Enable Tether (MoorDyn)"
+    type: "bool"
+    default: true
+    ros_mapping:
+      launch_arg: "use_tether"
+
+  - key: "tether_max_length"
+    label: "Max Tether Length"
+    type: "float"
+    default: 15.0
+    min: 5.0
+    max: 30.0
+    unit: "m"
+    ros_mapping:
+      launch_arg: "tether_max_length"

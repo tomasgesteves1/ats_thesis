@@ -30,6 +30,7 @@ public:
     void updateState(const std::vector<double>& state);
     void updateOrientation(double qx, double qy, double qz, double qw);
     void updateAnchorPosition(double x, double y, double z);
+    void updateBoatHorizon(const std::vector<std::vector<double>>& boat_horizon);
     void updateTetherLength(double length);
     void setReference(const std::vector<double>& ref);
     void setExternalReferencePath(const std::vector<TrajectoryPoint>& path);
@@ -63,6 +64,8 @@ private:
 
     // Global tether anchor position and length
     double anchor_x_, anchor_y_, anchor_z_;
+    std::vector<std::vector<double>> boat_horizon_;
+    bool has_boat_horizon_;
     double L_tether_;
     bool use_tether_;
     double v_max_;

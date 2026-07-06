@@ -17,6 +17,7 @@ UavMpcNode::UavMpcNode()
       offboard_setpoint_counter_(0),
       px4_hover_thrust_(0.7265),
       current_system_id_(2),
+      last_boat_horizon_time_(0, 0, RCL_ROS_TIME),
       open_loop_test_(false) {
       
     pipeline_ = std::make_unique<UavMpcPipeline>();
@@ -24,6 +25,7 @@ UavMpcNode::UavMpcNode()
     // Declare dynamic parameters (Rule 2 of CODE_STANDARDS.md)
     this->declare_parameter<bool>("open_loop_test", false);
     this->declare_parameter<bool>("use_tether", true);
+    this->declare_parameter<double>("tether_max_length", 15.0);
     this->declare_parameter<std::string>("trajectory_type", "hold");
     this->declare_parameter<double>("circle_radius", 3.0);
     this->declare_parameter<double>("circle_omega", 0.2);
@@ -49,6 +51,9 @@ UavMpcNode::UavMpcNode()
 
     tether_length_sub_ = this->create_subscription<std_msgs::msg::Float64>(
         "tether_length", 10, std::bind(&UavMpcNode::tetherLengthCallback, this, std::placeholders::_1));
+
+    boat_horizon_sub_ = this->create_subscription<nav_msgs::msg::Path>(
+        "boat_mpc_horizon", 10, std::bind(&UavMpcNode::boatHorizonCallback, this, std::placeholders::_1));
 
     // Configure QoS identical to drone_tracker for PX4 (SensorDataQoS)
     auto qos = rclcpp::SensorDataQoS();
@@ -151,7 +156,17 @@ void UavMpcNode::trajectoryPathCallback(const nav_msgs::msg::Path::SharedPtr msg
 }
 
 void UavMpcNode::tetherLengthCallback(const std_msgs::msg::Float64::SharedPtr msg) {
-    pipeline_->updateTetherLength(msg->data);
+    // Deprecated: We now use the static/user parameter 'tether_max_length' for the MPC constraint.
+    (void)msg;
+}
+
+void UavMpcNode::boatHorizonCallback(const nav_msgs::msg::Path::SharedPtr msg) {
+    last_boat_horizon_time_ = this->now();
+    std::vector<std::vector<double>> boat_horizon;
+    for (const auto& pose : msg->poses) {
+        boat_horizon.push_back({pose.pose.position.x, pose.pose.position.y});
+    }
+    pipeline_->updateBoatHorizon(boat_horizon);
 }
 
 void UavMpcNode::hoverThrustCallback(const px4_msgs::msg::HoverThrustEstimate::SharedPtr msg) {
@@ -178,7 +193,24 @@ void UavMpcNode::controlLoop() {
     bool use_tether = this->get_parameter("use_tether").as_bool();
     pipeline_->setUseTether(use_tether);
 
+    double tether_max_length = this->get_parameter("tether_max_length").as_double();
+    pipeline_->updateTetherLength(tether_max_length);
+
     if (use_tether) {
+        // Timeout check for boat predicted horizon
+        if (last_boat_horizon_time_.nanoseconds() > 0) {
+            double elapsed_since_last_horizon = (this->now() - last_boat_horizon_time_).seconds();
+            if (elapsed_since_last_horizon > 0.5) {
+                // Clear the boat horizon to fall back to static anchor positioning in the OCP
+                pipeline_->updateBoatHorizon(std::vector<std::vector<double>>());
+                RCLCPP_WARN_THROTTLE(this->get_logger(), *this->get_clock(), 5000,
+                    "Boat predicted horizon timeout (%.2f s). Falling back to static anchor.", elapsed_since_last_horizon);
+            }
+        } else {
+            // No message ever received, fall back to static anchor
+            pipeline_->updateBoatHorizon(std::vector<std::vector<double>>());
+        }
+
         // Look up the exact anchor position using TF (world -> boat/tether_anchor)
         try {
             auto transform = tf_buffer_->lookupTransform("world", "boat/tether_anchor", tf2::TimePointZero);
@@ -194,6 +226,7 @@ void UavMpcNode::controlLoop() {
     } else {
         // If disabled, keep anchor at origin
         pipeline_->updateAnchorPosition(0.0, 0.0, 0.0);
+        pipeline_->updateBoatHorizon(std::vector<std::vector<double>>());
     }
 
     // Look up the drone COM pose (world -> drone/base_link)

@@ -37,6 +37,18 @@ TestUsvCircleNode::TestUsvCircleNode()
     path_pub_ = this->create_publisher<nav_msgs::msg::Path>("reference_path", 10);
     wrench_pub_ = this->create_publisher<geometry_msgs::msg::WrenchStamped>("cmd_wrench", 10);
 
+    // Global subscriber to drone odometry to coordinate takeoff/trajectory start
+    drone_odom_sub_ = this->create_subscription<nav_msgs::msg::Odometry>(
+        "/drone/ground_truth/odometry", 10,
+        std::bind(&TestUsvCircleNode::droneOdomCallback, this, std::placeholders::_1)
+    );
+
+    // Global subscriber to boat odometry to keep current position before takeoff
+    boat_odom_sub_ = this->create_subscription<nav_msgs::msg::Odometry>(
+        "/boat/ground_truth/odometry", 10,
+        std::bind(&TestUsvCircleNode::boatOdomCallback, this, std::placeholders::_1)
+    );
+
     double hz = this->get_double_param("update_rate_hz");
     double period_ms = 1000.0 / std::max(0.1, hz);
 
@@ -148,8 +160,50 @@ void TestUsvCircleNode::timerCallback() {
     double center_y = this->get_double_param("circle_center_y");
     double dt = this->get_double_param("control_period");
 
+    double dt_step = (last_time_sec_ > 0.0) ? (now_sec - last_time_sec_) : 0.0;
+    last_time_sec_ = now_sec;
+
+    if (!drone_started_flying_) {
+        if (drone_altitude_ > 3.0) {
+            drone_started_flying_ = true;
+            RCLCPP_INFO(this->get_logger(), "Drone altitude is %.2f m. Drone is flying! Starting boat trajectory.", drone_altitude_);
+        } else {
+            // Publish static reference at current boat position to keep it still
+            auto path_msg = nav_msgs::msg::Path();
+            path_msg.header.frame_id = world_frame;
+            path_msg.header.stamp = this->get_clock()->now();
+
+            double half_yaw = boat_yaw_ * 0.5;
+            double qz = std::sin(half_yaw);
+            double qw = std::cos(half_yaw);
+
+            for (int i = 0; i <= steps; ++i) {
+                geometry_msgs::msg::PoseStamped pose;
+                pose.header.frame_id = world_frame;
+                pose.header.stamp = path_msg.header.stamp;
+                pose.pose.position.x = boat_x_;
+                pose.pose.position.y = boat_y_;
+                pose.pose.position.z = 0.0;
+                pose.pose.orientation.x = 0.0;
+                pose.pose.orientation.y = 0.0;
+                pose.pose.orientation.z = qz;
+                pose.pose.orientation.w = qw;
+                path_msg.poses.push_back(pose);
+            }
+
+            path_pub_->publish(path_msg);
+
+            RCLCPP_INFO_THROTTLE(this->get_logger(), *this->get_clock(), 2000,
+                "Boat waiting for drone to start flying (current altitude: %.2f m)...", drone_altitude_);
+            
+            last_time_sec_ = now_sec; // Keep last_time updated to prevent sudden jumps
+            return;
+        }
+    }
+    trajectory_time_ += dt_step;
+
     auto points = pipeline_->generateCircle(
-        now_sec, radius, omega, height, center_x, center_y, steps, dt
+        trajectory_time_, radius, omega, height, center_x, center_y, steps, dt
     );
 
     auto path_msg = nav_msgs::msg::Path();
@@ -176,6 +230,20 @@ void TestUsvCircleNode::timerCallback() {
     }
 
     path_pub_->publish(path_msg);
+}
+
+void TestUsvCircleNode::droneOdomCallback(const nav_msgs::msg::Odometry::SharedPtr msg) {
+    drone_altitude_ = msg->pose.pose.position.z;
+}
+
+void TestUsvCircleNode::boatOdomCallback(const nav_msgs::msg::Odometry::SharedPtr msg) {
+    boat_x_ = msg->pose.pose.position.x;
+    boat_y_ = msg->pose.pose.position.y;
+
+    // Extract yaw from quaternion
+    double qz = msg->pose.pose.orientation.z;
+    double qw = msg->pose.pose.orientation.w;
+    boat_yaw_ = 2.0 * std::atan2(qz, qw);
 }
 
 } // namespace test_usv_circle
