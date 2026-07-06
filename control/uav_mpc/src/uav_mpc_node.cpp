@@ -25,7 +25,9 @@ UavMpcNode::UavMpcNode()
     // Declare dynamic parameters (Rule 2 of CODE_STANDARDS.md)
     this->declare_parameter<bool>("open_loop_test", false);
     this->declare_parameter<bool>("use_tether", true);
-    this->declare_parameter<double>("tether_max_length", 15.0);
+    rcl_interfaces::msg::ParameterDescriptor tether_desc;
+    tether_desc.dynamic_typing = true;
+    this->declare_parameter("tether_max_length", rclcpp::ParameterValue(15.0), tether_desc);
     this->declare_parameter<std::string>("trajectory_type", "hold");
     this->declare_parameter<double>("circle_radius", 3.0);
     this->declare_parameter<double>("circle_omega", 0.2);
@@ -199,7 +201,13 @@ void UavMpcNode::controlLoop() {
     bool use_tether = this->get_parameter("use_tether").as_bool();
     pipeline_->setUseTether(use_tether);
 
-    double tether_max_length = this->get_parameter("tether_max_length").as_double();
+    double tether_max_length = 15.0;
+    auto tether_max_length_param = this->get_parameter("tether_max_length");
+    if (tether_max_length_param.get_type() == rclcpp::ParameterType::PARAMETER_INTEGER) {
+        tether_max_length = static_cast<double>(tether_max_length_param.as_int());
+    } else if (tether_max_length_param.get_type() == rclcpp::ParameterType::PARAMETER_DOUBLE) {
+        tether_max_length = tether_max_length_param.as_double();
+    }
     pipeline_->updateTetherLength(tether_max_length);
 
     double anchor_x = 0.0;

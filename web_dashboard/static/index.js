@@ -313,7 +313,18 @@ function selectMission(missionId) {
                 input.dataset.key = p.key;
                 input.min = p.min;
                 input.max = p.max;
-                input.step = p.type === 'float' ? '0.1' : '1';
+                if (p.type === 'float') {
+                    const range = parseFloat(p.max) - parseFloat(p.min);
+                    if (range <= 0.5) {
+                        input.step = '0.005';
+                    } else if (range <= 2.0) {
+                        input.step = '0.01';
+                    } else {
+                        input.step = '0.1';
+                    }
+                } else {
+                    input.step = '1';
+                }
                 input.value = p.default;
                 
                 const valBubble = document.createElement('span');
