@@ -79,4 +79,5 @@ user_params:
     max: 30.0
     unit: "m"
     ros_mapping:
-      launch_arg: "tether_max_length"
+      node: "uav_mpc_node"
+      param: "tether_max_length"

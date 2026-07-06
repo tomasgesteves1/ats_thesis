@@ -62,6 +62,8 @@ private:
 
     // MPC tether force publisher (relative topic)
     rclcpp::Publisher<std_msgs::msg::Float64>::SharedPtr mpc_tether_force_pub_;
+    rclcpp::Publisher<std_msgs::msg::Float64>::SharedPtr virtual_tether_distance_pub_;
+    rclcpp::Publisher<std_msgs::msg::Float64>::SharedPtr virtual_tether_limit_pub_;
 
     // MPC debug states and inputs publisher (relative topic)
     rclcpp::Publisher<std_msgs::msg::Float64MultiArray>::SharedPtr mpc_states_inputs_pub_;

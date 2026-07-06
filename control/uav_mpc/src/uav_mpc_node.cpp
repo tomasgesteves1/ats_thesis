@@ -89,6 +89,12 @@ UavMpcNode::UavMpcNode()
     mpc_tether_force_pub_ = this->create_publisher<std_msgs::msg::Float64>(
         "mpc_tether_force_mag", 10);
 
+    virtual_tether_distance_pub_ = this->create_publisher<std_msgs::msg::Float64>(
+        "virtual_tether_distance", 10);
+
+    virtual_tether_limit_pub_ = this->create_publisher<std_msgs::msg::Float64>(
+        "virtual_tether_limit", 10);
+
     // MPC debug states and inputs publisher (relative topic)
     mpc_states_inputs_pub_ = this->create_publisher<std_msgs::msg::Float64MultiArray>(
         "mpc_states_and_inputs", 10);
@@ -196,6 +202,9 @@ void UavMpcNode::controlLoop() {
     double tether_max_length = this->get_parameter("tether_max_length").as_double();
     pipeline_->updateTetherLength(tether_max_length);
 
+    double anchor_x = 0.0;
+    double anchor_y = 0.0;
+
     if (use_tether) {
         // Timeout check for boat predicted horizon
         if (last_boat_horizon_time_.nanoseconds() > 0) {
@@ -214,9 +223,11 @@ void UavMpcNode::controlLoop() {
         // Look up the exact anchor position using TF (world -> boat/tether_anchor)
         try {
             auto transform = tf_buffer_->lookupTransform("world", "boat/tether_anchor", tf2::TimePointZero);
+            anchor_x = transform.transform.translation.x;
+            anchor_y = transform.transform.translation.y;
             pipeline_->updateAnchorPosition(
-                transform.transform.translation.x,
-                transform.transform.translation.y,
+                anchor_x,
+                anchor_y,
                 transform.transform.translation.z
             );
         } catch (const tf2::TransformException & ex) {
@@ -244,6 +255,22 @@ void UavMpcNode::controlLoop() {
         drone_qz = transform.transform.rotation.z;
         drone_qw = transform.transform.rotation.w;
         tf_success = true;
+
+        // Compute and publish virtual tether distance and limit for plotting/monitoring
+        if (use_tether) {
+            double dx = drone_x - anchor_x;
+            double dy = drone_y - anchor_y;
+            double dz = drone_z; // Boat Z is assumed 0 in XY projection constraint
+            double virtual_dist = std::sqrt(dx * dx + dy * dy + dz * dz);
+
+            std_msgs::msg::Float64 dist_msg;
+            dist_msg.data = virtual_dist;
+            virtual_tether_distance_pub_->publish(dist_msg);
+
+            std_msgs::msg::Float64 limit_msg;
+            limit_msg.data = tether_max_length;
+            virtual_tether_limit_pub_->publish(limit_msg);
+        }
     } catch (const tf2::TransformException & ex) {
         RCLCPP_WARN_THROTTLE(this->get_logger(), *this->get_clock(), 2000,
             "Could not obtain transform from world to drone/base_link: %s", ex.what());
