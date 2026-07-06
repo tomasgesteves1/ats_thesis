@@ -94,6 +94,9 @@ void MissionManagerNode::handleListMissions(
             up.max_value = p.max_value;
             up.unit = p.unit;
             up.options = p.options;
+            up.ros_node = p.ros_mapping.node;
+            up.ros_param = p.ros_mapping.param;
+            up.ros_launch_arg = p.ros_mapping.launch_arg;
             def.user_params.push_back(up);
         }
         response->missions.push_back(def);

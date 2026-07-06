@@ -365,6 +365,21 @@ function selectMission(missionId) {
                 group.appendChild(input);
             }
             
+            // Enable online parameter tuning if the simulation/mission is running
+            input.addEventListener('change', () => {
+                if (activeStatus.simulation_running) {
+                    if (p.ros_mapping && p.ros_mapping.node && p.ros_mapping.param) {
+                        const val = input.type === 'checkbox' ? input.checked : input.value;
+                        addLog(`Updating parameter online: ${p.ros_mapping.node}::${p.ros_mapping.param} = ${val}`, 'info');
+                        postAPI('/api/update_param', {
+                            node: p.ros_mapping.node,
+                            param: p.ros_mapping.param,
+                            value: val
+                        });
+                    }
+                }
+            });
+            
             dynamicParams.appendChild(group);
         });
     } else {

@@ -182,7 +182,12 @@ class DashboardHTTPRequestHandler(http.server.BaseHTTPRequestHandler):
                             'min': param.min_value,
                             'max': param.max_value,
                             'unit': param.unit,
-                            'options': list(param.options)
+                            'options': list(param.options),
+                            'ros_mapping': {
+                                'node': param.ros_node,
+                                'param': param.ros_param,
+                                'launch_arg': param.ros_launch_arg
+                            }
                         })
                     missions_list.append({
                         'id': mission.id,
@@ -395,6 +400,14 @@ class DashboardHTTPRequestHandler(http.server.BaseHTTPRequestHandler):
                 except Exception as e:
                     response = {'success': False, 'message': f"Failed to clear logs: {str(e)}"}
 
+        elif self.path == '/api/update_param':
+            node_name = params.get('node')
+            param_name = params.get('param')
+            value = params.get('value')
+            node.get_logger().info(f"Requesting parameter update: {node_name}::{param_name} = {value}")
+            success, msg = node.set_node_parameter(node_name, param_name, value)
+            response = {'success': success, 'message': msg}
+
         self.wfile.write(json.dumps(response).encode('utf-8'))
 
 class ThreadingHTTPServer(socketserver.ThreadingMixIn, http.server.HTTPServer):
@@ -501,6 +514,67 @@ class DashboardNode(Node):
                     return None
             time.sleep(0.05)
         return None
+
+    def set_node_parameter(self, node_name, param_name, value):
+        from rcl_interfaces.srv import SetParameters
+        from rcl_interfaces.msg import Parameter, ParameterType
+        
+        service_name = f'/{node_name}/set_parameters'
+        client = self.create_client(SetParameters, service_name)
+        
+        if not client.service_is_ready():
+            ready = client.wait_for_service(1.0)
+            if not ready:
+                return False, f"Service {service_name} not available (is the node running?)."
+                
+        req = SetParameters.Request()
+        param_msg = Parameter()
+        param_msg.name = param_name
+        
+        val_str = str(value)
+        if val_str.lower() == 'true':
+            param_msg.value.type = ParameterType.PARAMETER_BOOL
+            param_msg.value.bool_value = True
+        elif val_str.lower() == 'false':
+            param_msg.value.type = ParameterType.PARAMETER_BOOL
+            param_msg.value.bool_value = False
+        else:
+            try:
+                # Try integer
+                val_int = int(val_str)
+                if '.' in val_str:
+                    raise ValueError()
+                param_msg.value.type = ParameterType.PARAMETER_INTEGER
+                param_msg.value.integer_value = val_int
+            except ValueError:
+                try:
+                    # Try float
+                    val_float = float(val_str)
+                    param_msg.value.type = ParameterType.PARAMETER_DOUBLE
+                    param_msg.value.double_value = val_float
+                except ValueError:
+                    # Fallback to string
+                    param_msg.value.type = ParameterType.PARAMETER_STRING
+                    param_msg.value.string_value = val_str
+                    
+        req.parameters.append(param_msg)
+        
+        future = client.call_async(req)
+        start_time = time.time()
+        while time.time() - start_time < 2.0:
+            if future.done():
+                try:
+                    res = future.result()
+                    if res.results and res.results[0].successful:
+                        return True, f"Parameter {param_name} set to {value}."
+                    else:
+                        reason = res.results[0].reason if res.results else "Rejected by node."
+                        return False, f"Rejected: {reason}"
+                except Exception as e:
+                    return False, f"Service call exception: {str(e)}"
+            time.sleep(0.05)
+            
+        return False, "Service call timeout."
 
     def cleanup_processes(self):
         # Kill any remaining subprocesses upon shutdown
