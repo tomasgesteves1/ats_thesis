@@ -90,6 +90,7 @@ private:
     double px4_hover_thrust_;
     uint8_t current_system_id_;
     rclcpp::Time last_boat_horizon_time_;
+    double active_tether_max_length_;
 
     // Open-loop variables
     bool open_loop_test_;

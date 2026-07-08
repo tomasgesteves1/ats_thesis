@@ -18,6 +18,7 @@ UavMpcNode::UavMpcNode()
       px4_hover_thrust_(0.7265),
       current_system_id_(2),
       last_boat_horizon_time_(0, 0, RCL_ROS_TIME),
+      active_tether_max_length_(-1.0),
       open_loop_test_(false) {
       
     pipeline_ = std::make_unique<UavMpcPipeline>();
@@ -25,6 +26,7 @@ UavMpcNode::UavMpcNode()
     // Declare dynamic parameters (Rule 2 of CODE_STANDARDS.md)
     this->declare_parameter<bool>("open_loop_test", false);
     this->declare_parameter<bool>("use_tether", true);
+    this->declare_parameter<double>("tether_rate_limit", 1.5);
     rcl_interfaces::msg::ParameterDescriptor tether_desc;
     tether_desc.dynamic_typing = true;
     this->declare_parameter("tether_max_length", rclcpp::ParameterValue(15.0), tether_desc);
@@ -201,14 +203,30 @@ void UavMpcNode::controlLoop() {
     bool use_tether = this->get_parameter("use_tether").as_bool();
     pipeline_->setUseTether(use_tether);
 
-    double tether_max_length = 15.0;
+    double target_tether_max_length = 15.0;
     auto tether_max_length_param = this->get_parameter("tether_max_length");
     if (tether_max_length_param.get_type() == rclcpp::ParameterType::PARAMETER_INTEGER) {
-        tether_max_length = static_cast<double>(tether_max_length_param.as_int());
+        target_tether_max_length = static_cast<double>(tether_max_length_param.as_int());
     } else if (tether_max_length_param.get_type() == rclcpp::ParameterType::PARAMETER_DOUBLE) {
-        tether_max_length = tether_max_length_param.as_double();
+        target_tether_max_length = tether_max_length_param.as_double();
     }
-    pipeline_->updateTetherLength(tether_max_length);
+
+    // Rate-limit the tether length adjustments to avoid abrupt control spikes
+    if (active_tether_max_length_ < 0.0) {
+        active_tether_max_length_ = target_tether_max_length;
+    } else {
+        double rate_limit = this->get_parameter("tether_rate_limit").as_double();
+        double max_step = rate_limit * 0.02; // 50 Hz control loop (dt = 0.02s)
+        double diff = target_tether_max_length - active_tether_max_length_;
+        if (diff > max_step) {
+            active_tether_max_length_ += max_step;
+        } else if (diff < -max_step) {
+            active_tether_max_length_ -= max_step;
+        } else {
+            active_tether_max_length_ = target_tether_max_length;
+        }
+    }
+    pipeline_->updateTetherLength(active_tether_max_length_);
 
     double anchor_x = 0.0;
     double anchor_y = 0.0;
@@ -276,7 +294,7 @@ void UavMpcNode::controlLoop() {
             virtual_tether_distance_pub_->publish(dist_msg);
 
             std_msgs::msg::Float64 limit_msg;
-            limit_msg.data = tether_max_length;
+            limit_msg.data = active_tether_max_length_;
             virtual_tether_limit_pub_->publish(limit_msg);
         }
     } catch (const tf2::TransformException & ex) {
