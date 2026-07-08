@@ -14,6 +14,7 @@ find_package(ros_gz_interfaces REQUIRED)
 find_package(px4_msgs REQUIRED)
 find_package(visualization_msgs REQUIRED)
 find_package(tf2_ros REQUIRED)
+find_package(Eigen3 REQUIRED)
 
 # ACADOS (Installed globally)
 set(ACADOS_DIR "/home/tomas/acados")
@@ -65,7 +66,7 @@ ament_target_dependencies(uav_mpc_node
   visualization_msgs
   tf2_ros
 )
-target_link_libraries(uav_mpc_node uav_acados_solver)
+target_link_libraries(uav_mpc_node uav_acados_solver Eigen3::Eigen)
 
 install(TARGETS uav_mpc_node
   DESTINATION lib/${PROJECT_NAME}
