@@ -52,6 +52,8 @@ public:
     const std::vector<std::vector<double>>& getCapturedPredictedPositions() const;
 
 private:
+    void setupOcpSolver(double current_time, double roll, double pitch, double yaw, const double x0[10]);
+
     std::vector<double> current_state_;
     void* acados_ocp_capsule_;
     

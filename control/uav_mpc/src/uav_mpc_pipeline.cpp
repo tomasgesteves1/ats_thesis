@@ -4,6 +4,7 @@
 #include "acados_solver_uav_tethered.h"
 #include <iostream>
 #include <cmath>
+#include <utility>
 
 namespace uav_mpc {
 
@@ -191,50 +192,8 @@ UavControlOutput UavMpcPipeline::computeControl(double current_time) {
     }
 
     auto capsule = (uav_tethered_solver_capsule*)acados_ocp_capsule_;
+    int N = capsule->nlp_solver_plan->N;
 
-    // Project reference positions to be inside a safe fraction of the tether length (e.g. 95%)
-    // to prevent control fight and oscillations at the boundary.
-    auto get_boat_pos = [&](int stage_idx) -> std::pair<double, double> {
-        double x_b = anchor_x_;
-        double y_b = anchor_y_;
-        if (use_tether_ && has_boat_horizon_ && !boat_horizon_.empty()) {
-            double t = stage_idx * Ts_;
-            double boat_Ts = 0.1;
-            double idx_f = t / boat_Ts;
-            size_t j = static_cast<size_t>(std::floor(idx_f));
-            if (j < boat_horizon_.size() - 1) {
-                double alpha = idx_f - j;
-                x_b = (1.0 - alpha) * boat_horizon_[j][0] + alpha * boat_horizon_[j+1][0];
-                y_b = (1.0 - alpha) * boat_horizon_[j][1] + alpha * boat_horizon_[j+1][1];
-            } else {
-                x_b = boat_horizon_.back()[0];
-                y_b = boat_horizon_.back()[1];
-            }
-        }
-        return {x_b, y_b};
-    };
-
-    auto project_reference = [&](int stage_idx, double rx, double ry, double rz) -> std::vector<double> {
-        if (!use_tether_) {
-            return {rx, ry, rz};
-        }
-        auto b_pos = get_boat_pos(stage_idx);
-        double dx = rx - b_pos.first;
-        double dy = ry - b_pos.second;
-        double dz = rz; // Boat Z is assumed 0 in XY projection constraint
-        double d = std::sqrt(dx * dx + dy * dy + dz * dz);
-        double L_safe = 1.0 * L_tether_;
-        if (d > L_safe) {
-            double scale = L_safe / d;
-            return {
-                b_pos.first + dx * scale,
-                b_pos.second + dy * scale,
-                dz * scale
-            };
-        }
-        return {rx, ry, rz};
-    };
-    
     // Get current drone attitude angles in Euler representation
     double roll = 0.0, pitch = 0.0, yaw = 0.0;
     kinematics::quaternionToEuler(qx_, qy_, qz_, qw_, roll, pitch, yaw);
@@ -270,149 +229,20 @@ UavControlOutput UavMpcPipeline::computeControl(double current_time) {
         
         double x_guess[10] = {x0[0], x0[1], x0[2], x0[3], x0[4], x0[5], x0[6], x0[7], x0[8], x0[9]};
         double u_guess[3] = {0.0, 0.0, 9.81};
-        for (int i = 0; i <= capsule->nlp_solver_plan->N; i++) {
+        for (int i = 0; i <= N; i++) {
             ocp_nlp_out_set(capsule->nlp_config, capsule->nlp_dims, capsule->nlp_out, capsule->nlp_in, i, "x", x_guess);
         }
-        for (int i = 0; i < capsule->nlp_solver_plan->N; i++) {
+        for (int i = 0; i < N; i++) {
             ocp_nlp_out_set(capsule->nlp_config, capsule->nlp_dims, capsule->nlp_out, capsule->nlp_in, i, "u", u_guess);
         }
         target_initialized_ = true;
     }
 
-    ocp_nlp_constraints_model_set(capsule->nlp_config, capsule->nlp_dims, capsule->nlp_in, capsule->nlp_out, 0, "lbx", x0);
-    ocp_nlp_constraints_model_set(capsule->nlp_config, capsule->nlp_dims, capsule->nlp_in, capsule->nlp_out, 0, "ubx", x0);
-
-    // Set state velocity and tilt bounds (lbx, ubx for stages 1...N)
-    // idxbx = [3, 4, 5, 6, 7, 8, 9] corresponding to [vx, vy, vz, phi, theta, phi_cmd, theta_cmd]
-    double lbx[7] = { -v_max_, -v_max_, -v_max_, -tilt_max_, -tilt_max_, -tilt_max_, -tilt_max_ };
-    double ubx[7] = {  v_max_,  v_max_,  v_max_,  tilt_max_,  tilt_max_,  tilt_max_,  tilt_max_ };
-    for (int i = 1; i <= capsule->nlp_solver_plan->N; i++) {
-        ocp_nlp_constraints_model_set(capsule->nlp_config, capsule->nlp_dims, capsule->nlp_in, capsule->nlp_out, i, "lbx", lbx);
-        ocp_nlp_constraints_model_set(capsule->nlp_config, capsule->nlp_dims, capsule->nlp_in, capsule->nlp_out, i, "ubx", ubx);
-    }
-
-    // Set control inputs bounds (lbu, ubu for stages 0...N-1)
-    // idxbu = [0, 1, 2], corresponding to [phi_dot_cmd, theta_dot_cmd, a_T]
-    // Slew rate limits: angular rate speed bounded at 2.0 rad/s (~115 deg/s)
-    double lbu[3] = { -0.8, -0.8, 0.1 * 9.81 };
-    double ubu[3] = {  0.8,  0.8, u_max_ };
-    for (int i = 0; i < capsule->nlp_solver_plan->N; i++) {
-        ocp_nlp_constraints_model_set(capsule->nlp_config, capsule->nlp_dims, capsule->nlp_in, capsule->nlp_out, i, "lbu", lbu);
-        ocp_nlp_constraints_model_set(capsule->nlp_config, capsule->nlp_dims, capsule->nlp_in, capsule->nlp_out, i, "ubu", ubu);
-    }
-
-    // Inject reference trajectory into the prediction horizon
-    if (trajectory_type_ == TrajectoryType::CIRCLE) {
-        // Initialize circle start time on first call
-        if (circle_start_time_ < 0.0) {
-            circle_start_time_ = current_time;
-        }
-        double elapsed = current_time - circle_start_time_;
-
-        for (int i = 0; i < capsule->nlp_solver_plan->N; i++) {
-            double t_stage = elapsed + i * Ts_;
-            TrajectoryPoint pt = trajectory_gen_.getPoint(t_stage);
-            auto proj = project_reference(i, pt.px, pt.py, pt.pz);
-            // yref = [p_x, p_y, p_z, v_x, v_y, v_z, phi, theta, phi_cmd, theta_cmd, phi_dot_cmd, theta_dot_cmd, a_T]
-            double yref[13] = {proj[0], proj[1], proj[2], pt.vx, pt.vy, pt.vz, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 9.81};
-            ocp_nlp_cost_model_set(capsule->nlp_config, capsule->nlp_dims, capsule->nlp_in, i, "yref", yref);
-        }
-        double t_terminal = elapsed + capsule->nlp_solver_plan->N * Ts_;
-        TrajectoryPoint pt_e = trajectory_gen_.getPoint(t_terminal);
-        auto proj_e = project_reference(capsule->nlp_solver_plan->N, pt_e.px, pt_e.py, pt_e.pz);
-        // yref_e = [p_x, p_y, p_z, v_x, v_y, v_z, phi, theta, phi_cmd, theta_cmd]
-        double yref_e[10] = {proj_e[0], proj_e[1], proj_e[2], pt_e.vx, pt_e.vy, pt_e.vz, 0.0, 0.0, 0.0, 0.0};
-        ocp_nlp_cost_model_set(capsule->nlp_config, capsule->nlp_dims, capsule->nlp_in, capsule->nlp_solver_plan->N, "yref", yref_e);
-
-        // Update current reference for RViz visualization (at start of prediction horizon)
-        TrajectoryPoint pt_start = trajectory_gen_.getPoint(elapsed);
-        current_reference_ = {pt_start.px, pt_start.py, pt_start.pz};
-        current_reference_velocity_ = {pt_start.vx, pt_start.vy, pt_start.vz};
-    } else if (trajectory_type_ == TrajectoryType::EXTERNAL) {
-        int N = capsule->nlp_solver_plan->N;
-        if (external_reference_path_.size() >= static_cast<size_t>(N + 1)) {
-            for (int i = 0; i < N; i++) {
-                const auto& pt = external_reference_path_[i];
-                auto proj = project_reference(i, pt.px, pt.py, pt.pz);
-                double yref[13] = {proj[0], proj[1], proj[2], pt.vx, pt.vy, pt.vz, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 9.81};
-                ocp_nlp_cost_model_set(capsule->nlp_config, capsule->nlp_dims, capsule->nlp_in, i, "yref", yref);
-            }
-            const auto& pt_e = external_reference_path_[N];
-            auto proj_e = project_reference(N, pt_e.px, pt_e.py, pt_e.pz);
-            double yref_e[10] = {proj_e[0], proj_e[1], proj_e[2], pt_e.vx, pt_e.vy, pt_e.vz, 0.0, 0.0, 0.0, 0.0};
-            ocp_nlp_cost_model_set(capsule->nlp_config, capsule->nlp_dims, capsule->nlp_in, N, "yref", yref_e);
-
-            current_reference_ = {external_reference_path_[0].px, external_reference_path_[0].py, external_reference_path_[0].pz};
-            current_reference_velocity_ = {external_reference_path_[0].vx, external_reference_path_[0].vy, external_reference_path_[0].vz};
-        } else {
-            // Fallback to HOLD mode reference
-            double yref[13] = {current_reference_[0], current_reference_[1], current_reference_[2], 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 9.81};
-            double yref_e[10] = {current_reference_[0], current_reference_[1], current_reference_[2], 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0};
-            for (int i = 0; i < N; i++) {
-                ocp_nlp_cost_model_set(capsule->nlp_config, capsule->nlp_dims, capsule->nlp_in, i, "yref", yref);
-            }
-            ocp_nlp_cost_model_set(capsule->nlp_config, capsule->nlp_dims, capsule->nlp_in, N, "yref", yref_e);
-            current_reference_velocity_ = {0.0, 0.0, 0.0};
-        }
-    } else {
-        // HOLD mode
-        double yref[13] = {current_reference_[0], current_reference_[1], current_reference_[2], 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 9.81};
-        double yref_e[10] = {current_reference_[0], current_reference_[1], current_reference_[2], 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0};
-        for (int i = 0; i < capsule->nlp_solver_plan->N; i++) {
-            ocp_nlp_cost_model_set(capsule->nlp_config, capsule->nlp_dims, capsule->nlp_in, i, "yref", yref);
-        }
-        ocp_nlp_cost_model_set(capsule->nlp_config, capsule->nlp_dims, capsule->nlp_in, capsule->nlp_solver_plan->N, "yref", yref_e);
-        current_reference_velocity_ = {0.0, 0.0, 0.0};
-    }
-
-    // Dynamic tension calculation
-    double T0_val = 0.0;
-    if (use_tether_) {
-        T0_val = tether::calculateWinchTension(L_tether_);
-    }
-
-    // Update path and terminal constraint bounds: 0 <= h(x,u,p) <= L_tether^2
-    double lh_val[1] = {0.0};
-    double uh_val[1] = {use_tether_ ? (L_tether_ * L_tether_) : 1e6}; // If not using tether, set upper limit to 1000m^2
-    for (int i = 0; i < N_horizon_; i++) {
-        ocp_nlp_constraints_model_set(capsule->nlp_config, capsule->nlp_dims, capsule->nlp_in, capsule->nlp_out, i, "lh", lh_val);
-        ocp_nlp_constraints_model_set(capsule->nlp_config, capsule->nlp_dims, capsule->nlp_in, capsule->nlp_out, i, "uh", uh_val);
-    }
-    ocp_nlp_constraints_model_set(capsule->nlp_config, capsule->nlp_dims, capsule->nlp_in, capsule->nlp_out, N_horizon_, "lh", lh_val);
-    ocp_nlp_constraints_model_set(capsule->nlp_config, capsule->nlp_dims, capsule->nlp_in, capsule->nlp_out, N_horizon_, "uh", uh_val);
-
-    // Set parameters in ACADOS: [psi, x_boat, y_boat] for each stage
-    for (int i = 0; i <= N_horizon_; i++) {
-        double x_boat = anchor_x_;
-        double y_boat = anchor_y_;
-
-        if (use_tether_ && has_boat_horizon_ && !boat_horizon_.empty()) {
-            double t = i * Ts_;
-            double boat_Ts = 0.1; // USV MPC control period
-            double idx_f = t / boat_Ts;
-            size_t j = static_cast<size_t>(std::floor(idx_f));
-            if (j < boat_horizon_.size() - 1) {
-                double alpha = idx_f - j;
-                x_boat = (1.0 - alpha) * boat_horizon_[j][0] + alpha * boat_horizon_[j+1][0];
-                y_boat = (1.0 - alpha) * boat_horizon_[j][1] + alpha * boat_horizon_[j+1][1];
-            } else {
-                x_boat = boat_horizon_.back()[0];
-                y_boat = boat_horizon_.back()[1];
-            }
-        }
-
-        double p_params[3] = {
-            yaw,
-            x_boat,
-            y_boat
-        };
-        uav_tethered_acados_update_params(capsule, i, p_params, 3);
-    }
+    // Set solver constraints, parameters, references and bounds
+    setupOcpSolver(current_time, roll, pitch, yaw, x0);
 
     // Se já foi inicializado, fazemos shifting da solução anterior para o warm start do novo ciclo
     if (target_initialized_) {
-        int N = capsule->nlp_solver_plan->N;
-
         // 1. Shift dos controlos (u_i = u_{i+1})
         double u_temp[3];
         for (int i = 0; i < N - 1; i++) {
@@ -476,7 +306,7 @@ UavControlOutput UavMpcPipeline::computeControl(double current_time) {
 
     // Extract predicted trajectory positions
     double x_step[10];
-    for (int i = 0; i <= capsule->nlp_solver_plan->N; i++) {
+    for (int i = 0; i <= N; i++) {
         ocp_nlp_out_get(capsule->nlp_config, capsule->nlp_dims, capsule->nlp_out, i, "x", x_step);
         output.predicted_positions.push_back({x_step[0], x_step[1], x_step[2]});
     }
@@ -485,6 +315,7 @@ UavControlOutput UavMpcPipeline::computeControl(double current_time) {
     output.current_reference_velocity = current_reference_velocity_;
 
     // Calculate estimated tether force magnitude
+    double T0_val = use_tether_ ? tether::calculateWinchTension(L_tether_) : 0.0;
     output.mpc_tether_force_mag = tether::estimateTetherForce(
         current_state_[0], current_state_[1], current_state_[2],
         anchor_x_, anchor_y_, anchor_z_,
@@ -495,7 +326,7 @@ UavControlOutput UavMpcPipeline::computeControl(double current_time) {
     output.reference_path.clear();
     if (trajectory_type_ == TrajectoryType::CIRCLE) {
         double elapsed_vis = (circle_start_time_ >= 0.0) ? (current_time - circle_start_time_) : 0.0;
-        for (int i = 0; i <= capsule->nlp_solver_plan->N; i++) {
+        for (int i = 0; i <= N; i++) {
             double t_stage = elapsed_vis + i * Ts_;
             TrajectoryPoint pt = trajectory_gen_.getPoint(t_stage);
             output.reference_path.push_back({pt.px, pt.py, pt.pz});
@@ -572,95 +403,8 @@ void UavMpcPipeline::captureOpenLoopHorizon(double current_time) {
         target_initialized_ = true;
     }
 
-    ocp_nlp_constraints_model_set(capsule->nlp_config, capsule->nlp_dims, capsule->nlp_in, capsule->nlp_out, 0, "lbx", x0);
-    ocp_nlp_constraints_model_set(capsule->nlp_config, capsule->nlp_dims, capsule->nlp_in, capsule->nlp_out, 0, "ubx", x0);
-
-    // Set state velocity and tilt bounds
-    double lbx[7] = { -v_max_, -v_max_, -v_max_, -tilt_max_, -tilt_max_, -tilt_max_, -tilt_max_ };
-    double ubx[7] = {  v_max_,  v_max_,  v_max_,  tilt_max_,  tilt_max_,  tilt_max_,  tilt_max_ };
-    for (int i = 1; i <= N; i++) {
-        ocp_nlp_constraints_model_set(capsule->nlp_config, capsule->nlp_dims, capsule->nlp_in, capsule->nlp_out, i, "lbx", lbx);
-        ocp_nlp_constraints_model_set(capsule->nlp_config, capsule->nlp_dims, capsule->nlp_in, capsule->nlp_out, i, "ubx", ubx);
-    }
-
-    // Set control inputs bounds
-    double lbu[3] = { -0.8, -0.8, 0.1 * 9.81 };
-    double ubu[3] = {  0.8,  0.8, u_max_ };
-    for (int i = 0; i < N; i++) {
-        ocp_nlp_constraints_model_set(capsule->nlp_config, capsule->nlp_dims, capsule->nlp_in, capsule->nlp_out, i, "lbu", lbu);
-        ocp_nlp_constraints_model_set(capsule->nlp_config, capsule->nlp_dims, capsule->nlp_in, capsule->nlp_out, i, "ubu", ubu);
-    }
-
-    // Inject reference trajectory into the prediction horizon
-    if (trajectory_type_ == TrajectoryType::CIRCLE) {
-        if (circle_start_time_ < 0.0) {
-            circle_start_time_ = current_time;
-        }
-        double elapsed = current_time - circle_start_time_;
-
-        for (int i = 0; i < N; i++) {
-            double t_stage = elapsed + i * Ts_;
-            TrajectoryPoint pt = trajectory_gen_.getPoint(t_stage);
-            double yref[13] = {pt.px, pt.py, pt.pz, pt.vx, pt.vy, pt.vz, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 9.81};
-            ocp_nlp_cost_model_set(capsule->nlp_config, capsule->nlp_dims, capsule->nlp_in, i, "yref", yref);
-        }
-        double t_terminal = elapsed + N * Ts_;
-        TrajectoryPoint pt_e = trajectory_gen_.getPoint(t_terminal);
-        double yref_e[10] = {pt_e.px, pt_e.py, pt_e.pz, pt_e.vx, pt_e.vy, pt_e.vz, 0.0, 0.0, 0.0, 0.0};
-        ocp_nlp_cost_model_set(capsule->nlp_config, capsule->nlp_dims, capsule->nlp_in, N, "yref", yref_e);
-        
-        TrajectoryPoint pt_start = trajectory_gen_.getPoint(elapsed);
-        current_reference_ = {pt_start.px, pt_start.py, pt_start.pz};
-        current_reference_velocity_ = {pt_start.vx, pt_start.vy, pt_start.vz};
-    } else {
-        double yref[13] = {current_reference_[0], current_reference_[1], current_reference_[2], 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 9.81};
-        double yref_e[10] = {current_reference_[0], current_reference_[1], current_reference_[2], 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0};
-        for (int i = 0; i < N; i++) {
-            ocp_nlp_cost_model_set(capsule->nlp_config, capsule->nlp_dims, capsule->nlp_in, i, "yref", yref);
-        }
-        ocp_nlp_cost_model_set(capsule->nlp_config, capsule->nlp_dims, capsule->nlp_in, N, "yref", yref_e);
-        current_reference_velocity_ = {0.0, 0.0, 0.0};
-    }
-
-    double T0_val = use_tether_ ? tether::calculateWinchTension(L_tether_) : 0.0;
-    
-    // Update path and terminal constraint bounds: 0 <= h(x,u,p) <= L_tether^2
-    double lh_val[1] = {0.0};
-    double uh_val[1] = {use_tether_ ? (L_tether_ * L_tether_) : 1e6};
-    for (int i = 0; i < N_horizon_; i++) {
-        ocp_nlp_constraints_model_set(capsule->nlp_config, capsule->nlp_dims, capsule->nlp_in, capsule->nlp_out, i, "lh", lh_val);
-        ocp_nlp_constraints_model_set(capsule->nlp_config, capsule->nlp_dims, capsule->nlp_in, capsule->nlp_out, i, "uh", uh_val);
-    }
-    ocp_nlp_constraints_model_set(capsule->nlp_config, capsule->nlp_dims, capsule->nlp_in, capsule->nlp_out, N_horizon_, "lh", lh_val);
-    ocp_nlp_constraints_model_set(capsule->nlp_config, capsule->nlp_dims, capsule->nlp_in, capsule->nlp_out, N_horizon_, "uh", uh_val);
-
-    // Set parameters in ACADOS: [psi, x_boat, y_boat] for each stage
-    for (int i = 0; i <= N_horizon_; i++) {
-        double x_boat = anchor_x_;
-        double y_boat = anchor_y_;
-
-        if (use_tether_ && has_boat_horizon_ && !boat_horizon_.empty()) {
-            double t = i * Ts_;
-            double boat_Ts = 0.1; // USV MPC control period
-            double idx_f = t / boat_Ts;
-            size_t j = static_cast<size_t>(std::floor(idx_f));
-            if (j < boat_horizon_.size() - 1) {
-                double alpha = idx_f - j;
-                x_boat = (1.0 - alpha) * boat_horizon_[j][0] + alpha * boat_horizon_[j+1][0];
-                y_boat = (1.0 - alpha) * boat_horizon_[j][1] + alpha * boat_horizon_[j+1][1];
-            } else {
-                x_boat = boat_horizon_.back()[0];
-                y_boat = boat_horizon_.back()[1];
-            }
-        }
-
-        double p_params[3] = {
-            yaw,
-            x_boat,
-            y_boat
-        };
-        uav_tethered_acados_update_params(capsule, i, p_params, 3);
-    }
+    // Set solver constraints, parameters, references and bounds
+    setupOcpSolver(current_time, roll, pitch, yaw, x0);
 
     // Solve OCP
     int status = uav_tethered_acados_solve(capsule);
@@ -678,6 +422,8 @@ void UavMpcPipeline::captureOpenLoopHorizon(double current_time) {
         open_loop_predicted_positions_.push_back({x_step[0], x_step[1], x_step[2]});
     }
 
+    double T0_val = use_tether_ ? tether::calculateWinchTension(L_tether_) : 0.0;
+    
     // Retrieve control inputs and compute required step properties
     for (int i = 0; i < N; i++) {
         OpenLoopControlStep step_data;
@@ -745,6 +491,170 @@ bool UavMpcPipeline::isOpenLoopActive() const {
 
 const std::vector<std::vector<double>>& UavMpcPipeline::getCapturedPredictedPositions() const {
     return open_loop_predicted_positions_;
+}
+
+void UavMpcPipeline::setupOcpSolver(double current_time, double roll, double pitch, double yaw, const double x0[10]) {
+    auto capsule = (uav_tethered_solver_capsule*)acados_ocp_capsule_;
+    int N = capsule->nlp_solver_plan->N;
+
+    ocp_nlp_constraints_model_set(capsule->nlp_config, capsule->nlp_dims, capsule->nlp_in, capsule->nlp_out, 0, "lbx", const_cast<double*>(x0));
+    ocp_nlp_constraints_model_set(capsule->nlp_config, capsule->nlp_dims, capsule->nlp_in, capsule->nlp_out, 0, "ubx", const_cast<double*>(x0));
+
+    // Set state velocity and tilt bounds (lbx, ubx for stages 1...N)
+    // idxbx = [3, 4, 5, 6, 7, 8, 9] corresponding to [vx, vy, vz, phi, theta, phi_cmd, theta_cmd]
+    double lbx[7] = { -v_max_, -v_max_, -v_max_, -tilt_max_, -tilt_max_, -tilt_max_, -tilt_max_ };
+    double ubx[7] = {  v_max_,  v_max_,  v_max_,  tilt_max_,  tilt_max_,  tilt_max_,  tilt_max_ };
+    for (int i = 1; i <= N; i++) {
+        ocp_nlp_constraints_model_set(capsule->nlp_config, capsule->nlp_dims, capsule->nlp_in, capsule->nlp_out, i, "lbx", lbx);
+        ocp_nlp_constraints_model_set(capsule->nlp_config, capsule->nlp_dims, capsule->nlp_in, capsule->nlp_out, i, "ubx", ubx);
+    }
+
+    // Set control inputs bounds (lbu, ubu for stages 0...N-1)
+    // idxbu = [0, 1, 2], corresponding to [phi_dot_cmd, theta_dot_cmd, a_T]
+    // Slew rate limits: angular rate speed bounded at 2.0 rad/s (~115 deg/s)
+    double lbu[3] = { -0.8, -0.8, 0.1 * 9.81 };
+    double ubu[3] = {  0.8,  0.8, u_max_ };
+    for (int i = 0; i < N; i++) {
+        ocp_nlp_constraints_model_set(capsule->nlp_config, capsule->nlp_dims, capsule->nlp_in, capsule->nlp_out, i, "lbu", lbu);
+        ocp_nlp_constraints_model_set(capsule->nlp_config, capsule->nlp_dims, capsule->nlp_in, capsule->nlp_out, i, "ubu", ubu);
+    }
+
+    auto get_boat_pos = [&](int stage_idx) -> std::pair<double, double> {
+        double x_b = anchor_x_;
+        double y_b = anchor_y_;
+        if (use_tether_ && has_boat_horizon_ && !boat_horizon_.empty()) {
+            double t = stage_idx * Ts_;
+            double boat_Ts = 0.1;
+            double idx_f = t / boat_Ts;
+            size_t j = static_cast<size_t>(std::floor(idx_f));
+            if (j < boat_horizon_.size() - 1) {
+                double alpha = idx_f - j;
+                x_b = (1.0 - alpha) * boat_horizon_[j][0] + alpha * boat_horizon_[j+1][0];
+                y_b = (1.0 - alpha) * boat_horizon_[j][1] + alpha * boat_horizon_[j+1][1];
+            } else {
+                x_b = boat_horizon_.back()[0];
+                y_b = boat_horizon_.back()[1];
+            }
+        }
+        return {x_b, y_b};
+    };
+
+    auto project_reference = [&](int stage_idx, double rx, double ry, double rz) -> std::vector<double> {
+        if (!use_tether_) {
+            return {rx, ry, rz};
+        }
+        auto b_pos = get_boat_pos(stage_idx);
+        double dx = rx - b_pos.first;
+        double dy = ry - b_pos.second;
+        double dz = rz; // Boat Z is assumed 0 in XY projection constraint
+        double d = std::sqrt(dx * dx + dy * dy + dz * dz);
+        double L_safe = 1.0 * L_tether_;
+        if (d > L_safe) {
+            double scale = L_safe / d;
+            return {
+                b_pos.first + dx * scale,
+                b_pos.second + dy * scale,
+                dz * scale
+            };
+        }
+        return {rx, ry, rz};
+    };
+
+    // Inject reference trajectory into the prediction horizon
+    if (trajectory_type_ == TrajectoryType::CIRCLE) {
+        if (circle_start_time_ < 0.0) {
+            circle_start_time_ = current_time;
+        }
+        double elapsed = current_time - circle_start_time_;
+
+        for (int i = 0; i < N; i++) {
+            double t_stage = elapsed + i * Ts_;
+            TrajectoryPoint pt = trajectory_gen_.getPoint(t_stage);
+            auto proj = project_reference(i, pt.px, pt.py, pt.pz);
+            double yref[13] = {proj[0], proj[1], proj[2], pt.vx, pt.vy, pt.vz, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 9.81};
+            ocp_nlp_cost_model_set(capsule->nlp_config, capsule->nlp_dims, capsule->nlp_in, i, "yref", yref);
+        }
+        double t_terminal = elapsed + N * Ts_;
+        TrajectoryPoint pt_e = trajectory_gen_.getPoint(t_terminal);
+        auto proj_e = project_reference(N, pt_e.px, pt_e.py, pt_e.pz);
+        double yref_e[10] = {proj_e[0], proj_e[1], proj_e[2], pt_e.vx, pt_e.vy, pt_e.vz, 0.0, 0.0, 0.0, 0.0};
+        ocp_nlp_cost_model_set(capsule->nlp_config, capsule->nlp_dims, capsule->nlp_in, N, "yref", yref_e);
+
+        TrajectoryPoint pt_start = trajectory_gen_.getPoint(elapsed);
+        current_reference_ = {pt_start.px, pt_start.py, pt_start.pz};
+        current_reference_velocity_ = {pt_start.vx, pt_start.vy, pt_start.vz};
+    } else if (trajectory_type_ == TrajectoryType::EXTERNAL) {
+        if (external_reference_path_.size() >= static_cast<size_t>(N + 1)) {
+            for (int i = 0; i < N; i++) {
+                const auto& pt = external_reference_path_[i];
+                auto proj = project_reference(i, pt.px, pt.py, pt.pz);
+                double yref[13] = {proj[0], proj[1], proj[2], pt.vx, pt.vy, pt.vz, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 9.81};
+                ocp_nlp_cost_model_set(capsule->nlp_config, capsule->nlp_dims, capsule->nlp_in, i, "yref", yref);
+            }
+            const auto& pt_e = external_reference_path_[N];
+            auto proj_e = project_reference(N, pt_e.px, pt_e.py, pt_e.pz);
+            double yref_e[10] = {proj_e[0], proj_e[1], proj_e[2], pt_e.vx, pt_e.vy, pt_e.vz, 0.0, 0.0, 0.0, 0.0};
+            ocp_nlp_cost_model_set(capsule->nlp_config, capsule->nlp_dims, capsule->nlp_in, N, "yref", yref_e);
+
+            current_reference_ = {external_reference_path_[0].px, external_reference_path_[0].py, external_reference_path_[0].pz};
+            current_reference_velocity_ = {external_reference_path_[0].vx, external_reference_path_[0].vy, external_reference_path_[0].vz};
+        } else {
+            double yref[13] = {current_reference_[0], current_reference_[1], current_reference_[2], 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 9.81};
+            double yref_e[10] = {current_reference_[0], current_reference_[1], current_reference_[2], 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0};
+            for (int i = 0; i < N; i++) {
+                ocp_nlp_cost_model_set(capsule->nlp_config, capsule->nlp_dims, capsule->nlp_in, i, "yref", yref);
+            }
+            ocp_nlp_cost_model_set(capsule->nlp_config, capsule->nlp_dims, capsule->nlp_in, N, "yref", yref_e);
+            current_reference_velocity_ = {0.0, 0.0, 0.0};
+        }
+    } else {
+        // HOLD mode
+        double yref[13] = {current_reference_[0], current_reference_[1], current_reference_[2], 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 9.81};
+        double yref_e[10] = {current_reference_[0], current_reference_[1], current_reference_[2], 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0};
+        for (int i = 0; i < N; i++) {
+            ocp_nlp_cost_model_set(capsule->nlp_config, capsule->nlp_dims, capsule->nlp_in, i, "yref", yref);
+        }
+        ocp_nlp_cost_model_set(capsule->nlp_config, capsule->nlp_dims, capsule->nlp_in, N, "yref", yref_e);
+        current_reference_velocity_ = {0.0, 0.0, 0.0};
+    }
+
+    // Update path and terminal constraint bounds: 0 <= h(x,u,p) <= L_tether^2
+    double lh_val[1] = {0.0};
+    double uh_val[1] = {use_tether_ ? (L_tether_ * L_tether_) : 1e6}; // If not using tether, set upper limit to 1000m^2
+    for (int i = 0; i < N; i++) {
+        ocp_nlp_constraints_model_set(capsule->nlp_config, capsule->nlp_dims, capsule->nlp_in, capsule->nlp_out, i, "lh", lh_val);
+        ocp_nlp_constraints_model_set(capsule->nlp_config, capsule->nlp_dims, capsule->nlp_in, capsule->nlp_out, i, "uh", uh_val);
+    }
+    ocp_nlp_constraints_model_set(capsule->nlp_config, capsule->nlp_dims, capsule->nlp_in, capsule->nlp_out, N, "lh", lh_val);
+    ocp_nlp_constraints_model_set(capsule->nlp_config, capsule->nlp_dims, capsule->nlp_in, capsule->nlp_out, N, "uh", uh_val);
+
+    // Set parameters in ACADOS: [psi, x_boat, y_boat] for each stage
+    for (int i = 0; i <= N; i++) {
+        double x_boat = anchor_x_;
+        double y_boat = anchor_y_;
+
+        if (use_tether_ && has_boat_horizon_ && !boat_horizon_.empty()) {
+            double t = i * Ts_;
+            double boat_Ts = 0.1; // USV MPC control period
+            double idx_f = t / boat_Ts;
+            size_t j = static_cast<size_t>(std::floor(idx_f));
+            if (j < boat_horizon_.size() - 1) {
+                double alpha = idx_f - j;
+                x_boat = (1.0 - alpha) * boat_horizon_[j][0] + alpha * boat_horizon_[j+1][0];
+                y_boat = (1.0 - alpha) * boat_horizon_[j][1] + alpha * boat_horizon_[j+1][1];
+            } else {
+                x_boat = boat_horizon_.back()[0];
+                y_boat = boat_horizon_.back()[1];
+            }
+        }
+
+        double p_params[3] = {
+            yaw,
+            x_boat,
+            y_boat
+        };
+        uav_tethered_acados_update_params(capsule, i, p_params, 3);
+    }
 }
 
 } // namespace uav_mpc

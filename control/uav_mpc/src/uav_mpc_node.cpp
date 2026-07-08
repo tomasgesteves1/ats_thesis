@@ -78,8 +78,6 @@ UavMpcNode::UavMpcNode()
         "/px4_1/fmu/in/offboard_control_mode", qos);
     attitude_setpoint_pub_ = this->create_publisher<px4_msgs::msg::VehicleAttitudeSetpoint>(
         "/px4_1/fmu/in/vehicle_attitude_setpoint", qos);
-    vehicle_command_pub_ = this->create_publisher<px4_msgs::msg::VehicleCommand>(
-        "/px4_1/fmu/in/vehicle_command", qos);
 
     // Relative visualization publishers
     predicted_trajectory_pub_ = this->create_publisher<visualization_msgs::msg::Marker>(
@@ -564,24 +562,6 @@ void UavMpcNode::publishAttitudeSetpoint(const UavControlOutput& output) {
     att_msg.thrust_body[2] = -static_cast<float>(thrust_normalized); // -Z in FRD frame is upward force
 
     attitude_setpoint_pub_->publish(att_msg);
-}
-
-void UavMpcNode::publishVehicleCommand(uint16_t command, float param1, float param2, float param7) {
-    px4_msgs::msg::VehicleCommand msg{};
-    msg.timestamp = this->get_clock()->now().nanoseconds() / 1000;
-    msg.command = command;
-    msg.param1 = param1;
-    msg.param2 = param2;
-    // Set param5 and param6 to NaN to ensure local takeoff (avoid Null Island bug)
-    msg.param5 = std::numeric_limits<float>::quiet_NaN();
-    msg.param6 = std::numeric_limits<float>::quiet_NaN();
-    msg.param7 = param7;
-    msg.target_system = current_system_id_;
-    msg.target_component = 1;
-    msg.source_system = 1;
-    msg.source_component = 1;
-    msg.from_external = true;
-    vehicle_command_pub_->publish(msg);
 }
 
 void UavMpcNode::publishVisualizationMarkers(const UavControlOutput& output) {
