@@ -92,6 +92,9 @@ private:
 
     // Open-loop variables
     bool open_loop_test_;
+    bool open_loop_active_;
+    size_t open_loop_step_;
+    std::vector<UavControlOutput> open_loop_steps_;
     nav_msgs::msg::Path open_loop_predicted_path_;
     nav_msgs::msg::Path open_loop_actual_path_;
 };

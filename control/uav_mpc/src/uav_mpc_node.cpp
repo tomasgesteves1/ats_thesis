@@ -19,7 +19,9 @@ UavMpcNode::UavMpcNode()
       current_system_id_(2),
       last_boat_horizon_time_(0, 0, RCL_ROS_TIME),
       active_tether_max_length_(-1.0),
-      open_loop_test_(false) {
+      open_loop_test_(false),
+      open_loop_active_(false),
+      open_loop_step_(0) {
       
     pipeline_ = std::make_unique<UavMpcPipeline>();
 
@@ -31,9 +33,6 @@ UavMpcNode::UavMpcNode()
     tether_desc.dynamic_typing = true;
     this->declare_parameter("tether_max_length", rclcpp::ParameterValue(15.0), tether_desc);
     this->declare_parameter<std::string>("trajectory_type", "hold");
-    this->declare_parameter<double>("circle_radius", 3.0);
-    this->declare_parameter<double>("circle_omega", 0.2);
-    this->declare_parameter<double>("circle_height", 10.0);
     this->declare_parameter<double>("v_max", 10.0);
     this->declare_parameter<double>("u_max", 19.62);
     this->declare_parameter<double>("hover_throttle", 0.7265);
@@ -196,7 +195,6 @@ void UavMpcNode::odomCallback(const nav_msgs::msg::Odometry::SharedPtr msg) {
 
 void UavMpcNode::controlLoop() {
     open_loop_test_ = this->get_parameter("open_loop_test").as_bool();
-    pipeline_->setOpenLoopMode(open_loop_test_);
 
     bool use_tether = this->get_parameter("use_tether").as_bool();
     pipeline_->setUseTether(use_tether);
@@ -316,18 +314,11 @@ void UavMpcNode::controlLoop() {
 
     // Update dynamic trajectory parameters
     std::string traj_type = this->get_parameter("trajectory_type").as_string();
-    if (traj_type == "circle") {
-        pipeline_->setTrajectoryType(TrajectoryType::CIRCLE);
-    } else if (traj_type == "external") {
+    if (traj_type == "external") {
         pipeline_->setTrajectoryType(TrajectoryType::EXTERNAL);
     } else {
         pipeline_->setTrajectoryType(TrajectoryType::HOLD);
     }
-
-    double radius = this->get_parameter("circle_radius").as_double();
-    double omega = this->get_parameter("circle_omega").as_double();
-    double height = this->get_parameter("circle_height").as_double();
-    pipeline_->configureCircle(radius, omega, height);
 
     // Update dynamic limits
     double v_max = this->get_parameter("v_max").as_double();
@@ -361,25 +352,29 @@ void UavMpcNode::controlLoop() {
 
     // Check transition to OFFBOARD with open-loop test enabled
     if (latest_vehicle_status_.nav_state == px4_msgs::msg::VehicleStatus::NAVIGATION_STATE_OFFBOARD) {
-        if (open_loop_test_ && !pipeline_->isOpenLoopActive()) {
+        if (open_loop_test_ && !open_loop_active_) {
             RCLCPP_INFO(this->get_logger(), "Transition to OFFBOARD detected with open-loop test enabled. Capturing horizon...");
-            pipeline_->captureOpenLoopHorizon(sim_time_s);
+            open_loop_steps_ = pipeline_->getOpenLoopHorizon(sim_time_s);
+            open_loop_step_ = 0;
+            open_loop_active_ = true;
             
             // Build and store the static open-loop predicted path
             auto current_time_ros = this->get_clock()->now();
             open_loop_predicted_path_.header.frame_id = "world";
             open_loop_predicted_path_.header.stamp = current_time_ros;
             open_loop_predicted_path_.poses.clear();
-            const auto& pred_positions = pipeline_->getCapturedPredictedPositions();
-            for (const auto& pos : pred_positions) {
-                geometry_msgs::msg::PoseStamped pose;
-                pose.header.frame_id = "world";
-                pose.header.stamp = current_time_ros;
-                pose.pose.position.x = pos[0];
-                pose.pose.position.y = pos[1];
-                pose.pose.position.z = pos[2];
-                pose.pose.orientation.w = 1.0;
-                open_loop_predicted_path_.poses.push_back(pose);
+            if (!open_loop_steps_.empty()) {
+                const auto& pred_positions = open_loop_steps_[0].predicted_positions;
+                for (const auto& pos : pred_positions) {
+                    geometry_msgs::msg::PoseStamped pose;
+                    pose.header.frame_id = "world";
+                    pose.header.stamp = current_time_ros;
+                    pose.pose.position.x = pos[0];
+                    pose.pose.position.y = pos[1];
+                    pose.pose.position.z = pos[2];
+                    pose.pose.orientation.w = 1.0;
+                    open_loop_predicted_path_.poses.push_back(pose);
+                }
             }
             
             // Clear the actual path followed
@@ -388,11 +383,25 @@ void UavMpcNode::controlLoop() {
             open_loop_actual_path_.poses.clear();
         }
     } else {
-        pipeline_->resetOpenLoop();
+        open_loop_active_ = false;
+        open_loop_step_ = 0;
+        open_loop_steps_.clear();
     }
 
-    // Execute calculations in the logic pipeline (pass actual sim time)
-    UavControlOutput output = pipeline_->computeControl(sim_time_s);
+    // Execute calculations or replay open-loop commands
+    UavControlOutput output;
+    if (open_loop_active_ && !open_loop_steps_.empty()) {
+        size_t idx = open_loop_step_;
+        if (idx >= open_loop_steps_.size()) {
+            idx = open_loop_steps_.size() - 1; // Hold the last control input
+        }
+        output = open_loop_steps_[idx];
+        if (open_loop_step_ < open_loop_steps_.size()) {
+            open_loop_step_++;
+        }
+    } else {
+        output = pipeline_->computeControl(sim_time_s);
+    }
 
     // Calculate dynamically normalized thrust using the real-time PX4 hover thrust estimate (throttled to 1Hz)
     double thrust_normalized = (output.u_opt[2] / 9.81) * px4_hover_thrust_;
@@ -504,7 +513,7 @@ void UavMpcNode::controlLoop() {
     mpc_reference_path_pub_->publish(ref_path_msg);
 
     // Publish open-loop paths if active
-    if (pipeline_->isOpenLoopActive()) {
+    if (open_loop_active_) {
         geometry_msgs::msg::PoseStamped actual_pose;
         actual_pose.header.frame_id = "world";
         actual_pose.header.stamp = current_time;

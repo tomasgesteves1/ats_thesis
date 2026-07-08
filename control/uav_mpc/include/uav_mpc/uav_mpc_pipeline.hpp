@@ -1,14 +1,17 @@
 #pragma once
 
 #include <vector>
-#include "uav_mpc/uav_mpc_trajectory.hpp"
 
 namespace uav_mpc {
 
+struct TrajectoryPoint {
+    double px, py, pz;
+    double vx, vy, vz;
+};
+
 enum class TrajectoryType {
     HOLD = 0,
-    CIRCLE = 1,
-    EXTERNAL = 2
+    EXTERNAL = 1
 };
 
 struct UavControlOutput {
@@ -36,7 +39,6 @@ public:
     void setExternalReferencePath(const std::vector<TrajectoryPoint>& path);
     void setCostWeights(double w_pos, double w_vel);
     void setTrajectoryType(TrajectoryType type);
-    void configureCircle(double radius, double omega, double height, double center_x = 0.0, double center_y = 0.0);
     void setUseTether(bool use_tether);
     void setVelocityLimit(double v_max);
     void setInputLimit(double u_max);
@@ -44,12 +46,8 @@ public:
     void setTiltMax(double tilt_max);
     UavControlOutput computeControl(double current_time);
 
-    // Open-loop test support
-    void setOpenLoopMode(bool enabled);
-    void captureOpenLoopHorizon(double current_time);
-    void resetOpenLoop();
-    bool isOpenLoopActive() const;
-    const std::vector<std::vector<double>>& getCapturedPredictedPositions() const;
+    // Open-loop test support: returns the full planned control horizon
+    std::vector<UavControlOutput> getOpenLoopHorizon(double current_time);
 
 private:
     void setupOcpSolver(double current_time, double roll, double pitch, double yaw, const double x0[10]);
@@ -77,27 +75,8 @@ private:
 
     // Trajectory generator and time
     TrajectoryType trajectory_type_;
-    UavMpcTrajectory trajectory_gen_;
     std::vector<TrajectoryPoint> external_reference_path_;
-    double circle_start_time_;  // Sim time when circle mode was activated
     static constexpr double Ts_ = 0.02;  // Control period (s)
-
-    // Open-loop execution variables
-    bool open_loop_mode_enabled_;
-    bool open_loop_active_;
-    int open_loop_step_;
-    int N_horizon_;
-
-    struct OpenLoopControlStep {
-        double q_d[4];
-        double thrust_normalized;
-        double u_opt[3];
-        double reference[3];
-        double reference_velocity[3];
-        double mpc_tether_force_mag;
-    };
-    std::vector<OpenLoopControlStep> open_loop_steps_;
-    std::vector<std::vector<double>> open_loop_predicted_positions_;
 
     // Variables for augmented state feedback (Option B with rate constraints)
     double last_phi_cmd_;
@@ -106,4 +85,3 @@ private:
 };
 
 } // namespace uav_mpc
-

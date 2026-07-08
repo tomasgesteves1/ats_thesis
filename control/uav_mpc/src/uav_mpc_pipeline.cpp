@@ -15,9 +15,7 @@ UavMpcPipeline::UavMpcPipeline()
       has_boat_horizon_(false),
       L_tether_(3.0), use_tether_(true), v_max_(2.0), u_max_(15.0),
       hover_throttle_(0.52), tilt_max_(0.2),
-      trajectory_type_(TrajectoryType::HOLD), circle_start_time_(-1.0),
-      open_loop_mode_enabled_(false), open_loop_active_(false),
-      open_loop_step_(0), N_horizon_(0),
+      trajectory_type_(TrajectoryType::HOLD),
       last_phi_cmd_(0.0), last_theta_cmd_(0.0), first_run_(true) {
     current_state_.resize(6, 0.0);
     current_reference_.resize(3, 0.0);
@@ -27,9 +25,6 @@ UavMpcPipeline::UavMpcPipeline()
     int status = uav_tethered_acados_create((uav_tethered_solver_capsule*)acados_ocp_capsule_);
     if (status) {
         std::cerr << "UavMpcPipeline: Failed to create ACADOS solver!" << std::endl;
-    } else {
-        auto capsule = (uav_tethered_solver_capsule*)acados_ocp_capsule_;
-        N_horizon_ = capsule->nlp_solver_plan->N;
     }
 }
 
@@ -113,16 +108,7 @@ void UavMpcPipeline::setCostWeights(double w_pos, double w_vel) {
 }
 
 void UavMpcPipeline::setTrajectoryType(TrajectoryType type) {
-    if (trajectory_type_ != type) {
-        trajectory_type_ = type;
-        if (type == TrajectoryType::CIRCLE) {
-            circle_start_time_ = -1.0;  // Will be set on first computeControl call with valid time
-        }
-    }
-}
-
-void UavMpcPipeline::configureCircle(double radius, double omega, double height, double center_x, double center_y) {
-    trajectory_gen_.configureCircle(radius, omega, height, center_x, center_y);
+    trajectory_type_ = type;
 }
 
 void UavMpcPipeline::setUseTether(bool use_tether) {
@@ -146,51 +132,6 @@ void UavMpcPipeline::setTiltMax(double tilt_max) {
 }
 
 UavControlOutput UavMpcPipeline::computeControl(double current_time) {
-    if (open_loop_mode_enabled_ && open_loop_active_) {
-        UavControlOutput output;
-        
-        int idx = open_loop_step_;
-        if (idx >= N_horizon_) {
-            idx = N_horizon_ - 1; // Hold the last control input
-        }
-        
-        const auto& step = open_loop_steps_[idx];
-        
-        output.q_d[0] = step.q_d[0];
-        output.q_d[1] = step.q_d[1];
-        output.q_d[2] = step.q_d[2];
-        output.q_d[3] = step.q_d[3];
-        
-        output.thrust_normalized = step.thrust_normalized;
-        output.u_opt[0] = step.u_opt[0];
-        output.u_opt[1] = step.u_opt[1];
-        output.u_opt[2] = step.u_opt[2];
-        
-        output.predicted_positions = open_loop_predicted_positions_;
-        output.current_reference = {step.reference[0], step.reference[1], step.reference[2]};
-        output.current_reference_velocity = {step.reference_velocity[0], step.reference_velocity[1], step.reference_velocity[2]};
-        
-        output.reference_path.clear();
-        if (trajectory_type_ == TrajectoryType::CIRCLE) {
-            double elapsed_vis = (circle_start_time_ >= 0.0) ? (current_time - circle_start_time_) : 0.0;
-            for (int i = 0; i <= N_horizon_; i++) {
-                double t_stage = elapsed_vis + i * Ts_;
-                TrajectoryPoint pt = trajectory_gen_.getPoint(t_stage);
-                output.reference_path.push_back({pt.px, pt.py, pt.pz});
-            }
-        } else {
-            output.reference_path.push_back({current_reference_[0], current_reference_[1], current_reference_[2]});
-        }
-        
-        output.mpc_tether_force_mag = step.mpc_tether_force_mag;
-        
-        if (open_loop_step_ < N_horizon_) {
-            open_loop_step_++;
-        }
-        
-        return output;
-    }
-
     auto capsule = (uav_tethered_solver_capsule*)acados_ocp_capsule_;
     int N = capsule->nlp_solver_plan->N;
 
@@ -324,14 +265,7 @@ UavControlOutput UavMpcPipeline::computeControl(double current_time) {
 
     // Populate reference path for visualization (N points along the prediction horizon)
     output.reference_path.clear();
-    if (trajectory_type_ == TrajectoryType::CIRCLE) {
-        double elapsed_vis = (circle_start_time_ >= 0.0) ? (current_time - circle_start_time_) : 0.0;
-        for (int i = 0; i <= N; i++) {
-            double t_stage = elapsed_vis + i * Ts_;
-            TrajectoryPoint pt = trajectory_gen_.getPoint(t_stage);
-            output.reference_path.push_back({pt.px, pt.py, pt.pz});
-        }
-    } else if (trajectory_type_ == TrajectoryType::EXTERNAL) {
+    if (trajectory_type_ == TrajectoryType::EXTERNAL) {
         for (const auto& pt : external_reference_path_) {
             output.reference_path.push_back({pt.px, pt.py, pt.pz});
         }
@@ -357,26 +291,18 @@ void UavMpcPipeline::updateTetherLength(double length) {
     L_tether_ = length;
 }
 
-void UavMpcPipeline::setOpenLoopMode(bool enabled) {
-    open_loop_mode_enabled_ = enabled;
-}
-
-void UavMpcPipeline::captureOpenLoopHorizon(double current_time) {
+std::vector<UavControlOutput> UavMpcPipeline::getOpenLoopHorizon(double current_time) {
     auto capsule = (uav_tethered_solver_capsule*)acados_ocp_capsule_;
     int N = capsule->nlp_solver_plan->N;
-    N_horizon_ = N;
 
-    // Get current drone attitude angles in Euler representation
     double roll = 0.0, pitch = 0.0, yaw = 0.0;
     kinematics::quaternionToEuler(qx_, qy_, qz_, qw_, roll, pitch, yaw);
 
-    // Set current initial state (x0) in ACADOS: [x, y, z, vx, vy, vz, phi, theta, phi_cmd, theta_cmd]
     double x0[10];
     x0[0] = current_state_[0];
     x0[1] = current_state_[1];
     x0[2] = current_state_[2];
 
-    // Rotate velocities from body frame to world frame (ENU)
     double v_body[3] = {current_state_[3], current_state_[4], current_state_[5]};
     double v_world[3] = {0.0, 0.0, 0.0};
     kinematics::rotateVectorByQuaternion(qx_, qy_, qz_, qw_, v_body, v_world);
@@ -412,21 +338,23 @@ void UavMpcPipeline::captureOpenLoopHorizon(double current_time) {
         std::cerr << "UavMpcPipeline: ACADOS solver failed during open-loop capture with status: " << status << std::endl;
     }
 
-    open_loop_steps_.clear();
-    open_loop_predicted_positions_.clear();
-
-    // Retrieve predicted states
-    for (int i = 0; i <= N; i++) {
-        double x_step[10];
-        ocp_nlp_out_get(capsule->nlp_config, capsule->nlp_dims, capsule->nlp_out, i, "x", x_step);
-        open_loop_predicted_positions_.push_back({x_step[0], x_step[1], x_step[2]});
-    }
+    std::vector<UavControlOutput> horizon_outputs;
+    horizon_outputs.reserve(N);
 
     double T0_val = use_tether_ ? tether::calculateWinchTension(L_tether_) : 0.0;
     
+    // Store predicted trajectory once
+    std::vector<std::vector<double>> pred_positions;
+    pred_positions.reserve(N + 1);
+    for (int i = 0; i <= N; i++) {
+        double x_step[10];
+        ocp_nlp_out_get(capsule->nlp_config, capsule->nlp_dims, capsule->nlp_out, i, "x", x_step);
+        pred_positions.push_back({x_step[0], x_step[1], x_step[2]});
+    }
+
     // Retrieve control inputs and compute required step properties
     for (int i = 0; i < N; i++) {
-        OpenLoopControlStep step_data;
+        UavControlOutput step_data;
         double u_val[3] = {0.0, 0.0, 0.0};
         ocp_nlp_out_get(capsule->nlp_config, capsule->nlp_dims, capsule->nlp_out, i, "u", u_val);
 
@@ -439,31 +367,29 @@ void UavMpcPipeline::captureOpenLoopHorizon(double current_time) {
         step_data.u_opt[1] = theta_cmd;
         step_data.u_opt[2] = u_val[2];
 
-        // Compute desired quaternion (using initial yaw)
         kinematics::computeDesiredQuaternion(phi_cmd, theta_cmd, yaw, step_data.q_d);
 
-        // Compute normalized thrust
         double thrust_normalized = (u_val[2] / 9.81) * hover_throttle_;
         step_data.thrust_normalized = std::max(0.0, std::min(thrust_normalized, 1.0));
 
-        // Reference trajectory points
-        if (trajectory_type_ == TrajectoryType::CIRCLE) {
-            double elapsed = current_time - circle_start_time_;
-            double t_stage = elapsed + i * Ts_;
-            TrajectoryPoint pt = trajectory_gen_.getPoint(t_stage);
-            step_data.reference[0] = pt.px;
-            step_data.reference[1] = pt.py;
-            step_data.reference[2] = pt.pz;
-            step_data.reference_velocity[0] = pt.vx;
-            step_data.reference_velocity[1] = pt.vy;
-            step_data.reference_velocity[2] = pt.vz;
+        step_data.predicted_positions = pred_positions;
+
+        // Reference target at this stage
+        if (trajectory_type_ == TrajectoryType::EXTERNAL && external_reference_path_.size() >= static_cast<size_t>(N + 1)) {
+            step_data.current_reference = {external_reference_path_[i].px, external_reference_path_[i].py, external_reference_path_[i].pz};
+            step_data.current_reference_velocity = {external_reference_path_[i].vx, external_reference_path_[i].vy, external_reference_path_[i].vz};
         } else {
-            step_data.reference[0] = current_reference_[0];
-            step_data.reference[1] = current_reference_[1];
-            step_data.reference[2] = current_reference_[2];
-            step_data.reference_velocity[0] = 0.0;
-            step_data.reference_velocity[1] = 0.0;
-            step_data.reference_velocity[2] = 0.0;
+            step_data.current_reference = current_reference_;
+            step_data.current_reference_velocity = {0.0, 0.0, 0.0};
+        }
+
+        step_data.reference_path.clear();
+        if (trajectory_type_ == TrajectoryType::EXTERNAL) {
+            for (const auto& pt : external_reference_path_) {
+                step_data.reference_path.push_back({pt.px, pt.py, pt.pz});
+            }
+        } else {
+            step_data.reference_path.push_back({current_reference_[0], current_reference_[1], current_reference_[2]});
         }
 
         // Calculate estimated tether force magnitude
@@ -473,24 +399,10 @@ void UavMpcPipeline::captureOpenLoopHorizon(double current_time) {
             T0_val
         );
 
-        open_loop_steps_.push_back(step_data);
+        horizon_outputs.push_back(step_data);
     }
 
-    open_loop_step_ = 0;
-    open_loop_active_ = true;
-}
-
-void UavMpcPipeline::resetOpenLoop() {
-    open_loop_active_ = false;
-    open_loop_step_ = 0;
-}
-
-bool UavMpcPipeline::isOpenLoopActive() const {
-    return open_loop_active_;
-}
-
-const std::vector<std::vector<double>>& UavMpcPipeline::getCapturedPredictedPositions() const {
-    return open_loop_predicted_positions_;
+    return horizon_outputs;
 }
 
 void UavMpcPipeline::setupOcpSolver(double current_time, double roll, double pitch, double yaw, const double x0[10]) {
@@ -501,7 +413,6 @@ void UavMpcPipeline::setupOcpSolver(double current_time, double roll, double pit
     ocp_nlp_constraints_model_set(capsule->nlp_config, capsule->nlp_dims, capsule->nlp_in, capsule->nlp_out, 0, "ubx", const_cast<double*>(x0));
 
     // Set state velocity and tilt bounds (lbx, ubx for stages 1...N)
-    // idxbx = [3, 4, 5, 6, 7, 8, 9] corresponding to [vx, vy, vz, phi, theta, phi_cmd, theta_cmd]
     double lbx[7] = { -v_max_, -v_max_, -v_max_, -tilt_max_, -tilt_max_, -tilt_max_, -tilt_max_ };
     double ubx[7] = {  v_max_,  v_max_,  v_max_,  tilt_max_,  tilt_max_,  tilt_max_,  tilt_max_ };
     for (int i = 1; i <= N; i++) {
@@ -510,8 +421,6 @@ void UavMpcPipeline::setupOcpSolver(double current_time, double roll, double pit
     }
 
     // Set control inputs bounds (lbu, ubu for stages 0...N-1)
-    // idxbu = [0, 1, 2], corresponding to [phi_dot_cmd, theta_dot_cmd, a_T]
-    // Slew rate limits: angular rate speed bounded at 2.0 rad/s (~115 deg/s)
     double lbu[3] = { -0.8, -0.8, 0.1 * 9.81 };
     double ubu[3] = {  0.8,  0.8, u_max_ };
     for (int i = 0; i < N; i++) {
@@ -519,81 +428,30 @@ void UavMpcPipeline::setupOcpSolver(double current_time, double roll, double pit
         ocp_nlp_constraints_model_set(capsule->nlp_config, capsule->nlp_dims, capsule->nlp_in, capsule->nlp_out, i, "ubu", ubu);
     }
 
-    auto get_boat_pos = [&](int stage_idx) -> std::pair<double, double> {
-        double x_b = anchor_x_;
-        double y_b = anchor_y_;
-        if (use_tether_ && has_boat_horizon_ && !boat_horizon_.empty()) {
-            double t = stage_idx * Ts_;
-            double boat_Ts = 0.1;
-            double idx_f = t / boat_Ts;
-            size_t j = static_cast<size_t>(std::floor(idx_f));
-            if (j < boat_horizon_.size() - 1) {
-                double alpha = idx_f - j;
-                x_b = (1.0 - alpha) * boat_horizon_[j][0] + alpha * boat_horizon_[j+1][0];
-                y_b = (1.0 - alpha) * boat_horizon_[j][1] + alpha * boat_horizon_[j+1][1];
-            } else {
-                x_b = boat_horizon_.back()[0];
-                y_b = boat_horizon_.back()[1];
-            }
-        }
-        return {x_b, y_b};
-    };
-
-    auto project_reference = [&](int stage_idx, double rx, double ry, double rz) -> std::vector<double> {
-        if (!use_tether_) {
-            return {rx, ry, rz};
-        }
-        auto b_pos = get_boat_pos(stage_idx);
-        double dx = rx - b_pos.first;
-        double dy = ry - b_pos.second;
-        double dz = rz; // Boat Z is assumed 0 in XY projection constraint
-        double d = std::sqrt(dx * dx + dy * dy + dz * dz);
-        double L_safe = 1.0 * L_tether_;
-        if (d > L_safe) {
-            double scale = L_safe / d;
-            return {
-                b_pos.first + dx * scale,
-                b_pos.second + dy * scale,
-                dz * scale
-            };
-        }
-        return {rx, ry, rz};
-    };
-
-    // Inject reference trajectory into the prediction horizon
-    if (trajectory_type_ == TrajectoryType::CIRCLE) {
-        if (circle_start_time_ < 0.0) {
-            circle_start_time_ = current_time;
-        }
-        double elapsed = current_time - circle_start_time_;
-
-        for (int i = 0; i < N; i++) {
-            double t_stage = elapsed + i * Ts_;
-            TrajectoryPoint pt = trajectory_gen_.getPoint(t_stage);
-            auto proj = project_reference(i, pt.px, pt.py, pt.pz);
-            double yref[13] = {proj[0], proj[1], proj[2], pt.vx, pt.vy, pt.vz, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 9.81};
-            ocp_nlp_cost_model_set(capsule->nlp_config, capsule->nlp_dims, capsule->nlp_in, i, "yref", yref);
-        }
-        double t_terminal = elapsed + N * Ts_;
-        TrajectoryPoint pt_e = trajectory_gen_.getPoint(t_terminal);
-        auto proj_e = project_reference(N, pt_e.px, pt_e.py, pt_e.pz);
-        double yref_e[10] = {proj_e[0], proj_e[1], proj_e[2], pt_e.vx, pt_e.vy, pt_e.vz, 0.0, 0.0, 0.0, 0.0};
-        ocp_nlp_cost_model_set(capsule->nlp_config, capsule->nlp_dims, capsule->nlp_in, N, "yref", yref_e);
-
-        TrajectoryPoint pt_start = trajectory_gen_.getPoint(elapsed);
-        current_reference_ = {pt_start.px, pt_start.py, pt_start.pz};
-        current_reference_velocity_ = {pt_start.vx, pt_start.vy, pt_start.vz};
-    } else if (trajectory_type_ == TrajectoryType::EXTERNAL) {
+    // Inject reference trajectory into the prediction horizon using tether projection helper
+    if (trajectory_type_ == TrajectoryType::EXTERNAL) {
         if (external_reference_path_.size() >= static_cast<size_t>(N + 1)) {
             for (int i = 0; i < N; i++) {
                 const auto& pt = external_reference_path_[i];
-                auto proj = project_reference(i, pt.px, pt.py, pt.pz);
-                double yref[13] = {proj[0], proj[1], proj[2], pt.vx, pt.vy, pt.vz, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 9.81};
+                double proj_x, proj_y, proj_z;
+                tether::projectReferenceToTetherLimit(
+                    i, Ts_, pt.px, pt.py, pt.pz,
+                    anchor_x_, anchor_y_, has_boat_horizon_, boat_horizon_,
+                    L_tether_, use_tether_,
+                    proj_x, proj_y, proj_z
+                );
+                double yref[13] = {proj_x, proj_y, proj_z, pt.vx, pt.vy, pt.vz, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 9.81};
                 ocp_nlp_cost_model_set(capsule->nlp_config, capsule->nlp_dims, capsule->nlp_in, i, "yref", yref);
             }
             const auto& pt_e = external_reference_path_[N];
-            auto proj_e = project_reference(N, pt_e.px, pt_e.py, pt_e.pz);
-            double yref_e[10] = {proj_e[0], proj_e[1], proj_e[2], pt_e.vx, pt_e.vy, pt_e.vz, 0.0, 0.0, 0.0, 0.0};
+            double proj_x_e, proj_y_e, proj_z_e;
+            tether::projectReferenceToTetherLimit(
+                N, Ts_, pt_e.px, pt_e.py, pt_e.pz,
+                anchor_x_, anchor_y_, has_boat_horizon_, boat_horizon_,
+                L_tether_, use_tether_,
+                proj_x_e, proj_y_e, proj_z_e
+            );
+            double yref_e[10] = {proj_x_e, proj_y_e, proj_z_e, pt_e.vx, pt_e.vy, pt_e.vz, 0.0, 0.0, 0.0, 0.0};
             ocp_nlp_cost_model_set(capsule->nlp_config, capsule->nlp_dims, capsule->nlp_in, N, "yref", yref_e);
 
             current_reference_ = {external_reference_path_[0].px, external_reference_path_[0].py, external_reference_path_[0].pz};
@@ -620,7 +478,7 @@ void UavMpcPipeline::setupOcpSolver(double current_time, double roll, double pit
 
     // Update path and terminal constraint bounds: 0 <= h(x,u,p) <= L_tether^2
     double lh_val[1] = {0.0};
-    double uh_val[1] = {use_tether_ ? (L_tether_ * L_tether_) : 1e6}; // If not using tether, set upper limit to 1000m^2
+    double uh_val[1] = {use_tether_ ? (L_tether_ * L_tether_) : 1e6};
     for (int i = 0; i < N; i++) {
         ocp_nlp_constraints_model_set(capsule->nlp_config, capsule->nlp_dims, capsule->nlp_in, capsule->nlp_out, i, "lh", lh_val);
         ocp_nlp_constraints_model_set(capsule->nlp_config, capsule->nlp_dims, capsule->nlp_in, capsule->nlp_out, i, "uh", uh_val);
@@ -630,28 +488,11 @@ void UavMpcPipeline::setupOcpSolver(double current_time, double roll, double pit
 
     // Set parameters in ACADOS: [psi, x_boat, y_boat] for each stage
     for (int i = 0; i <= N; i++) {
-        double x_boat = anchor_x_;
-        double y_boat = anchor_y_;
-
-        if (use_tether_ && has_boat_horizon_ && !boat_horizon_.empty()) {
-            double t = i * Ts_;
-            double boat_Ts = 0.1; // USV MPC control period
-            double idx_f = t / boat_Ts;
-            size_t j = static_cast<size_t>(std::floor(idx_f));
-            if (j < boat_horizon_.size() - 1) {
-                double alpha = idx_f - j;
-                x_boat = (1.0 - alpha) * boat_horizon_[j][0] + alpha * boat_horizon_[j+1][0];
-                y_boat = (1.0 - alpha) * boat_horizon_[j][1] + alpha * boat_horizon_[j+1][1];
-            } else {
-                x_boat = boat_horizon_.back()[0];
-                y_boat = boat_horizon_.back()[1];
-            }
-        }
-
+        auto b_pos = tether::getInterpolatedBoatPos(i, Ts_, anchor_x_, anchor_y_, has_boat_horizon_, boat_horizon_);
         double p_params[3] = {
             yaw,
-            x_boat,
-            y_boat
+            b_pos.first,
+            b_pos.second
         };
         uav_tethered_acados_update_params(capsule, i, p_params, 3);
     }

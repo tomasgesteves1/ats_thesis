@@ -4,7 +4,7 @@ project(bringup)
 find_package(ament_cmake REQUIRED)
 
 # Instala as pastas dentro de share/bringup/
-install(DIRECTORY launch config rviz
+install(DIRECTORY launch
   DESTINATION share/${PROJECT_NAME}
 )
 
