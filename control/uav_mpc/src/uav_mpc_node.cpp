@@ -1,5 +1,6 @@
 #include "uav_mpc/uav_mpc_node.hpp"
 #include "uav_mpc/uav_mpc_kinematics.hpp"
+#include "uav_mpc/uav_mpc_telemetry.hpp"
 #include <limits>
 #include <cmath>
 
@@ -226,6 +227,7 @@ void UavMpcNode::controlLoop() {
 
     double anchor_x = 0.0;
     double anchor_y = 0.0;
+    double anchor_z = 0.0;
 
     if (use_tether) {
         // Timeout check for boat predicted horizon
@@ -247,10 +249,11 @@ void UavMpcNode::controlLoop() {
             auto transform = tf_buffer_->lookupTransform("world", "boat/tether_anchor", tf2::TimePointZero);
             anchor_x = transform.transform.translation.x;
             anchor_y = transform.transform.translation.y;
+            anchor_z = transform.transform.translation.z;
             pipeline_->updateAnchorPosition(
                 anchor_x,
                 anchor_y,
-                transform.transform.translation.z
+                anchor_z
             );
         } catch (const tf2::TransformException & ex) {
             RCLCPP_WARN_THROTTLE(this->get_logger(), *this->get_clock(), 2000,
@@ -428,9 +431,18 @@ void UavMpcNode::controlLoop() {
     // Publish RViz/Foxglove visualization markers
     publishVisualizationMarkers(output);
 
-    // Publish estimated tether force magnitude
+    // Publish estimated tether force magnitude using telemetry helper
+    double force_mag = 0.0;
+    if (use_tether) {
+        double T0_val = telemetry::calculateWinchTension(active_tether_max_length_);
+        force_mag = telemetry::estimateTetherForce(
+            drone_x, drone_y, drone_z,
+            anchor_x, anchor_y, anchor_z,
+            T0_val
+        );
+    }
     std_msgs::msg::Float64 force_msg;
-    force_msg.data = output.mpc_tether_force_mag;
+    force_msg.data = force_mag;
     mpc_tether_force_pub_->publish(force_msg);
 
     // Rotate linear velocities to world frame (ENU) for accurate velocity reference comparison
@@ -576,84 +588,16 @@ void UavMpcNode::publishAttitudeSetpoint(const UavControlOutput& output) {
 void UavMpcNode::publishVisualizationMarkers(const UavControlOutput& output) {
     auto current_time = this->get_clock()->now();
 
-    // 1. Predicted Trajectory Marker (MPC Horizon)
-    visualization_msgs::msg::Marker line_msg;
-    line_msg.header.frame_id = "world";
-    line_msg.header.stamp = current_time;
-    line_msg.ns = "predicted_trajectory";
-    line_msg.id = 0;
-    line_msg.type = visualization_msgs::msg::Marker::LINE_STRIP;
-    line_msg.action = visualization_msgs::msg::Marker::ADD;
-    line_msg.pose.orientation.w = 1.0;
-    
-    // Visual settings (semi-transparent bright green)
-    line_msg.scale.x = 0.05; // Line width
-    line_msg.color.r = 0.0;
-    line_msg.color.g = 1.0;
-    line_msg.color.b = 0.0;
-    line_msg.color.a = 0.8;
-
-    for (const auto& pos : output.predicted_positions) {
-        geometry_msgs::msg::Point p;
-        p.x = pos[0];
-        p.y = pos[1];
-        p.z = pos[2];
-        line_msg.points.push_back(p);
-    }
+    auto line_msg = telemetry::createPredictedTrajectoryMarker(output.predicted_positions, current_time);
     predicted_trajectory_pub_->publish(line_msg);
 
-    // 2. Current Reference/Target Marker
     if (output.current_reference.size() == 3) {
-        visualization_msgs::msg::Marker point_msg;
-        point_msg.header.frame_id = "world";
-        point_msg.header.stamp = current_time;
-        point_msg.ns = "target_point";
-        point_msg.id = 1;
-        point_msg.type = visualization_msgs::msg::Marker::SPHERE;
-        point_msg.action = visualization_msgs::msg::Marker::ADD;
-        
-        point_msg.pose.position.x = output.current_reference[0];
-        point_msg.pose.position.y = output.current_reference[1];
-        point_msg.pose.position.z = output.current_reference[2];
-        point_msg.pose.orientation.w = 1.0;
-
-        point_msg.scale.x = 0.25; // 25 cm diameter
-        point_msg.scale.y = 0.25;
-        point_msg.scale.z = 0.25;
-
-        point_msg.color.r = 1.0; // Red
-        point_msg.color.g = 0.0;
-        point_msg.color.b = 0.0;
-        point_msg.color.a = 1.0;
-
+        auto point_msg = telemetry::createTargetPointMarker(output.current_reference, current_time);
         target_point_pub_->publish(point_msg);
     }
 
-    // 3. Complete Reference Trajectory Marker (e.g. circle in blue)
     if (!output.reference_path.empty()) {
-        visualization_msgs::msg::Marker ref_path_msg;
-        ref_path_msg.header.frame_id = "world";
-        ref_path_msg.header.stamp = current_time;
-        ref_path_msg.ns = "reference_trajectory";
-        ref_path_msg.id = 2;
-        ref_path_msg.type = visualization_msgs::msg::Marker::LINE_STRIP;
-        ref_path_msg.action = visualization_msgs::msg::Marker::ADD;
-        ref_path_msg.pose.orientation.w = 1.0;
-
-        // Visual settings (bright blue)
-        ref_path_msg.scale.x = 0.03; // Line thickness
-        ref_path_msg.color.r = 0.0;
-        ref_path_msg.color.g = 0.5;
-        ref_path_msg.color.b = 1.0;
-        ref_path_msg.color.a = 0.9;
-
-        for (const auto& pos : output.reference_path) {
-            geometry_msgs::msg::Point p;
-            p.x = pos[0];
-            p.y = pos[1];
-            p.z = pos[2];
-            ref_path_msg.points.push_back(p);
-        }
+        auto ref_path_msg = telemetry::createReferenceTrajectoryMarker(output.reference_path, current_time);
         reference_trajectory_pub_->publish(ref_path_msg);
     }
 }

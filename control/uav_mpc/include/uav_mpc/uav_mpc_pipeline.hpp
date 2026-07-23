@@ -22,7 +22,6 @@ struct UavControlOutput {
     std::vector<double> current_reference; // [x, y, z]
     std::vector<double> current_reference_velocity; // [vx, vy, vz]
     std::vector<std::vector<double>> reference_path; // Reference trajectory points for visualization
-    double mpc_tether_force_mag; // Tether force magnitude assumed by the MPC model (N)
 };
 
 class UavMpcPipeline {

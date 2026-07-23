@@ -1,6 +1,6 @@
 #include "uav_mpc/uav_mpc_pipeline.hpp"
 #include "uav_mpc/uav_mpc_kinematics.hpp"
-#include "uav_mpc/uav_mpc_tether.hpp"
+#include "uav_mpc/uav_mpc_tether_geometry.hpp"
 #include "acados_solver_uav_tethered.h"
 #include <iostream>
 #include <cmath>
@@ -255,13 +255,7 @@ UavControlOutput UavMpcPipeline::computeControl(double current_time) {
     output.current_reference = current_reference_;
     output.current_reference_velocity = current_reference_velocity_;
 
-    // Calculate estimated tether force magnitude
-    double T0_val = use_tether_ ? tether::calculateWinchTension(L_tether_) : 0.0;
-    output.mpc_tether_force_mag = tether::estimateTetherForce(
-        current_state_[0], current_state_[1], current_state_[2],
-        anchor_x_, anchor_y_, anchor_z_,
-        T0_val
-    );
+
 
     // Populate reference path for visualization (N points along the prediction horizon)
     output.reference_path.clear();
@@ -341,7 +335,7 @@ std::vector<UavControlOutput> UavMpcPipeline::getOpenLoopHorizon(double current_
     std::vector<UavControlOutput> horizon_outputs;
     horizon_outputs.reserve(N);
 
-    double T0_val = use_tether_ ? tether::calculateWinchTension(L_tether_) : 0.0;
+
     
     // Store predicted trajectory once
     std::vector<std::vector<double>> pred_positions;
@@ -392,12 +386,7 @@ std::vector<UavControlOutput> UavMpcPipeline::getOpenLoopHorizon(double current_
             step_data.reference_path.push_back({current_reference_[0], current_reference_[1], current_reference_[2]});
         }
 
-        // Calculate estimated tether force magnitude
-        step_data.mpc_tether_force_mag = tether::estimateTetherForce(
-            x_next[0], x_next[1], x_next[2],
-            anchor_x_, anchor_y_, anchor_z_,
-            T0_val
-        );
+
 
         horizon_outputs.push_back(step_data);
     }
