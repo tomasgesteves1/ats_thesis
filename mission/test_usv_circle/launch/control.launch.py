@@ -44,6 +44,7 @@ def generate_launch_description():
                 'open_loop_X': LaunchConfiguration('open_loop_X'),
                 'open_loop_Y': LaunchConfiguration('open_loop_Y'),
                 'open_loop_N': LaunchConfiguration('open_loop_N'),
+                'wait_for_drone': False,
             }
         ],
         remappings=[

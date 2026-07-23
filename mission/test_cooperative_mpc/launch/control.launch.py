@@ -64,6 +64,7 @@ def generate_launch_description():
                 'horizon_stages': 20,
                 'control_period': 0.1,
                 'update_rate_hz': 10.0,
+                'wait_for_drone': True,
             }
         ],
         remappings=[
