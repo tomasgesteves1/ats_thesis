@@ -1,0 +1,152 @@
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%                                                                      %
+%     File: Thesis_Implementation.tex                                  %
+%     Tex Master: Thesis.tex                                           %
+%                                                                      %
+%     Author: Andre C. Marta                                           %
+%     Last modified :  4 Mar 2024                                      %
+%                                                                      %
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\chapter{Implementation}
+\label{chapter:implementation}
+
+This chapter describes the numerical implementation of the dynamic model and \gls{nmpc} framework introduced in Chapter~\ref{chapter:background}. It details the software environment, model discretisation, constraints, parameters and workflow used throughout this work.
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\section{Software Environment}
+\label{sec:software_env}
+
+The numerical implementation was developed in \texttt{Python}, which provides a flexible environment for rapid prototyping and integration of control and simulation components. The \texttt{CasADi} \cite{anderssonCasADiSoftwareFramework2019} framework is employed to define the system dynamics, cost function, and constraints symbolically, enabling automatic differentiation and the efficient formulation of the resulting nonlinear optimisation problem.
+
+The nonlinear model predictive control problem is solved using the Interior Point OPTimizer (\texttt{IPOPT}) \cite{wachterImplementationInteriorpointFilter2006}, a solver designed for large-scale nonlinear programming problems. Numerical operations and data handling are supported by the Python library \texttt{NumPy}, while \texttt{Matplotlib} is used for the visualisation of simulation results.
+
+The overall implementation follows a modular structure, with separate components for model dynamics, cost definition, \gls{nmpc} formulation, numerical simulation, and result visualisation. This organisation improves readability and facilitates future extensions of the framework.
+
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\section{Model Discretisation}
+\label{sec:discretization}
+
+The dynamic model introduced in Chapter~\ref{chapter:background} is formulated in continuous time. However, the \gls{nmpc} algorithm computes control actions at discrete instants and relies on finite-horizon predictions. This requires a discrete-time representation of the system dynamics that can be evaluated repeatedly within the optimisation problem.
+
+The continuous-time dynamics $\dot{x} = f(x, u_d)$ are discretised with a fixed sampling period $T_s = 0.05~\text{s}$, assuming a constant control input $u_d$ within each interval.
+
+
+To approximate the evolution of the state over each sampling interval, a fixed-step fourth-order Runge–Kutta (RK4) integration scheme is employed. The RK4 integration is implemented using CasADi’s built-in numerical integrator, which automatically constructs the discrete-time state transition from the continuous-time dynamics.
+
+Assuming the control input \(u_{d,k}\) to be constant over the interval \([kT_s, (k+1)T_s]\), the RK4 scheme computes the state at the next time step as
+\[
+x_{k+1} = x_k + \frac{T_s}{6}\left(k_1 + 2k_2 + 2k_3 + k_4\right),
+\]
+where the intermediate evaluations are
+\[
+k_1 = f(x_k, u_{d,k}), \quad
+k_2 = f\!\left(x_k + \tfrac{T_s}{2}k_1, u_{d,k}\right), \quad
+k_3 = f\!\left(x_k + \tfrac{T_s}{2}k_2, u_{d,k}\right), \quad
+k_4 = f\!\left(x_k + T_s k_3, u_{d,k}\right).
+\]
+
+
+This procedure yields a fourth-order accurate numerical approximation of the continuous-time dynamics over one sampling interval. The discrete-time prediction model used within the \gls{nmpc} can therefore be compactly expressed as
+\[
+x_{k+1} = \Phi(x_k, u_{d,k}),
+\]
+where \(\Phi(\cdot)\) denotes the numerical state-transition map induced by the RK4 integration scheme.
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\section{Constraints}
+\label{sec:constraints}
+
+The \gls{nmpc} formulation explicitly accounts for physical and operational constraints through inequality constraints included in the optimisation problem. These constraints are implemented directly at the prediction level and enforced at every time step along the prediction horizon.
+
+In the implementation, all constraints are expressed in a smooth squared form, \(\|\mathbf{x}\|^2 - x_{\max}^2 \leq 0\), 
+to improve numerical stability and differentiability within the optimisation solver, while being mathematically equivalent to the standard norm formulation \(\|\mathbf{x}\| \leq x_{\max}\).
+
+
+\subsection{Control Input Constraint}
+
+The magnitude of the virtual control input \(u_d\), which represents the translational acceleration generated by thrust, is bounded as
+\[
+\|u_{d,k}\| \le u_{\max}.
+\]
+This constraint limits the maximum thrust that can be generated by the \gls{uav}, \(T \leq m\|u_d\|\). 
+
+\subsection{Velocity Constraint}
+
+To prevent excessive translational velocities and to ensure dynamically feasible motion, a bound is imposed on the inertial velocity:
+\[
+\|\dot{p}_k\| \le v_{\max}.
+\]
+
+
+\subsection{Tether Length Constraint}
+
+The tether is assumed to remain taut at all times, implying that its effective length varies according to the relative position of the \gls{uav} with respect to the anchor point. In other words, the tether is allowed to retract or extend as the vehicle moves, while always maintaining tension.
+
+Under this assumption, a maximum tether length constraint is imposed to represent the fully extended configuration of the cable. This geometric limitation is expressed as
+\[
+\|p_k - p_{\text{anchor}}\| \le L_{\max},
+\]
+where \(p_k\) denotes the predicted position of the \gls{uav} at time step \(k\), \(p_{\text{anchor}}\) is the fixed anchor point of the tether, and \(L_{\max}\) represents the maximum cable length when the tether is fully deployed.
+
+
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\section{Parameters}
+\label{sec:parameters}
+
+The parameters adopted in the numerical implementation are selected exclusively for simulation purposes and are not associated with any specific hardware platform. Their primary objective is to enable an evaluation of the proposed \gls{nmpc} framework.
+
+In the full dissertation, these parameters will be revised based on the characteristics and constraints of a specific hardware setup and tuned based on performance metrics.
+
+\begin{table}[H]
+\centering
+\caption{Physical and control parameters used in the implementation.}
+\begin{tabular}{lcc}
+\toprule
+Parameter & Symbol & Value \\
+\midrule
+Mass & \(m\) & 1.5 kg \\
+Gravity & \(g\) & [0, 0, -9.81] m/s\(^2\) (inertial frame, \(z\uparrow\)) \\
+Tether base tension & \(T_0\) & 3.0 N \\
+Cable weight coefficient & \(w_c\) & 0.2 N/m \\
+Regularization constant & \(\varepsilon\) & 0.02 \\
+Maximum tether length & \(L_{\max}\) & 30 m \\
+Sampling period & \(T_s\) & 0.05 s \\
+Prediction horizon & \(N\) & 20 steps \\
+Position weighting matrix & \(Q_p\) & \(10I_3\) \\
+Velocity weighting matrix & \(Q_{\dot{p}}\) & \(5I_3\) \\
+Control weighting matrix & \(R\) & \(0.01I_3\) \\
+Maximum thrust acceleration & \(u_{d,\max}\) & \(2g\) \\
+Maximum inertial velocity & \(\dot{p}_{\max}\) & 5 m/s \\
+\bottomrule
+\end{tabular}
+\label{tab:implementation_params}
+\end{table}
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\section{NMPC Workflow}
+\label{sec:nmpc_workflow}
+
+The \gls{nmpc} problem is formulated symbolically using \texttt{CasADi}. The system dynamics, cost function, and constraints are assembled into a nonlinear program, which is solved at each control step using \texttt{IPOPT}.
+The following pseudocode summarises the overall closed-loop implementation workflow. It outlines the sequence of operations executed at each control step.
+
+\begin{algorithm}[H]
+\caption{Closed-loop NMPC workflow}
+\label{alg:nmpc_workflow}
+\begin{algorithmic}[1]
+\State Define system model, cost function, and constraints
+\State Formulate the NMPC problem over prediction horizon \(N\)
+\State Initialise solver and set initial state \(x_0\)
+\While{control loop is running}
+    \State Update references and parameters
+    \State Solve the NMPC optimisation problem
+    \State Apply the first optimal control input \(u_0^\star\)
+    \State Simulate system forward one sampling step to obtain \(x_{k+1}\)
+    \State Update the NMPC problem with the new state and repeat
+\EndWhile
+\end{algorithmic}
+\end{algorithm}

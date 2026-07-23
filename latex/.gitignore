@@ -1,0 +1,22 @@
+# Ficheiros temporários e de build do LaTeX
+*.aux
+*.fdb_latexmk
+*.fls
+*.glo
+*.log
+*.nlo
+*.out
+*.toc
+*.synctex.gz
+*.ist
+*.alg
+*.glg
+*.nlg
+*.acr
+*.gls
+*.nls
+*.bbl
+*.blg
+
+# Descomente a linha abaixo se NÃO quiser guardar o PDF final no Git
+# *.pdf
