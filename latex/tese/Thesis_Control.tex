@@ -1,0 +1,43 @@
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%                                                                      %
+%     File: Thesis_Control.tex                                         %
+%     Tex Master: Thesis.tex                                           %
+%                                                                      %
+%     Author: Andre C. Marta                                           %
+%     Last modified :  24 Jul 2026                                     %
+%                                                                      %
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+\chapter{Cooperative Control Design}
+\label{chapter:control}
+
+This chapter describes the controller design for the coupled system. It details the principles of Nonlinear Model Predictive Control (NMPC), the specific optimization formulations for the UAV and the USV tracking control, and the active winch spooling control strategy.
+
+\section{Nonlinear Model Predictive Control Principles}
+\label{sec:ctrl_nmpc_principles}
+% TODO: Formulate the general discrete-time optimal control problem (OCP) solved along the prediction horizon.
+% - Horizon length, discretization dynamics.
+% - Numerical integration step and real-time execution bounds.
+
+\section{UAV NMPC Optimization Problem}
+\label{sec:ctrl_uav_mpc}
+% TODO: Define states, inputs, and parameters for the UAV OCP:
+% - States: p_x, p_y, p_z, v_x, v_y, v_z, phi, theta, phi_cmd, theta_cmd.
+% - Controls: phi_dot_cmd, theta_dot_cmd, a_T.
+% - Time-varying parameters: psi (yaw), x_boat, y_boat.
+% - Cost function (quadratic tracking error) and reference vector (yref).
+% - Boundary constraints and the soft nonlinear tether length constraint using slack variables.
+
+\section{USV NMPC Optimization Problem}
+\label{sec:ctrl_usv_mpc}
+% TODO: Define states and inputs for the USV OCP:
+% - States: x_pos, y_pos, psi, u, v, r.
+% - Controls (Virtual inputs): X_force, Y_force, N_moment.
+% - Cost function (quadratic tracking error).
+% - Direct input bounds representing the estimated maximum forces mapped to the CG.
+
+\section{Active Winch Control Strategy}
+\label{sec:ctrl_winch}
+% TODO: Formulate the active winch spooling controller equations:
+% - Geometric mode: line length as a function of Euclidean span and safety slack factor.
+% - Tension mode: proportional-derivative (PD) tension controller updating line unstretched length based on vertical tension force error relative to a target tension.

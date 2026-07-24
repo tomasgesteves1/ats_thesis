@@ -1,0 +1,219 @@
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%                                                                      %
+%     File: Thesis_Modeling.tex                                        %
+%     Tex Master: Thesis.tex                                           %
+%                                                                      %
+%     Author: Andre C. Marta                                           %
+%     Last modified :  24 Jul 2026                                     %
+%                                                                      %
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+\chapter{System Modeling and Validation}
+\label{chapter:modeling}
+
+This chapter details the coordinate systems, kinematics, and dynamic models of the vehicles and their physical link. It covers the WAM-V USV, the x500 UAV, and the tether-winch coupling. For each component, the high-fidelity simulation model representing the physical plant is presented, followed by the simplified control-oriented mathematical model and its validation against simulator telemetry.
+
+\section{Coordinate Systems and Kinematics}
+\label{sec:mod_coordinates}
+
+To describe the motion and coupling of the cooperative marine-aerial system, it is necessary to establish the reference coordinate frames and the transformations between them. In this work, three primary coordinate systems are defined, as illustrated in Fig.~\ref{fig:coordinate_frames}:
+\begin{itemize}
+    \item \textbf{Inertial Reference Frame $\{\mathcal{I}\}$}: A local flat-Earth coordinate system defined by the origin $\mathcal{O}_I$ and axes $\{\mathbf{x}_I, \mathbf{y}_I, \mathbf{z}_I\}$. This frame is oriented according to the East-North-Up (ENU) convention, where $\mathbf{x}_I$ points East, $\mathbf{y}_I$ points North, and $\mathbf{z}_I$ points vertically upward, parallel to the gravity vector.
+    \item \textbf{USV Body-Fixed Reference Frame $\{\mathcal{B}_v\}$}: Centered at the WAM-V catamaran's center of gravity $\mathcal{O}_v$ with axes $\{\mathbf{x}_v, \mathbf{y}_v, \mathbf{z}_v\}$. The longitudinal axis $\mathbf{x}_v$ points forward (surge direction), the lateral axis $\mathbf{y}_v$ points to port/left (sway direction), and the vertical axis $\mathbf{z}_v$ points upward (heave direction).
+    \item \textbf{UAV Body-Fixed Reference Frame $\{\mathcal{B}_a\}$}: Centered at the x500 quadrotor's center of gravity $\mathcal{O}_a$ with axes $\{\mathbf{x}_a, \mathbf{y}_a, \mathbf{z}_a\}$. The axis $\mathbf{x}_a$ points forward, $\mathbf{y}_a$ points to the left, and $\mathbf{z}_a$ points upward.
+\end{itemize}
+
+\begin{figure}[H]
+    \centering
+    \begin{tikzpicture}[
+        >=stealth,
+        scale=1.0,
+        axis/.style={->,blue,thick,line width=1.2pt},
+        bodyaxis/.style={->,red,thick,line width=1.2pt},
+        uavaxis/.style={->,violet,thick,line width=1.2pt},
+        label/.style={black,font=\small},
+        tether/.style={draw,line width=1.5pt,darkgray,smooth}
+    ]
+        % -- INERTIAL FRAME {I} --
+        \coordinate (OI) at (0,0);
+        \draw[axis] (OI) -- (2.0,0) node[right,label] {$\mathbf{x}_I$ (East)};
+        \draw[axis] (OI) -- (1.2,0.9) node[above right,label] {$\mathbf{y}_I$ (North)};
+        \draw[axis] (OI) -- (0,2.0) node[above,label] {$\mathbf{z}_I$ (Up)};
+        \node[below left,label] at (OI) {$\{\mathcal{I}\}$};
+
+        % -- USV FRAME {Bv} --
+        \coordinate (Ov) at (5.5,-1.2);
+        
+        % Draw WAM-V shape inside transformed scope
+        \begin{scope}[shift={(Ov)}, rotate=-15]
+            \draw[thick,fill=gray!20] (-1.2,-0.5) rectangle (1.2,0.5);
+            \draw[thick,fill=gray!30] (1.2,-0.5) -- (1.8,0) -- (1.2,0.5) -- cycle;
+            
+            \draw[bodyaxis] (0,0) -- (1.8,0) node[right,label] {$\mathbf{x}_v$};
+            \draw[bodyaxis] (0,0) -- (0,1.5) node[above,label] {$\mathbf{y}_v$};
+            \draw[bodyaxis] (0,0) -- (0.4,0.5) node[above right,label] {$\mathbf{z}_v$};
+            
+            \coordinate (Pa) at (-0.6,0.2);
+            \fill[red] (Pa) circle (3.5pt) node[left,font=\scriptsize,black] {Anchor};
+            \draw[->,thin,blue] (0,0) -- (Pa) node[midway,below left,font=\scriptsize] {$\mathbf{p}_{a/v}$};
+        \end{scope}
+
+        \node[below,label] at (Ov) {$\mathcal{O}_v$};
+        \node[below right,label] at ($(Ov)+(0.5,-0.6)$) {$\{\mathcal{B}_v\}$};
+
+        % USV Position Vector (from origin to USV CG)
+        \draw[->,dashed,line width=1.0pt,black] (OI) -- (Ov) node[midway,below right] {$\mathbf{p}_v$};
+
+        % -- UAV FRAME {Ba} --
+        \coordinate (Oa) at (8.5,4.5);
+        \begin{scope}[shift={(Oa)}, rotate=10]
+            % Draw UAV simple representation (cross)
+            \draw[thick,line width=1.5pt,black] (-0.5,0) -- (0.5,0);
+            \draw[thick,line width=1.5pt,black] (0,-0.5) -- (0,0.5);
+            \fill[black] (-0.5,0) circle (2pt);
+            \fill[black] (0.5,0) circle (2pt);
+            \fill[black] (0,-0.5) circle (2pt);
+            \fill[black] (0,0.5) circle (2pt);
+            
+            \draw[uavaxis] (0,0) -- (1.5,0) node[right,label] {$\mathbf{x}_a$};
+            \draw[uavaxis] (0,0) -- (0,1.2) node[above,label] {$\mathbf{y}_a$};
+            \draw[uavaxis] (0,0) -- (-0.3,-0.4) node[left,label] {$\mathbf{z}_a$};
+        \end{scope}
+        
+        \node[right,label] at ($(Oa)+(0.4,0.4)$) {$\mathcal{O}_a$\;$\{\mathcal{B}_a\}$};
+
+        % UAV Position Vector (from origin to UAV CG)
+        \draw[->,dashed,line width=1.0pt,black] (OI) -- (Oa) node[midway,above left] {$\mathbf{p}_a$};
+
+        % -- TETHER --
+        % Connect global anchor coordinates (Pa) to UAV center (Oa)
+        \draw[tether] (Pa) .. controls ($(Pa)+(1.5,2.5)$) and ($(Oa)+(-1.5,-1.5)$) .. (Oa);
+        \node[left,font=\small,darkgray] at ($(Oa)+(-0.5,-1.2)$) {Tether $\mathbf{r}(s)$};
+
+    \end{tikzpicture}
+    \caption{Schematic representation of the reference coordinate frames $\{\mathcal{I}\}$, $\{\mathcal{B}_v\}$, $\{\mathcal{B}_a\}$, and the physical anchor connection.}
+    \label{fig:coordinate_frames}
+\end{figure}
+
+The position vectors of the USV center of gravity and the UAV center of gravity in the inertial frame $\{\mathcal{I}\}$ are defined as $\mathbf{p}_v = [x_v, y_v, z_v]^T$ and $\mathbf{p}_a = [x_a, y_a, z_a]^T$, respectively. Under nominal operations, the USV moves strictly on the water surface, meaning that $z_v = 0$ is assumed.
+
+The physical tether anchor on the WAM-V deck is located at a fixed offset vector $\mathbf{p}_{a/v} = [x_{a/v}, y_{a/v}, z_{a/v}]^T$ relative to the USV body-fixed frame $\{\mathcal{B}_v\}$. The global position of this anchor point in the inertial frame is given by:
+\begin{equation}
+    \mathbf{p}_{anchor} = \mathbf{p}_v + \mathbf{R}_v(\psi) \mathbf{p}_{a/v}
+\end{equation}
+where $\mathbf{R}_v(\psi) \in SO(3)$ is the rotation matrix representing the orientation of the USV.
+
+Since the USV roll and pitch motions are generally small and neglected in the control-oriented model, the rotation from $\{\mathcal{B}_v\}$ to $\{\mathcal{I}\}$ is parameterized by the yaw heading angle $\psi$, representing a planar rotation about the vertical axis $\mathbf{z}_I$:
+\begin{equation}
+    \mathbf{R}_v(\psi) = \begin{bmatrix}
+        \cos\psi & -\sin\psi & 0 \\
+        \sin\psi & \cos\psi & 0 \\
+        0 & 0 & 1
+    \end{bmatrix}
+\end{equation}
+
+For the UAV, the orientation of $\{\mathcal{B}_a\}$ relative to $\{\mathcal{I}\}$ is parameterized by the standard Euler angles: roll $\phi$, pitch $\theta$, and yaw $\psi_a$, using the Z-Y-X rotation sequence (yaw, then pitch, then roll). The resulting rotation matrix $\mathbf{R}_a(\phi, \theta, \psi_a) \in SO(3)$ is:
+\begin{equation}
+    \mathbf{R}_a(\phi, \theta, \psi_a) = \begin{bmatrix}
+        \cos\psi_a \cos\theta & \cos\psi_a \sin\theta \sin\phi - \sin\psi_a \cos\phi & \cos\psi_a \sin\theta \cos\phi + \sin\psi_a \sin\phi \\
+        \sin\psi_a \cos\theta & \sin\psi_a \sin\theta \sin\phi + \cos\psi_a \cos\phi & \sin\psi_a \sin\theta \cos\phi - \cos\psi_a \sin\phi \\
+        -\sin\theta & \cos\theta \sin\phi & \cos\theta \cos\phi
+    \end{bmatrix}
+\end{equation}
+
+This mathematical kinematic relationship allows forces and positions computed in the body-fixed frames of each vehicle to be mapped to the inertial space, which is required to enforce tether constraints and ensure coordinated trajectory tracking.
+
+
+\section{WAM-V Surface Vessel Modeling and Validation}
+\label{sec:mod_usv}
+
+\subsection{USV Kinematics}
+\label{subsec:mod_usv_kinematics}
+% TODO: Present 2D surface kinematics (translation in body frame converted to global frame via yaw heading \psi).
+
+\subsection{High-Fidelity Simulation Model (Gazebo Hydrodynamics)}
+\label{subsec:mod_usv_sim_model}
+% TODO: Describe the high-fidelity simulator characteristics in Gazebo:
+% - 6-DOF rigid body physics.
+% - Hydrostatic buoyancy of catamaran pontoons.
+% - Lift, drag, and wave-induced movements.
+
+\subsection{Control-Oriented Dynamic Model (Fossen 3-DOF)}
+\label{subsec:mod_usv_control_model}
+% TODO: Detail the Fossen equations of motion in surge (u), sway (v), and yaw (r):
+% - Mass and Inertia parameters (MASS, IZZ).
+% - Hydrodynamic damping coefficients: linear (X_U, Y_V, N_R) and quadratic (X_UU, Y_VV, N_RR).
+% - Detail the bow/stern quadratic surge damping asymmetry (different coefficients for forward vs backward motion).
+
+\subsection{Thruster Allocation Mapping}
+\label{subsec:mod_usv_propulsion}
+% TODO: Detail the mapping between physical thrusters and virtual forces:
+% - Dual stern thrusters coordinates (THRUSTER_X_ARM, THRUSTER_Y_ARM).
+% - Mapping physical forces (T_L, T_R) and steering angles (alpha_L, alpha_R) to CG force demands (X_force, Y_force, N_moment).
+% - Account for reverse thrust propeller inefficiency (0.746 multiplier).
+
+\subsection{Dynamic Model Validation and Calibration}
+\label{subsec:mod_usv_validation}
+% TODO: Validate the control-oriented Fossen dynamics against Gazebo simulator telemetry:
+% - Present system identification and parameter optimization results (coefficients fitting).
+% - Compare open-loop response of the 3-DOF model against the Gazebo multi-body physics engine.
+
+\section{x500 Quadrotor Modeling and Validation}
+\label{sec:mod_uav}
+
+\subsection{UAV Kinematics}
+\label{subsec:mod_uav_kinematics}
+% TODO: 3D translational kinematics (dot{p} = v).
+
+\subsection{High-Fidelity Simulation Model (PX4 SITL)}
+\label{subsec:mod_uav_sim_model}
+% TODO: Describe the PX4 simulator physics:
+% - Full 6-DOF rigid body mechanics.
+% - Rotor aerodynamics, motor dynamics, and battery voltage lag.
+% - Autopilot inner-loop cascade rate controllers.
+
+\subsection{Control-Oriented Model (Attitude Lag)}
+\label{subsec:mod_uav_control_model}
+% TODO: Formulate the first-order response model that represents the autopilot's inner loop:
+% - State augmentation of commanded pitch (theta_cmd) and roll (phi_cmd).
+% - Dynamics: dot{phi} = (phi_cmd - phi) / \tau, dot{theta} = (theta_cmd - theta) / \tau.
+% - Introduce the inner-loop response time constant (\tau).
+
+\subsection{Thrust Vectoring and Acceleration Kinematics}
+\label{subsec:mod_uav_acceleration}
+% TODO: Formulate the thrust acceleration in the ENU world frame:
+% - Express a_thrust components as functions of command states (phi, theta), heading parameter (psi), and thrust magnitude (a_T).
+% - Formulate complete dynamics: dot{v} = a_thrust + g.
+
+\subsection{Autopilot Inner-Loop System Identification}
+\label{subsec:mod_uav_validation}
+% TODO: Present the results of the system identification for the UAV (uav_sysid):
+% - Dynamic validation of the inner-loop attitude response.
+% - Estimate and justify the inner-loop response time constant \tau (nominally 0.15 s).
+% - Compare the linear response approximation against PX4 autopilot flight telemetry.
+
+\section{Tether and Winch Modeling and Validation}
+\label{sec:mod_tether_winch}
+
+\subsection{MoorDyn Lumped-Mass Physical Simulation}
+\label{subsec:mod_moordyn_physics}
+% TODO: Describe the physics formulation used in MoorDyn for simulation:
+% - Lumped-mass discretization of the line.
+% - Segment tension, damping, gravity, buoyancy, and hydrodynamic drag forces.
+% - Numerical integration of mooring line nodes.
+
+\subsection{Control-Oriented Geometric Constraints}
+\label{subsec:mod_geometric_tether}
+% TODO: Define the mathematical constraint representing the tether boundary:
+% - Distance constraint h(x, p) = (p_x - x_boat)^2 + (p_y - y_boat)^2 + p_z^2.
+% - State the inequality: 0 <= h(x, p) <= L_tether^2.
+
+\subsection{Virtual Winch Kinematics and Spooling Modes}
+\label{subsec:mod_winch_kinematics}
+% TODO: Formulate the kinematics of active winch spooling:
+% - Geometric mode: line unstretched length = span * slack_factor.
+% - Tension mode: tracking error relative to target tension.
+
+\subsection{Tether Force and Slack Validation}
+\label{subsec:mod_tether_validation}
+% TODO: Validate the tension models and MoorDyn cable behaviour during simple motions.

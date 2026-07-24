@@ -1,238 +1,91 @@
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %                                                                      %
-%     File: Thesis_Background.tex                                      %
+%     File: Thesis_StateOfTheArt.tex                                   %
 %     Tex Master: Thesis.tex                                           %
 %                                                                      %
 %     Author: Andre C. Marta                                           %
-%     Last modified :  4 Mar 2024                                      %
+%     Last modified :  24 Jul 2026                                     %
 %                                                                      %
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 \chapter{State of the Art and Related Work}
 \label{chapter:state_of_the_art}
 
-This chapter is structured into four main sections, each representing a key element of cooperative system control. Each section presents the main techniques commonly used in control theory, together with a subsection reviewing related work on topics closely related to this research.
+This chapter reviews the literature on modeling, estimation, control, and coordination of unmanned systems, focusing on cooperative surface-aerial systems, tethered platforms, and active tension control.
 
-The first section addresses \textit{modelling and identification}, which provides the mathematical and experimental tools required to describe system dynamics and estimate relevant parameters. The second focuses on \textit{control strategies}, ensuring stability, accurate tracking, and robustness to disturbances at the individual agent level. The third section concerns \textit{cooperative coordination}, which enables communication and shared decision-making so that multiple agents can operate as a unified system. Finally, \textit{path and trajectory planning} deals with the generation of feasible and safe motion plans that connect mission objectives with low-level control actions.
+\section{Modeling and System Identification}
+\label{sec:sota_modeling}
 
+\subsection{White-Box, Grey-Box, and Black-Box Modeling}
+\label{subsec:sota_modeling_types}
+% TODO: Copy and adapt literature on kinematics/dynamics modeling methodologies from PIC.
 
-
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-%                                                                                                  %
-%                                       MODELLING                                                  %
-%                                                                                                  %
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-
-\section{Modelling and Identification}
-
-Understanding how a system evolves is a prerequisite for any control design. Modelling provides this understanding by offering a mathematical description of the system dynamics, capturing the dominant behaviours while deliberately neglecting secondary effects that are not essential for analysis or control purposes \cite{modeling_Silva}. The level of detail of such a model is inherently linked to the available physical insight, the amount and quality of experimental data, and the specific objectives for which the model is intended.
-
-Within the control design process, an appropriate model forms the basis for analysing stability, performance, and robustness, both in linear and nonlinear settings. Rather than aiming for a replica of reality, modelling seeks a balance between fidelity and tractability, ensuring that the resulting description remains suitable for control synthesis and real-time implementation.
-
-When first-principles knowledge is incomplete or difficult to formalise, system identification offers an alternative path by constructing models directly from measured input--output data. In this context, theoretical assumptions are complemented by experimental evidence, leading to a structured procedure that involves data collection, selection of an appropriate model structure, parameter estimation, and subsequent validation \cite{tangirala2013principles}. The quality of the identified model relies not only on the estimation algorithms, but also on careful experiment design and validation, often supported by frequency-domain analysis to assess consistency and predictive capability.
-
-\subsection{White-Box Modelling}
-
-White-box modelling is based on first principles and physical laws that govern system behaviour. By expressing the dynamics through analytical formulations, often derived from Newtonian mechanics, hydrodynamics, or aerodynamics, this approach provides clear insight into stability, controllability, and energy transfer.
-
-To preserve analytical tractability, simplifying assumptions such as linearisation or the neglect of higher-order effects are commonly introduced. While these approximations facilitate analysis and control design, they can limit the ability of white-box models to represent nonlinear dynamics and uncertainties present in real-world systems.
-
-
-\subsection{Grey-Box Modelling}
-
-Grey-box modelling lies between purely analytical and purely data-driven approaches. The structure of the model is defined using physical insight, while parameters that are difficult to determine analytically, such as hydrodynamic or aerodynamic coefficients, are estimated from experimental data. This combination preserves a clear physical interpretation while improving accuracy through calibration.
-
-The effectiveness of a grey-box model depends on how well the chosen structure represents the system and on the quality of the available data. For this reason, grey-box approaches are commonly used in control-oriented identification, where a balance between physical understanding and data-based tuning is essential for real-time estimation and adaptation.
-
-
-\subsection{Black-Box Modelling}
-
-Black-box modelling relies entirely on measured input--output data to describe system behaviour. Rather than using explicit physical laws, this approach identifies mathematical relationships that best fit the observed data. Typical examples include linear parametric models, state-space representations obtained from data, and learning-based methods.
-
-This type of modelling is particularly useful when the underlying physics are complex, uncertain, or difficult to describe analytically. The added flexibility of black-box models comes at the cost of reduced interpretability and a stronger dependence on data quality. In cooperative robotic systems, such models are often used to represent coupled or nonlinear dynamics that are impractical to capture using first-principles models.
-
-\paragraph{}
-
-Once a model structure is defined, parameter estimation methods are used to infer the system dynamics from data. 
+\subsection{Tether and Cable Dynamics Modeling}
+\label{subsec:sota_tether_modeling}
+% TODO: Review state of the art in tether modeling:
+% - Catenary equations (quasistatic models).
+% - Lumped-mass models (MoorDyn, discretized spring-damper models).
+% - Finite-segment and multi-body dynamics.
 
 \subsection{Optimization-Based Estimation}
+\label{subsec:sota_estimation}
+% TODO: Review state-estimation methods for tether parameters and vehicle positioning.
 
-Optimisation-based estimation focuses on identifying model parameters offline by minimising the mismatch between measured and predicted system outputs. 
-This is typically achieved through cost functions based on least-squares formulations, including weighted least-squares and prediction-error methods (PEM) 
-\cite{tangirala2013principles}. 
-For nonlinear or constrained problems, advanced optimisation schemes such as trust-region methods and constrained least-squares are often employed, 
-allowing grey-box models to be calibrated while enforcing physical bounds and regularisation. 
-Frequency-domain approaches offer alternative formulations, particularly for systems affected by measurement noise or strong dynamic coupling.
-
+\subsection{Related Work on System Identification}
+\label{subsec:sota_sysid_related}
+% TODO: Discuss existing approaches to identifying quadrotor response characteristics.
 
 
-\subsection{Related Work}
+\section{Control Strategies for Autonomous Vehicles}
+\label{sec:sota_control}
 
-In systems connected by a tether, the model of the overall system must account at least for the tether geometry to constrain the relative motion of the agents and avoid physically infeasible configurations that could lead to tether failure.
+\subsection{Classical and Modern Control}
+\label{subsec:sota_classical_modern}
+% TODO: Review PID, LQR, and state-feedback approaches in marine/aerial systems.
 
-In \cite{kouraniMarineLocomotionTethered2021}, a buoy--\gls{uav} system is presented in which the tether is modelled explicitly as a geometric and dynamic constraint between the buoy and the aerial vehicle. The tether tension is computed from the coupled dynamics and incorporated as an external force acting along the tether direction in the \gls{uav} model. This formulation relies on simplifying assumptions, namely that the tether is inextensible, massless, free of hydrodynamic effects, and remains taut during coupled operation.
+\subsection{Predictive and Optimization-Based Control}
+\label{subsec:sota_mpc}
+% TODO: Review Model Predictive Control (MPC) and Nonlinear MPC (NMPC) in vehicle control.
+% Address solver requirements (e.g., CasADi, Acados, IPOPT, HPIPM) and real-time execution.
 
-An alternative modelling perspective is proposed in \cite{yuReducedComplexityActiveDisturbance2023}, where tether-induced forces are not included explicitly in the system dynamics. Instead, their effect is lumped into an external disturbance acting on the \gls{uav}. This disturbance is then handled at the control level through active disturbance rejection, avoiding the need for explicit tether modelling while still compensating for its influence in real time.
+\subsection{Active Winch and Tension Control}
+\label{subsec:sota_winch_control}
+% TODO: Review literature on winch control systems for tethered UAVs:
+% - Passive tension tethers vs active spooling winches.
+% - Force feedback and PD tension controllers.
+% - Tether tension stabilization under wave-induced anchor movement.
 
-In \cite{novakCollaborativeObjectManipulation2024}, a cooperative \gls{uav}--\gls{usv} system is modelled for the purpose of manipulating a floating object. Both vehicles are connected to the object through individual tethers, and the full system is described using simplified white-box models. The formulation assumes inextensible and massless tethers that remain permanently taut,
-
-In \cite{zhangCooperativeControlFramework2025}, a tether is not included, and both the \gls{uav} and the \gls{usv} are described using simplified white-box models. The \gls{usv} is represented by a planar marine vehicle model commonly used for path-following applications, while the \gls{uav} is modelled independently using a reduced-order dynamic model. 
-
-
-
-
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-%                                                                                                  %
-%                                       CONTROL                                                    %
-%                                                                                                  %
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-
-\section{Control Strategies}
-
-Control theory provides the mathematical framework for designing systems that regulate their behaviour through feedback. 
-Its central goal is to ensure stability, accuracy, and robustness in the presence of uncertainty and disturbances. 
-This section reviews the major families of control approaches, beginning with classical methods and progressing toward modern, predictive, and data-driven frameworks.
-
-\subsection{Classical Control}
-
-Classical control is based on the representation of systems through transfer functions in the Laplace or frequency domain, under the assumption of linear time-invariant (\gls{lti}) dynamics.
-
-Within this framework, feedback laws are typically implemented through proportional--integral--derivative (\gls{pid}) controllers and frequency-domain compensators designed to shape the closed-loop response. 
-
-Despite its enduring importance, classical control was primarily developed for single-input single-output (\gls{siso}) systems and is typically based on approximate linear models. 
-These limitations motivated the transition to state-space and multivariable formulations developed in the second half of the twentieth century. 
-Nevertheless, classical techniques continue to provide the conceptual foundation of feedback design and remain an integral part of contemporary control education and practice.
-
-\subsection{Modern Control}
-
-Modern control theory generalises the principles of classical control to systems that are multivariable, time-varying, or subject to strong coupling between states and inputs. 
-It is formulated in the \textit{state-space} domain, where the internal dynamics of a system are described by sets of first-order differential equations rather than by input--output transfer functions. 
-This representation enables systematic analysis of controllability, observability, and stability for both linear and nonlinear systems \cite{kailathLinearSystems1980}. 
-
-Within this framework, optimal control theory defines feedback laws that minimise a performance index, such as the linear quadratic regulator (LQR), its stochastic extension in the form of the linear quadratic Gaussian (LQG) controller, robust control methods such as $H_{\infty}$ and $\mu$-synthesis, and adaptive formulations \cite{andersonOptimalControlLinear1990,zhouRobustOptimalControl1996,astromAdaptiveControlKarl1995}.
+\subsection{Related Work on Tethered Vehicle Control}
+\label{subsec:sota_tether_control_related}
+% TODO: Discuss works addressing quadrotor flight subject to tether constraints.
 
 
-\subsection{Predictive and Optimisation-Based Control}
+\section{Cooperative Coordination and Systems}
+\label{sec:sota_cooperation}
 
-Predictive and optimisation-based control methods determine control actions by solving an optimisation problem that predicts the system behaviour over a finite horizon. 
-At each sampling instant, the controller minimises a cost function subject to system dynamics and operational constraints, typically penalising deviations from reference trajectories and excessive control effort. 
-Only the first control action is applied, and the process repeats at the next time step, forming the receding-horizon principle that defines \gls{mpc} \cite{camachoModelPredictiveControl2007}.  
+\subsection{Centralized vs. Distributed Coordination}
+\label{subsec:sota_coord_architectures}
+% TODO: Discuss communication constraints, compute load, and cooperative paradigms.
 
-\gls{mpc} provides a systematic way to handle multivariable interactions and explicit constraints on inputs and states, which are often difficult to manage in traditional feedback designs. 
-By embedding the system model within the optimisation, \gls{mpc} achieves anticipatory behaviour, allowing control actions that account for predicted future disturbances and constraints \cite{rawlingsModelPredictiveControl2020,mayneConstrainedModelPredictive2000}.  
+\subsection{UAV-USV Cooperative Systems}
+\label{subsec:sota_uav_usv_coop}
+% TODO: Focus on marine-aerial cooperation:
+% - Landing a UAV on a moving surface vessel (USV).
+% - USV serving as a mobile recharging and base station.
+% - Cooperative target tracking and path-following algorithms.
 
-Extensions to nonlinear systems led to the development of \gls{nmpc}, which replaces linear models with nonlinear formulations and uses numerical optimisation techniques to compute control inputs in real time. 
-\gls{nmpc} enables high-performance control for systems with strong nonlinearities or time-varying dynamics, while retaining the same predictive and constraint-handling advantages as its linear counterpart \cite{gruneNonlinearModelPredictive2011,rawlingsModelPredictiveControl2020}.  
-The main challenge of predictive and optimisation-based control remains the computational effort required for online optimisation, which continues to drive research into efficient solvers and real-time implementations.
+\subsection{Related Work on Maritime Cooperative Robotics}
+\label{subsec:sota_coop_related}
+% TODO: Discuss research on coupled air-sea robot deployments.
 
-\subsection{Data-Driven and Learning-Based Control}
-
-Data-driven and learning-based control methods aim to design controllers directly from data rather than from explicit physical or analytical models.
-Unlike model-based approaches, which rely on first-principles modelling or system identification, data-driven methods infer control laws or predictive models from measured input--output behaviour.
-This paradigm has gained traction due to advances in computation, optimisation, and machine learning, enabling adaptive control in complex or uncertain environments \cite{houModelbasedControlDatadriven2013,rechtTourReinforcementLearning2019}.
-
-Within this framework, two related approaches can be highlighted. 
-\gls{ilc} improves control performance in repetitive tasks by updating the control input after each execution \cite{bristowSurveyIterativeLearning2006}. 
-\gls{rl} generalises this idea to uncertain or stochastic environments, optimising control policies through interaction with the system or its simulation \cite{suttonReinforcementLearningIntroduction2018,rechtTourReinforcementLearning2019}.
-
-Recent advances combine machine learning techniques, such as neural networks, with control design to approximate complex nonlinear relationships between states, inputs, and actions. 
-Purely data-driven controllers face challenges in stability, sample efficiency, and interpretability, motivating hybrid strategies that merge physics-based models with learned components. 
-These model--learning combinations preserve analytical structure while improving adaptivity and represent one of the most active research directions in modern control \cite{kordaLinearPredictorsNonlinear2018,houModelbasedControlDatadriven2013}.
-
-
-\subsection{Related Work}
-
-In tethered \gls{uav} systems, the tether introduces additional forces and coupling effects that influence control design. 
-In \cite{kouraniMarineLocomotionTethered2021}, this coupling is addressed through a nonlinear backstepping controller derived directly from the white-box dynamics of the \gls{uav}--buoy system. 
-The work in~\cite{yuReducedComplexityActiveDisturbance2023} adopts an alternative approach based on active disturbance rejection, where the tether influence is not explicitly modelled but treated as an external disturbance estimated in real time by a reduced-order observer. 
-
-In \cite{novakCollaborativeObjectManipulation2024}, cooperative manipulation with two tethered agents is controlled using a \gls{mpc} formulation based on simplified white-box models of the \gls{uav}, the \gls{usv}, and the floating object. 
-A similar predictive strategy is presented in \cite{liNMPCbasedUAVUSVCooperative2023}, where both the \gls{uav} and the \gls{usv} are coordinated using \gls{nmpc}, relying on known dynamic models.
-
-In \cite{zhangCooperativeControlFramework2025}, the \gls{usv} employs a line-of-sight guidance law combined with \gls{pid} control for heading and speed regulation. The \gls{uav} motion is controlled using an \gls{nmpc} formulation, which generates reference accelerations to track the desired relative trajectory. No joint or centralised control law is employed, and each vehicle is controlled using its own dedicated controller.
-
-
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-%                                                                                                  %
-%                                       COORDINATION                                               %
-%                                                                                                  %
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-
-
-\section{Cooperative Coordination}
-Cooperative coordination refers to the control and organisation of multiple agents working towards achieving goals through communication and joint decision-making.
-In multi-vehicle systems, coordination ensures that agents act coherently while respecting their individual dynamics, sensing capabilities, and constraints. 
-Fundamental cooperative behaviours include formation maintenance, consensus on shared states, cooperative manipulation, and coverage control \cite{renDistributedConsensusMultiVehicle2010,olfati-saberConsensusCooperationNetworked2007}.
-Depending on how information is exchanged and the control authority is structured, cooperative architectures are broadly categorised as \textit{centralised} or \textit{distributed}. 
-The choice between them depends on mission objectives, communication reliability, and computational capacity \cite{caoOverviewRecentProgress2013,beardSmallUnmannedAircraft2012}.
-
-\subsection{Centralized Coordination}
-
-In centralised coordination, a single decision node aggregates global information and computes control commands for all agents.
-This architecture facilitates global optimisation and ensures consistency of mission-level objectives, since the planner has access to full system states and constraints.
-Centralised schemes are particularly effective for coordinated trajectory planning, task allocation, and cooperative path optimisation, especially when communication links are stable, and delays are negligible \cite{renDistributedConsensusMultiVehicle2010,beardSmallUnmannedAircraft2012}.
-However, centralised control scales poorly with team size and is vulnerable to communication delays or single-point failures, which limit its applicability in large or uncertain environments.
-
-\subsection{Distributed Coordination}
-
-Distributed coordination eliminates the need for a central planner by allowing each agent to make decisions based on locally available information and limited communication with neighbours.
-Agents exchange state or intent data to achieve group-level objectives through consensus or distributed optimisation.
-This approach provides scalability and robustness to communication losses and agent failures, as decisions emerge from local interactions rather than a single control node \cite{olfati-saberConsensusProblemsNetworks2004,renDistributedConsensusMultiVehicle2010}.
-
-The theoretical foundation of distributed coordination is built on consensus theory, where agreement among agents is achieved via information exchange over network topologies.
-Graph-theoretic tools describe how connectivity and communication delays affect convergence and stability, forming the mathematical basis for distributed estimation, formation control, and cooperative task allocation \cite{mesbahiGraphTheoreticMethods2010,olfati-saberConsensusCooperationNetworked2007}.
-While distributed systems are more resilient and scalable, they face challenges related to synchronisation, delayed information, and ensuring stability in dynamically changing or heterogeneous networks \cite{caoOverviewRecentProgress2013}.
-
-\subsection{Related Work}
-
-In \cite{liNMPCbasedUAVUSVCooperative2023}, cooperation is based on a tracking strategy in which the \gls{uav} is controlled to follow and land on a moving \gls{usv}. Only the \gls{uav} is actively controlled, while the \gls{usv} moves independently and provides its state as a reference. The interaction is therefore unidirectional, with the \gls{uav} adapting its motion to the \gls{usv}.
-
-In contrast, \cite{novakCollaborativeObjectManipulation2024} proposes a centralised model predictive control approach in which the \gls{uav} and the \gls{usv} are controlled jointly. A single optimisation problem computes the control inputs for both vehicles, explicitly accounting for the coupling introduced by the tether. This approach focuses on cooperative object manipulation rather than on mission-level coordination between the vehicles.
-
-In \cite{zhangCooperativeControlFramework2025}, coordination is achieved through a leader--follower structure. The \gls{usv} acts as the leader and follows a predefined path, while the \gls{uav} adjusts its motion to maintain a desired relative configuration with respect to the \gls{usv}. Coordination is therefore based on reference sharing and relative motion constraints, without joint optimisation or centralised decision-making.
-
-
-
-
-
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-%                                                                                                  %
-%                                       PLANNING                                                   %
-%                                                                                                  %
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 \section{Path and Trajectory Planning}
+\label{sec:sota_planning}
 
-Path and trajectory planning address the problem of generating feasible, collision-free, and dynamically consistent motions for autonomous systems operating in structured or unstructured environments.
-They constitute the intermediate layer between mission-level decision making and low-level control, translating abstract goals into trackable trajectories.
-The planning process must consider kinematic, dynamic, and environmental constraints to ensure safety, efficiency, and goal attainment \cite{chosetPrinciplesRobotMotion2005,lavallePlanningAlgorithms2006}.
-Methods are broadly divided into \textit{offline} and \textit{online} approaches, depending on when the plan is computed and how environmental information is handled.
-Offline planners typically exploit complete map data to compute globally optimal trajectories, while online planners focus on adaptability and real-time reactivity under uncertainty \cite{sicilianoSpringerHandbookRobotics2016}.
+\subsection{Offline and Online Planning}
+\label{subsec:sota_planning_methods}
+% TODO: Review path generation, waypoint guidance, and online collision avoidance.
 
-\subsection{Offline Planning}
-
-Offline planning is performed before execution, assuming full or near-complete knowledge of the operating environment.
-Its objectives include global optimality, path smoothness, and completeness, that is, the guarantee of finding a feasible path if one exists.
-Classical approaches include graph-search methods such as Dijkstra’s and A*, sampling-based methods such as Rapidly-exploring Random Trees and Probabilistic Roadmaps, and optimisation-based formulations such as trajectory optimisation and mixed-integer programming \cite{chosetPrinciplesRobotMotion2005,lavallePlanningAlgorithms2006}.
-Although these approaches can generate globally consistent motion plans, they are computationally demanding and rely on accurate models of the environment, which limits their practicality in dynamic or uncertain conditions.
-
-\subsection{Online Planning} 
-
-Online planning addresses the generation and adaptation of trajectories in real time under dynamic or uncertain conditions.
-Unlike offline planners that rely on complete prior maps, online methods operate with partial and time-varying information, emphasising responsiveness and robustness over strict global optimality \cite{sicilianoSpringerHandbookRobotics2016,lavallePlanningAlgorithms2006}.
-Reactive techniques such as potential field methods, dynamic window approaches, and velocity obstacles provide fast obstacle avoidance by directly coupling perception and motion generation \cite{foxDynamicWindowApproach1997,fioriniMotionPlanningDynamic1998}.
-However, these approaches may suffer from local minima or oscillatory behaviour in environments with multiple nearby obstacles.
-
-To overcome these limitations, optimisation- and prediction-based methods integrate vehicle dynamics and constraints into the planning loop.
-\gls{mpc} frameworks, in particular, enable online trajectory generation that accounts for system limits and environmental disturbances within a receding-horizon optimisation \cite{camachoModelPredictiveControl2007,rawlingsModelPredictiveControl2020}.
-The main challenges in online planning lie in maintaining computational tractability, ensuring stability under fast re-planning, and achieving reliable performance in multi-agent or highly nonlinear scenarios.
-
-
-\subsection{Related Work}
-
-A centralised predictive planning approach is presented in \cite{novakCollaborativeObjectManipulation2024}, where a single \gls{mpc} formulation jointly optimises the motion of both the \gls{uav} and the \gls{usv}. In this case, planning is achieved online through joint trajectory optimisation that explicitly accounts for the coupling introduced by tethers.
-
-Planning is addressed from a different perspective in \cite{zhangCooperativeControlFramework2025}, where cooperative behaviour is achieved through coordinated path following. A predefined path is assigned to the \gls{usv}, while the \gls{uav} generates its motion online as part of the control process to maintain coordination. In this framework, planning is limited to the online generation of the \gls{uav} motion, and no cooperative path planning between the two vehicles is performed.
-
-Overall, existing works typically adopt one of two approaches to planning in \gls{uav}--\gls{usv} systems, either a predefined path is assigned to one vehicle while the other generates its motion online to follow or support it, or both vehicles generate their motion online as part of a predictive control framework.
-
+\subsection{Related Work on Trajectory Planning}
+\label{subsec:sota_planning_related}
+% TODO: Summary of planning algorithms in maritime surveillance context.

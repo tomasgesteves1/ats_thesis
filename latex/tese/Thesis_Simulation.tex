@@ -1,0 +1,44 @@
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%                                                                      %
+%     File: Thesis_Simulation.tex                                      %
+%     Tex Master: Thesis.tex                                           %
+%                                                                      %
+%     Author: Andre C. Marta                                           %
+%     Last modified :  24 Jul 2026                                     %
+%                                                                      %
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+\chapter{Simulation and Software Environment}
+\label{chapter:simulation}
+
+This chapter describes the software stack, nodes, and co-simulation setups used to implement and test the cooperative tethered control system. It details the code generation pipeline, the C++ ROS 2 nodes, and the integration of the MoorDyn physics engine and virtual winch controller within the Gazebo simulation environment.
+
+\section{Software Environment and Code Generation}
+\label{sec:sim_software_stack}
+% TODO: Detail the software dependencies and libraries:
+% - Ubuntu OS & ROS 2 (Robot Operating System) framework.
+% - CasADi framework (symbolic math and automatic differentiation).
+% - Acados template library (solver code-generation in C).
+% - Prediction horizons and solver discretization parameters.
+
+\section{ROS 2 Software Architecture}
+\label{sec:sim_ros_architecture}
+% TODO: Explain the internal C++ structures of the control nodes:
+% - uav_mpc_node: ROS 2 node wrapping the Acados solver, updating states, parameters, and publishing attitude commands (PX4 offboard commands).
+% - usv_mpc_node: ROS 2 node computing virtual force demands (X_force, Y_force, N_moment).
+% - thruster_mapper_node: maps USV force demands to left/right thruster commands, handling propeller asymmetry and reverse thrust limits.
+% - frame_manager: broadcasts tf2 coordinate frames (anchor point, vehicle links).
+% - mission_manager: state machine for Take-Off, Circle Tracking, and Landing phases.
+
+\section{Co-Simulation Setup in Gazebo Harmonic}
+\label{sec:sim_gazebo_setup}
+% TODO: Describe the simulation architecture:
+% - x500 quadrotor model with PX4 Autopilot software-in-the-loop (SITL).
+% - WAM-V catamaran surface vessel model with propulsion and hydrodynamic plugins.
+% - Integration of Gazebo plugins for communication and telemetry bridge.
+
+\section{MoorDyn and Winch Integration}
+\label{sec:sim_moordyn_integration}
+% TODO: Describe the creation of the MoorDyn node (moordyn_tether_node) linking the x500 and WAM-V:
+% - Node coordinate system alignment and joint forces propagation.
+% - Virtual Winch Controller (moordyn_tether_winch): details of the C++ implementation of Geometric and Tension PD spooling.
