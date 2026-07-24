@@ -29,7 +29,7 @@ Understanding how a system evolves is a prerequisite for any control design. Mod
 
 Within the control design process, an appropriate model forms the basis for analysing stability, performance, and robustness, both in linear and nonlinear settings. Rather than aiming for a replica of reality, modelling seeks a balance between fidelity and tractability, ensuring that the resulting description remains suitable for control synthesis and real-time implementation.
 
-When first-principles knowledge is incomplete or difficult to formalise, system identification offers an alternative path by constructing models directly from measured input–output data. In this context, theoretical assumptions are complemented by experimental evidence, leading to a structured procedure that involves data collection, selection of an appropriate model structure, parameter estimation, and subsequent validation \cite{,tangirala2013principles}. The quality of the identified model relies not only on the estimation algorithms, but also on careful experiment design and validation, often supported by frequency-domain analysis to assess consistency and predictive capability.
+When first-principles knowledge is incomplete or difficult to formalise, system identification offers an alternative path by constructing models directly from measured input--output data. In this context, theoretical assumptions are complemented by experimental evidence, leading to a structured procedure that involves data collection, selection of an appropriate model structure, parameter estimation, and subsequent validation \cite{tangirala2013principles}. The quality of the identified model relies not only on the estimation algorithms, but also on careful experiment design and validation, often supported by frequency-domain analysis to assess consistency and predictive capability.
 
 \subsection{White-Box Modelling}
 
@@ -47,7 +47,7 @@ The effectiveness of a grey-box model depends on how well the chosen structure r
 
 \subsection{Black-Box Modelling}
 
-Black-box modelling relies entirely on measured input–output data to describe system behaviour. Rather than using explicit physical laws, this approach identifies mathematical relationships that best fit the observed data. Typical examples include linear parametric models, state-space representations obtained from data, and learning-based methods.
+Black-box modelling relies entirely on measured input--output data to describe system behaviour. Rather than using explicit physical laws, this approach identifies mathematical relationships that best fit the observed data. Typical examples include linear parametric models, state-space representations obtained from data, and learning-based methods.
 
 This type of modelling is particularly useful when the underlying physics are complex, uncertain, or difficult to describe analytically. The added flexibility of black-box models comes at the cost of reduced interpretability and a stronger dependence on data quality. In cooperative robotic systems, such models are often used to represent coupled or nonlinear dynamics that are impractical to capture using first-principles models.
 
@@ -70,11 +70,11 @@ Frequency-domain approaches offer alternative formulations, particularly for sys
 
 In systems connected by a tether, the model of the overall system must account at least for the tether geometry to constrain the relative motion of the agents and avoid physically infeasible configurations that could lead to tether failure.
 
-In \cite{kouraniMarineLocomotionTethered2021}, a buoy–\gls{uav} system is presented in which the tether is modelled explicitly as a geometric and dynamic constraint between the buoy and the aerial vehicle. The tether tension is computed from the coupled dynamics and incorporated as an external force acting along the tether direction in the \gls{uav} model. This formulation relies on simplifying assumptions, namely that the tether is inextensible, massless, free of hydrodynamic effects, and remains taut during coupled operation.
+In \cite{kouraniMarineLocomotionTethered2021}, a buoy--\gls{uav} system is presented in which the tether is modelled explicitly as a geometric and dynamic constraint between the buoy and the aerial vehicle. The tether tension is computed from the coupled dynamics and incorporated as an external force acting along the tether direction in the \gls{uav} model. This formulation relies on simplifying assumptions, namely that the tether is inextensible, massless, free of hydrodynamic effects, and remains taut during coupled operation.
 
 An alternative modelling perspective is proposed in \cite{yuReducedComplexityActiveDisturbance2023}, where tether-induced forces are not included explicitly in the system dynamics. Instead, their effect is lumped into an external disturbance acting on the \gls{uav}. This disturbance is then handled at the control level through active disturbance rejection, avoiding the need for explicit tether modelling while still compensating for its influence in real time.
 
-In \cite{novakCollaborativeObjectManipulation2024}, a cooperative \gls{uav}–\gls{usv} system is modelled for the purpose of manipulating a floating object. Both vehicles are connected to the object through individual tethers, and the full system is described using simplified white-box models. The formulation assumes inextensible and massless tethers that remain permanently taut,
+In \cite{novakCollaborativeObjectManipulation2024}, a cooperative \gls{uav}--\gls{usv} system is modelled for the purpose of manipulating a floating object. Both vehicles are connected to the object through individual tethers, and the full system is described using simplified white-box models. The formulation assumes inextensible and massless tethers that remain permanently taut,
 
 In \cite{zhangCooperativeControlFramework2025}, a tether is not included, and both the \gls{uav} and the \gls{usv} are described using simplified white-box models. The \gls{usv} is represented by a planar marine vehicle model commonly used for path-following applications, while the \gls{uav} is modelled independently using a reduced-order dynamic model. 
 
@@ -97,7 +97,7 @@ This section reviews the major families of control approaches, beginning with cl
 
 Classical control is based on the representation of systems through transfer functions in the Laplace or frequency domain, under the assumption of linear time-invariant (\gls{lti}) dynamics.
 
-Within this framework, feedback laws are typically implemented through proportional–integral–derivative (\gls{pid}) controllers and frequency-domain compensators designed to shape the closed-loop response. 
+Within this framework, feedback laws are typically implemented through proportional--integral--derivative (\gls{pid}) controllers and frequency-domain compensators designed to shape the closed-loop response. 
 
 Despite its enduring importance, classical control was primarily developed for single-input single-output (\gls{siso}) systems and is typically based on approximate linear models. 
 These limitations motivated the transition to state-space and multivariable formulations developed in the second half of the twentieth century. 
@@ -106,7 +106,7 @@ Nevertheless, classical techniques continue to provide the conceptual foundation
 \subsection{Modern Control}
 
 Modern control theory generalises the principles of classical control to systems that are multivariable, time-varying, or subject to strong coupling between states and inputs. 
-It is formulated in the \textit{state-space} domain, where the internal dynamics of a system are described by sets of first-order differential equations rather than by input–output transfer functions. 
+It is formulated in the \textit{state-space} domain, where the internal dynamics of a system are described by sets of first-order differential equations rather than by input--output transfer functions. 
 This representation enables systematic analysis of controllability, observability, and stability for both linear and nonlinear systems \cite{kailathLinearSystems1980}. 
 
 Within this framework, optimal control theory defines feedback laws that minimise a performance index, such as the linear quadratic regulator (LQR), its stochastic extension in the form of the linear quadratic Gaussian (LQG) controller, robust control methods such as $H_{\infty}$ and $\mu$-synthesis, and adaptive formulations \cite{andersonOptimalControlLinear1990,zhouRobustOptimalControl1996,astromAdaptiveControlKarl1995}.
@@ -128,7 +128,7 @@ The main challenge of predictive and optimisation-based control remains the comp
 \subsection{Data-Driven and Learning-Based Control}
 
 Data-driven and learning-based control methods aim to design controllers directly from data rather than from explicit physical or analytical models.
-Unlike model-based approaches, which rely on first-principles modelling or system identification, data-driven methods infer control laws or predictive models from measured input–output behaviour.
+Unlike model-based approaches, which rely on first-principles modelling or system identification, data-driven methods infer control laws or predictive models from measured input--output behaviour.
 This paradigm has gained traction due to advances in computation, optimisation, and machine learning, enabling adaptive control in complex or uncertain environments \cite{houModelbasedControlDatadriven2013,rechtTourReinforcementLearning2019}.
 
 Within this framework, two related approaches can be highlighted. 
@@ -137,13 +137,13 @@ Within this framework, two related approaches can be highlighted.
 
 Recent advances combine machine learning techniques, such as neural networks, with control design to approximate complex nonlinear relationships between states, inputs, and actions. 
 Purely data-driven controllers face challenges in stability, sample efficiency, and interpretability, motivating hybrid strategies that merge physics-based models with learned components. 
-These model–learning combinations preserve analytical structure while improving adaptivity and represent one of the most active research directions in modern control \cite{kordaLinearPredictorsNonlinear2018,houModelbasedControlDatadriven2013}.
+These model--learning combinations preserve analytical structure while improving adaptivity and represent one of the most active research directions in modern control \cite{kordaLinearPredictorsNonlinear2018,houModelbasedControlDatadriven2013}.
 
 
 \subsection{Related Work}
 
 In tethered \gls{uav} systems, the tether introduces additional forces and coupling effects that influence control design. 
-In \cite{kouraniMarineLocomotionTethered2021}, this coupling is addressed through a nonlinear backstepping controller derived directly from the white-box dynamics of the \gls{uav}–buoy system. 
+In \cite{kouraniMarineLocomotionTethered2021}, this coupling is addressed through a nonlinear backstepping controller derived directly from the white-box dynamics of the \gls{uav}--buoy system. 
 The work in~\cite{yuReducedComplexityActiveDisturbance2023} adopts an alternative approach based on active disturbance rejection, where the tether influence is not explicitly modelled but treated as an external disturbance estimated in real time by a reduced-order observer. 
 
 In \cite{novakCollaborativeObjectManipulation2024}, cooperative manipulation with two tethered agents is controlled using a \gls{mpc} formulation based on simplified white-box models of the \gls{uav}, the \gls{usv}, and the floating object. 
@@ -189,7 +189,7 @@ In \cite{liNMPCbasedUAVUSVCooperative2023}, cooperation is based on a tracking s
 
 In contrast, \cite{novakCollaborativeObjectManipulation2024} proposes a centralised model predictive control approach in which the \gls{uav} and the \gls{usv} are controlled jointly. A single optimisation problem computes the control inputs for both vehicles, explicitly accounting for the coupling introduced by the tether. This approach focuses on cooperative object manipulation rather than on mission-level coordination between the vehicles.
 
-In \cite{zhangCooperativeControlFramework2025}, coordination is achieved through a leader–follower structure. The \gls{usv} acts as the leader and follows a predefined path, while the \gls{uav} adjusts its motion to maintain a desired relative configuration with respect to the \gls{usv}. Coordination is therefore based on reference sharing and relative motion constraints, without joint optimisation or centralised decision-making.
+In \cite{zhangCooperativeControlFramework2025}, coordination is achieved through a leader--follower structure. The \gls{usv} acts as the leader and follows a predefined path, while the \gls{uav} adjusts its motion to maintain a desired relative configuration with respect to the \gls{usv}. Coordination is therefore based on reference sharing and relative motion constraints, without joint optimisation or centralised decision-making.
 
 
 
@@ -234,5 +234,5 @@ A centralised predictive planning approach is presented in \cite{novakCollaborat
 
 Planning is addressed from a different perspective in \cite{zhangCooperativeControlFramework2025}, where cooperative behaviour is achieved through coordinated path following. A predefined path is assigned to the \gls{usv}, while the \gls{uav} generates its motion online as part of the control process to maintain coordination. In this framework, planning is limited to the online generation of the \gls{uav} motion, and no cooperative path planning between the two vehicles is performed.
 
-Overall, existing works typically adopt one of two approaches to planning in \gls{uav}–\gls{usv} systems, either a predefined path is assigned to one vehicle while the other generates its motion online to follow or support it, or both vehicles generate their motion online as part of a predictive control framework.
+Overall, existing works typically adopt one of two approaches to planning in \gls{uav}--\gls{usv} systems, either a predefined path is assigned to one vehicle while the other generates its motion online to follow or support it, or both vehicles generate their motion online as part of a predictive control framework.
 

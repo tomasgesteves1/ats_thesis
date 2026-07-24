@@ -33,7 +33,7 @@
 %%   semicolon  -  multiple citations separated by semi-colon (default)
 %%   colon  - same as semicolon, an earlier confusion
 %%   comma  -  separated by comma
-%%   authoryear - for author–year citations (default)
+%%   authoryear - for author--year citations (default)
 %%   numbers-  selects numerical citations
 %%   super  -  numerical citations as superscripts, as in Nature
 %%   sort   -  sorts multiple citations according to order in ref. list
@@ -273,6 +273,7 @@
 
 % Use Arial font as default
 %
+\usepackage[T1]{fontenc}
 \renewcommand{\rmdefault}{phv}
 \renewcommand{\sfdefault}{phv}
 
@@ -480,7 +481,6 @@
             menucolor=black,  % color for Acrobat menu items
 %            urlcolor=cyan,    % color for linked URLs
             urlcolor=black,   % color for linked URLs
-	          bookmarks=true,         % create PDF bookmarks
 	          bookmarksopen=false,    % don't expand bookmarks
 	          bookmarksnumbered=true, % number bookmarks
 	          pdftitle={Thesis},

@@ -88,7 +88,7 @@ S(\omega)=
 
 \subsubsection{Rigid Body Dynamics}
 
-The rigid-body dynamics describe how the linear and angular velocities of the \gls{uav} evolve under the influence of external forces and moments. These equations are expressed in the body-fixed frame using the Newton–Euler equations. Let \(m\) denote the \gls{uav} mass and \(J \in \mathbb{R}^{3 \times 3}\) its inertia matrix. The translational and rotational dynamics are given by
+The rigid-body dynamics describe how the linear and angular velocities of the \gls{uav} evolve under the influence of external forces and moments. These equations are expressed in the body-fixed frame using the Newton--Euler equations. Let \(m\) denote the \gls{uav} mass and \(J \in \mathbb{R}^{3 \times 3}\) its inertia matrix. The translational and rotational dynamics are given by
 \begin{equation}
 m \dot{v} = -S(\omega)\, m v + f,
 \end{equation}
@@ -218,9 +218,9 @@ where \(F_{\text{tether}} = R f_{\text{tether}}\) denotes the tether force expre
 \subsection{Control Architectures and Framework}
 \label{subsec:control_methodology}
 
-The motion control problem of the \gls{uav}–\gls{usv} system can be structured according to different architectures, depending on how coordination and control authority are distributed among agents \citep{olfati-saberConsensusCooperationNetworked2007,renDistributedConsensusMultiVehicle2010}. In a \emph{distributed} architecture, each agent has its own controller, and cooperation arises through information exchange or consensus-based mechanisms. In a \emph{centralised} formulation, the coupled system is treated as a single control entity, integrating all agent dynamics and constraints into one global optimisation problem.
+The motion control problem of the \gls{uav}--\gls{usv} system can be structured according to different architectures, depending on how coordination and control authority are distributed among agents \citep{olfati-saberConsensusCooperationNetworked2007,renDistributedConsensusMultiVehicle2010}. In a \emph{distributed} architecture, each agent has its own controller, and cooperation arises through information exchange or consensus-based mechanisms. In a \emph{centralised} formulation, the coupled system is treated as a single control entity, integrating all agent dynamics and constraints into one global optimisation problem.
 
-Distributed control is computationally efficient and scalable, particularly when agent interactions are weak or communication delays are significant. These schemes rely on local control laws that use shared state information to achieve cooperative objectives such as formation keeping or consensus \citep{caoOverviewRecentProgress2013,olfati-saberConsensusCooperationNetworked2007}. However, in the tethered \gls{uav}–\gls{usv} configuration considered here, the physical connection introduces strong dynamic coupling and geometric constraints across the system. Under such conditions, distributed control requires additional coordination or constraint enforcement layers, which can lead to suboptimal behaviour.
+Distributed control is computationally efficient and scalable, particularly when agent interactions are weak or communication delays are significant. These schemes rely on local control laws that use shared state information to achieve cooperative objectives such as formation keeping or consensus \citep{caoOverviewRecentProgress2013,olfati-saberConsensusCooperationNetworked2007}. However, in the tethered \gls{uav}--\gls{usv} configuration considered here, the physical connection introduces strong dynamic coupling and geometric constraints across the system. Under such conditions, distributed control requires additional coordination or constraint enforcement layers, which can lead to suboptimal behaviour.
 
 A centralised control formulation provides a unified representation of the entire system, enabling direct handling of all interactions and constraints within a single optimisation problem \citep{zhangCooperativeControlFramework2025,novakCollaborativeObjectManipulation2024}. This global view allows control actions that inherently satisfy tether-related and dynamic coupling effects.
 
@@ -253,7 +253,7 @@ x_{t+N|t} &\in \mathcal{X}_f ,
 \end{align}
 where \(x_{k|t}\) and \(u_{k|t}\) denote the predicted state and input at step \(k\) given information at time \(t\). The function \(f(\cdot)\) represents the system dynamics, \(q(\cdot)\) is the stage cost, and \(p(\cdot)\) the terminal cost. The sets \(\mathcal{X}\), \(\mathcal{U}\), and \(\mathcal{X}_f\) define admissible states, inputs, and terminal conditions, respectively.
 
-When \(f(\cdot)\) is nonlinear, the resulting \gls{nmpc} formulation allows the controller to directly account for nonlinear dynamics and coupling effects, which are relevant in the tethered \gls{uav}–\gls{usv} system considered in this work. Although the detailed stability and recursive feasibility conditions of NMPC are not discussed here, they will be further explored and analysed in the dissertation.
+When \(f(\cdot)\) is nonlinear, the resulting \gls{nmpc} formulation allows the controller to directly account for nonlinear dynamics and coupling effects, which are relevant in the tethered \gls{uav}--\gls{usv} system considered in this work. Although the detailed stability and recursive feasibility conditions of NMPC are not discussed here, they will be further explored and analysed in the dissertation.
 
 
 \subsection{NMPC Formulation}

@@ -33,7 +33,7 @@ The dynamic model introduced in Chapter~\ref{chapter:background} is formulated i
 The continuous-time dynamics $\dot{x} = f(x, u_d)$ are discretised with a fixed sampling period $T_s = 0.05~\text{s}$, assuming a constant control input $u_d$ within each interval.
 
 
-To approximate the evolution of the state over each sampling interval, a fixed-step fourth-order Runge–Kutta (RK4) integration scheme is employed. The RK4 integration is implemented using CasADi’s built-in numerical integrator, which automatically constructs the discrete-time state transition from the continuous-time dynamics.
+To approximate the evolution of the state over each sampling interval, a fixed-step fourth-order Runge--Kutta (RK4) integration scheme is employed. The RK4 integration is implemented using CasADi’s built-in numerical integrator, which automatically constructs the discrete-time state transition from the continuous-time dynamics.
 
 Assuming the control input \(u_{d,k}\) to be constant over the interval \([kT_s, (k+1)T_s]\), the RK4 scheme computes the state at the next time step as
 \[
