@@ -4,40 +4,200 @@
 %     Tex Master: Thesis.tex                                           %
 %                                                                      %
 %     Author: Andre C. Marta                                           %
-%     Last modified :  24 Jul 2026                                     %
+%     Last modified :  05 Aug 2026                                     %
 %                                                                      %
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 \chapter{Cooperative Control Design}
 \label{chapter:control}
 
-This chapter describes the controller design for the coupled system. It details the principles of Nonlinear Model Predictive Control (NMPC), the specific optimization formulations for the UAV and the USV tracking control, and the active winch spooling control strategy.
+This chapter presents the design and formulation of the cooperative control architecture for the coupled \gls{uav}-\gls{usv} system. To achieve coordinated path following while ensuring tether tension stability and workspace safety, a decentralized control strategy is proposed. The control system is divided into three main components: a planar path-following \gls{nmpc} for the WAM-V catamaran, a three-dimensional tracking \gls{nmpc} for the x500 quadrotor, and an active spooling winch controller. The optimization formulations, cost functions, constraints, and real-time execution parameters of each controller are described in detail.
+
+\section{Cooperative Control Architecture Overview}
+\label{sec:ctrl_architecture}
+
+The cooperative control strategy is structured in a decentralized leader-follower configuration, as illustrated in the block diagram of Figure~\ref{fig:control_architecture}. This architecture separates the control loops of each vehicle, allowing them to operate at different frequencies suited to their respective physical dynamics:
+\begin{itemize}
+    \item \textbf{USV (Leader):} Operates at a frequency of $10\,\text{Hz}$ ($\Delta t = 0.1\,\text{s}$). The USV NMPC tracks a planar reference path $\mathbf{\eta}_{v,ref}$ on the water surface and outputs virtual forces and moment $[X, Y, N]^T$. These virtual controls are mapped by the thruster allocation block to steerable thruster forces and angles ($T_i, \alpha_i$) to command the catamaran.
+    \item \textbf{UAV (Follower):} Operates at a frequency of $50\,\text{Hz}$ ($\Delta t = 0.02\,\text{s}$). The quadrotor tracks a 3D spatial trajectory $\mathbf{p}_{a,ref}$. To prevent tether overstretching and cable breaking, the UAV NMPC subscribes to the USV's global position and injects it as an external time-varying parameter vector $\mathbf{p}_{anchor}$ into the solver, dynamically constraining the UAV's prediction workspace. The controller outputs attitude command rates $(\dot{\phi}_{cmd}, \dot{\theta}_{cmd})$ and collective thrust acceleration $a_T$, which are cinematic-mapped to desired quaternions $\mathbf{q}_d$ and sent to the PX4 autopilot.
+    \item \textbf{Active Winch:} Operates independently, monitoring the tether tension and Euclidean distance between vehicles to adjust the nominal deployed tether length $L_{tether}$.
+\end{itemize}
+
+\begin{figure}[H]
+    \centering
+    \begin{tikzpicture}[
+        block/.style={draw, rectangle, minimum height=1.1cm, minimum width=2.1cm, align=center, fill=blue!10, draw=blue, thick, font=\small},
+        block_uav/.style={draw, rectangle, minimum height=1.1cm, minimum width=2.1cm, align=center, fill=violet!10, draw=violet, thick, font=\small},
+        block_winch/.style={draw, rectangle, minimum height=1.1cm, minimum width=2.1cm, align=center, fill=gray!15, draw=gray, thick, font=\small},
+        >=stealth,
+        thick
+    ]
+        % --- Simulation Environment Bounding Box ---
+        \draw[draw=gray, dashed, fill=gray!5, fill opacity=0.1, line width=1pt] (7.1, -4.5) rectangle (10.5, 0.9);
+        \node[gray, font=\small\bfseries] at (8.8, 0.6) {Simulation Physics};
+
+        % --- USV LOOP ---
+        \coordinate (usv_ref) at (0,0);
+        \node [block] (usv_nmpc) at (2.2, 0) {USV NMPC \\ (10 Hz)};
+        \node [block] (usv_alloc) at (5.0, 0) {Thruster \\ Allocation};
+        \node [block] (usv_plant) at (8.8, 0) {WAM-V Catamaran \\ (6-DOF Physics)};
+        
+        % --- UAV LOOP ---
+        \coordinate (uav_ref) at (0,-3.5);
+        \node [block_uav] (uav_nmpc) at (2.2, -3.5) {UAV NMPC \\ (50 Hz)};
+        \node [block_uav] (uav_map) at (5.0, -3.5) {Attitude \\ Mapping};
+        \node [block_uav] (uav_plant) at (8.8, -3.5) {x500 Quadrotor \\ (PX4 SITL)};
+        
+        % --- WINCH ---
+        \node [block_winch] (winch_ctrl) at (8.8, -1.75) {Active Winch \\ Controller};
+        
+        % --- CONNECTIONS ---
+        \draw [->] (usv_ref) -- node[above, font=\scriptsize] {$\mathbf{\eta}_{v,ref}$} (usv_nmpc.west);
+        \draw [->] (usv_nmpc.east) -- node[above, font=\scriptsize] {$\begin{bmatrix} X \\ Y \\ N \end{bmatrix}$} (usv_alloc.west);
+        \draw [->] (usv_alloc.east) -- node[above, font=\scriptsize] {$\begin{bmatrix} T_i \\ \alpha_i \end{bmatrix}$} (usv_plant.west);
+        
+        \draw [->] (uav_ref) -- node[above, font=\scriptsize] {$\mathbf{p}_{a,ref}$} (uav_nmpc.west);
+        \draw [->] (uav_nmpc.east) -- node[above, font=\scriptsize] {$\begin{bmatrix} \dot{\phi}_{cmd} \\ \dot{\theta}_{cmd} \\ a_T \end{bmatrix}$} (uav_map.west);
+        \draw [->] (uav_map.east) -- node[above, font=\scriptsize] {$\begin{bmatrix} \mathbf{q}_d \\ a_T \end{bmatrix}$} (uav_plant.west);
+        
+        % USV Feedback
+        \draw [->] (usv_plant.east) -- ++(0.4,0) -- ++(0,1.2) -| node[above, pos=0.25, font=\scriptsize] {$\mathbf{\eta}_v, \mathbf{\nu}_v$} (usv_nmpc.north);
+        
+        % UAV Feedback
+        \draw [->] (uav_plant.east) -- ++(0.4,0) -- ++(0,-1.2) -| node[below, pos=0.25, font=\scriptsize] {$\mathbf{p}_a, \mathbf{v}_a, \phi, \theta$} (uav_nmpc.south);
+        
+        % USV to UAV Coupling (USV position parameter)
+        \draw [->, dashed, blue] (usv_plant.south) -- ++(0,-0.5) -| node[above, pos=0.82, font=\scriptsize] {$\mathbf{p}_{anchor}$} (uav_nmpc.north);
+        
+        % Winch connections
+        \draw [->] (usv_plant.south) -- (winch_ctrl.north);
+        \draw [->] (uav_plant.north) -- (winch_ctrl.south);
+        \draw [->, dashed, red] (winch_ctrl.west) -- ++(-1.8, 0) |- node[left, pos=0.3, font=\scriptsize] {$L_{tether}$} (uav_nmpc.east);
+        
+    \end{tikzpicture}
+    \caption{Control system architecture block diagram displaying the coupling, feedbacks, and communication flow between the USV, UAV, and active winch loop.}
+    \label{fig:control_architecture}
+\end{figure}
 
 \section{Nonlinear Model Predictive Control Principles}
 \label{sec:ctrl_nmpc_principles}
-% TODO: Formulate the general discrete-time optimal control problem (OCP) solved along the prediction horizon.
-% - Horizon length, discretization dynamics.
-% - Numerical integration step and real-time execution bounds.
 
-\section{UAV NMPC Optimization Problem}
+For a general non-linear continuous-time system governed by the state differential equations:
+\begin{equation}
+    \dot{\mathbf{x}}(t) = \mathbf{f}\left( \mathbf{x}(t), \mathbf{u}(t), \mathbf{p}(t) \right)
+\end{equation}
+where $\mathbf{x} \in \mathbb{R}^{n_x}$ is the state vector, $\mathbf{u} \in \mathbb{R}^{n_u}$ is the control input vector, and $\mathbf{p} \in \mathbb{R}^{n_p}$ is the parameter vector, the \gls{nmpc} solves a discrete-time \gls{ocp} at each sampling instance. The optimization problem is defined over a prediction horizon of $N$ intervals, with a control step size $T_s$, solving:
+\begin{align}
+    \min_{\mathbf{x}_k, \mathbf{u}_k} \quad & \sum_{k=0}^{N-1} \left\| \mathbf{h}(\mathbf{x}_k, \mathbf{u}_k, \mathbf{p}_k) - \mathbf{y}_{ref,k} \right\|_{\mathbf{W}}^2 + \left\| \mathbf{h}_e(\mathbf{x}_N, \mathbf{p}_N) - \mathbf{y}_{ref,N} \right\|_{\mathbf{W}_e}^2 \label{eq:nmpc_cost} \\
+    \text{s.t.} \quad & \mathbf{x}_{0} = \hat{\mathbf{x}}(t_0) \label{eq:nmpc_x0} \\
+    & \mathbf{x}_{k+1} = \mathbf{\Phi}\left( \mathbf{x}_k, \mathbf{u}_k, \mathbf{p}_k \right), \quad k = 0, \dots, N-1 \label{eq:nmpc_dynamics} \\
+    & \mathbf{u}_{min} \le \mathbf{u}_k \le \mathbf{u}_{max}, \quad k = 0, \dots, N-1 \label{eq:nmpc_bounds_u} \\
+    & \mathbf{x}_{min} \le \mathbf{x}_k \le \mathbf{x}_{max}, \quad k = 0, \dots, N-1 \label{eq:nmpc_bounds_x} \\
+    & \mathbf{h}_{min} \le \mathbf{h}(\mathbf{x}_k, \mathbf{u}_k, \mathbf{p}_k) \le \mathbf{h}_{max}, \quad k = 0, \dots, N-1 \label{eq:nmpc_path}
+\end{align}
+where $\mathbf{h}(\mathbf{x}_k, \mathbf{u}_k, \mathbf{p}_k)$ is the stage cost output function, $\mathbf{h}_e(\mathbf{x}_N, \mathbf{p}_N)$ is the terminal cost output function, and $\mathbf{W}, \mathbf{W}_e$ are positive semi-definite weighting matrices of appropriate dimensions. The function $\mathbf{\Phi}$ represents the discrete-time system integration, which is solved using a fourth-order Runge-Kutta (ERK4) integration scheme. Equation \eqref{eq:nmpc_x0} enforces the initial state constraint based on the current system state feedback $\hat{\mathbf{x}}(t_0)$.
+
+To satisfy real-time constraints, the \gls{ocp} is solved using the Real-Time Iteration (RTI) scheme within the Sequential Quadratic Programming (SQP) framework. The RTI scheme performs only a single SQP iteration per control interval, linearizing the dynamics and constraints around the previous solution trajectory. The resulting linearized Quadratic Programming (QP) subproblem is solved using the high-performance interior-point solver HPIPM, ensuring rapid execution.
+
+\section{UAV Guidance NMPC}
 \label{sec:ctrl_uav_mpc}
-% TODO: Define states, inputs, and parameters for the UAV OCP:
-% - States: p_x, p_y, p_z, v_x, v_y, v_z, phi, theta, phi_cmd, theta_cmd.
-% - Controls: phi_dot_cmd, theta_dot_cmd, a_T.
-% - Time-varying parameters: psi (yaw), x_boat, y_boat.
-% - Cost function (quadratic tracking error) and reference vector (yref).
-% - Boundary constraints and the soft nonlinear tether length constraint using slack variables.
 
-\section{USV NMPC Optimization Problem}
+The tracking NMPC for the x500 quadrotor is designed to command translation and attitude rates while satisfying workspace boundary constraints imposed by the tether length.
+
+\subsection{State, Control, and Parameter Vectors}
+The UAV guidance model is formulated with a $10$-dimensional state vector $\mathbf{x}_a$, a $3$-dimensional control input vector $\mathbf{u}_a$, and a $3$-dimensional time-varying parameter vector $\mathbf{p}_a$:
+\begin{align}
+    \mathbf{x}_a &= \begin{bmatrix} p_x & p_y & p_z & v_x & v_y & v_z & \phi & \theta & \phi_{cmd} & \theta_{cmd} \end{bmatrix}^T \\
+    \mathbf{u}_a &= \begin{bmatrix} \dot{\phi}_{cmd,ctrl} & \dot{\theta}_{cmd,ctrl} & a_T \end{bmatrix}^T \\
+    \mathbf{p}_a &= \begin{bmatrix} \psi_a & x_{boat} & y_{boat} \end{bmatrix}^T
+\end{align}
+where $p_x, p_y, p_z$ are the 3D position coordinates and $v_x, v_y, v_z$ are the translational velocity coordinates in the inertial reference frame $\{\mathcal{I}\}$. The angles $\phi, \theta$ represent the actual roll and pitch of the vehicle, while $\phi_{cmd}, \theta_{cmd}$ represent the commanded angles tracked by the autopilot inner loop. The control commands computed by the NMPC are the commanded roll and pitch rates $\dot{\phi}_{cmd,ctrl}, \dot{\theta}_{cmd,ctrl}$ along with the collective acceleration thrust magnitude $a_T$. The parameter vector captures the yaw heading $\psi_a$ and the USV deck coordinates $x_{boat}, y_{boat}$.
+
+\subsection{OCP Cost Function and Penalties}
+The tracking objective is to minimize the deviation of the states and controls from a reference trajectory. The stage cost output vector $\mathbf{h}_a$ and the terminal cost output vector $\mathbf{h}_{a,e}$ are defined as:
+\begin{align}
+    \mathbf{h}_a(\mathbf{x}_a, \mathbf{u}_a, \mathbf{p}_a) &= \begin{bmatrix} \mathbf{x}_a^T & \mathbf{u}_a^T \end{bmatrix}^T \\
+    \mathbf{h}_{a,e}(\mathbf{x}_a, \mathbf{p}_a) &= \mathbf{x}_a
+\end{align}
+The weighting matrices $\mathbf{W}_a$ and $\mathbf{W}_{a,e}$ are configured diagonally to scale individual penalties:
+\begin{align}
+    \mathbf{W}_a &= \text{diag}\left( \mathbf{Q}_{pos}, \mathbf{Q}_{vel}, \mathbf{Q}_{tilt}, \mathbf{Q}_{tilt\_cmd}, \mathbf{R}_{rates}, R_{thrust} \right) \\
+    \mathbf{W}_{a,e} &= \text{diag}\left( \mathbf{Q}_{pos}, \mathbf{Q}_{vel}, \mathbf{Q}_{tilt}, \mathbf{Q}_{tilt\_cmd} \right)
+\end{align}
+where the positional penalty $\mathbf{Q}_{pos} = \text{diag}(20, 20, 20)$ is heavily weighted to enforce path tracking, and $\mathbf{R}_{rates} = \text{diag}(15, 15)$ penalizes large attitude command rates to guarantee smooth flight.
+
+\subsection{Actuator and Workspace Constraints}
+The bounds on states and control inputs represent the physical flight envelope of the x500 quadrotor:
+\begin{align}
+    -\mathbf{v}_{max} &\le \begin{bmatrix} v_x & v_y & v_z \end{bmatrix}^T \le \mathbf{v}_{max} \\
+    -\phi_{max} &\le \phi, \theta, \phi_{cmd}, \theta_{cmd} \le \phi_{max} \\
+    -\dot{\phi}_{max} &\le \dot{\phi}_{cmd,ctrl}, \dot{\theta}_{cmd,ctrl} \le \dot{\phi}_{max} \\
+    a_{T,min} &\le a_T \le a_{T,max}
+\end{align}
+with $v_{max} = 15.0\,\text{m/s}$, $\phi_{max} = 0.4\,\text{rad}$ ($\approx 23^\circ$), $\dot{\phi}_{max} = 0.8\,\text{rad/s}$, $a_{T,min} = 0.1 \cdot g$, and $a_{T,max} = 1.6 \cdot g$.
+
+The tether constraint is implemented as a slacked nonlinear path inequality:
+\begin{equation}
+    0 \le (p_x - x_{boat})^2 + (p_y - y_{boat})^2 + p_z^2 \le L_{tether}^2 + s
+\end{equation}
+where $s \ge 0$ is a scalar slack variable. The cost function is augmented with linear and quadratic penalties on $s$, scaled by weights $z_l, Z_l$, to strictly penalize tether overstretch:
+\begin{equation}
+    J_{slack} = z_l s + Z_l s^2
+\end{equation}
+with $z_l = 500$ and $Z_l = 10000$, ensuring that the tether boundary is maintained as a soft but highly protected constraint.
+
+\subsection{Attitude Command Mapping (PX4 Interface)}
+The NMPC outputs attitude setpoints $\phi_{cmd}$ and $\theta_{cmd}$ along with thrust $a_T$ at each interval. To command the PX4 flight controller, these outputs must be converted to a desired quaternion setpoint $\mathbf{q}_d = [q_w, q_x, q_y, q_z]^T$ in the local NED/FRD frame. The desired rotation matrix in the global ENU frame is first computed from the roll and pitch commands and the current yaw parameter:
+\begin{equation}
+    \mathbf{R}_{enu} = \mathbf{R}_z(\psi_a) \mathbf{R}_y(\theta_{cmd}) \mathbf{R}_x(\phi_{cmd})
+\end{equation}
+This rotation matrix is transformed into the vehicle's local frame using:
+\begin{equation}
+    \mathbf{R}_d = \mathbf{M}_{world} \mathbf{R}_{enu} \mathbf{M}_{body}
+\end{equation}
+where $\mathbf{M}_{world}$ and $\mathbf{M}_{body}$ are coordinate transformation matrices. The resulting rotation matrix $\mathbf{R}_d$ is converted to the desired Hamiltonian quaternion $\mathbf{q}_d$, which is published at high frequency to PX4's offboard attitude setpoint subscriber.
+
+\section{USV Tracking NMPC}
 \label{sec:ctrl_usv_mpc}
-% TODO: Define states and inputs for the USV OCP:
-% - States: x_pos, y_pos, psi, u, v, r.
-% - Controls (Virtual inputs): X_force, Y_force, N_moment.
-% - Cost function (quadratic tracking error).
-% - Direct input bounds representing the estimated maximum forces mapped to the CG.
+
+The control objective for the USV NMPC is to guide the WAM-V catamaran along a planar path while managing the large inertia and hydrodynamic damping of the hull.
+
+\subsection{State and Control Vectors}
+The USV dynamic NMPC uses a $6$-dimensional state vector $\mathbf{x}_v$ and a $3$-dimensional control input vector $\mathbf{u}_v$:
+\begin{align}
+    \mathbf{x}_v &= \begin{bmatrix} x_{pos} & y_{pos} & \psi & u & v & r \end{bmatrix}^T \\
+    \mathbf{u}_v &= \begin{bmatrix} X_{force} & Y_{force} & N_{moment} \end{bmatrix}^T
+\end{align}
+where $x_{pos}, y_{pos}$ are the planar position coordinates, $\psi$ is the heading yaw angle, and $u, v, r$ are the surge, sway, and yaw rate velocities in the body-fixed frame $\{\mathcal{B}_v\}$. The control vector consists of the virtual surge force $X_{force}$, sway force $Y_{force}$, and yaw moment $N_{moment}$ applied at the catamaran's center of gravity.
+
+\subsection{OCP Cost Function and Penalties}
+The tracking cost function minimizes the tracking errors of states and regulates virtual inputs. The stage weighting matrix $\mathbf{W}_v$ is defined as:
+\begin{equation}
+    \mathbf{W}_v = \text{diag}\left( Q_x, Q_y, Q_{\psi}, Q_u, Q_v, Q_r, R_x, R_y, R_n \right)
+\end{equation}
+To eliminate position lag and keep the vessel heading tangent to the trajectory, the position weights are set to $Q_x = Q_y = Q_{\psi} = 150.0$. The control regularization weights are set to small values ($R_x = 10^{-4}, R_y = 10^{-3}, R_n = 5\cdot10^{-4}$) to allow the thrusters to generate sufficient force to overcome hydrodynamic drag.
+
+\subsection{Dynamic Actuation Limits}
+The bounds on the virtual controls represent the maximum physical limits of the WAM-V steerable stern thrusters, mapped to the center of gravity:
+\begin{align}
+    X_{min} &\le X_{force} \le X_{max} \\
+    -Y_{max} &\le Y_{force} \le Y_{max} \\
+    -N_{max} &\le N_{moment} \le N_{max}
+\end{align}
+where $X_{max} = 4700\,\text{N}$ (maximum forward thrust), $X_{min} = -3506\,\text{N}$ (maximum reverse thrust accounting for the $0.746$ efficiency factor), $Y_{max} = 2000\,\text{N}$ (lateral force limit for roll stability), and $N_{max} = 3000\,\text{N}\cdot\text{m}$ (maximum steering moment).
 
 \section{Active Winch Control Strategy}
 \label{sec:ctrl_winch}
-% TODO: Formulate the active winch spooling controller equations:
-% - Geometric mode: line length as a function of Euclidean span and safety slack factor.
-% - Tension mode: proportional-derivative (PD) tension controller updating line unstretched length based on vertical tension force error relative to a target tension.
+
+The active winch system acts as an independent coordination agent, adjusting the deployed cable length $L_{tether}$ based on two alternative control modes:
+\begin{itemize}
+    \item \textbf{Geometric Spooling Mode:} Tracks the instantaneous Euclidean distance between the vehicles, maintaining a safety margin factor $\sigma_{slack}$ to prevent high tension spikes:
+    \begin{equation}
+        L_{tether, cmd} = d_{tether} \cdot \left(1 + \sigma_{slack}\right)
+    \end{equation}
+    \item \textbf{Tension-Regulated Spooling Mode:} A proportional-derivative (PD) controller computes the spooling velocity $\dot{L}_{tether}$ to regulate the measured anchor tension $T_{meas}$ to a target tension $T_{ref}$:
+    \begin{equation}
+        \dot{L}_{tether} = K_{T,p} \left( T_{meas} - T_{ref} \right) + K_{T,d} \dot{T}_{meas}
+    \end{equation}
+    where $K_{T,p}$ and $K_{T,d}$ are the tracking gains, and $T_{ref}$ is selected to keep the tether taut but below the limit.
+\end{itemize}

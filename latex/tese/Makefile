@@ -13,12 +13,12 @@ FILE=Thesis
 # ---------------------------------------------------------
 
 all:
-	pdflatex  ${FILE}
+	pdflatex -synctex=1 ${FILE}
 	makeglossaries $(FILE)
 	makeindex $(FILE).nlo -s nomencl.ist -o $(FILE).nls
 	-bibtex ${FILE}
-	pdflatex  ${FILE}
-	pdflatex  ${FILE}
+	pdflatex -synctex=1 ${FILE}
+	pdflatex -synctex=1 ${FILE}
 
 clean:
 	(rm -rf *.acn *.acr *.alg *.aux *.bbl *.blg *.glg *.glo *.gls *.ilg *.ist *.lof *.log *.lot *.nlo *.nls *.out *.toc)

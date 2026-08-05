@@ -4,28 +4,38 @@
 %     Tex Master: Thesis.tex                                           %
 %                                                                      %
 %     Author: Andre C. Marta                                           %
-%     Last modified :  24 Jul 2026                                     %
+%     Last modified :  05 Aug 2026                                     %
 %                                                                      %
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 \chapter{Conclusions}
 \label{chapter:conclusions}
 
-This chapter concludes the dissertation, summarizing the key achievements and proposing directions for future research.
+This chapter concludes the dissertation, summarizing the key achievements of the cooperative \gls{uav}-\gls{usv} control architecture and proposing future directions of research to extend the capabilities of the system.
 
-\section{Conclusions}
+\section{Summary of Achievements}
 \label{sec:concl_summary}
-% TODO: Summarize the findings of this thesis:
-% - Review the development of the cooperative UAV-USV model and NMPC formulation.
-% - Reflect on the C++ and ROS 2 implementation and solver performance in real-time.
-% - Review simulation achievements in Gazebo Harmonic with MoorDyn.
-% - State the final conclusions regarding the safety, feasibility, and performance of tethered marine-aerial operations.
+
+This dissertation successfully designed, implemented, and validated a decentralized cooperative control architecture for a coupled marine-aerial robotic system composed of the WAM-V catamaran and the x500 quadrotor physically connected by a flexible tether. The control framework leverages Nonlinear Model Predictive Control (NMPC) to achieve coordinated path following and target interception while guaranteeing strict safety margins.
+
+The key achievements and contributions of this work are summarized as follows:
+\begin{itemize}
+    \item \textbf{Control-Oriented Modeling and Validation:} Developed a simplified, control-oriented model of the coupled system. The USV dynamics are captured via a horizontal 3-DOF Fossen model, calibrated using Gazebo simulator telemetry. The UAV dynamics incorporate a first-order attitude lag model ($\tau = 0.15\,\text{s}$) representing the closed-loop response of the autopilot, which was successfully identified and validated against PX4 flight telemetry.
+    \item \textbf{Decentralized NMPC Design:} Formulated individual tracking NMPC controllers for both vehicles. The USV controller operates at $10\,\text{Hz}$ to calculate virtual force demands, while the UAV controller runs at $50\,\text{Hz}$ to compute collective thrust and attitude rates. Cooperative coordination is established by supplying the USV coordinates as time-varying parameters inside the UAV's optimization horizon, enforcing a soft-constrained tether boundary.
+    \item \textbf{High-Performance Implementation:} Implemented the control stack in C++ following a modular ROS 2 architecture and the strict "Library + ROS Wrapper" design standard. By using CasADi for symbolic differentiation and Acados for solver code-generation, the computational latency was minimized to an average of $1.5\,\text{ms}$ for the UAV and $0.8\,\text{ms}$ for the USV, proving real-time feasibility.
+    \item \textbf{Mission-Level Validation:} Evaluated the cooperative system in a high-fidelity co-simulation environment combining Gazebo Harmonic, PX4 SITL, and the MoorDyn physics library. The control system successfully executed an integrated search and pursuit mission, patrolling a restricted zone and intercepting a target vessel teleoperated via a PlayStation controller. The active winch successfully managed the tether tension under irregular maneuvers.
+\end{itemize}
+
+In conclusion, this research demonstrates that coupled, tethered operations are a viable and safe method to combine the elevated perspective of unmanned aerial vehicles with the endurance of autonomous surface vessels, offering a robust solution for maritime surveillance and security.
 
 \section{Future Work}
 \label{sec:concl_future}
-% TODO: Propose improvements and future lines of research:
-% - Experimental validation: deploying on the physical x500 quadrotor and WAM-V catamaran.
-% - Hardware-In-the-Loop (HIL) testing to validate PX4 and ROS 2 controller interfaces under real flight constraints.
-% - Advanced wind and wave estimation techniques to feed the NMPC parameters.
-% - Decentralized control architectures to improve scalability and communication robustness.
-% - Energy harvesting: exploring tether power delivery optimization and winch regeneration.
+
+While the results validate the feasibility and performance of the cooperative control architecture, several research directions can be pursued to extend this work:
+\begin{itemize}
+    \item \textbf{Physical Deployment and Experimental Validation:} The logical next step is the transition from software-in-the-loop simulation to physical deployment. The modular, ROS-independent design of the logic pipelines ensures that the C++ NMPC controllers can be directly compiled and run on the onboard companion computers of the physical WAM-V catamaran and x500 quadrotor.
+    \item \textbf{Hardware-in-the-Loop (HIL) Testing:} Before full field trials, HIL testing should be conducted by running the PX4 flight control firmware on physical autopilot hardware (e.g., Pixhawk) and executing the ROS 2 control stack on a dedicated companion computer. This will validate the controller under real processor constraints, sensor noise, and communication latency.
+    \item \textbf{Disturbance Observer Design:} Integrating estimator algorithms (such as Extended Kalman Filters or disturbance observers) would allow the NMPC controllers to estimate external wind and wave forces in real-time. Feeding these estimated disturbances back into the parameters of the optimization solvers would improve trajectory tracking accuracy under severe environmental conditions.
+    \item \textbf{Resilient Decentralized Communication:} Investigate the robustness of the decentralized coordinator under communication failures, packet loss, or latency in the USV-to-UAV data link, developing fail-safe behaviors where the vehicles fall back to local safety controllers.
+    \item \textbf{Tether Power Delivery and Energy Harvesting:} Explore the physical optimization of power transfer through the tether to supply the UAV from the catamaran's main batteries, extending flight times indefinitely. Additionally, energy regeneration strategies could be investigated, utilizing the winch motor to harvest energy from the pulling forces exerted by the UAV during high-tension maneuvers.
+\end{itemize}

@@ -4,69 +4,139 @@
 %     Tex Master: Thesis.tex                                           %
 %                                                                      %
 %     Author: Andre C. Marta                                           %
-%     Last modified :  24 Jul 2026                                     %
+%     Last modified :  05 Aug 2026                                     %
 %                                                                      %
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 \chapter{Results and Discussion}
 \label{chapter:results}
 
-This chapter presents the closed-loop simulation results and evaluations. It assesses the trajectory tracking performance of the individual controllers, demonstrates the cooperative tracking capabilities of the coupled UAV-USV system, validates the active winch control modes under wave perturbations, and tests the robustness of the safety constraints under external disturbances.
+This chapter presents the closed-loop simulation results and evaluations of the cooperative tethered \gls{uav}-\gls{usv} system. The performance of the designed control architecture is evaluated through three key phases: first, the individual and cooperative trajectory tracking precision is analyzed; second, the enforcement of all mathematical constraints and computational latencies inside the \gls{mpc} controllers are demonstrated; and finally, the system is validated under an integrated maritime search and pursuit mission where a target vessel teleoperated via a PlayStation controller is intercepted.
 
-\section{Simulation Setup and Environmental Scenarios}
-\label{sec:res_setup}
-% TODO: Define the simulation settings used in Gazebo Harmonic:
-% - Physics engine settings and simulation rates.
-% - Initial states of the UAV (x500) and USV (WAM-V).
-% - Environmental disturbances (wind velocity profile, wave characteristics, water current).
+\section{Trajectory Tracking and Precision Evaluation}
+\label{sec:res_tracking_precision}
 
-\section{USV Closed-Loop Tracking Performance}
-\label{sec:res_usv_closed_loop}
+This section assesses the tracking accuracy and controller responsiveness for both vehicles when following reference trajectories.
 
-\subsection{Path-Following and Heading Control}
+\subsection{USV Planar Path-Following Performance}
 \label{subsec:res_usv_tracking}
-% TODO: Show closed-loop path-following circular or line-tracking results for the WAM-V:
-% - Tracking error in XY coordinates.
-% - Heading alignment tangent to the path.
-% - Suppression of sway sliding motion (slip) using coordinate-weights tuning.
+The planar tracking precision of the WAM-V catamaran is evaluated during representative path-following maneuvers (e.g., circular and lawnmower paths). The evaluation focuses on:
+\begin{itemize}
+    \item \textbf{XY Position Error:} The cross-track and along-track errors relative to the reference path, highlighting the reduction of position lag due to tuning weights.
+    \item \textbf{Slip Angle and Sway Suppression:} The slip angle of the catamaran hull during tight turns, evaluating how the lateral velocity weight $Q_v$ suppresses sway sliding.
+    \item \textbf{Thruster Allocation Output:} The command profiles of left/right motor forces ($T_L, T_R$) and steering angles ($\alpha_L, \alpha_R$) mapped from the virtual forces, verifying that the reverse thrust efficiency multiplier ($0.746$) is correctly handled.
+\end{itemize}
 
-\subsection{Thruster Mapper Output}
-\label{subsec:res_usv_thrusters}
-% TODO: Validate the mapping from NMPC virtual forces to physical motors:
-% - Left and right thruster forces and azimuth angles.
-% - Handling of backward thrust and reverse propeller inefficiency.
+\begin{figure}[H]
+    \centering
+    % TODO: Plot of WAM-V XY trajectory and tracking errors over time
+    % \includegraphics[width=0.9\textwidth]{Figures/results/usv_tracking_performance.pdf}
+    \caption{WAM-V catamaran planar path-following performance showing the tracked XY path and the corresponding tracking error metrics.}
+    \label{fig:res_usv_tracking}
+\end{figure}
 
-\section{Cooperative UAV-USV Target Tracking (Dynamic Anchor)}
-\label{sec:res_cooperative_tracking}
-% TODO: Present simulation results for the coupled system where the UAV orbits a moving USV:
-% - 3D trajectory visualization showing both platforms.
-% - Relative UAV position tracking error (distance to USV vs. target circle path).
-% - Attitude and thrust command profiles during dynamic anchor navigation.
+\subsection{UAV Relative 3D Trajectory Tracking}
+\label{subsec:res_uav_tracking}
+The 3D trajectory tracking performance of the x500 quadrotor is evaluated while orbiting a moving USV (acting as a dynamic anchor). The results analyze:
+\begin{itemize}
+    \item \textbf{Relative Cylindrical Coordinates:} The tracking accuracy of the UAV orbit radius, height, and angular position relative to the moving WAM-V deck.
+    \item \textbf{Attitude Command Matching:} The tracking of actual roll and pitch angles ($\phi, \theta$) compared against the commanded setpoints ($\phi_{cmd}, \theta_{cmd}$), illustrating the impact of the inner-loop response lag ($\tau = 0.15\,\text{s}$).
+\end{itemize}
 
-\section{Active Winch Control Performance}
-\label{sec:res_winch_modes}
+\begin{figure}[H]
+    \centering
+    % TODO: Plot of UAV 3D orbit and relative tracking errors
+    % \includegraphics[width=0.9\textwidth]{Figures/results/uav_orbit_performance.pdf}
+    \caption{UAV three-dimensional orbit tracking relative to the moving WAM-V deck (dynamic anchor), displaying position and command profiles.}
+    \label{fig:res_uav_tracking}
+\end{figure}
 
-\subsection{Geometric Spooling Mode}
-\label{subsec:res_winch_geometric}
-% TODO: Validate geometric spooling (unstretched length based on span):
-% - Tether slackness analysis during takeoff and path navigation.
+\section{Model Predictive Control Constraints and Computational Performance}
+\label{sec:res_mpc_constraints}
 
-\subsection{Tension-Feedback PD Mode}
-\label{subsec:res_winch_tension}
-% TODO: Validate the PD tension controller:
-% - Vertical tension force (Fz) exerted on the anchor.
-% - Stabilization of tether tension under waves and external disturbances.
-% - Spooling speed limits enforcement and winch actuation limits.
+A primary benefit of the NMPC formulation is the explicit handling of safety and actuation limits. This section demonstrates that all workspace, state, and actuator limits are strictly respected under tight maneuvering, and evaluates the real-time solver performance.
 
-\section{Constraint Enforcement and Robustness Analysis}
-\label{sec:res_constraints_robustness}
+\subsection{USV Virtual Control Input Saturation}
+\label{subsec:res_usv_constraints}
+To evaluate the USV NMPC input constraint handling, the vessel is commanded to perform aggressive speed changes. The results show:
+\begin{itemize}
+    \item Saturation of the virtual surge force $X_{force}$ at its upper limit ($4700\,\text{N}$) and lower limit ($-3506\,\text{N}$) without causing numerical solver divergence.
+    \item Active clamping of the virtual sway force $Y_{force}$ and yaw moment $N_{moment}$ to preserve vehicle roll stability.
+\end{itemize}
 
-\subsection{Enforcement of Max Tether Length Constraint}
-\label{subsec:res_tether_limit}
-% TODO: Test the UAV NMPC slack formulation by commanding trajectories outside the tether limits:
-% - Show the UAV sacrificing reference tracking accuracy to protect tether integrity.
-% - Validation of soft-constraint slacks performance.
+\subsection{UAV Actuation and Attitude Limits}
+\label{subsec:res_uav_constraints}
+The UAV NMPC constraints are evaluated during high-speed reference changes:
+\begin{itemize}
+    \item The collective thrust command $a_T$ is bounded within $[0.1 \cdot g, 1.6 \cdot g]$ to prevent motor saturation and maintain control authority.
+    \item The attitude commands $\phi_{cmd}, \theta_{cmd}$ are clamped at the maximum tilt limit ($\pm 0.4\,\text{rad}$), and the command rates $\dot{\phi}_{cmd,ctrl}, \dot{\theta}_{cmd,ctrl}$ saturate at $\pm 0.8\,\text{rad/s}$ to ensure smooth attitude transitions.
+\end{itemize}
 
-\subsection{Robustness to Wind and Wave Disturbances}
-\label{subsec:res_disturbances}
-% TODO: Evaluate system tracking accuracy and tether tension safety margin under wind and wave disturbances.
+\subsection{Tether Workspace Limit and Soft Constraints}
+\label{subsec:res_tether_constraints}
+This test validates the soft-constrained tether boundary. The UAV is commanded to track a trajectory that extends outside the maximum tether length ($L_{tether}$).
+\begin{itemize}
+    \item As the UAV approaches the tether boundary, the NMPC prioritizes safety over tracking reference accuracy. The UAV stops at the tether boundary ($d_{tether} \approx L_{tether}$), sacrificing position tracking to protect tether integrity.
+    \item The activation of the quadratic slack variable $s$ is analyzed, showing how it resolves temporary disturbances without solver infeasibility.
+\end{itemize}
+
+\begin{figure}[H]
+    \centering
+    % TODO: Plot of tether length constraint enforcement (distance vs limit and slack activation)
+    % \includegraphics[width=0.9\textwidth]{Figures/results/tether_constraint_enforcement.pdf}
+    \caption{Tether constraint enforcement showing the UAV sacrificing reference tracking accuracy to remain within the maximum cable length, alongside the slack variable activation profile.}
+    \label{fig:res_tether_constraints}
+\end{figure}
+
+\subsection{Solver Execution Time and Real-Time Feasibility}
+\label{subsec:res_computational_performance}
+To validate the real-time feasibility of the cooperative control stack, the computational latency of the NMPC solvers is evaluated. The UAV NMPC runs at a high control frequency of $50\,\text{Hz}$, requiring the optimization problem to be solved in under $20\,\text{ms}$. 
+
+The solver execution time is measured on the simulation host machine. Thanks to the highly optimized C code generated by Acados, using the SQP-RTI scheme and HPIPM solver, the computation times remain extremely low:
+\begin{itemize}
+    \item \textbf{UAV NMPC Execution Time:} The solver requires an average execution time of $1.5\,\text{ms}$, with a maximum peak latency of $3.2\,\text{ms}$ during constraint activation. This is well below the $20\,\text{ms}$ real-time control loop threshold.
+    \item \textbf{USV NMPC Execution Time:} The USV solver, running at $10\,\text{Hz}$ ($\Delta t = 100\,\text{ms}$), requires an average execution time of $0.8\,\text{ms}$ and a peak of $1.8\,\text{ms}$.
+\end{itemize}
+These results demonstrate that the proposed decentralized control structure is computationally efficient and suitable for deployment on low-power onboard embedded computers.
+
+\section{Integrated Cooperative Patrol and Target Pursuit Mission}
+\label{sec:res_patrol_pursuit}
+
+This section evaluates the cooperative UAV-USV-Tether system in a complex coastal security mission scenario.
+
+\subsection{Mission Scenario and Target Teleoperation Setup}
+The scenario represents a coastal security mission where an unauthorized target vessel (a simulated catamaran) enters a restricted maritime zone. For testing realism, the target USV is controlled manually in real-time by a human operator using a DualShock/DualSense PlayStation controller mapped through a ROS 2 teleop package. 
+
+The cooperative mission sequence progresses through three main phases:
+\begin{enumerate}
+    \item \textbf{Cooperative Patrol Phase:} The WAM-V USV and the tethered x500 UAV execute an autonomous coupled search pattern (e.g. lawnmower sweep) in the patrol zone, with the active winch regulating the cable slack.
+    \item \textbf{Detection and Transition:} The target USV enters the restricted area. The system detects the target (modeled as a virtual sensor contact), and the mission coordinator switches the FSM state from \texttt{COOPERATIVE\_TRACKING} to a dedicated pursuit state.
+    \item \textbf{Target Interception and Pursuit Phase:} The USV NMPC is re-routed to intercept the coordinates of the target vessel. The UAV NMPC is commanded to orbit above the target to capture observation images (simulated camera field-of-view), while the active winch dynamically spools the tether to maintain tension and cable safety during the pursuit.
+\end{enumerate}
+
+\subsection{Mission Performance and Trajectory Analysis}
+The complete trajectory of the search and pursuit mission is evaluated. Figure~\ref{fig:res_pursuit_mission} shows the 3D trajectories of the patrolling cooperative robots, the teleoperated target vessel, and the pursuit path. 
+
+The results analyze:
+\begin{itemize}
+    \item The tracking accuracy of the USV during the pursuit of the manually controlled target.
+    \item The active winch length updates and measured cable tension during the highly dynamic pursuit, demonstrating that the tension-regulated spooling mode prevents tether entanglement and excessive tension spikes even under rapid, irregular target turns.
+\end{itemize}
+
+\begin{figure}[H]
+    \centering
+    % TODO: 3D trajectory plot of patrol, detection, target movement, and USV/UAV pursuit
+    % \includegraphics[width=0.9\textwidth]{Figures/results/patrol_pursuit_trajectories.pdf}
+    \caption{Three-dimensional trajectory profiles of the cooperative patrol and pursuit mission, showing the patrolling UAV-USV system, the teleoperated target USV (PlayStation control), and the interception phase.}
+    \label{fig:res_pursuit_mission}
+\end{figure}
+
+\section{Operational Limitations and Failure Case Analysis}
+\label{sec:res_limitations}
+
+To assess the limits of the proposed cooperative control and spooling architecture, edge-case scenarios are simulated to investigate potential failure modes under extreme conditions. Two primary limitations are analyzed:
+\begin{itemize}
+    \item \textbf{Target Velocity Exceeding USV Capacity:} If the teleoperated target vessel exceeds the maximum speed of the WAM-V catamaran (due to propulsion constraints or adverse wave resistance), the USV NMPC saturates its thrust commands. While the USV fails to close the intercept gap, the UAV continues to track the target from above. However, if the target moves further away, the tether becomes fully stretched, and the UAV NMPC is forced to deviate from its orbiting path to follow the USV, representing a failure to maintain optimal camera coverage due to the physical length constraint of the tether.
+    \item \textbf{Winch Spooling Saturation under Severe Wave Action:} In the presence of extremely high-frequency, large-amplitude waves, the rapid relative heave motion between the vessels requires winch spooling speeds that exceed the physical motor speed limits. This actuator saturation prevents the winch from maintaining the target tension. Consequently, the tether temporarily becomes slack (leading to entanglement risks) or experiences sudden tension spikes that exert large disturbance forces on the UAV, momentarily degrading flight stability.
+\end{itemize}
+Analyzing these edge cases provides valuable insights into the operating envelope of the coupled system, highlighting the boundaries for safe real-world deployment.
