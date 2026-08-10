@@ -204,8 +204,7 @@ The parameter calibration relies on distinct excitation signals. The excitation 
 
 \begin{figure}[H]
     \centering
-    % TODO: Run simulations and generate the excitation plot (thrust and steer angles over time)
-    % \includegraphics[width=0.9\textwidth]{Figures/modeling/usv_excitation.pdf}
+    \includegraphics[width=0.9\textwidth]{Figures/modeling/usv_excitation.pdf}
     \caption{Multi-phased excitation signals command profiles (forces and angles) for the WAM-V parameter validation.}
     \label{fig:usv_excitation_signals}
 \end{figure}
@@ -253,8 +252,7 @@ Figure~\ref{fig:usv_model_validation} shows the comparison of the predicted and 
 
 \begin{figure}[H]
     \centering
-    % TODO: Run simulations and generate the velocity validation plot (u, v, r predicted vs actual)
-    % \includegraphics[width=0.9\textwidth]{Figures/modeling/usv_validation_velocities.pdf}
+    \includegraphics[width=0.9\textwidth]{Figures/modeling/usv_validation_velocities.pdf}
     \caption{Predicted versus ground-truth velocity profiles ($u, v, r$) under the validation excitation sequence.}
     \label{fig:usv_model_validation}
 \end{figure}
@@ -263,8 +261,7 @@ To validate the kinematic transformation mapping body-fixed velocities to the gl
 
 \begin{figure}[H]
     \centering
-    % TODO: Run simulations and generate the XY trajectory validation plot
-    % \includegraphics[width=0.6\textwidth]{Figures/modeling/usv_trajectory_validation.pdf}
+    \includegraphics[width=0.6\textwidth]{Figures/modeling/usv_trajectory_validation.pdf}
     \caption{Integrated X-Y trajectory comparison between the identified Fossen 3-DOF model and the Gazebo simulation.}
     \label{fig:usv_trajectory_validation}
 \end{figure}
@@ -345,8 +342,7 @@ The optimization yields an estimated attitude response time constant of $\tau = 
 
 \begin{figure}[H]
     \centering
-    % TODO: Generate the UAV attitude validation plot (cmd, actual, simulated)
-    % \includegraphics[width=0.9\textwidth]{Figures/modeling/uav_sysid.pdf}
+    \includegraphics[width=0.9\textwidth]{Figures/modeling/uav_sysid.pdf}
     \caption{Autopilot inner-loop roll attitude identification showing the comparison between commanded angle, PX4 telemetry, and the identified first-order response model ($\tau = 0.15\,\text{s}$).}
     \label{fig:uav_sysid_validation}
 \end{figure}
@@ -412,8 +408,7 @@ To validate this simplified force representation, its estimated tension is compa
 
 \begin{figure}[H]
     \centering
-    % TODO: Generate the tether tension validation plot
-    % \includegraphics[width=0.9\textwidth]{Figures/modeling/tether_validation.pdf}
+    \includegraphics[width=0.9\textwidth]{Figures/modeling/tether_validation.pdf}
     \caption{Validation of the control-oriented tether tension model ($T_0$) compared against the high-fidelity MoorDyn multi-node lumped-mass simulation.}
     \label{fig:tether_tension_validation}
 \end{figure}

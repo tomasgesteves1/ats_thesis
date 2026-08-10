@@ -189,15 +189,16 @@ where $X_{max} = 4700\,\text{N}$ (maximum forward thrust), $X_{min} = -3506\,\te
 \section{Active Winch Control Strategy}
 \label{sec:ctrl_winch}
 
-The active winch system acts as an independent coordination agent, adjusting the deployed cable length $L_{tether}$ based on two alternative control modes:
+The active winch system acts as a dynamic coordinator, adjusting the deployed cable length $L_{tether}$ based on the flight phase to manage tether tension and slack. It operates in two main modes:
 \begin{itemize}
-    \item \textbf{Geometric Spooling Mode:} Tracks the instantaneous Euclidean distance between the vehicles, maintaining a safety margin factor $\sigma_{slack}$ to prevent high tension spikes:
+    \item \textbf{Geometric Spooling Mode (Flight/Cruise Phase):} During autonomous patrol and pursuit phases, the winch maintains a controlled slack using a safety margin factor $\sigma_{slack}$ (e.g., $0.1$ to $0.2$) relative to the instantaneous distance between the vehicles:
     \begin{equation}
         L_{tether, cmd} = d_{tether} \cdot \left(1 + \sigma_{slack}\right)
     \end{equation}
-    \item \textbf{Tension-Regulated Spooling Mode:} A proportional-derivative (PD) controller computes the spooling velocity $\dot{L}_{tether}$ to regulate the measured anchor tension $T_{meas}$ to a target tension $T_{ref}$:
+    This controlled slack is essential in rough seas: by allowing the cable to hang in a slack catenary curve, the dynamic heave, pitch, and roll motions of the catamaran under wave action are mechanically decoupled from the UAV, preventing tension disturbances from destabilizing the drone's flight.
+    \item \textbf{Tension-Guided Landing (TGL) Mode (Landing Phase):} During landing and recovery, the winch transitions to a high-tension regulation mode. A proportional-derivative (PD) controller regulates the spooling velocity $\dot{L}_{tether}$ to maintain a high target tension $T_{landing}$ (e.g., $15\,\text{N}$ to $20\,\text{N}$), pulling the cable taut:
     \begin{equation}
-        \dot{L}_{tether} = K_{T,p} \left( T_{meas} - T_{ref} \right) + K_{T,d} \dot{T}_{meas}
+        \dot{L}_{tether} = K_{T,p} \left( T_{meas} - T_{landing} \right) + K_{T,d} \dot{T}_{meas}
     \end{equation}
-    where $K_{T,p}$ and $K_{T,d}$ are the tracking gains, and $T_{ref}$ is selected to keep the tether taut but below the limit.
+    where $K_{T,p}$ and $K_{T,d}$ are the tracking gains, and $T_{meas}$ is the measured tension. This taut cable acts as a physical guideway, pulling the UAV toward the center of the deck and preventing lateral drift from wind gusts or catamaran roll, enabling safe docking on the moving vessel without requiring predictive heave synchronization.
 \end{itemize}

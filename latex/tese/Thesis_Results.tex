@@ -29,8 +29,7 @@ The planar tracking precision of the WAM-V catamaran is evaluated during represe
 
 \begin{figure}[H]
     \centering
-    % TODO: Plot of WAM-V XY trajectory and tracking errors over time
-    % \includegraphics[width=0.9\textwidth]{Figures/results/usv_tracking_performance.pdf}
+    \includegraphics[width=0.9\textwidth]{Figures/results/usv_tracking_performance.pdf}
     \caption{WAM-V catamaran planar path-following performance showing the tracked XY path and the corresponding tracking error metrics.}
     \label{fig:res_usv_tracking}
 \end{figure}
@@ -45,8 +44,7 @@ The 3D trajectory tracking performance of the x500 quadrotor is evaluated while 
 
 \begin{figure}[H]
     \centering
-    % TODO: Plot of UAV 3D orbit and relative tracking errors
-    % \includegraphics[width=0.9\textwidth]{Figures/results/uav_orbit_performance.pdf}
+    \includegraphics[width=0.9\textwidth]{Figures/results/uav_orbit_performance.pdf}
     \caption{UAV three-dimensional orbit tracking relative to the moving WAM-V deck (dynamic anchor), displaying position and command profiles.}
     \label{fig:res_uav_tracking}
 \end{figure}
@@ -82,8 +80,7 @@ This test validates the soft-constrained tether boundary. The UAV is commanded t
 
 \begin{figure}[H]
     \centering
-    % TODO: Plot of tether length constraint enforcement (distance vs limit and slack activation)
-    % \includegraphics[width=0.9\textwidth]{Figures/results/tether_constraint_enforcement.pdf}
+    \includegraphics[width=0.9\textwidth]{Figures/results/tether_constraint_enforcement.pdf}
     \caption{Tether constraint enforcement showing the UAV sacrificing reference tracking accuracy to remain within the maximum cable length, alongside the slack variable activation profile.}
     \label{fig:res_tether_constraints}
 \end{figure}
@@ -125,10 +122,37 @@ The results analyze:
 
 \begin{figure}[H]
     \centering
-    % TODO: 3D trajectory plot of patrol, detection, target movement, and USV/UAV pursuit
-    % \includegraphics[width=0.9\textwidth]{Figures/results/patrol_pursuit_trajectories.pdf}
+    \includegraphics[width=0.9\textwidth]{Figures/results/patrol_pursuit_trajectories.pdf}
     \caption{Three-dimensional trajectory profiles of the cooperative patrol and pursuit mission, showing the patrolling UAV-USV system, the teleoperated target USV (PlayStation control), and the interception phase.}
     \label{fig:res_pursuit_mission}
+\end{figure}
+
+\subsection{Alternative Civil Scenario: Offshore Infrastructure Inspection}
+\label{subsec:res_wind_turbine_inspection}
+
+To demonstrate the versatility of the cooperative control stack beyond defense applications, an alternative civil mission is simulated: the inspection of an offshore wind turbine. In this scenario:
+\begin{itemize}
+    \item The WAM-V USV navigates to a designated offshore wind farm and orbits the floating turbine foundation at a safe standoff distance of $15\,\text{m}$.
+    \item The tethered x500 UAV is commanded to rise to an altitude of $25\,\text{m}$ (close to the turbine blades and nacelle) and perform a vertical sweep to inspect the structure for damage.
+    \item The active winch dynamically adjusts the tether length to accommodate the UAV's vertical altitude changes, while the controlled slack isolates the drone from wave-induced ship motion, enabling persistent high-resolution imaging without battery limit constraints.
+\end{itemize}
+This alternative simulation demonstrates that the developed control architecture is directly applicable to industrial maintenance tasks, offering a robust tool for offshore renewable energy support.
+
+\section{Comparative Study: Tether-Guided Recovery vs. Free Landing in Waves}
+\label{sec:res_comparative_landing}
+
+To evaluate the security and robustness of the recovery phase in rough seas, a comparative study is performed between two landing strategies under wave-induced catamaran motion ($2.0\,\text{m}$ wave height and $0.5\,\text{Hz}$ heave frequency):
+\begin{itemize}
+    \item \textbf{Standard Free Landing (Unguided):} The UAV attempts to land on the moving helideck using GPS and visual tracking alone, with the tether remaining slack. As the drone approaches, the roll and pitch of the catamaran deck strike the UAV landing gear at a wave crest, causing it to bounce. Without a restoring tension force to anchor the platform, the drone slides off the wet helideck and crashes into the water.
+    \item \textbf{Tension-Guided Landing (TGL):} The active winch transitions to the TGL mode, applying a constant pulling tension of $15\,\text{N}$. This high tension provides a physical restoring force that centers the UAV directly above the deck and eliminates lateral wind drift. As the UAV descends, the cable remains taut, and the downward pull prevents the drone from bouncing off the deck upon contact. Once landed, the tension secures the drone to the catamaran despite severe deck roll/pitch, leading to a successful recovery.
+\end{itemize}
+This comparison demonstrates that using the physical tether to actively pull the drone down represents a major safety improvement for maritime operations, eliminating the need for complex, model-dependent predictive wave estimation.
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.9\textwidth]{Figures/results/landing_comparison_trajectory.pdf}
+    \caption{Comparison of UAV relative vertical position and lateral deviation during unguided landing (slip and crash) versus tension-guided recovery (safe centering and docking).}
+    \label{fig:res_landing_comparison}
 \end{figure}
 
 \section{Operational Limitations and Failure Case Analysis}

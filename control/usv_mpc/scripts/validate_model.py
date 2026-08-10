@@ -309,10 +309,13 @@ def main():
     
     plt.tight_layout()
     
-    # Save the plot
-    plot_filename = "wamv_model_validation_results.png"
-    plt.savefig(plot_filename, dpi=300)
-    print(f"\nSaved validation plot results to: {os.path.abspath(plot_filename)}")
+    fig_dir = "/home/tomas/ats_ws/src/latex/tese/Figures/modeling"
+    os.makedirs(fig_dir, exist_ok=True)
+    
+    # Save the velocities validation plot
+    plot_filename = os.path.join(fig_dir, "usv_validation_velocities.pdf")
+    plt.savefig(plot_filename, format='pdf')
+    print(f"\nSaved validation plot results to: {plot_filename}")
     
     # Also plot X-Y Trajectory comparison
     plt.figure(figsize=(8, 8))
@@ -325,9 +328,32 @@ def main():
     plt.legend()
     plt.axis('equal')
     
-    traj_filename = "wamv_trajectory_validation.png"
-    plt.savefig(traj_filename, dpi=300)
-    print(f"Saved trajectory plot results to: {os.path.abspath(traj_filename)}")
+    traj_filename = os.path.join(fig_dir, "usv_trajectory_validation.pdf")
+    plt.savefig(traj_filename, format='pdf')
+    print(f"Saved trajectory plot results to: {traj_filename}")
+    
+    # Generate the excitation plot (thrust and steer angles over time)
+    fig_ex, (ax_ex_thrust, ax_ex_angle) = plt.subplots(2, 1, figsize=(10, 6), sharex=True)
+    
+    ax_ex_thrust.plot(t_grid - t_start, thrust_left, 'b-', alpha=0.8, label='Left Thruster ($T_L$)')
+    ax_ex_thrust.plot(t_grid - t_start, thrust_right, 'r--', alpha=0.8, label='Right Thruster ($T_R$)')
+    ax_ex_thrust.set_ylabel('Thrust [N]')
+    ax_ex_thrust.set_title('WAM-V Excitation Signals - Thruster Forces')
+    ax_ex_thrust.grid(True)
+    ax_ex_thrust.legend()
+    
+    ax_ex_angle.plot(t_grid - t_start, np.degrees(angle_left), 'b-', alpha=0.8, label='Left Steering Angle ($\\alpha_L$)')
+    ax_ex_angle.plot(t_grid - t_start, np.degrees(angle_right), 'r--', alpha=0.8, label='Right Steering Angle ($\\alpha_R$)')
+    ax_ex_angle.set_ylabel('Steering Angle [deg]')
+    ax_ex_angle.set_xlabel('Time [s]')
+    ax_ex_angle.set_title('WAM-V Excitation Signals - Steering Angles')
+    ax_ex_angle.grid(True)
+    ax_ex_angle.legend()
+    
+    plt.tight_layout()
+    ex_filename = os.path.join(fig_dir, "usv_excitation.pdf")
+    plt.savefig(ex_filename, format='pdf')
+    print(f"Saved excitation signals plot to: {ex_filename}")
     
     if not args.no_show:
         plt.show()
