@@ -4,61 +4,111 @@
 %     Tex Master: Thesis.tex                                           %
 %                                                                      %
 %     Author: Andre C. Marta                                           %
-%     Last modified :  05 Aug 2026                                     %
+%     Last modified :  10 Aug 2026                                     %
 %                                                                      %
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-\chapter{Virtual Platforms and Simulation Setup}
+\chapter{Virtual Platforms and Simulation Environment}
 \label{chapter:virtual_platforms}
 
-This chapter describes the virtual hardware platforms and the simulation environment used to implement, test, and validate the cooperative control architecture. To bridge the gap between theoretical controller design and real-world deployment, the system is modeled and evaluated using high-fidelity simulations. The virtual setup comprises three primary components: the WAM-V surface vessel, the x500 quadrotor, and the physical coupling through a tether and active winch system. This chapter provides the physical characteristics and simulation dynamics of these platforms.
+This chapter describes the virtual platforms and the simulation environment developed to test, evaluate, and validate the cooperative control architecture. To bridge the gap between theoretical controller design and physical deployment, the multi-agent system is simulated with high physical fidelity. The virtual setup comprises three main components: the WAM-V surface vessel, the x500 quadrotor, and the flexible tether coupling them. The following sections detail the simulation software tools, the virtual representation of each vehicle, the tether coupling, and the overall system integration.
 
-\section{WAM-V Autonomous Surface Vessel}
-\label{sec:plat_usv}
+% =========================================================================
+\section{Simulation Ecosystem}
+\label{sec:sim_ecosystem}
 
-The autonomous surface vessel utilized in this work is based on the \gls{usv} WAM-V (Wave Adaptive Modular Vessel) catamaran, shown in Figure~\ref{fig:coordinate_frames}. The WAM-V is a lightweight marine platform designed for coastal and offshore autonomy, characterized by two inflatable pontoons connected to a central structural payload tray by a suspension system. 
+The simulation framework is built upon a modular software stack that handles physics resolution, multi-body constraints, autopilot emulation, and communication bridges, as illustrated in Figure~\ref{fig:software_architecture}.
 
-In the simulation environment, the WAM-V is represented as a rigid body with $6$ degrees of freedom (DOF). The physical characteristics of the simulated catamaran hull are summarized below:
-\begin{itemize}
-    \item \textbf{Dimensions and Inertia:} The catamaran has an overall length of $4.0\,\text{m}$ and a beam width of $2.4\,\text{m}$. The nominal rigid-body mass of the empty vessel is $m = 259.10\,\text{kg}$, with a moment of inertia about the yaw axis of $I_{zz} = 527.70\,\text{kg}\cdot\text{m}^2$.
-    \item \textbf{Propulsion Configuration:} The vessel is configured with a dual steerable stern-thruster system. The thrusters are mounted at a longitudinal arm of $x_{arm} = -2.37\,\text{m}$ (behind the center of gravity $\mathcal{O}_v$) and lateral arms of $y_{arm} = \pm 1.03\,\text{m}$ relative to the centerline. This allows for both differential thrust and vectoring of the propulsion force.
-    \item \textbf{Thruster Asymmetry:} Each thruster exhibits asymmetrical thrust limits due to propeller blade design, yielding reduced efficiency when operating in reverse. Nominally, the reverse thrust is scaled by a factor of $0.746$ relative to the forward thrust capacity.
-\end{itemize}
+    \subsection{Gazebo Harmonic and Virtual RobotX (VRX)}
+    The primary 3D simulation environment is Gazebo Harmonic \cite{koenig2004gazebo}. It handles multi-body physics, rendering, and sensor emulation, utilizing the DART (Dynamic Animation and Robotics Toolkit) physics engine \cite{lee2018dart} with a step size of $0.004\,\text{s}$ ($250\,\text{Hz}$). To simulate the maritime environment, the Virtual RobotX (VRX) simulation framework \cite{bingham2019vrx} is integrated. VRX provides custom Gazebo plugins to model ocean surface wave dynamics (using Gerstner waves), buoyancy, wind fields, and hydrodynamic drag forces.
 
-The simulation of the WAM-V in Gazebo Harmonic incorporates high-fidelity hydrostatic buoyancy and hydrodynamic drag. The buoyancy is computed dynamically by integrating Archimedes' principle over the discretized volumetric mesh of the pontoons. The hydrodynamics are simulated using Gazebo's lift-drag and fluid-damping plugins, which apply non-linear resistance forces and moments to replicate the hull's drag, cross-coupling, and wave-induced heave, roll, and pitch disturbances.
+    \subsection{MoorDyn}
+    For high-fidelity cable dynamics and tension propagation, the MoorDyn physics library \cite{hall2015moordyn} is integrated. MoorDyn is a lumped-mass mooring line physics engine that discretizes the tether into a series of mass nodes connected by spring-damper segments. It dynamically computes longitudinal stiffness, internal structural damping, gravity, buoyancy, and hydrodynamic drag forces acting on the line.
 
-\section{x500 Unmanned Aerial Vehicle}
-\label{sec:plat_uav}
+    \subsection{PX4 Autopilot SITL}
+    To emulate the inner-loop flight dynamics of the quadrotor, the PX4 Autopilot \cite{meier2015px4} is integrated in Software-in-the-Loop (SITL) mode. The SITL instance runs the actual PX4 firmware on the host machine, receiving ground truth state feedback from Gazebo and returning motor control commands to the simulator, thereby capturing the realistic response of the flight control unit.
 
-The aerial platform is modeled after the Holybro x500 quadrotor development kit, which is a $500\,\text{mm}$-class quadrotor frame widely used for research and development. 
+    \subsection{Communication Bridges}
+    Two communication bridges are required to interface the control algorithms with the simulation:
+    \begin{itemize}
+        \item \textbf{\texttt{ros\_gz\_bridge}:} Bridges Gazebo and ROS 2 \cite{macenski2022ros2}, allowing bidirectional data flow of sensor data (e.g., LiDAR, cameras, joint states) and USV thruster commands.
+        \item \textbf{Micro XRCE-DDS:} Bridges PX4's internal uORB messaging system with the ROS 2 network. It translates native PX4 telemetry (such as high-rate attitude states) and control inputs (such as offboard setpoints) into standard ROS 2 messages, enabling custom ROS 2 controllers to interface with the autopilot.
+    \end{itemize}
 
-The simulated UAV has the following physical characteristics:
-\begin{itemize}
-    \item \textbf{Mass Properties:} The total mass of the quadrotor frame is approximately $2.06\,\text{kg}$, consisting of a $2.00\,\text{kg}$ main central body link and four rotors weighing $0.016\,\text{kg}$ each.
-    \item \textbf{Actuation:} The quadrotor is propelled by four brushless DC motors equipped with $10$-inch propellers, arranged in a standard X-configuration. The rotor response curves, blade aerodynamics, and motor speed lag are modeled in the simulator to capture the transient dynamics of thrust production.
-    \item \textbf{Autopilot Response Characteristic:} The vehicle exhibits a characteristic first-order response lag in attitude tracking, which represents the dynamic behavior of the inner-loop cascaded rate and attitude controllers of the flight control unit.
-\end{itemize}
+    \begin{figure}[htbp]
+        \centering
+        \begin{tikzpicture}[
+            block/.style={draw, rectangle, minimum height=1.2cm, minimum width=3.2cm, align=center, rounded corners, fill=blue!5, thick},
+            line/.style={draw, {Stealth}-{Stealth}, thick},
+            label/.style={font=\scriptsize, align=center}
+        ]
+            % Nodes
+            \node[block, fill=blue!10] (ros) at (0,2.0) {\textbf{ROS 2 Workspace}};
+            \node[block, fill=green!10] (px4) at (0,-2.0) {\textbf{PX4 Autopilot}};
+            \node[block, fill=orange!10] (gazebo) at (6,0) {\textbf{Gazebo Harmonic}};
+            \node[block, fill=red!10] (moordyn) at (12.5,0) {\textbf{MoorDyn}};
 
-\section{Tether and Winch Coupling System}
-\label{sec:plat_tether}
+            % Communication Bridges
+            \draw[line] (ros) -- node[left, label] {Micro XRCE-DDS\\Bridge} (px4);
+            \draw[line] (ros.east) -| node[above, label, pos=0.5] {\texttt{ros\_gz\_bridge}} (gazebo.north);
+            \draw[line] (px4.east) -| node[below, label, pos=0.5] {SITL Lockstep Port \\ (UDP/TCP)} (gazebo.south);
+            \draw[line] (gazebo) -- node[above, label] {MoorDyn C++ API \\ Bindings} (moordyn);
+
+        \end{tikzpicture}
+        \caption{Simulation software ecosystem and communication interfaces.}
+        \label{fig:software_architecture}
+    \end{figure}
+
+% =========================================================================
+\section{Unmanned Surface Vehicle (USV) Model}
+\label{sec:usv_model}
+
+The surface agent is modeled after the WAM-V (Wave Adaptive Modular Vessel) catamaran, which is a lightweight marine platform characterized by two inflatable pontoons connected to a central payload tray.
+
+    \subsection{Physical Configuration and CAD Model}
+    In the simulation environment, the WAM-V is represented as a rigid body with $6$ degrees of freedom (DOF). The catamaran has an overall length of $4.0\,\text{m}$ and a beam width of $2.4\,\text{m}$. The nominal rigid-body mass of the empty vessel is $m = 259.10\,\text{kg}$, with a moment of inertia about the yaw axis of $I_{zz} = 527.70\,\text{kg}\cdot\text{m}^2$.
+
+    \subsection{Propulsion and Hydrodynamics Plugins}
+    The propulsion configuration consists of a dual steerable stern-thruster system. The thrusters are mounted at a longitudinal arm of $x_{arm} = -2.37\,\text{m}$ (behind the center of gravity) and lateral arms of $y_{arm} = \pm 1.03\,\text{m}$ relative to the centerline, enabling both differential and vectored thrust. Each thruster has asymmetrical limits, with reverse thrust scaled by a factor of $0.746$ relative to forward thrust capacity.
+    
+    Hydrodynamics and buoyancy are simulated using VRX plugins. Buoyancy is computed dynamically over the pontoons' discretized volumetric mesh using Archimedes' principle. Hydrodynamic drag and fluid damping plugins apply non-linear forces and moments to replicate drag, cross-coupling, and wave-induced heave, roll, and pitch disturbances.
+
+    \subsection{Sensor Suite}
+    The virtual WAM-V is equipped with a maritime sensor suite including a GPS receiver for global positioning, an IMU for orientation and angular rate measurements, and a virtual force/torque sensor at the tether anchorage point to monitor the tension acting on the vessel.
+
+% =========================================================================
+\section{Unmanned Aerial Vehicle (UAV) Model}
+\label{sec:uav_model}
+
+The aerial platform is based on the Holybro x500 quadrotor development kit, representing a $500\,\text{mm}$-class quadrotor frame.
+
+    \subsection{Airframe and Aerodynamics}
+    The simulated UAV has a total mass of $2.06\,\text{kg}$, comprising a $2.00\,\text{kg}$ main central body link and four rotors weighing $0.016\,\text{kg}$ each. O propulsion consists of four brushless DC motors with $10$-inch propellers arranged in a standard X-configuration. Rotor response curves, blade aerodynamics, and motor speed lag are simulated to capture transient thrust dynamics.
+
+    \subsection{Flight Controller Interface}
+    The vehicle's inner-loop attitude tracking is governed by the PX4 autopilot running in SITL mode. The autopilot runs cascaded PID controllers for rate and attitude loops. The custom control algorithms send offboard mode setpoints (such as velocity or attitude targets) to the flight controller, capturing the response characteristics and delay of a real autopilot.
+
+    \subsection{Sensor Suite}
+    For navigation and control, the virtual x500 quadrotor is equipped with an IMU, a barometer for altitude estimation, and a GPS receiver for global positioning feedback.
+
+% =========================================================================
+\section{Tether Representation and Coupling}
+\label{sec:tether_coupling}
 
 The physical coupling between the WAM-V and the x500 quadrotor is established by a flexible tether cable managed by an active winch system mounted on the catamaran's deck.
 
-The tether is simulated using two distinct representations depending on the test requirements:
-\begin{enumerate}
-    \item \textbf{Multibody Joint Chain (Gazebo Physics):} For visual feedback and rigid-body contact handling (such as collisions with the catamaran deck or water surface), the tether is modeled as a chain of $30$ rigid cylindrical links connected by spherical (ball) joints. Each link has a radius of $0.01\,\text{m}$ (1 cm) and a mass of $0.02\,\text{kg}$, yielding a total tether mass of $0.6\,\text{kg}$ for a nominal $5.0\,\text{m}$ length. Joint damping of $2.0\,\text{N}\cdot\text{s}/\text{m}$ and friction of $0.1\,\text{N}\cdot\text{m}$ are applied at each joint to model internal bending resistance.
-    \item \textbf{MoorDyn Lumped-Mass Physics:} For high-fidelity cable dynamics and tension propagation, the MoorDyn physics library is integrated. MoorDyn discretizes the cable into lumped mass nodes connected by spring-damper segments. It computes longitudinal stiffness, internal structural damping, gravity, buoyancy, and transverse/longitudinal hydrodynamic drag forces acting on the line.
-\end{enumerate}
+    \subsection{Tether Physical Properties}
+    Depending on the test requirements, the tether is simulated using two distinct representations:
+    \begin{enumerate}
+        \item \textbf{Multibody Joint Chain:} Used for visual feedback and rigid-body contact handling (e.g., deck collisions). It consists of a chain of $30$ rigid cylindrical links connected by spherical (ball) joints. Each link has a radius of $0.01\,\text{m}$ and a mass of $0.02\,\text{kg}$, yielding a total mass of $0.6\,\text{kg}$ for a nominal $5.0\,\text{m}$ length. Joint damping of $2.0\,\text{N}\cdot\text{s}/\text{m}$ and friction of $0.1\,\text{N}\cdot\text{m}$ model internal bending resistance.
+        \item \textbf{MoorDyn Lumped-Mass Model:} Used for high-fidelity tension propagation. The cable is discretized into lumped mass nodes connected by spring-damper segments, computing longitudinal stiffness, internal structural damping, and transverse/longitudinal hydrodynamic drag forces.
+    \end{enumerate}
 
-The winch is located on the WAM-V deck at a fixed offset of $\mathbf{p}_{a/v} = [-0.8, 0.0, 0.0]^T\,\text{m}$ relative to the vessel's center of gravity $\mathcal{O}_v$. The winch mechanism controls the unstretched length of the tether ($L_{tether}$) through active spooling, supporting geometric mode spooling (tracking the distance between vehicles) and tension-based spooling (maintaining a target line tension).
+    \subsection{Anchorage and Force Transmission}
+    The winch mechanism is located on the WAM-V deck at a fixed offset of $\mathbf{p}_{a/v} = [-0.8, 0.0, 0.0]^T\,\text{m}$ relative to the vessel's center of gravity. The winch controls the unstretched tether length ($L_{tether}$) through active spooling. The tether forces calculated by the physics solver (either MoorDyn or Gazebo) are injected at the anchorage points on both the WAM-V and the x500 bodies, establishing the bidirectional physical coupling.
 
-\section{Simulation Setup and Environmental Physics}
-\label{sec:sim_environment}
+% =========================================================================
+\section{System Architecture and Data Flow}
+\label{sec:system_data_flow}
 
-The virtual platforms are integrated and simulated within the Gazebo Harmonic environment. The simulation framework is configured to resolve the multi-body physics and emulate realistic maritime environmental conditions, providing a physical testbed for the control strategies:
-\begin{itemize}
-    \item \textbf{Physics Solver Configuration:} The simulation utilizes the DART (Dynamic Animation and Robotics Toolkit) physics engine, configured with a step size of $0.004\,\text{s}$ ($250\,\text{Hz}$). This rate balances calculation accuracy for the stiff multi-body dynamics of the tether chain against real-time simulation performance.
-    \item \textbf{Maritime Environmental Disturbances:} To replicate realistic operation at sea, the Gazebo environment incorporates physical wave generators and current fields. The water surface is modeled with non-linear wave profiles (using a Gerstner wave representation) that apply dynamic heave, roll, and pitch forces directly to the pontoons of the WAM-V.
-    \item \textbf{Wind and Aerodynamic Drag:} The aerial workspace includes wind velocity fields that exert aerodynamic drag forces on the x500 quadrotor's body and rotors, acting as a continuous, time-varying disturbance during flight.
-    \item \textbf{Collision and Contact Resolution:} Full rigid-body contact mechanics are resolved between all physical links in the simulation, including the collision geometry of the catamaran deck, the tether's cylindrical links, and the quadrotor's landing gear.
-\end{itemize}
+To coordinate the simulation, a centralized data flow architecture is implemented. Telemetry data from the sensors is published by the Gazebo and PX4 SITL instances and bridged to the ROS 2 network. The control algorithms process this feedback, compute the appropriate control actions, and publish thruster commands for the USV, flight control setpoints for the UAV (via PX4 offboard mode), and spooling rate commands for the winch, completing the closed-loop control cycle.
