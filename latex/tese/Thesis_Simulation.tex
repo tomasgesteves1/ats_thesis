@@ -4,119 +4,331 @@
 %     Tex Master: Thesis.tex                                           %
 %                                                                      %
 %     Author: Andre C. Marta                                           %
-%     Last modified :  05 Aug 2026                                     %
+%     Last modified :  17 Aug 2026                                     %
 %                                                                      %
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-\chapter{Implementation}
+\chapter{Simulation Environment and Software Implementation}
 \label{chapter:implementation}
 
-This chapter describes the software stack, nodes, and co-simulation setups used to implement and test the cooperative tethered control system. It details the code generation pipeline, the modular C++ ROS 2 package architecture, the cooperative mission state machine, and the integration of the MoorDyn physics engine and virtual winch controller within the Gazebo simulation environment.
+This chapter describes the co-simulation setup, software environment, and virtual platforms used to implement and validate the cooperative control architecture. To bridge the gap between theory and practical application, the system is simulated with high physical fidelity. The software stack integrates the ROS 2 workspace, the PX4 Autopilot SITL firmware, the MoorDyn cable physics engine, and the Gazebo simulator. The following sections detail the software architecture, the virtual vehicle platforms, the tether and winch models, and the system integration and data flow.
 
-\section{Software Environment and Code Generation}
-\label{sec:sim_software_stack}
-
-The software architecture is implemented on top of the Linux Ubuntu 22.04 LTS operating system using the \gls{ros} 2 (Robot Operating System) Humble Hawksbill middleware. For the design and generation of the optimization solvers of the \gls{nmpc} controllers, a symbolic code generation pipeline is employed. 
-
-The code generation pipeline consists of the following components:
-\begin{itemize}
-    \item \textbf{CasADi Symbolic Framework:} A Python script is written for each vehicle (UAV and USV) to define the state, control, and parameter variables symbolically. CasADi handles the automatic differentiation, compiling the non-linear dynamics equations and evaluating analytical Jacobians and Hessian approximations.
-    \item \textbf{Acados Template Library:} Consumes the CasADi symbolic models to generate highly optimized, native C code solvers. Acados bypasses generic optimization libraries by generating customized solvers tailored to the specific OCP structure.
-    \item \textbf{High-Performance Kernels:} The exported C code is compiled utilizing the BLASFEO (Basic Linear Algebra Subprograms for Embedded Optimization) library, which optimizes processor cache utilization for small-to-medium-sized matrices. The linearized QP subproblems are solved using HPIPM (High-Performance Interior-Point Method), which implements a structured primal-dual interior-point method.
-\end{itemize}
-
-The temporal configuration of the NMPC solvers is configured independently for the two platforms to balance physical response rates and solver execution times:
-\begin{itemize}
-    \item \textbf{UAV Solver:} Discretized with a control period of $T_{s,UAV} = 0.02\,\text{s}$ ($50\,\text{Hz}$) and a prediction horizon of $N_{UAV} = 50$ intervals, yielding a total prediction horizon of $T_{f,UAV} = 1.0\,\text{s}$.
-    \item \textbf{USV Solver:} Discretized with a control period of $T_{s,USV} = 0.1\,\text{s}$ ($10\,\text{Hz}$) and a prediction horizon of $N_{USV} = 20$ intervals, yielding a total prediction horizon of $T_{f,USV} = 2.0\,\text{s}$.
-\end{itemize}
-
-\section{ROS 2 Software Architecture}
+% =========================================================================
+\section{Software Architecture and Workspace Structure}
 \label{sec:sim_ros_architecture}
 
-The system software is organized into modular ROS 2 packages, ensuring decoupling between control, estimation, simulation, and mission coordination.
+The system software is organized into modular ROS 2 packages running on top of the Linux Ubuntu 22.04 LTS operating system and the ROS 2 Humble Hawksbill middleware. This architecture ensures decoupling between control, estimation, simulation, and mission coordination.
 
-\subsection{Workspace Structure and Package Modularity}
-The ROS 2 workspace is organized into five primary packages, summarized in Table~\ref{tab:ros_packages}.
+    \subsection{Workspace Structure and Package Modularity}
+    The ROS 2 workspace is organized into five primary packages, summarized in Table~\ref{tab:ros_packages}.
 
-\begin{table}[H]
-\centering
-\caption{Summary of the modular ROS 2 packages in the cooperative workspace.}
-\begin{tabular}{llp{7.5cm}}
-\toprule
-Package Name & Language & Primary Responsibility \\
-\midrule
-\texttt{bringup} & Python/YAML & System launch files, configuration files, and coordinate frame parameters. \\
-\texttt{uav\_mpc} & C++/Python & UAV Acados solver generation, telemetry mapping, and position NMPC. \\
-\texttt{usv\_mpc} & C++/Python & USV Acados solver generation, thruster allocation mapping, and tracking NMPC. \\
-\texttt{moordyn\_tether} & C++ & MoorDyn mooring line node wrapper and active winch controller. \\
-\texttt{ats\_mission} & C++ & Mission coordinator managing takeoff, orbiting, landing, and FSM transitions. \\
-\bottomrule
-\end{tabular}
-\label{tab:ros_packages}
-\end{table}
-
-\subsection{Code Design Pattern: Library and ROS Wrapper}
-To ensure code standard compliance, portability, and readability, all control nodes are implemented using a strict three-layer design pattern:
-\begin{enumerate}
-    \item \textbf{The Entry Point (\texttt{\_main.cpp}):} A minimal file containing only the main initialization function, instantiating the node wrapper, and spinning the ROS 2 executor.
-    \item \textbf{The ROS Wrapper (\texttt{\_node.cpp/hpp}):} Handles all ROS-related tasks. It loads configuration parameters from YAML files, initializes publishers and subscribers, sets up timers, and manages the publishing of tf2 coordinate frame transformations. No mathematical calculations or control-oriented logic are written in this layer.
-    \item \textbf{The Logic Pipeline (\texttt{\_pipeline.cpp/hpp}):} A pure C++ class that is completely independent of ROS. It uses native C++ and Eigen library types to execute the calculations. It wraps the Acados C structure, updates the states and parameters, runs the optimization solver, and maps virtual forces to actuator commands.
-\end{enumerate}
-
-To support multi-robot simulation and prevent topic collisions, all topic subscriptions and publications inside the nodes are written using relative topic names. This allows namespaces (e.g., \texttt{/wamv1/odom} and \texttt{/wamv2/odom}) to isolate vehicle telemetry.
-
-\subsection{Cooperative Mission Finite State Machine}
-The coordination of the cooperative UAV-USV mission is managed by the \texttt{mission\_manager} node inside the \texttt{ats\_mission} package. The coordinator implements a Finite State Machine (FSM) to orchestrate the flight phases of the drone relative to the ship, as illustrated in Figure~\ref{fig:mission_fsm}:
-\begin{itemize}
-    \item \textbf{IDLE:} Initial state. Nodes check sensor telemetry, establish the tether connection frames, and wait for the start command.
-    \item \textbf{TAKEOFF:} Triggers autonomous UAV takeoff. The quadrotor rises vertically to a safe hovering altitude directly above the WAM-V helideck ($z_a = 3.0\,\text{m}$ relative to the deck). The USV and winch remain stationary.
-    \item \textbf{COOPERATIVE\_TRACKING:} The active phase. The USV starts tracking its planar trajectory, and the UAV starts its orbit tracking or path-following sequence centered on the USV anchor. The winch is activated in either geometric or tension-regulated spooling mode to manage tether slack.
-    \item \textbf{LANDING:} Triggered at the end of the mission. The USV reduces speed or hovers. The UAV approaches the catamaran deck, while the winch actively spools in the tether, tensioning the line to guide the quadrotor safely onto the deck.
-\end{itemize}
-
-\begin{figure}[H]
+    \begin{table}[H]
     \centering
-    \begin{tikzpicture}[
-        state/.style={draw, circle, minimum size=2.2cm, align=center, fill=gray!10, draw=gray, thick, font=\small},
-        active_state/.style={draw, circle, minimum size=2.2cm, align=center, fill=blue!10, draw=blue, thick, font=\small},
-        >=stealth,
-        thick,
-        node distance=4.2cm
-    ]
-        \node[state] (idle) {IDLE};
-        \node[state, right of=idle] (takeoff) {TAKEOFF};
-        \node[active_state, right of=takeoff] (tracking) {COOPERATIVE\\TRACKING};
-        \node[state, below of=tracking, node distance=3.2cm] (landing) {LANDING};
-        
-        \draw[->] (idle) -- node[above, font=\scriptsize, align=center] {Mission\\Start} (takeoff);
-        \draw[->] (takeoff) -- node[above, font=\scriptsize, align=center] {UAV\\Hovering} (tracking);
-        \draw[->] (tracking) -- node[right, font=\scriptsize, align=center] {Landing\\Trigger} (landing);
-        \draw[->] (landing) -| node[above, pos=0.25, font=\scriptsize, align=center] {Mission\\Complete} (idle);
-    \end{tikzpicture}
-    \caption{Finite State Machine (FSM) state transition diagram for the cooperative mission coordinator.}
-    \label{fig:mission_fsm}
-\end{figure}
+    \caption{Summary of the modular ROS 2 packages in the cooperative workspace.}
+    \begin{tabular}{llp{7.5cm}}
+    \toprule
+    Package Name & Language & Primary Responsibility \\
+    \midrule
+    \texttt{bringup} & Python/YAML & System launch files, configuration files, and coordinate frame parameters. \\
+    \texttt{uav\_mpc} & C++/Python & UAV Acados solver generation, telemetry mapping, and position NMPC. \\
+    \texttt{usv\_mpc} & C++/Python & USV Acados solver generation, thruster allocation mapping, and tracking NMPC. \\
+    \texttt{moordyn\_tether} & C++ & MoorDyn mooring line node wrapper and active winch controller. \\
+    \texttt{ats\_mission} & C++ & Mission coordinator managing takeoff, orbiting, landing, and FSM transitions. \\
+    \bottomrule
+    \end{tabular}
+    \label{tab:ros_packages}
+    \end{table}
 
-\section{Co-Simulation Setup in Gazebo Harmonic}
-\label{sec:sim_gazebo_setup}
+    \subsection{Code Design Pattern: Library and ROS Wrapper}
+    To ensure code standard compliance, portability, and readability, all control nodes are implemented using a strict three-layer design pattern:
+    \begin{enumerate}
+        \item \textbf{The Entry Point (\texttt{\_main.cpp}):} A minimal file containing only the main initialization function, instantiating the node wrapper, and spinning the ROS 2 executor.
+        \item \textbf{The ROS Wrapper (\texttt{\_node.cpp/hpp}):} Handles all ROS-related tasks. It loads configuration parameters from YAML files, initializes publishers and subscribers, sets up timers, and manages the publishing of tf2 coordinate frame transformations. No mathematical calculations or control-oriented logic are written in this layer.
+        \item \textbf{The Logic Pipeline (\texttt{\_pipeline.cpp/hpp}):} A pure C++ class that is completely independent of ROS. It uses native C++ and Eigen library types to execute the calculations. It wraps the Acados C structure, updates the states and parameters, runs the optimization solver, and maps virtual forces to actuator commands.
+    \end{enumerate}
 
-The co-simulation environment is built in Gazebo Harmonic, which handles the multi-body physics, collisions, and environmental perturbations. The software stack integrates the simulator with the control pipeline through communication bridges:
-\begin{itemize}
-    \item \textbf{PX4 SITL and micro XRCE-DDS Bridge:} The x500 quadrotor simulation runs the actual PX4 Autopilot flight firmware in a Software-in-the-Loop (SITL) wrapper. The micro XRCE-DDS bridge manages the high-rate, low-latency exchanges between the PX4 middleware and the ROS 2 network, allowing the subscription to high-frequency state estimation (odometry, vehicle local position) and the publishing of offboard attitude rate and thrust targets.
-    \item \textbf{ROS-Gazebo Bridge:} Maps the simulation clock, joint state commands (steerable thruster angles, propeller speeds), and winch actuator commands from ROS 2 to the Gazebo physics engine.
-    \item \textbf{Time Synchronization:} To prevent time drift between the simulator and the controller nodes, all ROS 2 nodes are configured to run using simulation time. The Gazebo simulator publishes the simulation clock on the \texttt{/clock} topic, which is used by the ROS 2 executor to synchronize node timers.
-\end{itemize}
+    To support multi-robot simulation and prevent topic collisions, all topic subscriptions and publications inside the nodes are written using relative topic names. This allows namespaces (e.g., \texttt{/wamv1/odom} and \texttt{/wamv2/odom}) to isolate vehicle telemetry.
 
-\section{MoorDyn and Winch Integration}
-\label{sec:sim_moordyn_integration}
+    \subsection{Software Environment and Code Generation}
+    \label{sec:sim_software_stack}
+    For the design and generation of the optimization solvers of the NMPC controllers, a symbolic code generation pipeline is employed:
+    \begin{itemize}
+        \item \textbf{CasADi Symbolic Framework:} A Python script is written for each vehicle (UAV and USV) to define the state, control, and parameter variables symbolically. CasADi handles the automatic differentiation, compiling the non-linear dynamics equations and evaluating analytical Jacobians and Hessian approximations.
+        \item \textbf{Acados Template Library:} Consumes the CasADi symbolic models to generate highly optimized, native C code solvers. Acados bypasses generic optimization libraries by generating customized solvers tailored to the specific OCP structure.
+        \item \textbf{High-Performance Kernels:} The exported C code is compiled utilizing the BLASFEO (Basic Linear Algebra Subprograms for Embedded Optimization) library, which optimizes processor cache utilization for small-to-medium-sized matrices. The linearized QP subproblems are solved using HPIPM (High-Performance Interior-Point Method), which implements a structured primal-dual interior-point method.
+    \end{itemize}
 
-The physical coupling forces and winch spooling rates are simulated through the integration of the MoorDyn mooring line library in the ROS 2 node \texttt{moordyn\_tether\_node}.
+    The temporal configuration of the NMPC solvers is configured independently for the two platforms to balance physical response rates and solver execution times:
+    \begin{itemize}
+        \item \textbf{UAV Solver:} Discretized with a control period of $T_{s,UAV} = 0.02\,\text{s}$ ($50\,\text{Hz}$) and a prediction horizon of $N_{UAV} = 50$ intervals, yielding a total prediction horizon of $T_{f,UAV} = 1.0\,\text{s}$.
+        \item \textbf{USV Solver:} Discretized with a control period of $T_{s,USV} = 0.1\,\text{s}$ ($10\,\text{Hz}$) and a prediction horizon of $N_{USV} = 20$ intervals, yielding a total prediction horizon of $T_{f,USV} = 2.0\,\text{s}$.
+    \end{itemize}
 
-The integration is structured as follows:
-\begin{itemize}
-    \item \textbf{Coordinate Frame Tracking:} The C++ node tracks the relative transformation between the USV deck anchor point and the UAV center of gravity utilizing the \texttt{tf2} listener. 
-    \item \textbf{Boundary Node Updates:} At a frequency of $100\,\text{Hz}$, the node updates the coordinates of the boundary nodes inside the MoorDyn solver with the tracked positions.
-    \item \textbf{Winch Spooling Updates:} The node listens to winch spooling commands from the winch controller (\texttt{moordyn\_tether\_winch}) and updates the unstretched line length property inside the MoorDyn solver.
-    \item \textbf{Force Propagation:} MoorDyn computes the internal segment tensions and propagates the resulting force vectors back to the boundary nodes, which are applied as external forces to the WAM-V and the x500 rigid bodies in Gazebo.
-\end{itemize}
+% =========================================================================
+\section{Virtual Vehicle Platforms}
+\label{sec:virtual_vehicles}
+
+The cooperative multi-agent system comprises two virtual vehicles: the WAM-V surface vessel and the Holybro x500 quadrotor.
+
+    \subsection{WAM-V Catamaran (USV)}
+    \label{sec:usv_model}
+    The Wave Adaptive Modular Vessel (WAM-V) is a unique catamaran consisting of two inflatable hulls connected to a central deck structure. Unlike rigid-hulled vessels, the WAM-V utilizes an articulating suspension system that isolates the payload deck from wave-induced pitch and roll movements, ensuring a relatively stable deck. Sourced from the Virtual RobotX (VRX) simulation framework \cite{bingham2019vrx}, the virtual platform matches the physical parameters of the real WAM-V used in international maritime robotics competitions. The virtual catamaran representation in Gazebo is shown in Figure~\ref{fig:wamv_render}.
+
+    \begin{figure}[H]
+        \centering
+        \includegraphics[width=0.7\textwidth]{Figures/WamV.png}
+        \caption{Virtual representation of the \gls{wamv} catamaran in the simulated environment.}
+        \label{fig:wamv_render}
+    \end{figure}
+
+    Structurally, the 16-foot catamaran has an overall length of $4.90\,\text{m}$ and an overall beam of $2.40\,\text{m}$. The central payload deck, measuring $1.85\,\text{m}$ in length and $1.00\,\text{m}$ in width, is supported by two parallel hulls at about $1.25\,\text{m}$ above the water surface, as illustrated in Figure~\ref{fig:wamv_schematic}. In the simulator, the boat's total mass is modeled at $259.10\,\text{kg}$, which accounts for the catamaran chassis, the onboard batteries, the dual propulsion steering pods, and the sensory payloads.
+
+    \begin{figure}[H]
+        \centering
+        \subfloat[Top view.]{
+            \begin{tikzpicture}[
+                dimension/.style={draw, <->, >=stealth, thin, dashed, gray},
+                pointer/.style={draw, ->, >=stealth, thin, gray}
+            ]
+                \node[anchor=south west, inner sep=0] (image) at (0,0) {\includegraphics[width=0.40\textwidth]{Figures/wamv_top_view.png}};
+                \begin{scope}[x={(image.south east)},y={(image.north west)}]
+                    % Overall Length (4.90m)
+                    \draw[gray, thin] (0.06, 0.88) -- (0.06, 0.96);
+                    \draw[gray, thin] (0.94, 0.88) -- (0.94, 0.96);
+                    \draw[dimension] (0.06, 0.93) -- (0.94, 0.93);
+                    \node at (0.50, 0.96) [font=\tiny, above] {$4.90\,\text{m}$};
+
+                    % Overall Beam (2.40m nominal)
+                    \draw[gray, thin] (0.02, 0.07) -- (0.07, 0.07);
+                    \draw[gray, thin] (0.02, 0.92) -- (0.07, 0.92);
+                    \draw[dimension] (0.05, 0.07) -- (0.05, 0.92);
+                    \node at (0.05, 0.5) [font=\tiny, rotate=90, above] {$2.40\,\text{m}$};
+
+                    % Component Labels
+                    \node (hull_lbl) at (0.20, 0.50) [font=\tiny, draw, rounded corners=1pt, fill=white, inner sep=2pt] {Hulls};
+                    \draw[pointer] (hull_lbl.north) -- (0.30, 0.84);
+                    \draw[pointer] (hull_lbl.south) -- (0.30, 0.16);
+
+                    \node (deck_lbl) at (0.80, 0.35) [font=\tiny, draw, rounded corners=1pt, fill=white, inner sep=2pt] {Payload Deck};
+                    \draw[pointer] (deck_lbl.west) -- (0.55, 0.50);
+
+                    % Payload Deck Length (1.85m)
+                    \draw[gray, thin] (0.334, 0.3) -- (0.334, 0.23);
+                    \draw[gray, thin] (0.65, 0.3) -- (0.65, 0.23);
+                    \draw[dimension] (0.334, 0.27) -- (0.65, 0.27);
+                    \node at (0.50, 0.27) [font=\tiny, fill=white, inner sep=1pt] {$1.85\,\text{m}$};
+
+                    % Payload Deck Width (1.00m)
+                    \draw[gray, thin] (0.334, 0.315) -- (0.29, 0.315);
+                    \draw[gray, thin] (0.334, 0.65) -- (0.29, 0.65);
+                    \draw[dimension] (0.31, 0.315) -- (0.31, 0.65);
+                    \node at (0.31, 0.495) [font=\tiny, rotate=90, fill=white, inner sep=1pt] {$1.00\,\text{m}$};
+                \end{scope}
+            \end{tikzpicture}
+            \label{fig:wamv_top}
+        }
+        \hfill
+        \subfloat[Side view.]{
+            \begin{tikzpicture}[
+                dimension/.style={draw, <->, >=stealth, thin, dashed, gray}
+            ]
+                \node[anchor=south west, inner sep=0] (image) at (0,0) {\includegraphics[width=0.40\textwidth]{Figures/wamv_side_view.png}};
+                \begin{scope}[x={(image.south east)},y={(image.north west)}]
+                    % Water Level
+                    \draw[gray, thick, dashed] (0.02, 0.28) -- (0.92, 0.28) node[right, font=\tiny] {Water Level};
+
+                    % Deck Height (1.25m above water level)
+                    \draw[gray, thin] (0.64, 0.77) -- (0.75, 0.77);
+                    \draw[gray, thin] (0.68, 0.28) -- (0.75, 0.28);
+                    \draw[dimension] (0.72, 0.28) -- (0.72, 0.77);
+                    \node at (0.72, 0.525) [font=\tiny, right] {$1.25\,\text{m}$};
+                \end{scope}
+            \end{tikzpicture}
+            \label{fig:wamv_side}
+        }
+        \caption{WAM-V catamaran layout.}
+        \label{fig:wamv_schematic}
+    \end{figure}
+
+    Instead of using a traditional rudder, the WAM-V steers by rotating its two rear propulsion pods, known as azimuthing thrusters, which are positioned at the stern of each hull, as shown in Figure \ref{fig:wamv_render}. The control system developed in this work restricts their steering angle to a physical limit of $\pm 30$ degrees to avoid twisting the power cables, with the steering rate limited to $1.0\,\text{rad/s}$.
+
+    The thrust force is adjusted by changing the propeller speed. The maximum thrust limit of each motor is set to $510.0\,\text{N}$ in the forward direction. This represents the physical capabilities of commercial electric outboards commonly used on the WAM-V 16 in the RobotX competition, such as the Torqeedo Cruise 2.0 \cite{torqeedo_cruise_manual}. Additionally, the motors exhibit reduced efficiency in reverse due to their propeller blade geometry, which is modeled using a reverse thrust efficiency multiplier of $0.746$, restricting the maximum reverse thrust to $-380.0\,\text{N}$. 
+
+    Buoyancy is simulated by continuously calculating the volume of the hulls submerged under the water surface. The sea surface is modeled using Gerstner waves, and the simulator checks the hull geometry against the wave profile to resolve the hydrostatic forces. This yields natural lifting forces and moments, causing the catamaran to pitch and roll realistically in response to wave excitation. Hydrodynamic drag is represented through a combination of linear damping coefficients for low-speed viscous resistance and quadratic coefficients to capture high-speed form drag. These drag forces and moments are applied across all six degrees of freedom, as detailed in Table~\ref{tab:usv_damping_parameters}, ensuring the catamaran exhibits natural deceleration when propulsion is cut off.
+
+    \begin{table}[H]
+        \centering
+        \caption{Hydrodynamic damping coefficients of the virtual WAM-V catamaran.}
+        \label{tab:usv_damping_parameters}
+        \begin{tabular}{lccc}
+            \toprule
+            \textbf{Damping Mode} & \textbf{Linear Coefficient} & \textbf{Quadratic Coefficient} & \textbf{Unit} \\
+            \midrule
+            Surge & $100.00$ & $150.00$ & $\text{N}/(\text{m/s})$ or $\text{N}/(\text{m/s})^2$ \\
+            Sway & $100.00$ & $100.00$ & $\text{N}/(\text{m/s})$ or $\text{N}/(\text{m/s})^2$ \\
+            Heave & $500.00$ & -- & $\text{N}/(\text{m/s})$ \\
+            Roll & $300.00$ & $600.00$ & $\text{N}\cdot\text{m}/(\text{rad/s})$ or $\text{N}\cdot\text{m}/(\text{rad/s})^2$ \\
+            Pitch & $900.00$ & $900.00$ & $\text{N}\cdot\text{m}/(\text{rad/s})$ or $\text{N}\cdot\text{m}/(\text{rad/s})^2$ \\
+            Yaw & $800.00$ & $800.00$ & $\text{N}\cdot\text{m}/(\text{rad/s})$ or $\text{N}\cdot\text{m}/(\text{rad/s})^2$ \\
+            \bottomrule
+        \end{tabular}
+    \end{table}
+
+    \subsection{x500 Quadrotor (UAV)}
+    \label{sec:uav_model}
+    The aerial platform is modeled after the Holybro x500 quadrotor frame. It is represented as a rigid body with 6 DOFs, consisting of a central hub and four rotating propeller links. The quadrotor has a total mass of $2.06\,\text{kg}$, consisting of a $2.00\,\text{kg}$ central body and four rotor links of $0.016\,\text{kg}$ each. The moments of inertia are $I_{xx,a} = 0.0217\,\text{kg}\cdot\text{m}^2$ for roll, $I_{yy,a} = 0.0217\,\text{kg}\cdot\text{m}^2$ for pitch, and $I_{zz,a} = 0.0400\,\text{kg}\cdot\text{m}^2$ for yaw. The propulsion system consists of four brushless motors in an X-configuration with $0.254\,\text{m}$ (10-inch) propellers.
+    
+    Rotor thrust and torque are calculated using a multicopter motor model based on propeller rotational speed. The motor constant is set to $8.55 \times 10^{-6}\,\text{N}/(\text{rad/s})^2$ and the torque constant is $0.016\,\text{m}$. The maximum speed of the propellers is limited to $1000\,\text{rad/s}$. Motor responsiveness includes a speed lag modeled with time constants ($\tau_{up} = 0.0125\,\text{s}$ and $\tau_{down} = 0.0250\,\text{s}$). The physical and aerodynamic parameters are summarized in Table~\ref{tab:uav_parameters}.
+
+    \begin{table}[H]
+        \centering
+        \caption{Physical and aerodynamic parameters of the virtual x500 quadrotor.}
+        \label{tab:uav_parameters}
+        \begin{tabular}{lcc}
+            \toprule
+            \textbf{Parameter} & \textbf{Symbol} & \textbf{Value} \\
+            \midrule
+            Total Mass & $m_a$ & $2.064\,\text{kg}$ \\
+            Base Link Mass & $m_{base,a}$ & $2.000\,\text{kg}$ \\
+            Rotor Link Mass (each) & $m_{rotor}$ & $0.016\,\text{kg}$ \\
+            Moment of Inertia (Roll) & $I_{xx,a}$ & $0.0217\,\text{kg}\cdot\text{m}^2$ \\
+            Moment of Inertia (Pitch) & $I_{yy,a}$ & $0.0217\,\text{kg}\cdot\text{m}^2$ \\
+            Moment of Inertia (Yaw) & $I_{zz,a}$ & $0.0400\,\text{kg}\cdot\text{m}^2$ \\
+            Motor Constant & $K_{motor}$ & $8.54858 \times 10^{-6}\,\text{N}/(\text{rad/s})^2$ \\
+            Moment Constant & $K_{moment}$ & $0.016\,\text{m}$ \\
+            Max Rotational Velocity & $\Omega_{max}$ & $1000.0\,\text{rad/s}$ \\
+            Rotor Drag Coefficient & $C_{drag,r}$ & $8.06428 \times 10^{-5}$ \\
+            Rolling Moment Coefficient & $C_{roll,r}$ & $1.00000 \times 10^{-6}$ \\
+            Upward Motor Time Constant & $\tau_{up}$ & $0.0125\,\text{s}$ \\
+            Downward Motor Time Constant & $\tau_{down}$ & $0.0250\,\text{s}$ \\
+            \bottomrule
+        \end{tabular}
+    \end{table}
+
+    The dynamic response of the quadrotor is shaped by these motor characteristics, with speed lag limiting fast thrust variations and drag coefficients modeling propeller resistance.
+
+% =========================================================================
+\section{Tether and Winch Integration}
+\label{sec:tether_coupling}
+
+The physical coupling between the WAM-V catamaran and the x500 quadrotor is established by a flexible tether managed by an active winch system mounted on the catamaran's deck.
+
+    \subsection{Tether Representation Models}
+    The tether can be simulated using a multibody joint chain or a lumped-mass model. The multibody joint chain is resolved in Gazebo. The lumped-mass model is resolved using the MoorDyn library \cite{hall2015moordyn}.
+    
+    The multibody joint chain is used for visual rendering and contact collisions. It consists of a chain of $30$ rigid cylindrical links connected by spherical ball joints. Each link has a radius of $0.01\,\text{m}$ and a mass of $0.02\,\text{kg}$. The total mass of the nominal $5.0\,\text{m}$ chain is $0.60\,\text{kg}$. Joint damping is set to $2.0\,\text{N}\cdot\text{s/m}$ and friction to $0.1\,\text{N}\cdot\text{m}$. The first and last links are scaled to $20\%$ of their length to prevent numerical instability at the attachment points.
+    
+    The MoorDyn lumped-mass model is used for high-fidelity tension propagation. The cable is discretized into $30$ mass nodes connected by spring-damper segments. The physical parameters represent an industrial micro-tether, with a diameter of $0.004\,\text{m}$, linear mass density of $0.020\,\text{kg/m}$, extensional stiffness of $EA = 100.0\,\text{N}$, bending stiffness of $EI = 2.0 \times 10^{-5}\,\text{N}\cdot\text{m}^2$, and damping ratio of $\zeta = 0.8$. Drag coefficients are set to $1.2$ transversely and $0.005$ axially. The physical properties are summarized in Table~\ref{tab:tether_parameters}.
+
+    \begin{table}[H]
+        \centering
+        \caption{Physical and mechanical properties of the tether simulation models.}
+        \label{tab:tether_parameters}
+        \begin{tabular}{lccc}
+            \toprule
+            \textbf{Property} & \textbf{Symbol} & \textbf{Multibody Chain} & \textbf{MoorDyn Model} \\
+            \midrule
+            Number of Segments & $N_{seg}$ & $30$ & $30$ \\
+            Tether Diameter & $D_{tether}$ & $0.020\,\text{m}$ & $0.004\,\text{m}$ \\
+            Linear Mass Density & $\rho_{linear}$ & $0.120\,\text{kg/m}$ & $0.020\,\text{kg/m}$ \\
+            Total Mass ($5.0\,\text{m}$ cable) & $m_{tether}$ & $0.600\,\text{kg}$ & $0.100\,\text{kg}$ \\
+            Extensional Stiffness & $EA$ & -- & $100.0\,\text{N}$ \\
+            Bending Stiffness & $EI$ & -- & $2.0 \times 10^{-5}\,\text{N}\cdot\text{m}^2$ \\
+            Structural Damping Ratio & $\zeta$ & -- & $0.8$ \\
+            Joint Damping Coefficient & $b_{joint}$ & $2.0\,\text{N}\cdot\text{s/m}$ & -- \\
+            Joint Friction Torque & $\tau_{fric}$ & $0.1\,\text{N}\cdot\text{m}$ & -- \\
+            Transverse Drag Coefficient & $C_d$ & -- & $1.2$ \\
+            Axial Drag Coefficient & $C_{d,ax}$ & -- & $0.005$ \\
+            \bottomrule
+        \end{tabular}
+    \end{table}
+
+    As presented in Table~\ref{tab:tether_parameters}, the MoorDyn model represents a thinner and lighter cable. This model captures the aerodynamic drag forces acting on the line segments.
+
+    \subsection{Active Winch and Anchor Coupling}
+    \label{sec:sim_moordyn_integration}
+    The active winch is mounted on the WAM-V deck, offset by $\mathbf{p}_{a/v} = [-0.8, 0.0, 0.0]^T\,\text{m}$ from the center of gravity. The winch dynamically spools the tether to adjust its unstretched length $L_{tether}$ between $1.5\,\text{m}$ and $50.0\,\text{m}$, with a maximum spooling speed of $10.0\,\text{m/s}$.
+    
+    The winch operates in two control modes. In geometric mode, the tether length is set to $115\%$ of the line-of-sight distance between the vehicles, with the slack factor preventing sudden tension spikes. In tension mode, a PD controller regulates the spooling rate to maintain a target tension of $T_{target} = 0.1\,\text{N}$, using a proportional gain of $K_p = 1.8\,\text{m/(s}\cdot\text{N)}$ and a derivative gain of $K_d = 0.1$.
+    
+    The physical coupling forces and winch spooling rates are simulated through the integration of the MoorDyn mooring line library in the ROS 2 node \texttt{moordyn\_tether\_node}. The C++ node tracks the relative transformation between the USV deck anchor point and the UAV center of gravity utilizing the \texttt{tf2} listener. At a frequency of $100\,\text{Hz}$, the node updates the coordinates of the boundary nodes inside the MoorDyn solver with the tracked positions. Simultaneously, it listens to winch spooling commands from the winch controller (\texttt{moordyn\_tether\_winch}) and updates the unstretched line length property inside the MoorDyn solver. MoorDyn computes the internal segment tensions and propagates the resulting force vectors back to the boundary nodes, which are applied directly to the anchor links of the WAM-V and the x500 rigid bodies in Gazebo, creating a bidirectional coupling.
+
+% =========================================================================
+\section{System Integration and Co-Simulation}
+\label{sec:system_data_flow}
+
+To run and coordinate the simulation, a co-simulation environment is built in Gazebo Harmonic \cite{koenig2004gazebo}. The software stack integrates the simulator with the control pipeline through communication bridges, as shown in Figure~\ref{fig:software_architecture}.
+
+    \begin{figure}[htbp]
+        \centering
+        \resizebox{0.95\textwidth}{!}{
+        \begin{tikzpicture}[
+            block/.style={draw, rectangle, minimum height=1.2cm, minimum width=3.2cm, align=center, rounded corners, fill=blue!5, thick},
+            line/.style={draw, {Stealth}-{Stealth}, thick},
+            label/.style={font=\scriptsize, align=center}
+        ]
+            % Nodes
+            \node[block, fill=blue!10] (ros) at (0,2.0) {\textbf{\gls{ros}~2 Workspace}};
+            \node[block, fill=green!10] (px4) at (0,-2.0) {\textbf{PX4 Autopilot}};
+            \node[block, fill=orange!10] (gazebo) at (6,0) {\textbf{Gazebo Harmonic}};
+            \node[block, fill=red!10] (moordyn) at (12.5,0) {\textbf{MoorDyn}};
+
+            % Communication Bridges
+            \draw[line] (ros) -- node[left, label] {Micro XRCE-\gls{dds}\\Bridge} (px4);
+            \draw[line] (ros.east) -| node[above, label, pos=0.5] {\texttt{ros\_gz\_bridge}} (gazebo.north);
+            \draw[line] (px4.east) -| node[below, label, pos=0.5] {\gls{sitl} Lockstep Port \\ (UDP/TCP)} (gazebo.south);
+            \draw[line] (gazebo) -- node[above, label] {MoorDyn C++ API \\ Bindings} (moordyn);
+
+        \end{tikzpicture}
+        }
+        \caption{Simulation software ecosystem and communication interfaces.}
+        \label{fig:software_architecture}
+    \end{figure}
+
+    \subsection{PX4 SITL and micro XRCE-DDS Bridge}
+    The x500 quadrotor simulation runs the actual PX4 Autopilot flight firmware in a Software-in-the-Loop (SITL) wrapper. The firmware runs on the host computer, receiving state feedback from Gazebo and commanding the virtual motor models via cascaded PID loops. The Micro XRCE-DDS bridge manages the high-rate, low-latency exchanges between the PX4 middleware and the ROS 2 network, allowing outer-loop NMPC algorithms to subscribe to state estimation (odometry) and publish offboard attitude and thrust targets.
+
+    \subsection{ROS-Gazebo Bridge and Time Synchronization}
+    \label{sec:sim_gazebo_setup}
+    The \texttt{ros\_gz\_bridge} maps the simulation clock, joint state commands (steerable thruster angles, propeller speeds), and winch actuator commands from ROS 2 to the Gazebo physics engine. To prevent time drift between the simulator and the controller nodes, all ROS 2 nodes are configured to run using simulation time. The Gazebo simulator publishes the simulation clock on the \texttt{/clock} topic, which is used by the ROS 2 executor to synchronize node timers.
+
+    \subsection{Centralized Data Flow and Cooperative FSM}
+    To coordinate the simulation, a centralized data flow architecture is implemented. The overall loop involves multiple distributed nodes communicating via ROS 2 topics and services. The ground-truth state feedback is published by the Gazebo and PX4 SITL instances. This telemetry is translated by the communication bridges and published to the ROS 2 network.
+
+    The control algorithms process this feedback to execute three main control loops:
+    \begin{itemize}
+        \item \textbf{USV Control Loop (10 Hz):} The Nonlinear Model Predictive Control (NMPC) node receives the vessel's ground-truth odometry and calculates the virtual forces and moment $[X, Y, N]^T$. The thruster allocation block maps these virtual forces to publish steering angles and motor thrust commands to Gazebo.
+        \item \textbf{UAV Control Loop (50 Hz):} The NMPC node receives the drone's ground-truth telemetry and the relative USV position to calculate collective thrust and attitude rates. These targets are published to the PX4 flight controller via Micro XRCE-DDS.
+        \item \textbf{Tether and Winch Loop (50 Hz):} The MoorDyn node updates the cable state by receiving vehicle poses from TF and publishing the calculated tension forces to Gazebo. Simultaneously, the winch controller computes the spooling rate command $\dot{L}_{tether}$ to update the unstretched length of the cable in MoorDyn.
+    \end{itemize}
+
+    The coordination of the cooperative UAV-USV mission is managed by the \texttt{mission\_manager} node inside the \texttt{ats\_mission} package. The coordinator implements a Finite State Machine (FSM) to orchestrate the flight phases of the drone relative to the ship, as illustrated in Figure~\ref{fig:mission_fsm}:
+    \begin{itemize}
+        \item \textbf{IDLE:} Initial state. Nodes check sensor telemetry, establish the tether connection frames, and wait for the start command.
+        \item \textbf{TAKEOFF:} Triggers autonomous UAV takeoff. The quadrotor rises vertically to a hover altitude directly above the WAM-V helideck ($z_a = 3.0\,\text{m}$ relative to the deck). The USV and winch remain stationary.
+        \item \textbf{COOPERATIVE\_TRACKING:} The active phase. The USV starts tracking its planar trajectory, and the UAV starts its orbit tracking or path-following sequence centered on the USV anchor. The winch is activated in either geometric or tension-regulated spooling mode to manage tether slack.
+        \item \textbf{LANDING:} Triggered at the end of the mission. The USV reduces speed or hovers. The UAV approaches the catamaran deck, while the winch actively spools in the tether, tensioning the line to guide the quadrotor safely onto the deck.
+    \end{itemize}
+
+    \begin{figure}[H]
+        \centering
+        \begin{tikzpicture}[
+            state/.style={draw, circle, minimum size=2.2cm, align=center, fill=gray!10, draw=gray, thick, font=\small},
+            active_state/.style={draw, circle, minimum size=2.2cm, align=center, fill=blue!10, draw=blue, thick, font=\small},
+            >=stealth,
+            thick,
+            node distance=4.2cm
+        ]
+            \node[state] (idle) {IDLE};
+            \node[state, right of=idle] (takeoff) {TAKEOFF};
+            \node[active_state, right of=takeoff] (tracking) {COOPERATIVE\\TRACKING};
+            \node[state, below of=tracking, node distance=3.2cm] (landing) {LANDING};
+            
+            \draw[->] (idle) -- node[above, font=\scriptsize, align=center] {Mission\\Start} (takeoff);
+            \draw[->] (takeoff) -- node[above, font=\scriptsize, align=center] {UAV\\Hovering} (tracking);
+            \draw[->] (tracking) -- node[right, font=\scriptsize, align=center] {Landing\\Trigger} (landing);
+            \draw[->] (landing) -| node[above, pos=0.25, font=\scriptsize, align=center] {Mission\\Complete} (idle);
+        \end{tikzpicture}
+        \caption{Finite State Machine (FSM) state transition diagram for the cooperative mission coordinator.}
+        \label{fig:mission_fsm}
+    \end{figure}

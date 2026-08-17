@@ -22,7 +22,7 @@ public:
     this->declare_parameter<double>("thruster_y_arm", 1.027135);
     this->declare_parameter<double>("reverse_efficiency", 0.746);
     this->declare_parameter<double>("max_thrust", 2350.0);
-    this->declare_parameter<double>("max_angle", 1.57079632679); // 90 degrees
+    this->declare_parameter<double>("max_angle", 0.52359877559); // 30 degrees
     this->declare_parameter<double>("slew_rate_limit", 3.0); // rad/s
     this->declare_parameter<double>("publish_period", 0.02); // 50Hz (20ms)
 
