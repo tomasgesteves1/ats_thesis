@@ -11,7 +11,7 @@
 \chapter{Simulation Environment and Software Implementation}
 \label{chapter:implementation}
 
-This chapter describes the co-simulation setup, software environment, and virtual platforms used to implement and validate the cooperative control architecture. To bridge the gap between theory and practical application, the system is simulated with high physical fidelity. The software stack integrates the ROS 2 workspace, the PX4 Autopilot SITL firmware, the MoorDyn cable physics engine, and the Gazebo simulator. The following sections detail the software architecture, the virtual vehicle platforms, the tether and winch models, and the system integration and data flow.
+This chapter describes the co-simulation setup, software environment, and virtual platforms used to implement and validate the cooperative control architecture. The system is simulated with high physical fidelity. The software stack integrates the ROS 2 workspace, the PX4 Autopilot SITL firmware, the MoorDyn cable physics engine, and the Gazebo simulator. The following sections detail the software architecture, the virtual vehicle platforms, the tether and winch models, and the system integration and data flow.
 
 % =========================================================================
 \section{Software Architecture and Workspace Structure}
@@ -55,7 +55,7 @@ The system software is organized into modular ROS 2 packages running on top of t
     \begin{itemize}
         \item \textbf{CasADi Symbolic Framework:} A Python script is written for each vehicle (UAV and USV) to define the state, control, and parameter variables symbolically. CasADi handles the automatic differentiation, compiling the non-linear dynamics equations and evaluating analytical Jacobians and Hessian approximations.
         \item \textbf{Acados Template Library:} Consumes the CasADi symbolic models to generate highly optimized, native C code solvers. Acados bypasses generic optimization libraries by generating customized solvers tailored to the specific OCP structure.
-        \item \textbf{High-Performance Kernels:} The exported C code is compiled utilizing the BLASFEO (Basic Linear Algebra Subprograms for Embedded Optimization) library, which optimizes processor cache utilization for small-to-medium-sized matrices. The linearized QP subproblems are solved using HPIPM (High-Performance Interior-Point Method), which implements a structured primal-dual interior-point method.
+        \item \textbf{High-Performance Kernels:} The exported C code is compiled using the BLASFEO (Basic Linear Algebra Subprograms for Embedded Optimization) library, which optimizes processor cache utilization for small-to-medium-sized matrices. The linearized QP subproblems are solved using HPIPM (High-Performance Interior-Point Method), which implements a structured primal-dual interior-point method.
     \end{itemize}
 
     The temporal configuration of the NMPC solvers is configured independently for the two platforms to balance physical response rates and solver execution times:
@@ -72,7 +72,7 @@ The cooperative multi-agent system comprises two virtual vehicles: the WAM-V sur
 
     \subsection{WAM-V Catamaran (USV)}
     \label{sec:usv_model}
-    The Wave Adaptive Modular Vessel (WAM-V) is a unique catamaran consisting of two inflatable hulls connected to a central deck structure. Unlike rigid-hulled vessels, the WAM-V utilizes an articulating suspension system that isolates the payload deck from wave-induced pitch and roll movements, ensuring a relatively stable deck. Sourced from the Virtual RobotX (VRX) simulation framework \cite{bingham2019vrx}, the virtual platform matches the physical parameters of the real WAM-V used in international maritime robotics competitions. The virtual catamaran representation in Gazebo is shown in Figure~\ref{fig:wamv_render}.
+    The Wave Adaptive Modular Vessel (WAM-V) is a unique catamaran consisting of two inflatable hulls connected to a central deck structure. Unlike rigid-hulled vessels, the WAM-V uses an articulating suspension system that isolates the payload deck from wave-induced pitch and roll to keep the deck stable. Sourced from the Virtual RobotX (VRX) simulation framework \cite{bingham2019vrx}, the virtual platform matches the physical parameters of the real WAM-V used in international maritime robotics competitions. The virtual catamaran representation in Gazebo is shown in Figure~\ref{fig:wamv_render}.
 
     \begin{figure}[H]
         \centering
@@ -152,9 +152,9 @@ The cooperative multi-agent system comprises two virtual vehicles: the WAM-V sur
 
     Instead of using a traditional rudder, the WAM-V steers by rotating its two rear propulsion pods, known as azimuthing thrusters, which are positioned at the stern of each hull, as shown in Figure \ref{fig:wamv_render}. The control system developed in this work restricts their steering angle to a physical limit of $\pm 30$ degrees to avoid twisting the power cables, with the steering rate limited to $1.0\,\text{rad/s}$.
 
-    The thrust force is adjusted by changing the propeller speed. The maximum thrust limit of each motor is set to $510.0\,\text{N}$ in the forward direction. This represents the physical capabilities of commercial electric outboards commonly used on the WAM-V 16 in the RobotX competition, such as the Torqeedo Cruise 2.0 \cite{torqeedo_cruise_manual}. Additionally, the motors exhibit reduced efficiency in reverse due to their propeller blade geometry, which is modeled using a reverse thrust efficiency multiplier of $0.746$, restricting the maximum reverse thrust to $-380.0\,\text{N}$. 
+    The thrust force is adjusted by changing the propeller speed. The maximum thrust limit of each motor is set to $510.0\,\text{N}$ in the forward direction. This represents the physical capabilities of commercial electric outboards commonly used on the WAM-V 16 in the RobotX competition, such as the Torqeedo Cruise 2.0 \cite{torqeedo_cruise_manual}. Additionally, the motors exhibit reduced efficiency in reverse due to propeller blade geometry; this is modeled with a reverse thrust efficiency multiplier of $0.746$ that limits the maximum reverse thrust to $-380.0\,\text{N}$. 
 
-    Buoyancy is simulated by continuously calculating the volume of the hulls submerged under the water surface. The sea surface is modeled using Gerstner waves, and the simulator checks the hull geometry against the wave profile to resolve the hydrostatic forces. This yields natural lifting forces and moments, causing the catamaran to pitch and roll realistically in response to wave excitation. Hydrodynamic drag is represented through a combination of linear damping coefficients for low-speed viscous resistance and quadratic coefficients to capture high-speed form drag. These drag forces and moments are applied across all six degrees of freedom, as detailed in Table~\ref{tab:usv_damping_parameters}, ensuring the catamaran exhibits natural deceleration when propulsion is cut off.
+    Buoyancy is simulated by continuously calculating the volume of the hulls submerged under the water surface. The sea surface is modeled using Gerstner waves, and the simulator checks the hull geometry against the wave profile to resolve the hydrostatic forces. This yields natural lifting forces and moments that pitch and roll the catamaran in response to wave excitation. Hydrodynamic drag is represented through a combination of linear damping coefficients for low-speed viscous resistance and quadratic coefficients to capture high-speed form drag. These drag forces and moments are applied across all six degrees of freedom, as detailed in Table~\ref{tab:usv_damping_parameters}, so that the catamaran decelerates naturally when propulsion is cut off.
 
     \begin{table}[H]
         \centering
@@ -205,13 +205,13 @@ The cooperative multi-agent system comprises two virtual vehicles: the WAM-V sur
         \end{tabular}
     \end{table}
 
-    The dynamic response of the quadrotor is shaped by these motor characteristics, with speed lag limiting fast thrust variations and drag coefficients modeling propeller resistance.
+    These motor characteristics shape the quadrotor's dynamic response: speed lag limits rapid thrust variations, while drag coefficients account for propeller resistance.
 
 % =========================================================================
 \section{Tether and Winch Integration}
 \label{sec:tether_coupling}
 
-The physical coupling between the WAM-V catamaran and the x500 quadrotor is established by a flexible tether managed by an active winch system mounted on the catamaran's deck.
+A flexible tether, managed by an active winch system on the catamaran's deck, physically couples the WAM-V catamaran and the x500 quadrotor.
 
     \subsection{Tether Representation Models}
     The tether can be simulated using a multibody joint chain or a lumped-mass model. The multibody joint chain is resolved in Gazebo. The lumped-mass model is resolved using the MoorDyn library \cite{hall2015moordyn}.
@@ -243,15 +243,15 @@ The physical coupling between the WAM-V catamaran and the x500 quadrotor is esta
         \end{tabular}
     \end{table}
 
-    As presented in Table~\ref{tab:tether_parameters}, the MoorDyn model represents a thinner and lighter cable. This model captures the aerodynamic drag forces acting on the line segments.
+    The MoorDyn model represents a thinner, lighter cable that captures aerodynamic drag forces (Table~\ref{tab:tether_parameters}).
 
     \subsection{Active Winch and Anchor Coupling}
     \label{sec:sim_moordyn_integration}
-    The active winch is mounted on the WAM-V deck, offset by $\mathbf{p}_{a/v} = [-0.8, 0.0, 0.0]^T\,\text{m}$ from the center of gravity. The winch dynamically spools the tether to adjust its unstretched length $L_{tether}$ between $1.5\,\text{m}$ and $50.0\,\text{m}$, with a maximum spooling speed of $10.0\,\text{m/s}$.
+    The active winch is mounted on the WAM-V deck, offset by $\mathbf{p}_{\mathrm{anchor}, v} = [-0.8, 0.0, 0.0]^T\,\text{m}$ from the center of gravity. The winch dynamically spools the tether to adjust its unstretched length $L_{tether}$ between $1.5\,\text{m}$ and $50.0\,\text{m}$, with a maximum spooling speed of $10.0\,\text{m/s}$.
     
     The winch operates in two control modes. In geometric mode, the tether length is set to $115\%$ of the line-of-sight distance between the vehicles, with the slack factor preventing sudden tension spikes. In tension mode, a PD controller regulates the spooling rate to maintain a target tension of $T_{target} = 0.1\,\text{N}$, using a proportional gain of $K_p = 1.8\,\text{m/(s}\cdot\text{N)}$ and a derivative gain of $K_d = 0.1$.
     
-    The physical coupling forces and winch spooling rates are simulated through the integration of the MoorDyn mooring line library in the ROS 2 node \texttt{moordyn\_tether\_node}. The C++ node tracks the relative transformation between the USV deck anchor point and the UAV center of gravity utilizing the \texttt{tf2} listener. At a frequency of $100\,\text{Hz}$, the node updates the coordinates of the boundary nodes inside the MoorDyn solver with the tracked positions. Simultaneously, it listens to winch spooling commands from the winch controller (\texttt{moordyn\_tether\_winch}) and updates the unstretched line length property inside the MoorDyn solver. MoorDyn computes the internal segment tensions and propagates the resulting force vectors back to the boundary nodes, which are applied directly to the anchor links of the WAM-V and the x500 rigid bodies in Gazebo, creating a bidirectional coupling.
+    The physical coupling forces and winch spooling rates are simulated through the integration of the MoorDyn mooring line library in the ROS 2 node \texttt{moordyn\_tether\_node}. The C++ node tracks the relative transformation between the USV deck anchor point and the UAV center of gravity using the \texttt{tf2} listener. At a frequency of $100\,\text{Hz}$, the node updates the coordinates of the boundary nodes inside the MoorDyn solver with the tracked positions. Simultaneously, it listens to winch spooling commands from the winch controller (\texttt{moordyn\_tether\_winch}) and updates the unstretched line length property inside the MoorDyn solver. MoorDyn computes the internal segment tensions and propagates the resulting force vectors back to the boundary nodes; these are applied directly to the anchor links of the WAM-V and the x500 rigid bodies in Gazebo to couple the vehicles bidirectionally.
 
 % =========================================================================
 \section{System Integration and Co-Simulation}
@@ -297,17 +297,17 @@ To run and coordinate the simulation, a co-simulation environment is built in Ga
 
     The control algorithms process this feedback to execute three main control loops:
     \begin{itemize}
-        \item \textbf{USV Control Loop (10 Hz):} The Nonlinear Model Predictive Control (NMPC) node receives the vessel's ground-truth odometry and calculates the virtual forces and moment $[X, Y, N]^T$. The thruster allocation block maps these virtual forces to publish steering angles and motor thrust commands to Gazebo.
+        \item \textbf{USV Control Loop (10 Hz):} The Nonlinear Model Predictive Control (NMPC) node receives the vessel's ground-truth odometry and calculates the virtual forces and moment $[X, Y, N]^T$. The thruster allocation block maps these virtual forces to steering angles and motor thrust commands published to Gazebo.
         \item \textbf{UAV Control Loop (50 Hz):} The NMPC node receives the drone's ground-truth telemetry and the relative USV position to calculate collective thrust and attitude rates. These targets are published to the PX4 flight controller via Micro XRCE-DDS.
-        \item \textbf{Tether and Winch Loop (50 Hz):} The MoorDyn node updates the cable state by receiving vehicle poses from TF and publishing the calculated tension forces to Gazebo. Simultaneously, the winch controller computes the spooling rate command $\dot{L}_{tether}$ to update the unstretched length of the cable in MoorDyn.
+        \item \textbf{Tether and Winch Loop (50 Hz):} The MoorDyn node receives vehicle poses from TF, updates the cable state, and publishes the calculated tension forces to Gazebo. Simultaneously, the winch controller computes the spooling rate command $\dot{L}_{tether}$ to update the unstretched length of the cable in MoorDyn.
     \end{itemize}
 
-    The coordination of the cooperative UAV-USV mission is managed by the \texttt{mission\_manager} node inside the \texttt{ats\_mission} package. The coordinator implements a Finite State Machine (FSM) to orchestrate the flight phases of the drone relative to the ship, as illustrated in Figure~\ref{fig:mission_fsm}:
+    The mission coordinator node (\texttt{mission\_manager}) in the \texttt{ats\_mission} package orchestrates the flight phases of the drone relative to the ship using a Finite State Machine (FSM), as illustrated in Figure~\ref{fig:mission_fsm}:
     \begin{itemize}
         \item \textbf{IDLE:} Initial state. Nodes check sensor telemetry, establish the tether connection frames, and wait for the start command.
         \item \textbf{TAKEOFF:} Triggers autonomous UAV takeoff. The quadrotor rises vertically to a hover altitude directly above the WAM-V helideck ($z_a = 3.0\,\text{m}$ relative to the deck). The USV and winch remain stationary.
         \item \textbf{COOPERATIVE\_TRACKING:} The active phase. The USV starts tracking its planar trajectory, and the UAV starts its orbit tracking or path-following sequence centered on the USV anchor. The winch is activated in either geometric or tension-regulated spooling mode to manage tether slack.
-        \item \textbf{LANDING:} Triggered at the end of the mission. The USV reduces speed or hovers. The UAV approaches the catamaran deck, while the winch actively spools in the tether, tensioning the line to guide the quadrotor safely onto the deck.
+        \item \textbf{LANDING:} Triggered at the end of the mission. The USV reduces speed or hovers. The UAV approaches the catamaran deck while the winch spools in the tether, maintaining line tension to guide the quadrotor safely onto the deck.
     \end{itemize}
 
     \begin{figure}[H]

@@ -11,8 +11,118 @@
 \chapter{Results and Discussion}
 \label{chapter:results}
 
-This chapter presents the closed-loop simulation results and evaluations of the cooperative tethered \gls{uav}-\gls{usv} system. The performance of the designed control architecture is evaluated through three key phases: first, the individual and cooperative trajectory tracking precision is analyzed; second, the enforcement of all mathematical constraints and computational latencies inside the \gls{mpc} controllers are demonstrated; and finally, the system is validated under an integrated maritime search and pursuit mission where a target vessel teleoperated via a PlayStation controller is intercepted.
+This chapter presents the experimental identification, model validation, and closed-loop simulation results of the cooperative tethered \gls{uav}-\gls{usv} system. First, the simplified control-oriented models derived in Chapter~\ref{chapter:modeling} are validated and calibrated against high-fidelity simulator data, and the UAV inner-loop attitude response lag is experimentally identified. Second, the individual and cooperative trajectory tracking precision of both vehicles is evaluated. Third, the enforcement of NMPC constraints and real-time solver execution times are analyzed. Finally, the complete cooperative control stack is validated under an integrated search and pursuit mission targeting a teleoperated target, as well as a comparative study evaluating tension-guided landing in rough seas.
 
+% =========================================================================
+\section{Model Validation and Parameter Identification}
+\label{sec:res_validation_identification}
+
+Before evaluating the control performance, this section validates and calibrates the control-oriented kinematic and dynamic models derived in Chapter~\ref{chapter:modeling} using simulation telemetry and flight test data.
+
+\subsection{USV Model Identification and Calibration}
+\label{subsec:res_usv_validation}
+
+To calibrate and validate the horizontal 3-DOF dynamic model of the WAM-V, a systematic two-step identification process is conducted. First, a set of dynamic excitation maneuvers is performed to collect estimation data. Second, the parameters are optimized by minimizing the difference between simulated and simulated-ground-truth states. Finally, the model is validated using a separate, independent excitation dataset to ensure generalization.
+
+The parameter calibration relies on distinct excitation signals. The excitation maneuvers are designed to decouple the vehicle dynamics across all active degrees of freedom. Figure~\ref{fig:usv_excitation_signals} shows the multi-phased excitation signals used for model validation. The estimation phase and validation phase use different signal profiles to prevent overfitting. The excitation profile consists of four primary stages: Phase 1 introduces pure surge steps to identify longitudinal damping, Phase 2 applies differential thrust commands to excite yaw rate, Phase 3 forces lateral motion to isolate sway damping, and Phase 4 provides fully coupled random actuation to capture cross-coupling dynamics.
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.9\textwidth]{Figures/modeling/usv_excitation.pdf}
+    \caption{Multi-phased excitation signals command profiles (forces and angles) for the WAM-V parameter validation.}
+    \label{fig:usv_excitation_signals}
+\end{figure}
+
+The dynamic parameters are calibrated using a grey-box estimation approach. The optimization process fits the Fossen 3-DOF model equations to the collected Gazebo simulator telemetry. This is achieved by solving a non-linear least-squares optimization problem. The cost function minimizes the tracking error of the linear and angular velocities:
+\begin{equation}
+    \min_{\mathbf{\theta}} \sum_{k=1}^{N} \|\mathbf{\nu}_{v, actual}(k) - \mathbf{\nu}_{v, pred}(k, \mathbf{\theta})\|_2^2
+\end{equation}
+where $\mathbf{\theta}$ is the vector of unknown hydrodynamic parameters. The predicted velocity vector $\mathbf{\nu}_{v, pred}$ is computed by integrating the dynamics using a fourth-order Runge-Kutta solver.
+
+Table~\ref{tab:usv_parameters} presents the resulting identified parameters. It compares the optimized values against the nominal parameters specified in the Gazebo simulation descriptor file.
+
+\begin{table}[H]
+\centering
+\caption{Comparative summary of WAM-V physical and hydrodynamic parameters.}
+\begin{tabular}{lcccl}
+\toprule
+Parameter & Symbol & Identified (MPC) & Gazebo (Nominal) & Unit \\
+\midrule
+Rigid-Body Mass & $m$ & $289.83$ & $259.10$ & $\text{kg}$ \\
+Yaw Moment of Inertia & $I_{zz}$ & $600.00$ & $527.70$ & $\text{kg}\cdot\text{m}^2$ \\
+Linear Surge Damping & $X_U$ & $165.97$ & $100.00$ & $\text{N}/(\text{m}/\text{s})$ \\
+Quadratic Surge Damping (Bow) & $X_{UU}$ & $140.00$ & $150.00$ & $\text{N}/(\text{m}/\text{s})^2$ \\
+Quadratic Surge Damping (Stern) & $X_{UU\_BWD}$ & $157.68$ & $150.00$ & $\text{N}/(\text{m}/\text{s})^2$ \\
+Linear Sway Damping & $Y_V$ & $92.85$ & $100.00$ & $\text{N}/(\text{m}/\text{s})$ \\
+Quadratic Sway Damping & $Y_{VV}$ & $102.42$ & $100.00$ & $\text{N}/(\text{m}/\text{s})^2$ \\
+Linear Yaw Damping & $N_R$ & $400.76$ & $800.00$ & $\text{N}\cdot\text{m}/(\text{rad}/\text{s})$ \\
+Quadratic Yaw Damping & $N_{RR}$ & $1069.15$ & $800.00$ & $\text{N}\cdot\text{m}/(\text{rad}/\text{s})^2$ \\
+Thruster Longitudinal Arm & $x_{arm}$ & $-2.37$ & $-2.37$ & $\text{m}$ \\
+Thruster Lateral Arm Offset & $y_{arm}$ & $1.03$ & $1.03$ & $\text{m}$ \\
+\bottomrule
+\end{tabular}
+\label{tab:usv_parameters}
+\end{table}
+
+As shown in Table~\ref{tab:usv_parameters}, the identified rigid-body mass $m$ and yaw inertia $I_{zz}$ are higher than the physical nominal values. This discrepancy is physically expected. The optimization process absorbs the hydrodynamic added mass effects. The simplified dynamic model does not explicitly account for these added mass coefficients.
+
+To verify the predictive accuracy of the identified model, we compute the Root Mean Square Error (RMSE) and the FIT percentage metric. The FIT percentage metric is defined as:
+\begin{equation}
+    FIT_{x_i} = 100 \cdot \left(1 - \frac{\sqrt{\sum_{k=1}^N \left(x_{i, actual}(k) - x_{i, pred}(k)\right)^2}}{\sqrt{\sum_{k=1}^N \left(x_{i, actual}(k) - \bar{x}_{i, actual}\right)^2}}\right)
+\end{equation}
+where $x_{i, actual}$ and $x_{i, pred}$ are the actual and predicted states, respectively, and $\bar{x}_{i, actual}$ is the mean of the actual state.
+
+Figure~\ref{fig:usv_model_validation} shows the comparison of the predicted and actual velocities under the validation dataset. The velocity profiles display high agreement. This confirms that the linear and non-linear damping parameters generalize well to unseen maneuvers.
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.9\textwidth]{Figures/modeling/usv_validation_velocities.pdf}
+    \caption{Predicted versus ground-truth velocity profiles ($u, v, r$) under the validation excitation sequence.}
+    \label{fig:usv_model_validation}
+\end{figure}
+
+To validate the kinematic transformation mapping body-fixed velocities to the global frame, the integrated X-Y trajectory is evaluated. Figure~\ref{fig:usv_trajectory_validation} illustrates the trajectory comparison between the simulated Fossen model and the Gazebo simulator. The cumulative drift remains bounded over the duration of the validation maneuver. This confirms the kinematic consistency of the formulation.
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.6\textwidth]{Figures/modeling/usv_trajectory_validation.pdf}
+    \caption{Integrated X-Y trajectory comparison between the identified Fossen 3-DOF model and the Gazebo simulation.}
+    \label{fig:usv_trajectory_validation}
+\end{figure}
+
+\subsection{UAV Inner-Loop Autopilot Identification}
+\label{subsec:res_uav_validation}
+
+To identify and validate the inner-loop attitude response time constant $\tau$, a grey-box system identification process is performed. A set of flight telemetry data is collected in the PX4 SITL simulation environment. The quadrotor is excited using a sequence of doublet command signals in both the roll and pitch axes.
+
+The time constant $\tau$ is estimated by solving a non-linear least-squares optimization problem that minimizes the discrepancy between the measured flight angles and the simulated output of the first-order response model. The optimization cost function is formulated as:
+\begin{equation}
+    \min_{\tau} \sum_{k=1}^{N} \left( \phi_{actual}(k) - \phi_{pred}(k, \tau) \right)^2
+\end{equation}
+where $\phi_{actual}$ is the roll angle telemetry from the autopilot, and $\phi_{pred}$ is the predicted angle computed by integrating the model equations using the commanded roll setpoints $\phi_{cmd}$ and a forward Euler integration scheme. A similar formulation is applied to the pitch axis.
+
+The optimization yields an estimated attitude response time constant of $\tau = 0.15\,\text{s}$ (equivalent to a closed-loop attitude bandwidth of $1/\tau \approx 6.67\,\text{rad/s}$). Figure~\ref{fig:uav_sysid_validation} shows the comparison between the commanded roll angle, the telemetry recorded from PX4 SITL, and the simulated response of the identified first-order model. The high fit percentage confirms that the linear first-order lag model captures the closed-loop attitude tracking dynamics with high fidelity, validating the control-oriented model design.
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.9\textwidth]{Figures/modeling/uav_sysid.pdf}
+    \caption{Autopilot inner-loop roll attitude identification showing the comparison between commanded angle, PX4 telemetry, and the identified first-order response model ($\tau = 0.15\,\text{s}$).}
+    \label{fig:uav_sysid_validation}
+\end{figure}
+
+\subsection{Tether Force and Slack Validation}
+\label{subsec:res_tether_validation}
+
+To validate the simplified force representation derived in Section~\ref{subsec:mod_tether_force_model}, its estimated tension is compared against the high-fidelity dynamic tension solved by the MoorDyn physics engine. Figure~\ref{fig:tether_tension_validation} shows the comparison of the simplified static model against the dynamic tension telemetry from MoorDyn during a coupled simulation run. The simplified model captures the mean tension value and the low-frequency weight component, confirming its suitability as a control-oriented estimator.
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.9\textwidth]{Figures/modeling/tether_validation.pdf}
+    \caption{Validation of the control-oriented tether tension model ($T_0$) compared against the high-fidelity MoorDyn multi-node lumped-mass simulation.}
+    \label{fig:tether_tension_validation}
+\end{figure}
+
+% =========================================================================
 \section{Trajectory Tracking and Precision Evaluation}
 \label{sec:res_tracking_precision}
 

@@ -594,3 +594,13 @@
 \usepackage{tikz}
 \usetikzlibrary{arrows.meta,calc,3d}
 
+% Packages and custom command to track reviewed sections/paragraphs
+\usepackage{xcolor}
+\usepackage{marginnote}
+\usepackage{pifont}
+\usepackage{etoolbox}
+\makeatletter
+\appto{\@mn@margintest}{\@tempswatrue}
+\makeatother
+\newcommand{\reviewed}{\marginnote{\textcolor{green}{\ding{51}}}}
+
