@@ -70,9 +70,8 @@ install(TARGETS usv_mpc_node thruster_mapper_node
   DESTINATION lib/${PROJECT_NAME}
 )
 
+
 install(PROGRAMS
-  scripts/generate_excitation.py
-  scripts/validate_model.py
   scripts/wamv_model.py
   DESTINATION lib/${PROJECT_NAME}
 )

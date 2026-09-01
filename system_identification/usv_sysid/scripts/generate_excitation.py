@@ -26,9 +26,11 @@ class USVExcitationGenerator(Node):
         self.cooldown_duration = 2.0  # seconds to publish zeros before shutdown
         self.elapsed_time = 0.0
         
-        # Calibrated limits from SDF
-        self.max_thrust = 2300.0  # N (slightly under physical limit to prevent clipping)
-        self.max_angle = 1.5708   # rad (+/- 90 degrees)
+        # Realistic limits (Torqeedo Cruise 2.0 and cable twisting protection)
+        self.max_thrust = 510.0   # N (forward thrust limit)
+        self.max_angle = 0.5236   # rad (+/- 30 degrees)
+        self.current_l_angle = 0.0
+        self.current_r_angle = 0.0
         
         # Publishers
         self.left_thrust_pub = self.create_publisher(Float64, '/boat/thrusters/left/thrust', 10)
@@ -116,6 +118,15 @@ class USVExcitationGenerator(Node):
                 f_x_L = -1.15553 * Y_0
                 f_x_R =  1.15553 * Y_0
                 
+                # Compensate for reverse efficiency (0.746) on the backing motor to ensure zero net surge and yaw moment
+                eta_rev = 0.746
+                if f_x_L < 0.0:
+                    f_x_L /= eta_rev
+                    f_y_L /= eta_rev
+                if f_x_R < 0.0:
+                    f_x_R /= eta_rev
+                    f_y_R /= eta_rev
+                
                 # Polar conversion
                 self.l_thrust_cmd = np.sqrt(f_x_L**2 + f_y_L**2)
                 self.r_thrust_cmd = np.sqrt(f_x_R**2 + f_y_R**2)
@@ -160,7 +171,15 @@ class USVExcitationGenerator(Node):
         if int(self.elapsed_time * self.freq) % int(4.0 * self.freq) == 0:
             self.get_logger().info(f"{phase_name} | t = {t:.1f}s / {self.total_duration}s")
             
-        self.publish_commands(self.l_thrust_cmd, self.r_thrust_cmd, self.l_angle_cmd, self.r_angle_cmd)
+        # Slew rate limit for steering (1.0 rad/s)
+        max_step = 1.0 * self.dt
+        l_diff = self.l_angle_cmd - self.current_l_angle
+        self.current_l_angle += np.clip(l_diff, -max_step, max_step)
+        
+        r_diff = self.r_angle_cmd - self.current_r_angle
+        self.current_r_angle += np.clip(r_diff, -max_step, max_step)
+        
+        self.publish_commands(self.l_thrust_cmd, self.r_thrust_cmd, self.current_l_angle, self.current_r_angle)
 
     def publish_commands(self, l_thrust, r_thrust, l_angle, r_angle):
         # Enforce strict maximum bounds

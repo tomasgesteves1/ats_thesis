@@ -17,9 +17,8 @@ from rosbags.typesys import get_typestore, Stores
 
 typestore = get_typestore(Stores.LATEST)
 
-# Add current directory to path to import wamv_model
+# Add current directory to path to import models
 sys.path.append(os.path.dirname(os.path.abspath(__file__)))
-import wamv_model
 
 
 def euler_from_quaternion(x, y, z, w):
@@ -170,8 +169,13 @@ def main():
     parser.add_argument("--right_pos", type=str, default="/boat/thrusters/right/pos", help="Right motor position topic")
     parser.add_argument("--dt", type=float, default=0.02, help="Simulation step size (s)")
     parser.add_argument("--no-show", action="store_true", help="Do not show matplotlib interactive plots (still saves files)")
+    parser.add_argument("--model", type=str, default="wamv_model", help="Model python module name (default: wamv_model)")
     
     args = parser.parse_args()
+    
+    # Dynamic import of the model module
+    import importlib
+    wamv_model = importlib.import_module(args.model)
     
     # Read the data from the bag
     odom, t_left, t_right, a_left, a_right = parse_ros_bag(
@@ -309,7 +313,9 @@ def main():
     
     plt.tight_layout()
     
-    fig_dir = "/home/tomas/ats_ws/src/latex/tese/Figures/modeling"
+    # Save plots inside the package's plots folder, categorized by the model name
+    script_dir = os.path.dirname(os.path.abspath(__file__))
+    fig_dir = os.path.abspath(os.path.join(script_dir, "../plots", args.model))
     os.makedirs(fig_dir, exist_ok=True)
     
     # Save the velocities validation plot

@@ -6,7 +6,7 @@ def generate_launch_description():
     # This node publishes PRBS/Chirp sequences on the thrusters (forces and angles)
     # to excite the full 3-DOF dynamics of the WAM-V.
     excitation_node = Node(
-        package='usv_mpc',
+        package='usv_sysid',
         executable='generate_excitation.py',
         name='usv_excitation_generator_node',
         output='screen',
