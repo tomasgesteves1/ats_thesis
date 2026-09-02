@@ -16,7 +16,7 @@
 
 Real-time control requires simplified yet representative models that describe the motion and physical interaction of each vehicle. To this end, this chapter describes the kinematics, dynamics, and physical coupling of the cooperative system. These formulations allow the controller to predict future states and compute feasible, optimal trajectories for the system.\reviewed
 
-First, the chapter defines the reference coordinate frames and spatial transformations. It then develops the kinematic and dynamic models for the \gls{usv} and the \gls{uav}. Finally, it establishes the geometric and force models for the flexible tether and active winch.\reviewed
+First, the chapter defines the reference coordinate frames and spatial notation. It then develops the kinematic and dynamic control models for the \gls{usv} and the \gls{uav}, including thruster allocation and tether coupling forces.
 
 
 % ==============================================================================
@@ -145,128 +145,50 @@ Similarly, this frame attaches to the UAV. Its origin $\mathcal{O}_a$ resides at
 \section{WAM-V Surface Vessel Model}
 \label{sec:mod_usv}
 
-The high-fidelity simulation of the USV in the marine environment described in Chapter~\ref{chapter:implementation} uses a complete six-degree-of-freedom (6-DOF) model to capture wave-induced motions and tether disturbance loads. For real-time trajectory tracking and model predictive control, this representation is simplified to a three-degree-of-freedom (3-DOF) formulation.
+This section presents the mathematical model of the WAM-V catamaran. The formulation describes the horizontal maneuvering dynamics and thruster allocation, providing a control-oriented state-space model for trajectory tracking and predictive control.
 
-\subsection{Simulation Model}
-\label{subsec:usv_sim_model}
-
-\subsubsection{Kinematics}
-
-The position and orientation of the USV relative to $\{\mathcal{I}\}$ are described by the generalized coordinate vector $\boldsymbol{\eta}$:
-\begin{equation}
-    \label{eq:usv_eta}
-    \boldsymbol{\eta} = \begin{bmatrix} \boldsymbol{\eta}_1 \\ \boldsymbol{\eta}_2 \end{bmatrix}, \qquad \boldsymbol{\eta}_1 = \begin{bmatrix} x_v \\ y_v \\ z_v \end{bmatrix}, \qquad \boldsymbol{\eta}_2 = \begin{bmatrix} \phi \\ \theta \\ \psi \end{bmatrix}
-\end{equation}
-where $\boldsymbol{\eta}_1$ denotes the Cartesian position coordinates in the inertial frame, and $\boldsymbol{\eta}_2$ represents the Euler angles describing roll, pitch, and yaw.
-
-The linear and angular velocities expressed in the body-fixed frame $\{\mathcal{B}_v\}$ form the velocity vector $\boldsymbol{\nu}$:
-\begin{equation}
-    \label{eq:usv_nu}
-    \boldsymbol{\nu} = \begin{bmatrix} \boldsymbol{\nu}_1 \\ \boldsymbol{\nu}_2 \end{bmatrix}, \qquad \boldsymbol{\nu}_1 = \begin{bmatrix} u \\ v \\ w \end{bmatrix}, \qquad \boldsymbol{\nu}_2 = \begin{bmatrix} p \\ q \\ r \end{bmatrix}
-\end{equation}
-where $\boldsymbol{\nu}_1$ contains the surge, sway, and heave linear velocities, while $\boldsymbol{\nu}_2$ contains the roll, pitch, and yaw angular rates.
-
-The kinematic model maps the body-fixed velocity vector $\boldsymbol{\nu}$ to the inertial rate of change $\dot{\boldsymbol{\eta}}$ through the transformation matrix $\mathbf{J}(\boldsymbol{\eta}_2)$:
-\begin{equation}
-    \label{eq:usv_kinematics_6dof}
-    \dot{\boldsymbol{\eta}} = \mathbf{J}(\boldsymbol{\eta}_2) \boldsymbol{\nu} = \begin{bmatrix} \mathbf{J}_1(\boldsymbol{\eta}_2) & \mathbf{0}_{3\times 3} \\ \mathbf{0}_{3\times 3} & \mathbf{J}_2(\boldsymbol{\eta}_2) \end{bmatrix} \begin{bmatrix} \boldsymbol{\nu}_1 \\ \boldsymbol{\nu}_2 \end{bmatrix}
-\end{equation}
-where $\mathbf{J}_1(\boldsymbol{\eta}_2) = \mathbf{R}_v(\boldsymbol{\eta}_2)$ is the rotation matrix from $\{\mathcal{B}_v\}$ to $\{\mathcal{I}\}$, and $\mathbf{J}_2(\boldsymbol{\eta}_2)$ transforms body angular rates into Euler angle time derivatives.
-
-\subsubsection{Dynamics}
-
-The dynamic equations of motion follow the nonlinear marine craft formulation developed by Fossen \cite{fossenHandbookMarineCraft2011}:
-\begin{equation}
-    \label{eq:usv_dynamics_6dof}
-    \underbrace{\left( \mathbf{M}_{RB} + \mathbf{M}_A \right) \dot{\boldsymbol{\nu}} + \left( \mathbf{C}_{RB}(\boldsymbol{\nu}) + \mathbf{C}_A(\boldsymbol{\nu}) \right) \boldsymbol{\nu}}_{\text{Inertia \& Rotation}}
-    + \underbrace{\mathbf{D}(\boldsymbol{\nu})\boldsymbol{\nu}}_{\text{Hydrodynamic Drag}}
-    + \underbrace{\mathbf{g}(\boldsymbol{\eta})}_{\text{Buoyancy}}
-    = \underbrace{\boldsymbol{\tau}_{\mathrm{prop}}}_{\text{Thrusters}}
-    + \underbrace{\boldsymbol{\tau}_{\mathrm{tether}}}_{\text{Tether}}
-    + \underbrace{\boldsymbol{\tau}_{\mathrm{env}}}_{\text{Environment}}
-\end{equation}
-The physical terms in Equation~\eqref{eq:usv_dynamics_6dof} describe:
-\begin{itemize}
-    \item \textbf{Inertia and Rotation:} $\mathbf{M}_{RB}$ is the rigid-body mass matrix of the USV, while $\mathbf{M}_A$ is the added mass of the water moved by the hull. The matrices $\mathbf{C}_{RB}(\boldsymbol{\nu})$ and $\mathbf{C}_A(\boldsymbol{\nu})$ account for centrifugal and turning forces.
-    \item \textbf{Hydrodynamic Drag ($\mathbf{D}(\boldsymbol{\nu})\boldsymbol{\nu}$):} Hydrodynamic friction and drag forces that oppose the USV motion.
-    \item \textbf{Buoyancy and Gravity ($\mathbf{g}(\boldsymbol{\eta})$):} Hydrostatic restoring forces that keep the USV floating and upright.
-    \item \textbf{Thrusters and External Forces:} $\boldsymbol{\tau}_{\mathrm{prop}}$ is the propulsion force generated by the thrusters, $\boldsymbol{\tau}_{\mathrm{tether}}$ is the pull force from the UAV tether, and $\boldsymbol{\tau}_{\mathrm{env}}$ gathers environmental disturbances such as wind, waves, and currents.
-\end{itemize}\reviewed
-
-
-\subsection{Control-Oriented Model}
+\subsection{Kinematics}
 \label{subsec:mod_usv_kinematics}
 
-In marine control theory \cite{fossenHandbookMarineCraft2011}, surface vessel motion divides into horizontal maneuvering and wave-induced oscillations. The thrusters control surge, sway, and yaw, while heave, roll, and pitch remain passively stabilized by gravity and buoyancy. Furthermore, the tether tension force pulling on the USV is negligible compared to the substantial displacement of the vessel and propulsion forces. The control model therefore focuses on horizontal motion, ignoring wave oscillations and tether reaction forces to let the controller compute trajectories in real time.
-
-\subsubsection{Kinematics}
-
-The position and heading of the vessel in the inertial frame $\{\mathcal{I}\}$ are:
+In marine hydrodynamics \cite{fossenHandbookMarineCraft2011}, a surface vessel exhibits spatial motion described by its generalized coordinates $\boldsymbol{\eta} = [x_v, y_v, z_v, \phi, \theta, \psi]^T$ and body velocities $\boldsymbol{\nu} = [u, v, w, p, q, r]^T$, governed by:
 \begin{equation}
-    \boldsymbol{\eta}_v = \begin{bmatrix} x_v \\ y_v \\ \psi \end{bmatrix} \in \mathbb{R}^3
+    \label{eq:usv_dynamics_6dof}
+    \left( \mathbf{M}_{RB} + \mathbf{M}_A \right) \dot{\boldsymbol{\nu}} + \left( \mathbf{C}_{RB}(\boldsymbol{\nu}) + \mathbf{C}_A(\boldsymbol{\nu}) \right) \boldsymbol{\nu} + \mathbf{D}(\boldsymbol{\nu})\boldsymbol{\nu} + \mathbf{g}(\boldsymbol{\eta}) = \boldsymbol{\tau}_{\mathrm{prop}} + \boldsymbol{\tau}_{\mathrm{tether}} + \boldsymbol{\tau}_{\mathrm{env}}
 \end{equation}
-where $x_v$ and $y_v$ are Cartesian position coordinates, and $\psi$ is the yaw angle.
+where $\mathbf{M}_{RB}$ and $\mathbf{M}_A$ denote the rigid-body and added mass matrices, $\mathbf{C}_{RB}$ and $\mathbf{C}_A$ represent Coriolis and centripetal effects, $\mathbf{D}(\boldsymbol{\nu})\boldsymbol{\nu}$ accounts for hydrodynamic damping, $\mathbf{g}(\boldsymbol{\eta})$ represents hydrostatic restoring forces, and $\boldsymbol{\tau}$ collects propulsion and external loads.
 
-The velocities measured in the body frame $\{\mathcal{B}_v\}$ are:
-\begin{equation}
-    \boldsymbol{\nu}_v = \begin{bmatrix} u \\ v \\ r \end{bmatrix} \in \mathbb{R}^3
-\end{equation}
-where $u$ is the surge velocity, $v$ is the sway velocity, and $r$ is the yaw rate.
+For control design, this general formulation is reduced to horizontal planar motion based on the physical characteristics of the catamaran. First, the vessel operates on the water surface ($z_v \approx 0$). Second, the twin-pontoon geometry provides large hydrostatic restoring moments that passively stabilize roll ($\phi$), pitch ($\theta$), and heave ($w$) near equilibrium. Third, the stern thrusters act solely in the horizontal plane (surge, sway, and yaw). Fourth, tether forces are negligible compared to the large vessel displacement and propulsion thrust.
 
-Converting body velocities to the inertial frame $\{\mathcal{I}\}$ uses the rotation matrix $\mathbf{R}_v(\psi)$ about the vertical axis $\mathbf{z}_v$:
-\begin{equation}
-    \label{eq:usv_rot_matrix}
-    \mathbf{R}_v(\psi) = \begin{bmatrix}
-        \cos\psi & -\sin\psi & 0 \\
-        \sin\psi & \cos\psi & 0 \\
-        0 & 0 & 1
-    \end{bmatrix}
-\end{equation}
+Under these conditions, out-of-plane motions decouple from the horizontal motion. The planar position and heading in the inertial frame $\{\mathcal{I}\}$ are parameterized by $\boldsymbol{\eta}_v = [x_v, y_v, \psi]^T \in \mathbb{R}^3$, while body velocities in $\{\mathcal{B}_v\}$ are $\boldsymbol{\nu}_v = [u, v, r]^T \in \mathbb{R}^3$, where $u$ is surge, $v$ is sway, and $r$ is yaw rate.
 
-The kinematic equations map these velocities to the rate of change of position and heading:
+The planar kinematic mapping from body velocities to inertial coordinate rates is given by:
 \begin{equation}
     \label{eq:usv_kinematics_planar}
     \dot{\boldsymbol{\eta}}_v = \mathbf{R}_v(\psi) \boldsymbol{\nu}_v \iff \begin{bmatrix} \dot{x}_v \\ \dot{y}_v \\ \dot{\psi} \end{bmatrix} = \begin{bmatrix} \cos\psi & -\sin\psi & 0 \\ \sin\psi & \cos\psi & 0 \\ 0 & 0 & 1 \end{bmatrix} \begin{bmatrix} u \\ v \\ r \end{bmatrix}
 \end{equation}
-Expanding this matrix product gives the individual kinematic equations:
+Evaluating the product gives the scalar kinematic equations:
 \begin{align}
     \dot{x}_v &= u \cos\psi - v \sin\psi \label{eq:usv_x_dot} \\
     \dot{y}_v &= u \sin\psi + v \cos\psi \label{eq:usv_y_dot} \\
     \dot{\psi} &= r \label{eq:usv_psi_dot}
 \end{align}
 
-\subsubsection{Dynamics}
+\subsection{Dynamics and State-Space Model}
+\label{subsec:mod_usv_dynamics}
 
-The dynamic equations describe how forces accelerate the vessel. Because the body-fixed reference frame $\{\mathcal{B}_v\}$ translates with linear velocity $\mathbf{v} = [u, v, 0]^T$ and rotates with angular velocity $\boldsymbol{\omega} = [0, 0, r]^T$, the total inertial acceleration of the center of gravity follows Euler's acceleration relation:
+The dynamic equations of motion describe the vessel acceleration resulting from applied forces and moments. Because the body frame $\{\mathcal{B}_v\}$ translates with linear velocity $\mathbf{v} = [u, v, 0]^T$ and rotates with angular rate $\boldsymbol{\omega} = [0, 0, r]^T$, the total inertial acceleration of the center of gravity follows Euler's relation $\mathbf{a} = \dot{\mathbf{v}} + \boldsymbol{\omega} \times \mathbf{v}$:
 \begin{equation}
-    \mathbf{a} = \dot{\mathbf{v}} + \boldsymbol{\omega} \times \mathbf{v}
+    \mathbf{a} = \begin{bmatrix} \dot{u} \\ \dot{v} \\ 0 \end{bmatrix} + \begin{bmatrix} 0 \\ 0 \\ r \end{bmatrix} \times \begin{bmatrix} u \\ v \\ 0 \end{bmatrix} = \begin{bmatrix} \dot{u} - v r \\ \dot{v} + u r \\ 0 \end{bmatrix}
 \end{equation}
-Computing the cross product gives the Coriolis and centripetal accelerations:
-\begin{equation}
-    \boldsymbol{\omega} \times \mathbf{v} = \begin{bmatrix} 0 \\ 0 \\ r \end{bmatrix} \times \begin{bmatrix} u \\ v \\ 0 \end{bmatrix} = \begin{bmatrix} -v r \\ u r \\ 0 \end{bmatrix}
-\end{equation}
-Therefore, the total linear acceleration vector along the body axes is:
-\begin{equation}
-    \mathbf{a} = \begin{bmatrix} \dot{u} \\ \dot{v} \\ 0 \end{bmatrix} + \begin{bmatrix} -v r \\ u r \\ 0 \end{bmatrix} = \begin{bmatrix} \dot{u} - v r \\ \dot{v} + u r \\ 0 \end{bmatrix}
-\end{equation}
-
-Newton's second law sets the product of mass $m$ and acceleration equal to the net external forces:
-\begin{equation}
-    m \begin{bmatrix} \dot{u} - v r \\ \dot{v} + u r \end{bmatrix} = \begin{bmatrix} \sum F_x \\ \sum F_y \end{bmatrix}
-\end{equation}
-Similarly, rotational motion about the vertical axis through the center of gravity follows:
-\begin{equation}
-    I_{zz} \dot{r} = \sum N_z
-\end{equation}
-where $m$ and $I_{zz}$ represent the effective mass and yaw moment of inertia of the USV, with hydrodynamic added mass absorbed during parameter identification.
-
-The net forces and yaw moment combine propulsion inputs $(X, Y, N)$ generated by the thrusters and opposing hydrodynamic drag $(F_{d,u}, F_{d,v}, M_{d,r})$:
+Applying Newton's second law for planar translation and rotation about the vertical axis yields:
 \begin{align}
-    \sum F_x &= X - F_{d,u} = X - d_u(u) u \\
-    \sum F_y &= Y - F_{d,v} = Y - d_v(v) v \\
-    \sum N_z &= N - M_{d,r} = N - d_r(r) r
+    m (\dot{u} - v r) &= X - d_u(u) u \label{eq:usv_newton_u} \\
+    m (\dot{v} + u r) &= Y - d_v(v) v \label{eq:usv_newton_v} \\
+    I_{zz} \dot{r} &= N - d_r(r) r \label{eq:usv_newton_r}
 \end{align}
-The damping functions $d_u(u)$, $d_v(v)$, and $d_r(r)$ model linear friction and quadratic drag:
+where $m$ and $I_{zz}$ denote the effective mass and yaw moment of inertia (incorporating added mass terms), $X$ and $Y$ are the surge and sway propulsion forces, and $N$ is the yaw control moment.
+
+The damping functions $d_u(u)$, $d_v(v)$, and $d_r(r)$ model combined linear skin friction and quadratic form drag:
 \begin{align}
     d_u(u) &= \begin{cases} 
         X_U + X_{UU} |u|, & u \ge 0 \\
@@ -275,22 +197,15 @@ The damping functions $d_u(u)$, $d_v(v)$, and $d_r(r)$ model linear friction and
     d_v(v) &= Y_V + Y_{VV} |v| \label{eq:damping_v} \\
     d_r(r) &= N_R + N_{RR} |r| \label{eq:damping_r}
 \end{align}
-where $X_U$, $Y_V$, and $N_R$ are linear drag coefficients, while $X_{UU}$, $X_{UU\_BWD}$, $Y_{VV}$, and $N_{RR}$ are quadratic drag coefficients. The asymmetric surge damping accounts for the hydrodynamic difference between the sharp bow and the flat stern, whereas port-starboard hull symmetry produces symmetric sway and yaw damping.
+where $X_U, Y_V, N_R$ are linear coefficients and $X_{UU}, X_{UU\_BWD}, Y_{VV}, N_{RR}$ are quadratic drag coefficients. The surge damping distinguishes forward and backward motion due to hull fore-aft asymmetry, whereas lateral hull symmetry produces symmetric sway and yaw damping.
 
-Substituting the net forces and moments into the balance of motion yields:
-\begin{align}
-    m(\dot{u} - v r) &= X - d_u(u) u \\
-    m(\dot{v} + u r) &= Y - d_v(v) v \\
-    I_{zz} \dot{r} &= N - d_r(r) r
-\end{align}
-Isolating the accelerations $(\dot{u}, \dot{v}, \dot{r})$ gives the scalar state equations used in the controller:
+Isolating the accelerations $(\dot{u}, \dot{v}, \dot{r})$ from \eqref{eq:usv_newton_u}--\eqref{eq:usv_newton_r} yields:
 \begin{align}
     \dot{u} &= \frac{X - d_u(u) u}{m} + v r \label{eq:usv_surge_dot} \\
     \dot{v} &= \frac{Y - d_v(v) v}{m} - u r \label{eq:usv_sway_dot} \\
     \dot{r} &= \frac{N - d_r(r) r}{I_{zz}} \label{eq:usv_yaw_dot}
 \end{align}
-
-In matrix form, grouping the inertial, Coriolis, and damping terms matches the standard Fossen formulation:
+which can be expressed in the compact Fossen matrix form $\mathbf{M}_v \dot{\boldsymbol{\nu}}_v + \mathbf{C}_v(\boldsymbol{\nu}_v)\boldsymbol{\nu}_v + \mathbf{D}_v(\boldsymbol{\nu}_v)\boldsymbol{\nu}_v = \boldsymbol{\tau}_v$:
 \begin{equation}
     \label{eq:usv_dynamics_expanded}
     \underbrace{\begin{bmatrix} m & 0 & 0 \\ 0 & m & 0 \\ 0 & 0 & I_{zz} \end{bmatrix}}_{\mathbf{M}_v} \begin{bmatrix} \dot{u} \\ \dot{v} \\ \dot{r} \end{bmatrix}
@@ -298,17 +213,14 @@ In matrix form, grouping the inertial, Coriolis, and damping terms matches the s
     + \underbrace{\begin{bmatrix} d_u(u) & 0 & 0 \\ 0 & d_v(v) & 0 \\ 0 & 0 & d_r(r) \end{bmatrix}}_{\mathbf{D}_v(\boldsymbol{\nu}_v)} \begin{bmatrix} u \\ v \\ r \end{bmatrix}
     = \underbrace{\begin{bmatrix} X \\ Y \\ N \end{bmatrix}}_{\boldsymbol{\tau}_v}
 \end{equation}
-which is compactly written as $\mathbf{M}_v \dot{\boldsymbol{\nu}}_v + \mathbf{C}_v(\boldsymbol{\nu}_v)\boldsymbol{\nu}_v + \mathbf{D}_v(\boldsymbol{\nu}_v)\boldsymbol{\nu}_v = \boldsymbol{\tau}_v$.
 
-\subsubsection{Thruster Allocation and Actuator Limits}
-
-The mapping from the twin stern thrusters $(T_L, \alpha_L)$ and $(T_R, \alpha_R)$ to the control forces and yaw moment $\boldsymbol{\tau}_v = [X, Y, N]^T$ is given by:
+The control forces and yaw moment $\boldsymbol{\tau}_v = [X, Y, N]^T$ are generated by two steerable stern thrusters $(T_L, \alpha_L)$ and $(T_R, \alpha_R)$, as illustrated in Figure~\ref{fig:usv_planar_model}:
 \begin{align}
     X &= T_L \cos\alpha_L + T_R \cos\alpha_R \label{eq:alloc_X} \\
     Y &= T_L \sin\alpha_L + T_R \sin\alpha_R \label{eq:alloc_Y} \\
     N &= x_{\mathrm{arm}} \left( T_L \sin\alpha_L + T_R \sin\alpha_R \right) - y_{\mathrm{arm}} \left( T_L \cos\alpha_L - T_R \cos\alpha_R \right) \label{eq:alloc_N}
 \end{align}
-where $T_i$ is the thrust magnitude, $\alpha_i$ is the azimuth angle of thruster $i \in \{L, R\}$, and $(x_{\mathrm{arm}}, \pm y_{\mathrm{arm}})$ are the thruster mount coordinates relative to the center of gravity, as illustrated in Figure~\ref{fig:usv_planar_model}.
+where $T_i$ is the thrust magnitude, $\alpha_i$ is the steering angle of thruster $i \in \{L, R\}$, and $(x_{\mathrm{arm}}, \pm y_{\mathrm{arm}})$ are the thruster mounting locations relative to the center of gravity.
 
 \begin{figure}[H]
     \centering
@@ -424,9 +336,30 @@ where $T_i$ is the thrust magnitude, $\alpha_i$ is the azimuth angle of thruster
             node[below right, font=\small, matlabRed] {$T_R$};
 
     \end{tikzpicture}
-    \caption{Planar 3-DOF USV schematic and thruster allocation geometry.}
+    \caption{Planar USV schematic and thruster allocation geometry.}
     \label{fig:usv_planar_model}
 \end{figure}
+
+Collecting the planar kinematic and dynamic equations, the USV state vector $\mathbf{x}_v \in \mathbb{R}^6$ and control vector $\mathbf{u}_v \in \mathbb{R}^3$ are defined as:
+\begin{equation}
+    \mathbf{x}_v = \begin{bmatrix} x_v \\ y_v \\ \psi \\ u \\ v \\ r \end{bmatrix}, \quad
+    \mathbf{u}_v = \begin{bmatrix} X \\ Y \\ N \end{bmatrix}
+\end{equation}
+The continuous-time non-linear system dynamics $\dot{\mathbf{x}}_v = \mathbf{f}_{\mathrm{usv}}(\mathbf{x}_v, \mathbf{u}_v)$ are summarized as:
+\begin{equation}
+    \label{eq:usv_state_space_full}
+    \dot{\mathbf{x}}_v = \begin{bmatrix}
+        \dot{\boldsymbol{\eta}}_v \\
+        \dot{\boldsymbol{\nu}}_v
+    \end{bmatrix} = \begin{bmatrix}
+        u \cos\psi - v \sin\psi \\
+        u \sin\psi + v \cos\psi \\
+        r \\
+        \frac{X - d_u(u) u}{m} + v r \\
+        \frac{Y - d_v(v) v}{m} - u r \\
+        \frac{N - d_r(r) r}{I_{zz}}
+    \end{bmatrix}
+\end{equation}
 
 % ==============================================================================
 % SECTION 3.3: x500 Quadrotor Model
@@ -436,7 +369,7 @@ where $T_i$ is the thrust magnitude, $\alpha_i$ is the azimuth angle of thruster
 
 This section presents the mathematical model of the x500 quadrotor. The formulation describes the translational flight dynamics and the inner-loop attitude response, providing a computationally efficient model for trajectory planning and predictive control.
 
-\subsection{Kinematics and Thrust Vectoring}
+\subsection{Kinematics and Forces}
 \label{subsec:mod_uav_kinematics_thrust}
 
 The position $\mathbf{p}_a$ and linear velocity $\mathbf{v}_a$ of the quadrotor are defined in the global inertial frame $\{\mathcal{I}\} = (\mathbf{x}_{\mathcal{I}}, \mathbf{y}_{\mathcal{I}}, \mathbf{z}_{\mathcal{I}})$ following the East-North-Up (ENU) convention:
@@ -468,11 +401,20 @@ The collective aerodynamic thrust acts along the positive body vertical axis $\m
 \begin{equation}
     a_T = \frac{T_{\mathrm{total}}}{m_a} \quad \left[\text{m/s}^2\right]
 \end{equation}
-In the body frame, the thrust acceleration is $\mathbf{a}_{\mathcal{B}} = [0, 0, a_T]^T$. Rotating this acceleration into the inertial frame and adding the downward gravitational acceleration $\mathbf{g} = [0, 0, -g]^T$, where $g$ denotes the gravitational acceleration constant, Newton's second law gives:
+In the body frame, the thrust acceleration is $\mathbf{a}_{\mathcal{B}} = [0, 0, a_T]^T$, which rotates to $\mathbf{a}_{thrust} = \mathbf{R}_a(\phi, \theta, \psi_a) \mathbf{a}_{\mathcal{B}} = a_T \cdot \mathbf{R}_{a, [:,3]}$ in the inertial frame.
+
+\label{subsec:mod_tether_force_model}
+The physical tether attaches to the quadrotor at its center of gravity $\mathbf{p}_a$, generating no attitude moments, and connects to the shipboard winch anchor located at $\mathbf{p}_{\mathrm{anchor}} = [x_v, y_v, h_v + h_{\mathrm{anchor}}]^T$. When the line is taut, the tension force pulling the vehicle toward the vessel deck is modeled as:
 \begin{equation}
-    \dot{\mathbf{v}}_a = \mathbf{R}_a(\phi, \theta, \psi_a) \mathbf{a}_{\mathcal{B}} + \mathbf{g} = a_T \cdot \mathbf{R}_{a, [:,3]} + \mathbf{g}
+    \mathbf{F}_{tether} = T_{tether} \frac{\mathbf{p}_{\mathrm{anchor}} - \mathbf{p}_a}{\|\mathbf{p}_{\mathrm{anchor}} - \mathbf{p}_a\|}
 \end{equation}
-where $\mathbf{R}_{a, [:,3]}$ is the third column of \eqref{eq:uav_rot_matrix}. Written component by component, as illustrated in Figure~\ref{fig:uav_thrust_vectoring}:
+where $T_{tether} \ge 0$ is the tether tension magnitude. During autonomous flight and tracking phases, the active winch maintains a controlled cable catenary ($T_{tether} \approx 0$), mechanically decoupling the quadrotor from wave-induced vessel motions. During tension-guided landing, $T_{tether} > 0$ provides a physical restoring force toward the landing deck.
+
+Applying Newton's second law in the inertial reference frame, the translational acceleration combines thrust, gravity $\mathbf{g} = [0, 0, -g]^T$, and the tether coupling force:
+\begin{equation}
+    \dot{\mathbf{v}}_a = a_T \cdot \mathbf{R}_{a, [:,3]} + \mathbf{g} + \frac{\mathbf{F}_{tether}}{m_a}
+\end{equation}
+In nominal unconstrained flight ($T_{tether} \approx 0$), evaluating the acceleration components yields the translational equations of motion, as illustrated in Figure~\ref{fig:uav_thrust_vectoring}:
 \begin{align}
     \dot{v}_{x,a} &= a_T \left( \cos\psi_a \sin\theta \cos\phi + \sin\psi_a \sin\phi \right) \label{eq:uav_vx_dot} \\
     \dot{v}_{y,a} &= a_T \left( \sin\psi_a \sin\theta \cos\phi - \cos\psi_a \sin\phi \right) \label{eq:uav_vy_dot} \\
@@ -578,7 +520,7 @@ where $\mathbf{R}_{a, [:,3]}$ is the third column of \eqref{eq:uav_rot_matrix}. 
     \label{fig:uav_thrust_vectoring}
 \end{figure}
 
-\subsection{Attitude Tracking and State-Space Model}
+\subsection{Attitude and State-Space Model}
 \label{subsec:mod_uav_statespace}
 
 The onboard autopilot regulates motor speeds to track commanded attitude angles. For the vehicle model, the closed-loop tracking response of roll ($\phi$) and pitch ($\theta$) to commanded setpoints ($\phi_{cmd}, \theta_{cmd}$) is characterized by a decoupled first-order lag:
@@ -619,75 +561,5 @@ The continuous-time non-linear system dynamics $\dot{\mathbf{x}}_a = \mathbf{f}_
         \frac{1}{\tau} \left( \theta_{cmd} - \theta \right)
     \end{bmatrix}
 \end{equation}
-In Chapter~\ref{chapter:control}, this physical model is augmented with command rate derivatives to guarantee continuous actuation profiles within the optimal predictive control framework.
-
-
-% ==============================================================================
-% SECTION 3.4: Tether and Winch Model
-% ==============================================================================
-\section{Tether and Winch Model}
-\label{sec:mod_tether_winch}
-
-
-\subsection{Control-Oriented Geometric Constraints}
-\label{subsec:mod_geometric_tether}
-
-For the formulation of the real-time \gls{nmpc} algorithm, modeling the full multi-body or lumped-mass catenary dynamics of the tether inside the optimization prediction horizon is computationally prohibitive. Instead, the coupling effect is modeled as a geometric boundary constraint. The tether acts as a spherical workspace envelope of radius $L_{tether}$ centered at the USV anchor point.
-
-On the USV, the tether attaches to the active winch located at an offset $\mathbf{r}_{\mathrm{anchor}} = [0, 0, h_{\mathrm{anchor}}]^T$ relative to the USV center of gravity in $\{\mathcal{B}_v\}$, where $h_{\mathrm{anchor}}$ denotes the constant height of the winch drum. The global anchor position in the inertial frame $\{\mathcal{I}\}$ is:
-\begin{equation}
-    \label{eq:p_anchor}
-    \mathbf{p}_{\mathrm{anchor}} = \begin{bmatrix} x_v \\ y_v \\ h_v \end{bmatrix} + \mathbf{r}_{\mathrm{anchor}} = \begin{bmatrix} x_v \\ y_v \\ h_v + h_{\mathrm{anchor}} \end{bmatrix}
-\end{equation}
-On the UAV, the tether attachment point coincides with the vehicle center of gravity $\mathbf{p}_a = [x_a, y_a, z_a]^T$, which eliminates tether-induced attitude moments.
-
-Assuming the USV moves on the water surface ($h_v = 0$), the geometric distance $d_{tether}$ between the \gls{uav} position $\mathbf{p}_a$ and the shipboard anchor $\mathbf{p}_{\mathrm{anchor}}$ is expressed as:
-\begin{equation}
-    d_{tether} = \sqrt{(x_a - x_v)^2 + (y_a - y_v)^2 + (z_a - h_{\mathrm{anchor}})^2}
-\end{equation}
-
-To enforce that the UAV remains within the physical boundary of the tether, a non-linear path constraint is formulated in the optimal control problem:
-\begin{equation}
-    0 \le h(\mathbf{x}, \mathbf{p}) \le L_{tether}^2
-\end{equation}
-where the constraint expression $h(\mathbf{x}, \mathbf{p})$ is defined as the squared distance:
-\begin{equation}
-    h(\mathbf{x}, \mathbf{p}) = (x_a - x_v)^2 + (y_a - y_v)^2 + (z_a - h_{\mathrm{anchor}})^2
-\end{equation}
-
-In the C++ control pipeline, the current boat coordinates $[x_v, y_v]^T$ are supplied to the solver as time-varying parameters along the prediction horizon. To handle situations where external environmental perturbations (such as wind gusts) temporarily pull the quadrotor beyond the nominal tether length, this inequality is implemented as a soft constraint using quadratic slack variables. This prevents optimization solver infeasibility while maintaining a heavy penalty on constraint violations.
-
-\subsection{Virtual Winch Kinematics and Spooling Modes}
-\label{subsec:mod_winch_kinematics}
-
-The active winch system on the WAM-V deck dynamically manages the deployed tether length, denoted by $L_{tether}$. The rate of spooling $\dot{L}_{tether}$ is controlled to adapt the tether configuration to the cooperative mission requirements. Two operational modes govern the virtual winch:
-
-\paragraph{Geometric Spooling Mode}
-The winch tracks the geometric distance $d_{tether}$ between the vehicles. To prevent the cable from becoming overly taut and generating high disturbance forces on the UAV, a positive slack factor $\sigma_{slack}$ is introduced. The target tether length is computed as:
-\begin{equation}
-    L_{tether, cmd} = d_{tether} \cdot \left(1 + \sigma_{slack}\right)
-\end{equation}
-where $\sigma_{slack}$ represents a safety margin allowing a controlled catenary sag.
-
-\paragraph{Tension-Regulated Spooling Mode}
-The winch adjusts the spooling velocity to maintain a constant target tension $T_{ref}$. The control law for the winch spooling speed $\dot{L}_{tether}$ is defined as a function of the tension tracking error:
-\begin{equation}
-    \dot{L}_{tether} = K_{T,p} \left( T_{meas} - T_{ref} \right) + K_{T,d} \dot{T}_{meas}
-\end{equation}
-where $T_{meas}$ is the measured tension at the anchor, and $K_{T,p}$, $K_{T,d}$ are the proportional and derivative gains of the tension controller, respectively.
-
-\subsection{Tether Coupling Force Model}
-\label{subsec:mod_tether_force_model}
-
-To evaluate the loading effects on both the \gls{usv} and the \gls{uav} without solving complex partial differential equations online, the physical force exerted by the tether on the vehicles is modeled using a simplified static representation. The tether force vector $\mathbf{F}_{tether}$ acting on the quadrotor is assumed to pull the vehicle directly toward the shipboard anchor point. The magnitude of this force is simplified to the static weight of the deployed (outside) cable segment plus a nominal base tension:
-\begin{equation}
-    T_0 = T_{base} + \rho_L L_{tether} g
-\end{equation}
-where $\rho_L$ is the linear mass density of the cable (set to $0.020\,\text{kg/m}$ in the simulation), $L_{tether}$ is the length of the deployed segment outside the winch, and $T_{base}$ is a constant representing the minimum pre-tension.
-
-Assuming the line is straight and taut between the vehicles, the tether force vector $\mathbf{F}_{tether}$ experienced by the UAV is modeled as:
-\begin{equation}
-    \mathbf{F}_{tether} = T_0 \frac{\mathbf{p}_{anchor} - \mathbf{p}_a}{\sqrt{\|\mathbf{p}_{anchor} - \mathbf{p}_a\|^2 + \epsilon^2}}
-\end{equation}
-where $\mathbf{p}_a$ is the UAV position, $\mathbf{p}_{anchor}$ is the global anchor position on the ship deck, and $\epsilon$ is a small positive regularization constant ($10^{-3}$) added to prevent division by zero when the vehicles are coincident.
+In Chapter~\ref{chapter:control}, this physical model is augmented with command rate derivatives to guarantee continuous actuation profiles, and the tether geometric boundary is integrated into the optimal predictive control framework.
 
