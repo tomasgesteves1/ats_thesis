@@ -105,19 +105,19 @@ To satisfy real-time constraints, the \gls{ocp} is solved using the Real-Time It
 The tracking NMPC for the x500 quadrotor is designed to command translation and attitude rates while satisfying workspace boundary constraints imposed by the tether length.
 
 \subsection{State, Control, and Parameter Vectors}
-The UAV guidance model is formulated with a $10$-dimensional state vector $\mathbf{x}_a$, a $3$-dimensional control input vector $\mathbf{u}_a$, and a $3$-dimensional time-varying parameter vector $\mathbf{p}_a$:
+The UAV guidance model is formulated with a $10$-dimensional state vector $\mathbf{x}_a$, a $3$-dimensional control input vector $\mathbf{u}_a$, and a $3$-dimensional time-varying parameter vector $\boldsymbol{\pi}_a$:
 \begin{align}
     \mathbf{x}_a &= \begin{bmatrix} p_x & p_y & p_z & v_x & v_y & v_z & \phi & \theta & \phi_{cmd} & \theta_{cmd} \end{bmatrix}^T \\
     \mathbf{u}_a &= \begin{bmatrix} \dot{\phi}_{cmd,ctrl} & \dot{\theta}_{cmd,ctrl} & a_T \end{bmatrix}^T \\
-    \mathbf{p}_a &= \begin{bmatrix} \psi_a & x_{boat} & y_{boat} \end{bmatrix}^T
+    \boldsymbol{\pi}_a &= \begin{bmatrix} \psi_a & x_{boat} & y_{boat} \end{bmatrix}^T
 \end{align}
 where $p_x, p_y, p_z$ are the 3D position coordinates and $v_x, v_y, v_z$ are the translational velocity coordinates in the inertial reference frame $\{\mathcal{I}\}$. The angles $\phi, \theta$ represent the actual roll and pitch of the vehicle, while $\phi_{cmd}, \theta_{cmd}$ represent the commanded angles tracked by the autopilot inner loop. The control commands computed by the NMPC are the commanded roll and pitch rates $\dot{\phi}_{cmd,ctrl}, \dot{\theta}_{cmd,ctrl}$ along with the collective acceleration thrust magnitude $a_T$. The parameter vector captures the yaw heading $\psi_a$ and the USV deck coordinates $x_{boat}, y_{boat}$.
 
 \subsection{OCP Cost Function and Penalties}
 The tracking objective is to minimize the deviation of the states and controls from a reference trajectory. The stage cost output vector $\mathbf{h}_a$ and the terminal cost output vector $\mathbf{h}_{a,e}$ are defined as:
 \begin{align}
-    \mathbf{h}_a(\mathbf{x}_a, \mathbf{u}_a, \mathbf{p}_a) &= \begin{bmatrix} \mathbf{x}_a^T & \mathbf{u}_a^T \end{bmatrix}^T \\
-    \mathbf{h}_{a,e}(\mathbf{x}_a, \mathbf{p}_a) &= \mathbf{x}_a
+    \mathbf{h}_a(\mathbf{x}_a, \mathbf{u}_a, \boldsymbol{\pi}_a) &= \begin{bmatrix} \mathbf{x}_a^T & \mathbf{u}_a^T \end{bmatrix}^T \\
+    \mathbf{h}_{a,e}(\mathbf{x}_a, \boldsymbol{\pi}_a) &= \mathbf{x}_a
 \end{align}
 The weighting matrices $\mathbf{W}_a$ and $\mathbf{W}_{a,e}$ are configured diagonally to scale individual penalties:
 \begin{align}

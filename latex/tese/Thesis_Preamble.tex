@@ -310,11 +310,17 @@
 %
 % > set the page margins (2.5cm minimum in every side, as per IST rules)
 %
-\usepackage{geometry}	
+\usepackage{geometry}
 \geometry{a4paper,
          tmargin=2.5cm, bmargin=2.5cm,
          lmargin=2.5cm, rmargin=2.5cm,
          verbose=false}
+
+% report.cls defaults to \flushbottom, which stretches interline glue so every
+% page reaches the bottom margin. On pages with little text (short paragraphs
+% next to equations/figures), that stretch piles up in a single gap, usually
+% right before a heading. \raggedbottom lets pages end short instead.
+\raggedbottom
 
 % 'setspace' package
 %
@@ -602,5 +608,9 @@
 \makeatletter
 \appto{\@mn@margintest}{\@tempswatrue}
 \makeatother
-\newcommand{\reviewed}{\marginnote{\textcolor{green}{\ding{51}}}}
+% Toggle to hide the review checkmarks (set to \showreviewmarksfalse before
+% compiling the version handed to the advisors / for submission)
+\newif\ifshowreviewmarks
+\showreviewmarkstrue
+\newcommand{\reviewed}{\ifshowreviewmarks\marginnote{\textcolor{green}{\ding{51}}}\fi}
 

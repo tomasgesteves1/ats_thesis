@@ -14,9 +14,9 @@
 \chapter{System modeling}
 \label{chapter:modeling}
 
-Real-time control requires simplified yet representative models that describe the motion and physical interaction of each vehicle. To this end, this chapter describes the kinematics, dynamics, and physical coupling of the cooperative system. These formulations allow the controller to predict future states and compute feasible, optimal trajectories for the system.\reviewed
+Real-time control needs models that are simple enough to compute quickly, yet detailed enough to capture how each vehicle actually moves and interacts with the other. The kinematics, dynamics, and physical coupling of the cooperative system, developed in the sections that follow, let the controller predict how the system evolves and compute feasible, optimal trajectories.\reviewed
 
-First, the chapter defines the reference coordinate frames and spatial notation. It then develops the kinematic and dynamic control models for the \gls{usv} and the \gls{uav}, including thruster allocation and tether coupling forces.
+Section~\ref{sec:mod_coordinates} fixes the reference coordinate frames and spatial notation used throughout the work. Sections~\ref{sec:mod_usv} and~\ref{sec:mod_uav} then derive the kinematic and dynamic models of the \gls{usv} and the \gls{uav}, including the thruster allocation for the vessel and the tether coupling force linking the two vehicles.
 
 
 % ==============================================================================
@@ -25,7 +25,7 @@ First, the chapter defines the reference coordinate frames and spatial notation.
 \section{Reference Coordinate Frames}
 \label{sec:mod_coordinates}
 
-Formulating the equations of motion for the cooperative system requires a consistent set of coordinate frames. To this end, this work defines a common global inertial reference frame alongside individual body-fixed frames for both the USV and the UAV. This formulation simplifies the representation of hydrodynamic and aerodynamic forces relative to each vehicle. Figure~\ref{fig:coordinate_frames} illustrates the spatial relationships between these coordinate systems.\reviewed
+Writing the equations of motion for the cooperative system requires a consistent set of coordinate frames. This work therefore defines one common global inertial frame, together with a body-fixed frame for each vehicle, the USV and the UAV. Expressing hydrodynamic and aerodynamic forces relative to each vehicle's own frame keeps those equations simple. Figure~\ref{fig:coordinate_frames} shows how the frames relate to each other in space.\reviewed
 
 \paragraph{Inertial Reference Frame $\{\mathcal{I}\}$}
 This frame establishes the global coordinate system, following the East-North-Up (ENU) convention. Its origin $\mathcal{O}_I$ lies on the water surface. In this frame, the axis $\mathbf{x}_I$ points East, $\mathbf{y}_I$ points North, and $\mathbf{z}_I$ points upward, opposite to gravity. This flat-Earth assumption is justified because the local tracking controller operates over a short spatial horizon.\reviewed
@@ -38,17 +38,18 @@ Similarly, this frame attaches to the UAV. Its origin $\mathcal{O}_a$ resides at
 
 \begin{figure}[H]
     \centering
-    % Definição de cores baseadas na palete padrão do MATLAB (colororder)
-    \definecolor{colorI}{rgb}{0.0,0.447,0.741}  % MATLAB Blue (Inercial)
-    \definecolor{colorV}{rgb}{0.850,0.325,0.098} % MATLAB Orange (USV)
-    \definecolor{colorA}{rgb}{0.929,0.694,0.125} % MATLAB Yellow/Gold (UAV)
+    % Colors: Okabe-Ito colorblind-safe qualitative palette (Okabe and Ito, 2008)
+    \definecolor{okiBlue}{rgb}{0.0,0.447,0.698}       % Inertial frame {I}
+    \definecolor{okiGreen}{rgb}{0.0,0.620,0.451}      % USV body frame {Bv}
+    \definecolor{okiOrange}{rgb}{0.902,0.624,0.0}     % UAV body frame {Ba}
+    \definecolor{okiVermillion}{rgb}{0.835,0.369,0.0} % Anchor / coupling point
     
     \begin{tikzpicture}[
         >=stealth,
         scale=1.0,
-        axis/.style={->,colorI,thick,line width=1.2pt},
-        bodyaxis/.style={->,colorV,thick,line width=1.2pt},
-        uavaxis/.style={->,colorA,thick,line width=1.2pt},
+        axis/.style={->,okiBlue,thick,line width=1.2pt},
+        bodyaxis/.style={->,okiGreen,thick,line width=1.2pt},
+        uavaxis/.style={->,okiOrange,thick,line width=1.2pt},
         label/.style={black,font=\small},
         tether/.style={draw,line width=1.5pt,darkgray,smooth}
     ]
@@ -57,82 +58,61 @@ Similarly, this frame attaches to the UAV. Its origin $\mathcal{O}_a$ resides at
 
         % -- INERTIAL FRAME {I} --
         \coordinate (OI) at (0,0);
-        \draw[axis] (OI) -- (2.0,0) node[below right,label,colorI] {$\mathbf{x}_I$ (East)};
-        \draw[axis] (OI) -- (1.0,0.8) node[above right,label,colorI] {$\mathbf{y}_I$ (North)};
-        \draw[axis] (OI) -- (0,2.0) node[above,label,colorI] {$\mathbf{z}_I$ (Up)};
-        \node[below left,label,colorI] at (OI) {$\{\mathcal{I}\}$};
+        \draw[axis] (OI) -- (2.0,0) node[below right,label,okiBlue] {$\mathbf{x}_I$ (East)};
+        \draw[axis] (OI) -- (1.0,0.8) node[above right,label,okiBlue] {$\mathbf{y}_I$ (North)};
+        \draw[axis] (OI) -- (0,2.0) node[above,label,okiBlue] {$\mathbf{z}_I$ (Up)};
+        \node[below left,label,okiBlue] at (OI) {$\{\mathcal{I}\}$};
 
         % -- USV FRAME {Bv} (Catamaran seen from the side, sitting at z=0) --
         \coordinate (Ov) at (5.5,0.45);
         \begin{scope}[shift={(Ov)}]
-            % Pontão (hull) lateral do WAM-V
+            % WAM-V pontoon (hull), side view
             \draw[thick,fill=gray!30] (-1.2,-0.45) -- (0.8,-0.45) to[out=0,in=-120] (1.3,-0.15) -- (-1.2,-0.15) -- cycle;
-            % Pernas do arco de suporte
+            % Support arch legs
             \draw[line width=1.5pt,black] (-0.6,-0.15) -- (-0.3,0.3);
             \draw[line width=1.5pt,black] (0.6,-0.15) -- (0.3,0.3);
-            % Deck superior
+            % Upper deck
             \draw[thick,fill=gray!50] (-0.5,0.3) rectangle (0.5,0.45);
             
-            % Eixos locais do barco (vista lateral/3D)
-            \draw[bodyaxis] (0,0) -- (1.8,0) node[right,label,colorV] {$\mathbf{x}_v$};
-            \draw[bodyaxis] (0,0) -- (0,1.5) node[right,label,colorV,xshift=2pt,yshift=-4pt] {$\mathbf{z}_v$};
-            \draw[bodyaxis] (0,0) -- (0.6,0.48) node[above,label,colorV,xshift=-3pt] {$\mathbf{y}_v$};
+            % Boat body axes (side/3D view)
+            \draw[bodyaxis] (0,0) -- (1.8,0) node[right,label,okiGreen] {$\mathbf{x}_v$};
+            \draw[bodyaxis] (0,0) -- (0,1.5) node[right,label,okiGreen,xshift=2pt,yshift=-4pt] {$\mathbf{z}_v$};
+            \draw[bodyaxis] (0,0) -- (0.6,0.48) node[above,label,okiGreen,xshift=-3pt] {$\mathbf{y}_v$};
             
-            % Ponto de ancoragem (Anchor) alinhado verticalmente com o CG
+            % Anchor point, vertically aligned with the CG
             \coordinate (Pa) at (0,0.45);
-            \fill[red] (Pa) circle (2.5pt) node[above left,font=\scriptsize,black] {Anchor};
+            \fill[white] (Pa) circle (4pt); % break the z_v arrow shaft behind the marker
+            \fill[okiVermillion] (Pa) circle (2.5pt) node[above left,font=\scriptsize,black] {Anchor};
         \end{scope}
 
-        \node[below,label,colorV] at ($(Ov)+(0,-0.45)$) {$\{\mathcal{B}_v\}$};
-
-        % USV Position Vector (from origin to USV CG) - styled in thin grey dashed line
-        \draw[->,dashed,line width=0.8pt,gray!80!black] (OI) -- (Ov) node[midway,above,font=\small,black,yshift=2pt] {$\mathbf{p}_v$};
+        \node[below,label,okiGreen] at ($(Ov)+(0,-0.45)$) {$\{\mathcal{B}_v\}$};
 
         % -- UAV FRAME {Ba} (Drone seen from the side/front, flying in 3D with pitch tilt) --
         \coordinate (Oa) at (9.0,3.5);
         \begin{scope}[shift={(Oa)}, rotate=-15]
-            % Braços do drone em cruz 3D (perspetiva lateral/isométrica)
+            % Drone cross arms in 3D (side/isometric perspective)
             \draw[thick,line width=1.5pt,black] (-0.6,-0.15) -- (0.6,0.15);
             \draw[thick,line width=1.5pt,black] (-0.5,0.15) -- (0.5,-0.15);
-            % Corpo central
+            % Central body
             \fill[black] (0,0) circle (3.5pt);
-            % Os 4 rotores/hélices nas pontas dos braços
+            % The 4 rotors/propellers at the arm tips
             \draw[gray, thin] (-0.6,-0.1) ellipse (3pt and 0.8pt);
             \draw[gray, thin] (0.6,0.2) ellipse (3pt and 0.8pt);
             \draw[gray, thin] (-0.5,0.2) ellipse (3pt and 0.8pt);
             \draw[gray, thin] (0.5,-0.1) ellipse (3pt and 0.8pt);
             
-            % Eixos locais do drone (tilt with the vehicle body)
-            \draw[uavaxis] (0,0) -- (1.4,0) node[right,label,colorA] {$\mathbf{x}_a$};
-            \draw[uavaxis] (0,0) -- (0,1.4) node[above,label,colorA] {$\mathbf{z}_a$};
-            \draw[uavaxis] (0,0) -- (0.5,0.4) node[above right,label,colorA] {$\mathbf{y}_a$};
+            % Drone body axes (tilt with the vehicle body)
+            \draw[uavaxis] (0,0) -- (1.4,0) node[right,label,okiOrange] {$\mathbf{x}_a$};
+            \draw[uavaxis] (0,0) -- (0,1.4) node[above,label,okiOrange] {$\mathbf{z}_a$};
+            \draw[uavaxis] (0,0) -- (0.5,0.4) node[above right,label,okiOrange] {$\mathbf{y}_a$};
         \end{scope}
         
-        \node[below,label,colorA] at ($(Oa)+(0,-0.50)$) {$\{\mathcal{B}_a\}$};
-
-        % UAV Position Vector (from origin to UAV CG) - styled in thin grey dashed line
-        \draw[->,dashed,line width=0.8pt,gray!80!black] (OI) -- (Oa) node[midway,above left,font=\small,black] {$\mathbf{p}_a$};
+        \node[below,label,okiOrange] at ($(Oa)+(0,-0.50)$) {$\{\mathcal{B}_a\}$};
 
         % -- TETHER --
-        % Smooth curve representing the tether, labeled below right to avoid overlaps with p_a
+        % Smooth curve representing the tether, labeled below right to avoid overlaps with the axes
         \draw[tether] (Pa) .. controls ($(Pa)+(1.5,-0.2)$) and ($(Oa)+(-1.0,-1.0)$) .. (Oa);
-        \path (Pa) .. controls ($(Pa)+(1.5,-0.2)$) and ($(Oa)+(-1.0,-1.0)$) .. (Oa) node[midway, below right, font=\small, darkgray] {Tether $\mathbf{r}(s)$};
-
-        % -- DIMENSION LINES FOR h_v AND h_anchor --
-        % Horizontal guidelines to the dimension axis (at X = 7.3)
-        \draw[gray!50, dashed, line width=0.5pt] (Ov) -- (7.3,0.45);
-        \draw[gray!50, dashed, line width=0.5pt] ($(Ov)+(0.0,0.45)$) -- (7.3,0.90);
-        
-        % Tick marks
-        \draw[darkgray, line width=0.5pt] (7.2,0) -- (7.4,0);
-        \draw[darkgray, line width=0.5pt] (7.2,0.45) -- (7.4,0.45);
-        \draw[darkgray, line width=0.5pt] (7.2,0.90) -- (7.4,0.90);
-        
-        % Dimension arrows and labels
-        \draw[<->, >=stealth, darkgray, line width=0.6pt] (7.3,0) -- (7.3,0.45) 
-            node[midway, right, font=\scriptsize, darkgray] {$h_v$};
-        \draw[<->, >=stealth, darkgray, line width=0.6pt] (7.3,0.45) -- (7.3,0.90) 
-            node[midway, right, font=\scriptsize, darkgray] {$h_{\mathrm{anchor}}$};
+        \path (Pa) .. controls ($(Pa)+(1.5,-0.2)$) and ($(Oa)+(-1.0,-1.0)$) .. (Oa) node[midway, below right, font=\small, darkgray] {Tether};
 
     \end{tikzpicture}
     \caption{Reference coordinate frames $\{\mathcal{I}\}$, $\{\mathcal{B}_v\}$, $\{\mathcal{B}_a\}$, and anchor connection.}
@@ -145,42 +125,35 @@ Similarly, this frame attaches to the UAV. Its origin $\mathcal{O}_a$ resides at
 \section{WAM-V Surface Vessel Model}
 \label{sec:mod_usv}
 
-This section presents the mathematical model of the WAM-V catamaran. The formulation describes the horizontal maneuvering dynamics and thruster allocation, providing a control-oriented state-space model for trajectory tracking and predictive control.
+The mathematical model of the WAM-V catamaran, covering its horizontal maneuvering dynamics and thruster allocation, forms a control-oriented state-space model suitable for trajectory tracking and predictive control.
 
-\subsection{Kinematics}
+\subsection{Planar Kinematics}
 \label{subsec:mod_usv_kinematics}
 
-In marine hydrodynamics \cite{fossenHandbookMarineCraft2011}, a surface vessel exhibits spatial motion described by its generalized coordinates $\boldsymbol{\eta} = [x_v, y_v, z_v, \phi, \theta, \psi]^T$ and body velocities $\boldsymbol{\nu} = [u, v, w, p, q, r]^T$, governed by:
-\begin{equation}
-    \label{eq:usv_dynamics_6dof}
-    \left( \mathbf{M}_{RB} + \mathbf{M}_A \right) \dot{\boldsymbol{\nu}} + \left( \mathbf{C}_{RB}(\boldsymbol{\nu}) + \mathbf{C}_A(\boldsymbol{\nu}) \right) \boldsymbol{\nu} + \mathbf{D}(\boldsymbol{\nu})\boldsymbol{\nu} + \mathbf{g}(\boldsymbol{\eta}) = \boldsymbol{\tau}_{\mathrm{prop}} + \boldsymbol{\tau}_{\mathrm{tether}} + \boldsymbol{\tau}_{\mathrm{env}}
-\end{equation}
-where $\mathbf{M}_{RB}$ and $\mathbf{M}_A$ denote the rigid-body and added mass matrices, $\mathbf{C}_{RB}$ and $\mathbf{C}_A$ represent Coriolis and centripetal effects, $\mathbf{D}(\boldsymbol{\nu})\boldsymbol{\nu}$ accounts for hydrodynamic damping, $\mathbf{g}(\boldsymbol{\eta})$ represents hydrostatic restoring forces, and $\boldsymbol{\tau}$ collects propulsion and external loads.
+In marine hydrodynamics, a surface vessel exhibits general spatial motion in six degrees of freedom, with hydrodynamic and hydrostatic effects all coupled together \cite{fossenHandbookMarineCraft2011}. For control design, this general formulation reduces to horizontal motion in surge, sway, and yaw, the standard simplification for surface vessels because they are passively stable in roll, pitch, and heave near their equilibrium. The WAM-V rides on the water surface ($z_v \approx 0$), and its twin-pontoon geometry reduces roll ($\phi$), pitch ($\theta$), and heave ($w$) substantially, even though the hull still rocks with the waves. The stern thrusters act only in the horizontal plane (surge, sway, and yaw), and the tether forces are negligible compared to the vessel's large displacement and propulsion thrust.
 
-For control design, this general formulation is reduced to horizontal planar motion based on the physical characteristics of the catamaran. First, the vessel operates on the water surface ($z_v \approx 0$). Second, the twin-pontoon geometry provides large hydrostatic restoring moments that passively stabilize roll ($\phi$), pitch ($\theta$), and heave ($w$) near equilibrium. Third, the stern thrusters act solely in the horizontal plane (surge, sway, and yaw). Fourth, tether forces are negligible compared to the large vessel displacement and propulsion thrust.
+The control-oriented model therefore keeps only the horizontal motion and neglects the residual roll, pitch, and heave. Position and heading in the inertial frame $\{\mathcal{I}\}$ are parameterized by $\boldsymbol{\eta}_v = [x_v, y_v, \psi]^T \in \mathbb{R}^3$, while body velocities in $\{\mathcal{B}_v\}$ are $\boldsymbol{\nu}_v = [u, v, r]^T \in \mathbb{R}^3$, where $u$ is surge, $v$ is sway, and $r$ is yaw rate.
 
-Under these conditions, out-of-plane motions decouple from the horizontal motion. The planar position and heading in the inertial frame $\{\mathcal{I}\}$ are parameterized by $\boldsymbol{\eta}_v = [x_v, y_v, \psi]^T \in \mathbb{R}^3$, while body velocities in $\{\mathcal{B}_v\}$ are $\boldsymbol{\nu}_v = [u, v, r]^T \in \mathbb{R}^3$, where $u$ is surge, $v$ is sway, and $r$ is yaw rate.
-
-The planar kinematic mapping from body velocities to inertial coordinate rates is given by:
+The kinematic mapping from body velocities to inertial coordinate rates is given by:
 \begin{equation}
     \label{eq:usv_kinematics_planar}
     \dot{\boldsymbol{\eta}}_v = \mathbf{R}_v(\psi) \boldsymbol{\nu}_v \iff \begin{bmatrix} \dot{x}_v \\ \dot{y}_v \\ \dot{\psi} \end{bmatrix} = \begin{bmatrix} \cos\psi & -\sin\psi & 0 \\ \sin\psi & \cos\psi & 0 \\ 0 & 0 & 1 \end{bmatrix} \begin{bmatrix} u \\ v \\ r \end{bmatrix}
 \end{equation}
-Evaluating the product gives the scalar kinematic equations:
+This product results in the following kinematic equations:
 \begin{align}
     \dot{x}_v &= u \cos\psi - v \sin\psi \label{eq:usv_x_dot} \\
     \dot{y}_v &= u \sin\psi + v \cos\psi \label{eq:usv_y_dot} \\
     \dot{\psi} &= r \label{eq:usv_psi_dot}
 \end{align}
 
-\subsection{Dynamics and State-Space Model}
+\subsection{Dynamics}
 \label{subsec:mod_usv_dynamics}
 
-The dynamic equations of motion describe the vessel acceleration resulting from applied forces and moments. Because the body frame $\{\mathcal{B}_v\}$ translates with linear velocity $\mathbf{v} = [u, v, 0]^T$ and rotates with angular rate $\boldsymbol{\omega} = [0, 0, r]^T$, the total inertial acceleration of the center of gravity follows Euler's relation $\mathbf{a} = \dot{\mathbf{v}} + \boldsymbol{\omega} \times \mathbf{v}$:
+Newton's second law relates the vessel's translational and rotational acceleration to the resultant external force and moment, here produced by the stern thrusters and opposed by hydrodynamic damping. Because the body frame $\{\mathcal{B}_v\}$ translates with linear velocity $\mathbf{v} = [u, v, 0]^T$ and rotates with angular rate $\boldsymbol{\omega} = [0, 0, r]^T$, the total inertial acceleration of the center of gravity follows Euler's relation $\mathbf{a} = \dot{\mathbf{v}} + \boldsymbol{\omega} \times \mathbf{v}$:
 \begin{equation}
     \mathbf{a} = \begin{bmatrix} \dot{u} \\ \dot{v} \\ 0 \end{bmatrix} + \begin{bmatrix} 0 \\ 0 \\ r \end{bmatrix} \times \begin{bmatrix} u \\ v \\ 0 \end{bmatrix} = \begin{bmatrix} \dot{u} - v r \\ \dot{v} + u r \\ 0 \end{bmatrix}
 \end{equation}
-Applying Newton's second law for planar translation and rotation about the vertical axis yields:
+For planar translation and rotation about the vertical axis, this yields:
 \begin{align}
     m (\dot{u} - v r) &= X - d_u(u) u \label{eq:usv_newton_u} \\
     m (\dot{v} + u r) &= Y - d_v(v) v \label{eq:usv_newton_v} \\
@@ -188,7 +161,9 @@ Applying Newton's second law for planar translation and rotation about the verti
 \end{align}
 where $m$ and $I_{zz}$ denote the effective mass and yaw moment of inertia (incorporating added mass terms), $X$ and $Y$ are the surge and sway propulsion forces, and $N$ is the yaw control moment.
 
-The damping functions $d_u(u)$, $d_v(v)$, and $d_r(r)$ model combined linear skin friction and quadratic form drag:
+\paragraph{Hydrodynamic Damping}
+
+The damping functions $d_u(u)$, $d_v(v)$, and $d_r(r)$ combine two physical effects: a term proportional to velocity, from viscous friction along the hull, and a term proportional to the square of velocity, from the pressure drag of the water resisting the hull at higher speed:
 \begin{align}
     d_u(u) &= \begin{cases} 
         X_U + X_{UU} |u|, & u \ge 0 \\
@@ -197,7 +172,7 @@ The damping functions $d_u(u)$, $d_v(v)$, and $d_r(r)$ model combined linear ski
     d_v(v) &= Y_V + Y_{VV} |v| \label{eq:damping_v} \\
     d_r(r) &= N_R + N_{RR} |r| \label{eq:damping_r}
 \end{align}
-where $X_U, Y_V, N_R$ are linear coefficients and $X_{UU}, X_{UU\_BWD}, Y_{VV}, N_{RR}$ are quadratic drag coefficients. The surge damping distinguishes forward and backward motion due to hull fore-aft asymmetry, whereas lateral hull symmetry produces symmetric sway and yaw damping.
+where $X_U, Y_V, N_R$ are the linear, viscous-friction coefficients and $X_{UU}, X_{UU\_BWD}, Y_{VV}, N_{RR}$ are the quadratic, pressure-drag coefficients. The surge damping distinguishes forward and backward motion due to hull fore-aft asymmetry, whereas lateral hull symmetry produces symmetric sway and yaw damping.
 
 Isolating the accelerations $(\dot{u}, \dot{v}, \dot{r})$ from \eqref{eq:usv_newton_u}--\eqref{eq:usv_newton_r} yields:
 \begin{align}
@@ -205,16 +180,10 @@ Isolating the accelerations $(\dot{u}, \dot{v}, \dot{r})$ from \eqref{eq:usv_new
     \dot{v} &= \frac{Y - d_v(v) v}{m} - u r \label{eq:usv_sway_dot} \\
     \dot{r} &= \frac{N - d_r(r) r}{I_{zz}} \label{eq:usv_yaw_dot}
 \end{align}
-which can be expressed in the compact Fossen matrix form $\mathbf{M}_v \dot{\boldsymbol{\nu}}_v + \mathbf{C}_v(\boldsymbol{\nu}_v)\boldsymbol{\nu}_v + \mathbf{D}_v(\boldsymbol{\nu}_v)\boldsymbol{\nu}_v = \boldsymbol{\tau}_v$:
-\begin{equation}
-    \label{eq:usv_dynamics_expanded}
-    \underbrace{\begin{bmatrix} m & 0 & 0 \\ 0 & m & 0 \\ 0 & 0 & I_{zz} \end{bmatrix}}_{\mathbf{M}_v} \begin{bmatrix} \dot{u} \\ \dot{v} \\ \dot{r} \end{bmatrix}
-    + \underbrace{\begin{bmatrix} 0 & 0 & -m v \\ 0 & 0 & m u \\ m v & -m u & 0 \end{bmatrix}}_{\mathbf{C}_v(\boldsymbol{\nu}_v)} \begin{bmatrix} u \\ v \\ r \end{bmatrix}
-    + \underbrace{\begin{bmatrix} d_u(u) & 0 & 0 \\ 0 & d_v(v) & 0 \\ 0 & 0 & d_r(r) \end{bmatrix}}_{\mathbf{D}_v(\boldsymbol{\nu}_v)} \begin{bmatrix} u \\ v \\ r \end{bmatrix}
-    = \underbrace{\begin{bmatrix} X \\ Y \\ N \end{bmatrix}}_{\boldsymbol{\tau}_v}
-\end{equation}
 
-The control forces and yaw moment $\boldsymbol{\tau}_v = [X, Y, N]^T$ are generated by two steerable stern thrusters $(T_L, \alpha_L)$ and $(T_R, \alpha_R)$, as illustrated in Figure~\ref{fig:usv_planar_model}:
+\paragraph{Thruster Allocation}
+
+Two steerable stern thrusters $(T_L, \alpha_L)$ and $(T_R, \alpha_R)$ generate the control forces and yaw moment $\boldsymbol{\tau}_v = [X, Y, N]^T$, as illustrated in Figure~\ref{fig:usv_planar_model}:
 \begin{align}
     X &= T_L \cos\alpha_L + T_R \cos\alpha_R \label{eq:alloc_X} \\
     Y &= T_L \sin\alpha_L + T_R \sin\alpha_R \label{eq:alloc_Y} \\
@@ -224,18 +193,18 @@ where $T_i$ is the thrust magnitude, $\alpha_i$ is the steering angle of thruste
 
 \begin{figure}[H]
     \centering
-    % Definições de cores baseadas na palete padrão do MATLAB (colororder)
-    \definecolor{matlabBlue}{rgb}{0.0,0.447,0.741}   % MATLAB Blue (Resultant Forces X, Y, N)
-    \definecolor{matlabOrange}{rgb}{0.850,0.325,0.098}% MATLAB Orange (Body Axes & Velocities)
-    \definecolor{matlabRed}{rgb}{0.635,0.078,0.184}   % MATLAB Red/Maroon (Thruster Forces)
+    % Colors: Okabe-Ito colorblind-safe qualitative palette. Body axes stay neutral
+    % gray so color draws the eye to the forces, the physically meaningful content.
+    \definecolor{okiBlue}{rgb}{0.0,0.447,0.698}       % Resultant control forces X, Y, N
+    \definecolor{okiVermillion}{rgb}{0.835,0.369,0.0} % Raw thruster forces T_L, T_R
     
     \begin{tikzpicture}[
         >=stealth,
         scale=1.45,
         every node/.style={font=\small},
-        axisV/.style={->, matlabOrange, line width=1.3pt},
-        forceVec/.style={->, matlabRed, line width=1.4pt},
-        resForce/.style={->, matlabBlue, line width=1.3pt},
+        axisV/.style={->, black!60, line width=1.3pt},
+        forceVec/.style={->, okiVermillion, line width=1.4pt},
+        resForce/.style={->, okiBlue, line width=1.3pt},
         dimLine/.style={<->, >=stealth, black!75, line width=0.6pt, font=\footnotesize},
         guideLine/.style={dashed, black!35, line width=0.5pt}
     ]
@@ -277,22 +246,22 @@ where $T_i$ is the thrust magnitude, $\alpha_i$ is the steering angle of thruste
         \node[below left, font=\scriptsize, black, xshift=-4pt, yshift=-7pt] at (0,0) {$\mathcal{O}_v$ (CG)};
 
         % Body axes {Bv} (MATLAB Orange)
-        \draw[axisV] (0,0) -- (3.6, 0) node[right, matlabOrange] {$\mathbf{x}_v$ (Surge, $u$)};
-        \draw[axisV] (0,0) -- (0, 2.7) node[above, matlabOrange] {$\mathbf{y}_v$ (Sway, $v$)};
+        \draw[axisV] (0,0) -- (3.6, 0) node[right, black!60] {$\mathbf{x}_v$ (Surge, $u$)};
+        \draw[axisV] (0,0) -- (0, 2.7) node[above, black!60] {$\mathbf{y}_v$ (Sway, $v$)};
         
         % Yaw rate r (curved orange arrow in Quadrant I: R=0.65, 15° to 80°, span 65°)
-        \draw[->, line width=1.1pt, matlabOrange] (0.628, 0.168) arc (15:80:0.65) 
-            node[above right, font=\small, matlabOrange, xshift=-1pt, yshift=1pt] {$r$};
+        \draw[->, line width=1.1pt, black!60] (0.628, 0.168) arc (15:80:0.65) 
+            node[above right, font=\small, black!60, xshift=-1pt, yshift=1pt] {$r$};
 
         % Resultant Control Forces at CG (X, Y, N) in MATLAB Blue
         \draw[resForce] (0,0) -- (1.5, 0) 
-            node[above, font=\footnotesize, matlabBlue, xshift=-2pt, yshift=2pt] {$X$};
+            node[above, font=\footnotesize, okiBlue, xshift=-2pt, yshift=2pt] {$X$};
         \draw[resForce] (0,0) -- (0, 1.4);
         % Y placed cleanly in the gap between deck (y=1.0) and pontoon (y=1.35)
-        \node[left, font=\footnotesize, matlabBlue, xshift=-2pt] at (0, 1.18) {$Y$};
+        \node[left, font=\footnotesize, okiBlue, xshift=-2pt] at (0, 1.18) {$Y$};
         % Moment N in Quadrant II (identically sized: R=0.65, 115° to 180°, span 65°)
-        \draw[->, line width=1.1pt, matlabBlue] (-0.275, 0.589) arc (115:180:0.65) 
-            node[above left, font=\footnotesize, matlabBlue, xshift=-1pt, yshift=1pt] {$N$};
+        \draw[->, line width=1.1pt, okiBlue] (-0.275, 0.589) arc (115:180:0.65) 
+            node[above left, font=\footnotesize, okiBlue, xshift=-1pt, yshift=1pt] {$N$};
 
         % -- DIMENSION LINES (x_arm and y_arm) --
         % Vertical guideline connecting CG directly to x_arm dimension
@@ -319,7 +288,7 @@ where $T_i$ is the thrust magnitude, $\alpha_i$ is the steering angle of thruste
         \node[above, font=\footnotesize, black!80, xshift=-2pt, yshift=4pt] at ($(TL_pos)+(0.48, 0.12)$) {$\alpha_L$};
         % Thrust vector T_L (MATLAB Red)
         \draw[forceVec] (TL_pos) -- ($(TL_pos)+(\alphaL:1.8)$) 
-            node[above left, font=\small, matlabRed] {$T_L$};
+            node[above left, font=\small, okiVermillion] {$T_L$};
 
         % -- RIGHT THRUSTER (Starboard) --
         \coordinate (TR_pos) at (\xarm, -\yarm);
@@ -333,33 +302,12 @@ where $T_i$ is the thrust magnitude, $\alpha_i$ is the steering angle of thruste
         \node[below, font=\footnotesize, black!80, xshift=1pt, yshift=-6pt] at ($(TR_pos)+(0.55, -0.12)$) {$\alpha_R$};
         % Thrust vector T_R (MATLAB Red)
         \draw[forceVec] (TR_pos) -- ($(TR_pos)+(\alphaR:1.8)$) 
-            node[below right, font=\small, matlabRed] {$T_R$};
+            node[below right, font=\small, okiVermillion] {$T_R$};
 
     \end{tikzpicture}
     \caption{Planar USV schematic and thruster allocation geometry.}
     \label{fig:usv_planar_model}
 \end{figure}
-
-Collecting the planar kinematic and dynamic equations, the USV state vector $\mathbf{x}_v \in \mathbb{R}^6$ and control vector $\mathbf{u}_v \in \mathbb{R}^3$ are defined as:
-\begin{equation}
-    \mathbf{x}_v = \begin{bmatrix} x_v \\ y_v \\ \psi \\ u \\ v \\ r \end{bmatrix}, \quad
-    \mathbf{u}_v = \begin{bmatrix} X \\ Y \\ N \end{bmatrix}
-\end{equation}
-The continuous-time non-linear system dynamics $\dot{\mathbf{x}}_v = \mathbf{f}_{\mathrm{usv}}(\mathbf{x}_v, \mathbf{u}_v)$ are summarized as:
-\begin{equation}
-    \label{eq:usv_state_space_full}
-    \dot{\mathbf{x}}_v = \begin{bmatrix}
-        \dot{\boldsymbol{\eta}}_v \\
-        \dot{\boldsymbol{\nu}}_v
-    \end{bmatrix} = \begin{bmatrix}
-        u \cos\psi - v \sin\psi \\
-        u \sin\psi + v \cos\psi \\
-        r \\
-        \frac{X - d_u(u) u}{m} + v r \\
-        \frac{Y - d_v(v) v}{m} - u r \\
-        \frac{N - d_r(r) r}{I_{zz}}
-    \end{bmatrix}
-\end{equation}
 
 % ==============================================================================
 % SECTION 3.3: x500 Quadrotor Model
@@ -367,27 +315,27 @@ The continuous-time non-linear system dynamics $\dot{\mathbf{x}}_v = \mathbf{f}_
 \section{x500 Quadrotor Model}
 \label{sec:mod_uav}
 
-This section presents the mathematical model of the x500 quadrotor. The formulation describes the translational flight dynamics and the inner-loop attitude response, providing a computationally efficient model for trajectory planning and predictive control.
+The x500 quadrotor model developed here covers its translational flight dynamics together with the inner-loop attitude response.
 
-\subsection{Kinematics and Forces}
-\label{subsec:mod_uav_kinematics_thrust}
+\subsection{Kinematics}
+\label{subsec:mod_uav_kinematics}
 
-The position $\mathbf{p}_a$ and linear velocity $\mathbf{v}_a$ of the quadrotor are defined in the global inertial frame $\{\mathcal{I}\} = (\mathbf{x}_{\mathcal{I}}, \mathbf{y}_{\mathcal{I}}, \mathbf{z}_{\mathcal{I}})$ following the East-North-Up (ENU) convention:
+In the inertial frame $\{\mathcal{I}\} = (\mathbf{x}_{\mathcal{I}}, \mathbf{y}_{\mathcal{I}}, \mathbf{z}_{\mathcal{I}})$, the quadrotor position $\mathbf{p}_a$ and linear velocity $\mathbf{v}_a$ are:
 \begin{equation}
     \mathbf{p}_a = \begin{bmatrix} x_a \\ y_a \\ z_a \end{bmatrix}, \quad
     \mathbf{v}_a = \begin{bmatrix} v_{x,a} \\ v_{y,a} \\ v_{z,a} \end{bmatrix} = \begin{bmatrix} \dot{x}_a \\ \dot{y}_a \\ \dot{z}_a \end{bmatrix}
 \end{equation}
-The orientation of the body-fixed frame $\{\mathcal{B}_a\} = (\mathbf{x}_a, \mathbf{y}_a, \mathbf{z}_a)$ is parameterized by roll ($\phi$), pitch ($\theta$), and yaw ($\psi_a$) angles. Mapping vectors from $\{\mathcal{B}_a\}$ to $\{\mathcal{I}\}$ is performed by the rotation matrix $\mathbf{R}_a(\phi, \theta, \psi_a)$ using the standard $Z$-$Y$-$X$ intrinsic sequence:
+Roll ($\phi$), pitch ($\theta$), and yaw ($\psi_a$) angles parameterize the orientation of the body-fixed frame $\{\mathcal{B}_a\} = (\mathbf{x}_a, \mathbf{y}_a, \mathbf{z}_a)$. The rotation matrix $\mathbf{R}_a(\phi, \theta, \psi_a)$ maps vectors from $\{\mathcal{B}_a\}$ to $\{\mathcal{I}\}$ using the standard $Z$-$Y$-$X$ intrinsic sequence:
 \begin{equation}
     \mathbf{R}_a(\phi, \theta, \psi_a) = \mathbf{R}_z(\psi_a) \, \mathbf{R}_y(\theta) \, \mathbf{R}_x(\phi)
 \end{equation}
 where the elementary rotation matrices are:
-\begin{equation}
-    \mathbf{R}_z(\psi_a) = \begin{bmatrix} \cos\psi_a & -\sin\psi_a & 0 \\ \sin\psi_a & \cos\psi_a & 0 \\ 0 & 0 & 1 \end{bmatrix}, \quad
-    \mathbf{R}_y(\theta) = \begin{bmatrix} \cos\theta & 0 & \sin\theta \\ 0 & 1 & 0 \\ -\sin\theta & 0 & \cos\theta \end{bmatrix}, \quad
-    \mathbf{R}_x(\phi) = \begin{bmatrix} 1 & 0 & 0 \\ 0 & \cos\phi & -\sin\phi \\ 0 & \sin\phi & \cos\phi \end{bmatrix}
-\end{equation}
-Evaluating the matrix product yields:
+\begin{align}
+    \mathbf{R}_z(\psi_a) &= \begin{bmatrix} \cos\psi_a & -\sin\psi_a & 0 \\ \sin\psi_a & \cos\psi_a & 0 \\ 0 & 0 & 1 \end{bmatrix} \\
+    \mathbf{R}_y(\theta) &= \begin{bmatrix} \cos\theta & 0 & \sin\theta \\ 0 & 1 & 0 \\ -\sin\theta & 0 & \cos\theta \end{bmatrix} \\
+    \mathbf{R}_x(\phi) &= \begin{bmatrix} 1 & 0 & 0 \\ 0 & \cos\phi & -\sin\phi \\ 0 & \sin\phi & \cos\phi \end{bmatrix}
+\end{align}
+Multiplying the three rotation matrices together gives:
 \begin{equation}
     \label{eq:uav_rot_matrix}
     \mathbf{R}_a(\phi, \theta, \psi_a) = \begin{bmatrix}
@@ -397,22 +345,37 @@ Evaluating the matrix product yields:
     \end{bmatrix}
 \end{equation}
 
+\subsection{Dynamics}
+\label{subsec:mod_uav_dynamics}
+
+Newton's second law relates the quadrotor's translational acceleration, expressed in the inertial frame, to the resultant external force, decomposed here into the rotor thrust, gravity, and the tether coupling force.
+
+\paragraph{Thrust Force}
+
 The collective aerodynamic thrust acts along the positive body vertical axis $\mathbf{z}_a$. With $T_{\mathrm{total}} \ge 0$ denoting the total thrust force and $m_a$ the quadrotor mass, the mass-normalized thrust acceleration is:
 \begin{equation}
     a_T = \frac{T_{\mathrm{total}}}{m_a} \quad \left[\text{m/s}^2\right]
 \end{equation}
-In the body frame, the thrust acceleration is $\mathbf{a}_{\mathcal{B}} = [0, 0, a_T]^T$, which rotates to $\mathbf{a}_{thrust} = \mathbf{R}_a(\phi, \theta, \psi_a) \mathbf{a}_{\mathcal{B}} = a_T \cdot \mathbf{R}_{a, [:,3]}$ in the inertial frame.
+Let $\mathbf{e}_3 = [0, 0, 1]^T$ denote the vertical unit vector, so that the thrust acceleration in the body frame is $\mathbf{a}_{\mathcal{B}} = a_T\, \mathbf{e}_3$. Rotating this vector into the inertial frame gives $\mathbf{a}_{thrust} = \mathbf{R}_a(\phi, \theta, \psi_a)\, \mathbf{a}_{\mathcal{B}} = a_T\, \mathbf{R}_a(\phi, \theta, \psi_a)\, \mathbf{e}_3$, i.e., $a_T$ times the third column of $\mathbf{R}_a$.
 
+\paragraph{Gravitational Force}
+
+Gravity acts along the vertical direction of the inertial frame, contributing a constant acceleration $\mathbf{g} = [0, 0, -g]^T$ to the quadrotor motion, independent of its attitude.
+
+\paragraph{Tether-Induced Force}
 \label{subsec:mod_tether_force_model}
+
 The physical tether attaches to the quadrotor at its center of gravity $\mathbf{p}_a$, generating no attitude moments, and connects to the shipboard winch anchor located at $\mathbf{p}_{\mathrm{anchor}} = [x_v, y_v, h_v + h_{\mathrm{anchor}}]^T$. When the line is taut, the tension force pulling the vehicle toward the vessel deck is modeled as:
 \begin{equation}
     \mathbf{F}_{tether} = T_{tether} \frac{\mathbf{p}_{\mathrm{anchor}} - \mathbf{p}_a}{\|\mathbf{p}_{\mathrm{anchor}} - \mathbf{p}_a\|}
 \end{equation}
 where $T_{tether} \ge 0$ is the tether tension magnitude. During autonomous flight and tracking phases, the active winch maintains a controlled cable catenary ($T_{tether} \approx 0$), mechanically decoupling the quadrotor from wave-induced vessel motions. During tension-guided landing, $T_{tether} > 0$ provides a physical restoring force toward the landing deck.
 
-Applying Newton's second law in the inertial reference frame, the translational acceleration combines thrust, gravity $\mathbf{g} = [0, 0, -g]^T$, and the tether coupling force:
+\paragraph{Resultant Translational Dynamics}
+
+Summing the three forces, the translational acceleration is:
 \begin{equation}
-    \dot{\mathbf{v}}_a = a_T \cdot \mathbf{R}_{a, [:,3]} + \mathbf{g} + \frac{\mathbf{F}_{tether}}{m_a}
+    \dot{\mathbf{v}}_a = a_T\, \mathbf{R}_a(\phi, \theta, \psi_a)\, \mathbf{e}_3 + \mathbf{g} + \frac{\mathbf{F}_{tether}}{m_a}
 \end{equation}
 In nominal unconstrained flight ($T_{tether} \approx 0$), evaluating the acceleration components yields the translational equations of motion, as illustrated in Figure~\ref{fig:uav_thrust_vectoring}:
 \begin{align}
@@ -423,19 +386,19 @@ In nominal unconstrained flight ($T_{tether} \approx 0$), evaluating the acceler
 
 \begin{figure}[H]
     \centering
-    % MATLAB colororder definitions
-    \definecolor{matlabBlue}{rgb}{0.0,0.447,0.741}   % MATLAB Blue (Inertial Forces / Components)
-    \definecolor{matlabOrange}{rgb}{0.850,0.325,0.098}% MATLAB Orange (Body Frame & Airframe)
-    \definecolor{matlabRed}{rgb}{0.635,0.078,0.184}   % MATLAB Red/Maroon (Thrust Vector)
+    % Colors: Okabe-Ito colorblind-safe qualitative palette. Body axes and the
+    % airframe stay neutral gray so color draws the eye to the thrust vector.
+    \definecolor{okiBlue}{rgb}{0.0,0.447,0.698}       % Gravity, resultant thrust components
+    \definecolor{okiVermillion}{rgb}{0.835,0.369,0.0} % Thrust vector a_T
     
     \begin{tikzpicture}[
         >=stealth,
         scale=1.5,
         every node/.style={font=\small},
         inertialAxis/.style={->, black!75, line width=0.9pt},
-        bodyAxis/.style={->, matlabOrange, line width=1.3pt},
-        thrustVec/.style={->, matlabRed, line width=1.5pt},
-        compVec/.style={->, matlabBlue, line width=1.3pt},
+        bodyAxis/.style={->, black!60, line width=1.3pt},
+        thrustVec/.style={->, okiVermillion, line width=1.5pt},
+        compVec/.style={->, okiBlue, line width=1.3pt},
         projLine/.style={dashed, black!40, line width=0.6pt}
     ]
         % Tilt parameter (pitch angle)
@@ -450,7 +413,7 @@ In nominal unconstrained flight ($T_{tether} \approx 0$), evaluating the acceler
 
         % Gravity Vector (MATLAB Blue)
         \draw[compVec] (0,0) -- (0, -1.7) 
-            node[left, font=\footnotesize, matlabBlue, xshift=-2pt, yshift=2pt] {$\mathbf{g} = [0, 0, -g]^T$};
+            node[left, font=\footnotesize, okiBlue, xshift=-2pt, yshift=2pt] {$\mathbf{g} = [0, 0, -g]^T$};
 
         % -- TILTED QUADROTOR STRUCTURE --
         % Rotated airframe arm (at angle -\thetaAngle)
@@ -471,28 +434,30 @@ In nominal unconstrained flight ($T_{tether} \approx 0$), evaluating the acceler
         \coordinate (R_left) at ({-\armLen*cos(\thetaAngle)}, {\armLen*sin(\thetaAngle)});
         \fill[black!85] ($(R_left)+(-0.08,-0.08)$) rectangle ($(R_left)+(0.08,0.08)$);
         \draw[line width=1.0pt, black!80] (R_left) -- ($(R_left)+({0.25*sin(\thetaAngle)},{0.25*cos(\thetaAngle)})$);
-        \draw[fill=matlabOrange!25, draw=matlabOrange!90, line width=0.8pt, rotate around={-\thetaAngle:(R_left)}] 
+        \draw[fill=black!15, draw=black!55, line width=0.8pt, rotate around={-\thetaAngle:(R_left)}] 
             ($(R_left)+(0, 0.25)$) ellipse (0.55 and 0.09);
 
         % Right Rotor (Front) - drawn aligned with tilted arm
         \coordinate (R_right) at ({\armLen*cos(\thetaAngle)}, {-\armLen*sin(\thetaAngle)});
         \fill[black!85] ($(R_right)+(-0.08,-0.08)$) rectangle ($(R_right)+(0.08,0.08)$);
         \draw[line width=1.0pt, black!80] (R_right) -- ($(R_right)+({0.25*sin(\thetaAngle)},{0.25*cos(\thetaAngle)})$);
-        \draw[fill=matlabOrange!25, draw=matlabOrange!90, line width=0.8pt, rotate around={-\thetaAngle:(R_right)}] 
+        \draw[fill=black!15, draw=black!55, line width=0.8pt, rotate around={-\thetaAngle:(R_right)}] 
             ($(R_right)+(0, 0.25)$) ellipse (0.55 and 0.09);
 
         % Body axis x_a (along arm)
         \draw[bodyAxis] (0,0) -- ({\armLen*1.3*cos(\thetaAngle)}, {-\armLen*1.3*sin(\thetaAngle)}) 
-            node[below right, matlabOrange] {$\mathbf{x}_a$};
+            node[below right, black!60] {$\mathbf{x}_a$};
 
         % Body axis z_a (normal to arm, angle 90 - \thetaAngle)
-        \draw[bodyAxis] (0,0) -- ({(\aTlen+0.8)*sin(\thetaAngle)}, {(\aTlen+0.8)*cos(\thetaAngle)}) 
-            node[above right, matlabOrange, xshift=-2pt, yshift=2pt] {$\mathbf{z}_a$};
+        % Drawn collinear with a_T (thrust acts along z_a) but extended further so the
+        % segment beyond the thrust arrowhead reads unambiguously as its own vector.
+        \draw[bodyAxis] (0,0) -- ({(\aTlen+1.1)*sin(\thetaAngle)}, {(\aTlen+1.1)*cos(\thetaAngle)})
+            node[above right, black!60, xshift=-2pt, yshift=2pt] {$\mathbf{z}_a$};
 
         % -- THRUST ACCELERATION VECTOR --
         \coordinate (ThrustTip) at ({\aTlen*sin(\thetaAngle)}, {\aTlen*cos(\thetaAngle)});
         \draw[thrustVec] (0,0) -- (ThrustTip);
-        \node[above left, font=\small, matlabRed, xshift=-2pt, yshift=2pt] at (ThrustTip) {$a_T = \frac{T_{\mathrm{total}}}{m_a}$};
+        \node[above left, font=\small, okiVermillion, xshift=-2pt, yshift=2pt] at (ThrustTip) {$a_T = \frac{T_{\mathrm{total}}}{m_a}$};
 
         % Thrust decomposition projections
         \draw[projLine] (ThrustTip) -- (0, {\aTlen*cos(\thetaAngle)});
@@ -500,11 +465,11 @@ In nominal unconstrained flight ($T_{tether} \approx 0$), evaluating the acceler
 
         % Vertical Thrust Component
         \draw[compVec] (0,0) -- (0, {\aTlen*cos(\thetaAngle)}) 
-            node[left, font=\footnotesize, matlabBlue, pos=0.65, xshift=-3pt] {$a_{z,thrust} = a_T \cos\theta$};
+            node[left, font=\footnotesize, okiBlue, pos=0.65, xshift=-3pt] {$a_{z,thrust} = a_T \cos\theta$};
 
         % Horizontal Thrust Component
         \draw[compVec] (0,0) -- ({\aTlen*sin(\thetaAngle)}, 0);
-        \node[above, font=\footnotesize, matlabBlue, xshift=28pt, yshift=3pt] at ({0.5*\aTlen*sin(\thetaAngle)}, 0) {$a_{x,thrust} = a_T \sin\theta$};
+        \node[above, font=\footnotesize, okiBlue, xshift=28pt, yshift=3pt] at ({0.5*\aTlen*sin(\thetaAngle)}, 0) {$a_{x,thrust} = a_T \sin\theta$};
 
         % -- PITCH ANGLE ARCS (\theta) --
         % Angle arc between z_I and z_a
@@ -520,46 +485,15 @@ In nominal unconstrained flight ($T_{tether} \approx 0$), evaluating the acceler
     \label{fig:uav_thrust_vectoring}
 \end{figure}
 
-\subsection{Attitude and State-Space Model}
+\subsection{Attitude Dynamics}
 \label{subsec:mod_uav_statespace}
 
-The onboard autopilot regulates motor speeds to track commanded attitude angles. For the vehicle model, the closed-loop tracking response of roll ($\phi$) and pitch ($\theta$) to commanded setpoints ($\phi_{cmd}, \theta_{cmd}$) is characterized by a decoupled first-order lag:
+Rather than derive the full rotational dynamics from motor torques, the model exploits the autopilot's inner attitude loop: the autopilot regulates motor speeds to track commanded attitude angles, and a decoupled first-order lag captures the resulting closed-loop response of roll ($\phi$) and pitch ($\theta$) to commanded setpoints ($\phi_{cmd}, \theta_{cmd}$):
 \begin{align}
     \dot{\phi} &= \frac{1}{\tau} \left( \phi_{cmd} - \phi \right) \label{eq:uav_roll_dot} \\
     \dot{\theta} &= \frac{1}{\tau} \left( \theta_{cmd} - \theta \right) \label{eq:uav_pitch_dot}
 \end{align}
 where $\tau > 0$ is the characteristic attitude time constant, identified and validated in Section~\ref{subsec:res_uav_validation}.
 
-Collecting the translational and rotational differential equations, the physical state vector $\mathbf{x}_a \in \mathbb{R}^8$, control input vector $\mathbf{u}_a \in \mathbb{R}^3$, and parameter vector $\mathbf{p}_a \in \mathbb{R}$ are defined as:
-\begin{equation}
-    \mathbf{x}_a = \begin{bmatrix}
-        x_a \\ y_a \\ z_a \\ v_{x,a} \\ v_{y,a} \\ v_{z,a} \\ \phi \\ \theta
-    \end{bmatrix}, \quad
-    \mathbf{u}_a = \begin{bmatrix}
-        \phi_{cmd} \\ \theta_{cmd} \\ a_T
-    \end{bmatrix}, \quad
-    \mathbf{p}_a = \begin{bmatrix}
-        \psi_a
-    \end{bmatrix}
-\end{equation}
-The continuous-time non-linear system dynamics $\dot{\mathbf{x}}_a = \mathbf{f}_{\mathrm{uav}}(\mathbf{x}_a, \mathbf{u}_a, \mathbf{p}_a)$ are summarized as:
-\begin{equation}
-    \label{eq:uav_state_space_full}
-    \dot{\mathbf{x}}_a = \begin{bmatrix}
-        \dot{\mathbf{p}}_a \\
-        \dot{\mathbf{v}}_a \\
-        \dot{\phi} \\
-        \dot{\theta}
-    \end{bmatrix} = \begin{bmatrix}
-        v_{x,a} \\
-        v_{y,a} \\
-        v_{z,a} \\
-        a_T \left( \cos\psi_a \sin\theta \cos\phi + \sin\psi_a \sin\phi \right) \\
-        a_T \left( \sin\psi_a \sin\theta \cos\phi - \cos\psi_a \sin\phi \right) \\
-        a_T \cos\theta \cos\phi - g \\
-        \frac{1}{\tau} \left( \phi_{cmd} - \phi \right) \\
-        \frac{1}{\tau} \left( \theta_{cmd} - \theta \right)
-    \end{bmatrix}
-\end{equation}
-In Chapter~\ref{chapter:control}, this physical model is augmented with command rate derivatives to guarantee continuous actuation profiles, and the tether geometric boundary is integrated into the optimal predictive control framework.
+Chapter~\ref{chapter:control} augments this physical model with command rate derivatives to guarantee continuous actuation profiles, and integrates the tether geometric boundary into the optimal predictive control framework.
 
