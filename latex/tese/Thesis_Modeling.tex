@@ -20,21 +20,21 @@ Section~\ref{sec:mod_coordinates} fixes the reference coordinate frames and spat
 
 
 % ==============================================================================
-% SECTION 3.1: Reference coordinate frames
+% SECTION 3.1: Reference Coordinate Frames and Notation
 % ==============================================================================
-\section{Reference Coordinate Frames}
+\section{Reference Coordinate Frames and Notation}
 \label{sec:mod_coordinates}
 
-Writing the equations of motion for the cooperative system requires a consistent set of coordinate frames. This work therefore defines one common global inertial frame, together with a body-fixed frame for each vehicle, the USV and the UAV. Expressing hydrodynamic and aerodynamic forces relative to each vehicle's own frame keeps those equations simple. Figure~\ref{fig:coordinate_frames} shows how the frames relate to each other in space.\reviewed
+Writing the equations of motion for the cooperative system requires a consistent set of coordinate frames and spatial notation. This section defines the global inertial reference frame, the body-fixed frames for each platform, and the unified state notation adopted throughout this work.
 
 \paragraph{Inertial Reference Frame $\{\mathcal{I}\}$}
-This frame establishes the global coordinate system, following the East-North-Up (ENU) convention. Its origin $\mathcal{O}_I$ lies on the water surface. In this frame, the axis $\mathbf{x}_I$ points East, $\mathbf{y}_I$ points North, and $\mathbf{z}_I$ points upward, opposite to gravity. This flat-Earth assumption is justified because the local tracking controller operates over a short spatial horizon.\reviewed
+This frame establishes the global coordinate system following the East-North-Up (ENU) convention, with origin $\mathcal{O}_I$ on the calm-water surface. The axis $\mathbf{x}_I$ points East, $\mathbf{y}_I$ points North, and $\mathbf{z}_I$ points upward, opposite to gravity. The flat-Earth assumption is adopted because the local cooperative tracking controller operates over a bounded spatial horizon.\reviewed
 
 \paragraph{USV Body-Fixed Reference Frame $\{\mathcal{B}_v\}$}
-This frame attaches directly to the USV. Its origin $\mathcal{O}_v$ lies at the USV's center of gravity, a placement that simplifies the equations of motion by decoupling linear and rotational movements. Regarding the axes, the longitudinal axis $\mathbf{x}_v$ points forward (surge), the lateral axis $\mathbf{y}_v$ points to port (sway, left), and the vertical axis $\mathbf{z}_v$ points upward (heave).\reviewed
+This frame is rigidly attached to the surface vessel (USV). Its origin $\mathcal{O}_v$ is located at the vessel's centre of gravity, decoupling linear and rotational momentum equations. The longitudinal axis $\mathbf{x}_v$ points forward (surge), the lateral axis $\mathbf{y}_v$ points to port (sway, left), and the vertical axis $\mathbf{z}_v$ points upward (heave).\reviewed
 
 \paragraph{UAV Body-Fixed Reference Frame $\{\mathcal{B}_a\}$}
-Similarly, this frame attaches to the UAV. Its origin $\mathcal{O}_a$ resides at the UAV's center of gravity. The longitudinal axis $\mathbf{x}_a$ points forward, the lateral axis $\mathbf{y}_a$ points to the left, and the vertical axis $\mathbf{z}_a$ points upward, aligning with the collective thrust.\reviewed
+Similarly, this frame attaches to the aerial vehicle (UAV) with origin $\mathcal{O}_a$ at its centre of gravity. The longitudinal axis $\mathbf{x}_a$ points forward, the lateral axis $\mathbf{y}_a$ points to the left, and the vertical axis $\mathbf{z}_a$ points upward, aligning with the collective thrust direction.\reviewed
 
 \begin{figure}[H]
     \centering
@@ -115,9 +115,41 @@ Similarly, this frame attaches to the UAV. Its origin $\mathcal{O}_a$ resides at
         \path (Pa) .. controls ($(Pa)+(1.5,-0.2)$) and ($(Oa)+(-1.0,-1.0)$) .. (Oa) node[midway, below right, font=\small, darkgray] {Tether};
 
     \end{tikzpicture}
-    \caption{Reference coordinate frames $\{\mathcal{I}\}$, $\{\mathcal{B}_v\}$, $\{\mathcal{B}_a\}$, and anchor connection.}
+    \caption{Reference coordinate frames $\{\mathcal{I}\}$, $\{\mathcal{B}_v\}$, and $\{\mathcal{B}_a\}$.}
     \label{fig:coordinate_frames}
 \end{figure}
+
+o Variables associated with the surface vessel (USV) are denoted by the subscript $(\cdot)_v$, while those associated with the aerial vehicle (UAV) are denoted by $(\cdot)_a$. The kinematic and dynamic states of each subsystem are defined as follows:
+
+\begin{align}
+    \text{USV pose and body velocity:} \quad & \mathbf{p}_v = \begin{bmatrix} x_v \\ y_v \end{bmatrix} \in \mathbb{R}^2, \quad \psi_v \in [-\pi, \pi), \quad \mathbf{v}_v = \begin{bmatrix} u \\ v \\ r \end{bmatrix} \in \mathbb{R}^3 \label{eq:not_usv_state} \\
+    \text{UAV inertial state and attitude:} \quad & \mathbf{p}_a = \begin{bmatrix} x_a \\ y_a \\ z_a \end{bmatrix} \in \mathbb{R}^3, \quad \dot{\mathbf{p}}_a = \begin{bmatrix} \dot{x}_a \\ \dot{y}_a \\ \dot{z}_a \end{bmatrix} \in \mathbb{R}^3, \quad \mathbf{R}_a(\phi, \theta, \psi_a) \in SO(3) \label{eq:not_uav_state}
+\end{align}
+
+Table~\ref{tab:cooperative_notation} synthesizes the unified notation and coordinate frame assignments for both platforms.
+
+\begin{table}[H]
+    \centering
+    \caption{Unified kinematic and dynamic notation for the USV and UAV platforms.}
+    \label{tab:cooperative_notation}
+    \begin{tabular}{llcl}
+        \toprule
+        \textbf{Subsystem} & \textbf{Variable / Vector} & \textbf{Frame} & \textbf{Description} \\
+        \midrule
+        \multirow{4}{*}{\textbf{USV}} 
+        & $\mathbf{p}_v = [x_v, y_v]^T$ & $\{\mathcal{I}\}$ & Planar position of vessel centre of gravity \\
+        & $\psi_v$ & $\{\mathcal{I}\}$ & Heading (yaw) angle \\
+        & $\mathbf{v}_v = [u, v, r]^T$ & $\{\mathcal{B}_v\}$ & Surge, sway linear velocities and yaw rate \\
+        & $\boldsymbol{\tau}_v = [X, Y, N]^T$ & $\{\mathcal{B}_v\}$ & Resultant control forces and yaw moment \\
+        \midrule
+        \multirow{4}{*}{\textbf{UAV}} 
+        & $\mathbf{p}_a = [x_a, y_a, z_a]^T$ & $\{\mathcal{I}\}$ & 3D position of quadrotor centre of mass \\
+        & $\dot{\mathbf{p}}_a = [\dot{x}_a, \dot{y}_a, \dot{z}_a]^T$ & $\{\mathcal{I}\}$ & 3D inertial linear velocity \\
+        & $\mathbf{R}_a(\phi, \theta, \psi_a)$ & $\{\mathcal{B}_a\} \to \{\mathcal{I}\}$ & Body-to-inertial rotation matrix \\
+        & $\mathbf{T}_a = T_{\mathrm{total}} \mathbf{R}_a \mathbf{e}_3$ & $\{\mathcal{I}\}$ & Collective aerodynamic thrust vector \\
+        \bottomrule
+    \end{tabular}
+\end{table}
 
 % ==============================================================================
 % SECTION 3.2: WAM-V Surface Vessel Model
@@ -127,24 +159,47 @@ Similarly, this frame attaches to the UAV. Its origin $\mathcal{O}_a$ resides at
 
 The mathematical model of the WAM-V catamaran, covering its horizontal maneuvering dynamics and thruster allocation, forms a control-oriented state-space model suitable for trajectory tracking and predictive control.
 
+\subsection{Horizontal Model Reduction and 3-DOF State Definition}
+\label{subsec:mod_usv_assumptions}
+
+While the general unconstrained spatial motion of a marine craft comprises six Degrees of Freedom (surge, sway, heave, roll, pitch, and yaw), naval architecture draws a fundamental distinction between \emph{seakeeping} and \emph{manoeuvring} theories \cite{snameNomenclature1950,fossenHandbookMarineCraft2011}: seakeeping addresses high-frequency wave-induced oscillatory motions in heave, roll, and pitch, whereas manoeuvring governs the low-frequency horizontal trajectory driven by thrusters and environmental drift.
+
+For trajectory tracking and cooperative control with an aerial vehicle, the USV dynamics are reduced to a 3-DOF horizontal manoeuvring model (\emph{surge, sway, and yaw}) based on the following physical properties:
+
+\paragraph{Planar Motion}
+The vehicle operates strictly on the water surface, so out-of-plane velocities are neglected:
+\begin{equation}
+    w(t) = 0, \quad p(t) = 0, \quad q(t) = 0
+\end{equation}
+which implies that roll, pitch, and vertical displacement remain negligible ($\phi \approx 0, \; \theta \approx 0, \; z_v \approx 0$).
+
+\paragraph{Hydrostatic Metacentric Restoring}
+Positive metacentric stability ($GM_T > 0, \; GM_L > 0$) provides stiff restoring moments in roll, pitch, and heave, ensuring that out-of-plane perturbations are self-stabilising.
+
+\paragraph{Port-Starboard Symmetry}
+Symmetry about the longitudinal centerplane ($x_v\text{--}z_v$) causes cross-inertia terms to vanish ($I_{xy} = I_{yz} = 0$), dynamically decoupling horizontal motions from roll, pitch, and heave.
+
+\paragraph{Horizontal Actuation Authority}
+The stern thrusters act strictly in the horizontal plane. Because out-of-plane states are not controllable and tether disturbances are small relative to the hull displacement, these degrees of freedom are omitted from the predictive model.
+
+\paragraph{Wave-Frequency Motion Separation}
+First-order oscillatory wave forces are treated as high-frequency zero-mean disturbances and are not counteracted by the thrusters to prevent actuator wear, leaving the controller focused purely on low-frequency manoeuvring \cite{fossenHandbookMarineCraft2011}.
+
+\paragraph{Reduced 3-DOF State Representation}
+Under this planar formulation, the USV state is completely defined by the horizontal position $\mathbf{p}_v = [x_v, y_v]^T \in \mathbb{R}^2$, heading $\psi_v \in [-\pi, \pi)$, and body-fixed velocity $\mathbf{v}_v = [u, v, r]^T \in \mathbb{R}^3$.
+
 \subsection{Planar Kinematics}
 \label{subsec:mod_usv_kinematics}
 
-In marine hydrodynamics, a surface vessel exhibits general spatial motion in six degrees of freedom, with hydrodynamic and hydrostatic effects all coupled together \cite{fossenHandbookMarineCraft2011}. For control design, this general formulation reduces to horizontal motion in surge, sway, and yaw, the standard simplification for surface vessels because they are passively stable in roll, pitch, and heave near their equilibrium. The WAM-V rides on the water surface ($z_v \approx 0$), and its twin-pontoon geometry reduces roll ($\phi$), pitch ($\theta$), and heave ($w$) substantially, even though the hull still rocks with the waves. The stern thrusters act only in the horizontal plane (surge, sway, and yaw), and the tether forces are negligible compared to the vessel's large displacement and propulsion thrust.
-
-The control-oriented model therefore keeps only the horizontal motion and neglects the residual roll, pitch, and heave. Position and heading in the inertial frame $\{\mathcal{I}\}$ are parameterized by $\boldsymbol{\eta}_v = [x_v, y_v, \psi]^T \in \mathbb{R}^3$, while body velocities in $\{\mathcal{B}_v\}$ are $\boldsymbol{\nu}_v = [u, v, r]^T \in \mathbb{R}^3$, where $u$ is surge, $v$ is sway, and $r$ is yaw rate.
-
-The kinematic mapping from body velocities to inertial coordinate rates is given by:
+The planar kinematic transformation relating the body linear velocities $[u, v]^T$ to the inertial position rates $\dot{\mathbf{p}}_v$ is given by the rotation matrix $\mathbf{R}_v(\psi_v) \in SO(2)$:
 \begin{equation}
     \label{eq:usv_kinematics_planar}
-    \dot{\boldsymbol{\eta}}_v = \mathbf{R}_v(\psi) \boldsymbol{\nu}_v \iff \begin{bmatrix} \dot{x}_v \\ \dot{y}_v \\ \dot{\psi} \end{bmatrix} = \begin{bmatrix} \cos\psi & -\sin\psi & 0 \\ \sin\psi & \cos\psi & 0 \\ 0 & 0 & 1 \end{bmatrix} \begin{bmatrix} u \\ v \\ r \end{bmatrix}
+    \dot{\mathbf{p}}_v = \mathbf{R}_v(\psi_v) \begin{bmatrix} u \\ v \end{bmatrix} \iff \begin{bmatrix} \dot{x}_v \\ \dot{y}_v \end{bmatrix} = \begin{bmatrix} \cos\psi_v & -\sin\psi_v \\ \sin\psi_v & \cos\psi_v \end{bmatrix} \begin{bmatrix} u \\ v \end{bmatrix}
 \end{equation}
-This product results in the following kinematic equations:
-\begin{align}
-    \dot{x}_v &= u \cos\psi - v \sin\psi \label{eq:usv_x_dot} \\
-    \dot{y}_v &= u \sin\psi + v \cos\psi \label{eq:usv_y_dot} \\
-    \dot{\psi} &= r \label{eq:usv_psi_dot}
-\end{align}
+with the heading rate kinematic relation:
+\begin{equation}
+    \dot{\psi}_v = r \label{eq:usv_psi_dot}
+\end{equation}
 
 \subsection{Dynamics}
 \label{subsec:mod_usv_dynamics}
@@ -320,10 +375,10 @@ The x500 quadrotor model developed here covers its translational flight dynamics
 \subsection{Kinematics}
 \label{subsec:mod_uav_kinematics}
 
-In the inertial frame $\{\mathcal{I}\} = (\mathbf{x}_{\mathcal{I}}, \mathbf{y}_{\mathcal{I}}, \mathbf{z}_{\mathcal{I}})$, the quadrotor position $\mathbf{p}_a$ and linear velocity $\mathbf{v}_a$ are:
+In the inertial frame $\{\mathcal{I}\} = (\mathbf{x}_{\mathcal{I}}, \mathbf{y}_{\mathcal{I}}, \mathbf{z}_{\mathcal{I}})$, the quadrotor position $\mathbf{p}_a$ and linear velocity $\dot{\mathbf{p}}_a$ are:
 \begin{equation}
     \mathbf{p}_a = \begin{bmatrix} x_a \\ y_a \\ z_a \end{bmatrix}, \quad
-    \mathbf{v}_a = \begin{bmatrix} v_{x,a} \\ v_{y,a} \\ v_{z,a} \end{bmatrix} = \begin{bmatrix} \dot{x}_a \\ \dot{y}_a \\ \dot{z}_a \end{bmatrix}
+    \dot{\mathbf{p}}_a = \begin{bmatrix} \dot{x}_a \\ \dot{y}_a \\ \dot{z}_a \end{bmatrix}
 \end{equation}
 Roll ($\phi$), pitch ($\theta$), and yaw ($\psi_a$) angles parameterize the orientation of the body-fixed frame $\{\mathcal{B}_a\} = (\mathbf{x}_a, \mathbf{y}_a, \mathbf{z}_a)$. The rotation matrix $\mathbf{R}_a(\phi, \theta, \psi_a)$ maps vectors from $\{\mathcal{B}_a\}$ to $\{\mathcal{I}\}$ using the standard $Z$-$Y$-$X$ intrinsic sequence:
 \begin{equation}
@@ -375,13 +430,13 @@ where $T_{tether} \ge 0$ is the tether tension magnitude. During autonomous flig
 
 Summing the three forces, the translational acceleration is:
 \begin{equation}
-    \dot{\mathbf{v}}_a = a_T\, \mathbf{R}_a(\phi, \theta, \psi_a)\, \mathbf{e}_3 + \mathbf{g} + \frac{\mathbf{F}_{tether}}{m_a}
+    \ddot{\mathbf{p}}_a = a_T\, \mathbf{R}_a(\phi, \theta, \psi_a)\, \mathbf{e}_3 + \mathbf{g} + \frac{\mathbf{F}_{tether}}{m_a}
 \end{equation}
 In nominal unconstrained flight ($T_{tether} \approx 0$), evaluating the acceleration components yields the translational equations of motion, as illustrated in Figure~\ref{fig:uav_thrust_vectoring}:
 \begin{align}
-    \dot{v}_{x,a} &= a_T \left( \cos\psi_a \sin\theta \cos\phi + \sin\psi_a \sin\phi \right) \label{eq:uav_vx_dot} \\
-    \dot{v}_{y,a} &= a_T \left( \sin\psi_a \sin\theta \cos\phi - \cos\psi_a \sin\phi \right) \label{eq:uav_vy_dot} \\
-    \dot{v}_{z,a} &= a_T \cos\theta \cos\phi - g \label{eq:uav_vz_dot}
+    \ddot{x}_a &= a_T \left( \cos\psi_a \sin\theta \cos\phi + \sin\psi_a \sin\phi \right) \label{eq:uav_vx_dot} \\
+    \ddot{y}_a &= a_T \left( \sin\psi_a \sin\theta \cos\phi - \cos\psi_a \sin\phi \right) \label{eq:uav_vy_dot} \\
+    \ddot{z}_a &= a_T \cos\theta \cos\phi - g \label{eq:uav_vz_dot}
 \end{align}
 
 \begin{figure}[H]

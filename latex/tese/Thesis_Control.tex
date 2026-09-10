@@ -64,7 +64,7 @@ The cooperative control strategy is structured in a decentralized leader-followe
         \draw [->] (usv_plant.east) -- ++(0.4,0) -- ++(0,1.2) -| node[above, pos=0.25, font=\scriptsize] {$\mathbf{\eta}_v, \mathbf{\nu}_v$} (usv_nmpc.north);
         
         % UAV Feedback
-        \draw [->] (uav_plant.east) -- ++(0.4,0) -- ++(0,-1.2) -| node[below, pos=0.25, font=\scriptsize] {$\mathbf{p}_a, \mathbf{v}_a, \phi, \theta$} (uav_nmpc.south);
+        \draw [->] (uav_plant.east) -- ++(0.4,0) -- ++(0,-1.2) -| node[below, pos=0.25, font=\scriptsize] {$\mathbf{p}_a, \dot{\mathbf{p}}_a, \phi, \theta$} (uav_nmpc.south);
         
         % USV to UAV Coupling (USV position parameter)
         \draw [->, dashed, blue] (usv_plant.south) -- ++(0,-0.5) -| node[above, pos=0.82, font=\scriptsize] {$\mathbf{p}_{anchor}$} (uav_nmpc.north);
