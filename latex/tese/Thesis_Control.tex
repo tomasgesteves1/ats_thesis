@@ -190,24 +190,33 @@ Their time derivative can then be used as the input, allowing the rate constrain
 \end{equation}
 so that \eqref{eq:usv_mpc_rate_target} becomes a direct bound on $\mathbf{u}_v$.
 
-With $\mathbf{x}_v$ and $\mathbf{u}_v$ so defined, the dynamics $\dot{\mathbf{x}}_v = f(\mathbf{x}_v, \mathbf{u}_v)$ retain the same form in their first six components,
+With $\mathbf{x}_v$ and $\mathbf{u}_v$ defined, the dynamics $\dot{\mathbf{x}}_v = f(\mathbf{x}_v,\mathbf{u}_v)$ follow directly.
+
+The kinematics are given by \eqref{eq:usv_kinematics_planar} and \eqref{eq:usv_psi_dot},
 \begin{equation}
-    \begin{bmatrix} \dot{x} \\ \dot{y} \\ \dot{\psi} \\ \dot{u} \\ \dot{v} \\ \dot{r} \end{bmatrix}
-    =
-    \begin{bmatrix}
-        u\cos\psi - v\sin\psi \\
-        u\sin\psi + v\cos\psi \\
-        r \\
-        \dfrac{1}{m}\Big[X - \big(X_u+X_{uu}^{\pm}|u|\big)u\Big] + vr \\
-        \dfrac{1}{m}\Big[Y - \big(Y_v+Y_{vv}|v|\big)v\Big] - ur \\
-        \dfrac{1}{I_z}\Big[N - \big(N_r+N_{rr}|r|\big)r\Big]
-    \end{bmatrix},
-    \qquad
-    \begin{bmatrix} \dot{T}_L \\ \dot{T}_R \\ \dot{\alpha}_L \\ \dot{\alpha}_R \end{bmatrix}
-    = \mathbf{u}_v,
-    \label{eq:usv_mpc_dynamics}
+    \dot x = u\cos\psi - v\sin\psi, \qquad \dot y = u\sin\psi + v\cos\psi, \qquad \dot\psi = r.
+    \label{eq:usv_mpc_kinematics}
 \end{equation}
-where $X, Y, N$ are given by \eqref{eq:usv_mpc_alloc_force}--\eqref{eq:usv_mpc_alloc_moment} in terms of the thruster state, and $\mathbf{u}_v$ appears directly as the derivative of that same state. 
+
+The dynamics follow \eqref{eq:usv_udot}--\eqref{eq:usv_rdot}, with $X,Y,N$ given by \eqref{eq:usv_mpc_alloc_force}--\eqref{eq:usv_mpc_alloc_moment} in terms of the thruster state,
+\begin{equation}
+    \dot u = \frac{1}{m}\Big[X - \big(X_u+X_{uu}^{\pm}|u|\big)u\Big] + vr,
+    \label{eq:usv_mpc_udot}
+\end{equation}
+\begin{equation}
+    \dot v = \frac{1}{m}\Big[Y - \big(Y_v+Y_{vv}|v|\big)v\Big] - ur,
+    \label{eq:usv_mpc_vdot}
+\end{equation}
+\begin{equation}
+    \dot r = \frac{1}{I_z}\Big[N - \big(N_r+N_{rr}|r|\big)r\Big].
+    \label{eq:usv_mpc_rdot}
+\end{equation}
+
+Finally, $\dot T_L,\dot T_R,\dot\alpha_L,\dot\alpha_R$ appear directly as the components of $\mathbf{u}_v$,
+\begin{equation}
+    \dot T_L = \dot T_L, \qquad \dot T_R = \dot T_R, \qquad \dot\alpha_L = \dot\alpha_L, \qquad \dot\alpha_R = \dot\alpha_R.
+    \label{eq:usv_mpc_thruster_rates}
+\end{equation}
 
 Discretization over a sampling interval $T_s$, following Section~\ref{sec:ctrl_nmpc_principles}, gives the one-step map $F$ such that $\hat{\mathbf{x}}_{k+i+1|k} = F\big(\hat{\mathbf{x}}_{k+i|k}, \hat{\mathbf{u}}_{k+i|k}\big)$ approximates the solution of $\dot{\mathbf{x}}_v = f(\mathbf{x}_v,\mathbf{u}_v)$ over one sampling interval.
 
@@ -300,7 +309,6 @@ Collecting the cost, the model, and the constraints gives the optimal control pr
 where $F$ is the one-step map obtained by discretizing $f(\cdot)$. The vessel receives the first input $\hat{\mathbf{u}}_{v,k|k}$ of the solution; applying it over one sampling interval yields $T_{L,k}, T_{R,k}, \alpha_{L,k}, \alpha_{R,k}$, which become the thruster components of the initial condition at the next instant.
  
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-
 \section{UAV NMPC}
 \label{sec:ctrl_uav_mpc}
 
@@ -308,42 +316,46 @@ The UAV NMPC computes, at every sampling instant, the thrust and attitude comman
 
 \subsubsection*{Predictive Model}
 
-The input $\mathbf{u}_a = [T,\phi,\theta,\psi]^T$ of the vehicle model commands the thrust and the attitude directly, assuming each is reached instantaneously. The vehicle's attitude, however, is stabilized by an inner-loop controller of finite bandwidth, so the roll and pitch entering the translational dynamics lag behind any commanded value. Modeling this response as a first-order lag with time constant $\tau$ gives
-\begin{equation}
-    \dot\phi = \frac{\phi_{cmd}-\phi}{\tau}, \qquad \dot\theta = \frac{\theta_{cmd}-\theta}{\tau},
-    \label{eq:uav_mpc_attitude_lag}
-\end{equation}
-where $\phi_{cmd},\theta_{cmd}$ are the commanded roll and pitch. This makes $\phi,\theta$ variables of the predictive model, reached gradually rather than instantaneously, with $\phi_{cmd},\theta_{cmd}$ taking the place of $\phi,\theta$ as the input.
+The input $\mathbf{u}_a = [T,\phi,\theta,\psi]^T$ of the vehicle model defined in Chapter~\ref{chapter:modeling} commands the thrust and the attitude directly, assuming each of them is reached instantaneously.
 
-The attitude commands $\phi_{cmd},\theta_{cmd}$ can, in turn, only change at a limited rate. To impose this rate directly, $\phi_{cmd},\theta_{cmd}$ can be treated as states rather than as the input,
+Similarly to the thruster commands of the USV, the attitude $\phi,\theta,\psi$ is limited in how fast it can change. To constrain these rates directly, $\phi,\theta,\psi$ are treated here as states rather than as the input,
 \begin{equation}
-    \mathbf{x}_a = [x,y,z,\dot x,\dot y,\dot z,\ \phi,\theta,\phi_{cmd},\theta_{cmd}]^T \in \mathbb{R}^{10}.
+    \mathbf{x}_a = [x,y,z,\dot x,\dot y,\dot z,\ \phi,\theta,\psi]^T \in \mathbb{R}^{9}.
     \label{eq:uav_mpc_state_augmented}
 \end{equation}
-Their time derivative can then be used as the input, allowing the rate constraint to be applied directly to it,
+Their time derivative is then used as the input, so that the rate constraint applies to it directly,
 \begin{equation}
-    \mathbf{u}_a = [\dot\phi_{cmd},\dot\theta_{cmd},a_T]^T \in \mathbb{R}^3,
+    \mathbf{u}_a = [\dot\phi,\dot\theta,\dot\psi,T]^T \in \mathbb{R}^4.
     \label{eq:uav_mpc_input_augmented}
 \end{equation}
-where $a_T = T/m$ is the thrust acceleration.
 
-With $\mathbf{x}_a$ and $\mathbf{u}_a$ so defined, the dynamics $\dot{\mathbf{x}}_a = f(\mathbf{x}_a,\mathbf{u}_a)$ are
+With $\mathbf{x}_a$ and $\mathbf{u}_a$ defined, the dynamics $\dot{\mathbf{x}}_a = f(\mathbf{x}_a,\mathbf{u}_a)$ follow directly.
+
+The kinematics are the trivial identity already used in \eqref{eq:uav_kinematics},
 \begin{equation}
-    \begin{bmatrix} \dot x \\ \dot y \\ \dot z \\ \ddot x \\ \ddot y \\ \ddot z \\ \dot\phi \\ \dot\theta \\ \dot\phi_{cmd} \\ \dot\theta_{cmd} \end{bmatrix}
-    =
-    \begin{bmatrix}
-        \dot x \\ \dot y \\ \dot z \\
-        a_T\big(\cos\psi\sin\theta\cos\phi+\sin\psi\sin\phi\big) \\
-        a_T\big(\sin\psi\sin\theta\cos\phi-\cos\psi\sin\phi\big) \\
-        a_T\cos\theta\cos\phi - g \\
-        (\phi_{cmd}-\phi)/\tau \\
-        (\theta_{cmd}-\theta)/\tau \\
-        \dot\phi_{cmd} \\
-        \dot\theta_{cmd}
-    \end{bmatrix},
-    \label{eq:uav_mpc_dynamics}
+    \dot x = \dot x, \qquad \dot y = \dot y, \qquad \dot z = \dot z.
+    \label{eq:uav_mpc_kinematics}
 \end{equation}
-where $\psi$ enters as an external parameter rather than as a variable chosen by the NMPC, and $\dot\phi_{cmd},\dot\theta_{cmd}$ appear directly as the last two components of $\mathbf{u}_a$. The tether force of Chapter~\ref{chapter:modeling} is not yet included in \eqref{eq:uav_mpc_dynamics}; once available, it enters as an additional term in the three translational acceleration components.
+
+The translational dynamics follow \eqref{eq:uav_dynamics}, with the thrust term expanded and the tether force $\mathbf{F}_{\mathrm{tether}}^{\mathcal{I}} = [F_{\mathrm{tether},x}^{\mathcal{I}}, F_{\mathrm{tether},y}^{\mathcal{I}}, F_{\mathrm{tether},z}^{\mathcal{I}}]^T$ given by \eqref{eq:uav_tether_geometry}--\eqref{eq:uav_tether_force},
+\begin{equation}
+    \ddot x = \frac{T}{m}\big(\cos\psi\sin\theta\cos\phi+\sin\psi\sin\phi\big) + \frac{1}{m}F_{\mathrm{tether},x}^{\mathcal{I}},
+    \label{eq:uav_mpc_xddot}
+\end{equation}
+\begin{equation}
+    \ddot y = \frac{T}{m}\big(\sin\psi\sin\theta\cos\phi-\cos\psi\sin\phi\big) + \frac{1}{m}F_{\mathrm{tether},y}^{\mathcal{I}},
+    \label{eq:uav_mpc_yddot}
+\end{equation}
+\begin{equation}
+    \ddot z = \frac{T}{m}\cos\theta\cos\phi - g + \frac{1}{m}F_{\mathrm{tether},z}^{\mathcal{I}}.
+    \label{eq:uav_mpc_zddot}
+\end{equation}
+
+Finally, $\dot\phi,\dot\theta,\dot\psi$ appear directly as the last three components of $\mathbf{u}_a$,
+\begin{equation}
+    \dot\phi = \dot\phi, \qquad \dot\theta = \dot\theta, \qquad \dot\psi = \dot\psi.
+    \label{eq:uav_mpc_attitude_rates}
+\end{equation}
 
 Discretization over a sampling interval $T_s$, following Section~\ref{sec:ctrl_nmpc_principles}, gives the one-step map $F$ such that $\hat{\mathbf{x}}_{k+i+1|k} = F\big(\hat{\mathbf{x}}_{k+i|k},\hat{\mathbf{u}}_{k+i|k}\big)$ approximates the solution of $\dot{\mathbf{x}}_a = f(\mathbf{x}_a,\mathbf{u}_a)$ over one sampling interval.
 
@@ -357,73 +369,94 @@ Tracking the reference position and velocity is penalized as
     \label{eq:uav_mpc_cost_track}
 \end{equation}
 
-Unlike the previous terms, the next one does not compare against any reference. It penalizes $\phi,\theta$ directly,
+The next term penalizes $\phi,\theta$ directly, rather than comparing them against any reference,
 \begin{equation}
     \big\|[\phi,\theta]^T\big\|^2_{Q_{tilt}},
     \label{eq:uav_mpc_cost_tilt}
 \end{equation}
 discouraging attitude larger than necessary to track the reference.
 
-The attitude commands are penalized in the same way,
+The next term penalizes the yaw error, but rather than tracking a fixed yaw angle, $\psi$ is aligned with the direction to a reference point $\mathbf{p}_{d,ref} = [x_{d,ref},y_{d,ref}]^T$, itself possibly varying along the horizon,
 \begin{equation}
-    \big\|[\phi_{cmd},\theta_{cmd}]^T\big\|^2_{Q_{tiltcmd}}.
-    \label{eq:uav_mpc_cost_tiltcmd}
+    \mathbf{d} = \mathbf{p}_{d,ref} - \mathbf{p}_{xy},
+    \label{eq:uav_mpc_yaw_direction}
 \end{equation}
+where $\mathbf{p}_{xy}=[x,y]^T$. Since $\psi$ is an angle, the same periodicity used in \eqref{eq:usv_mpc_cost_heading} applies, expressed here as an alignment between $\psi$ and $\mathbf{d}$ rather than a difference between two angles,
+\begin{equation}
+    q_\psi\left(1 - \frac{\cos\psi\,d_x + \sin\psi\,d_y}{\|\mathbf{d}\|}\right).
+    \label{eq:uav_mpc_cost_yaw}
+\end{equation}
+This term is minimized when $\psi$ points along $\mathbf{d}$, the direction to the reference point $\mathbf{p}_{d,ref}$.
 
-At hover, the thrust acceleration must counteract gravity, $a_T = g$, rather than be driven to zero. The input is therefore tracked against $\mathbf{u}_{a,ref} = [0,0,g]^T$,
+The last term penalizes the input $\mathbf{u}_a$. Penalizing $T$ toward zero would fight the physics of hover, where thrust must counteract gravity rather than vanish. To keep this term a measure of control effort rather than a penalty on the thrust needed just to hover, the input is tracked against a reference $\mathbf{u}_{a,ref} = [0,0,0,mg]^T$, using $mg$ as a nominal hover approximation,
 \begin{equation}
     \|\mathbf{u}_a - \mathbf{u}_{a,ref}\|^2_{R},
     \label{eq:uav_mpc_cost_input}
 \end{equation}
-so that $\dot\phi_{cmd},\dot\theta_{cmd}$ are regularized toward zero, while $a_T$ is tracked toward the hover value $g$.
+so that $\dot\phi,\dot\theta,\dot\psi$ are regularized toward zero, while $T$ is penalized only for deviating from this nominal hover value.
 
 Summing \eqref{eq:uav_mpc_cost_track}--\eqref{eq:uav_mpc_cost_input} gives the stage cost
 \begin{equation}
-    \ell(\mathbf{x}_a,\mathbf{u}_a) = \|\mathbf{p}-\mathbf{p}_{ref}\|^2_{Q_p} + \|\mathbf{v}-\mathbf{v}_{ref}\|^2_{Q_v} + \big\|[\phi,\theta]^T\big\|^2_{Q_{tilt}} + \big\|[\phi_{cmd},\theta_{cmd}]^T\big\|^2_{Q_{tiltcmd}} + \|\mathbf{u}_a-\mathbf{u}_{a,ref}\|^2_R.
+    \begin{aligned}
+        \ell(\mathbf{x}_a,\mathbf{u}_a) = {} & \|\mathbf{p}-\mathbf{p}_{ref}\|^2_{Q_p} + \|\mathbf{v}-\mathbf{v}_{ref}\|^2_{Q_v} + \big\|[\phi,\theta]^T\big\|^2_{Q_{tilt}} \\
+        & + q_\psi\left(1 - \frac{\cos\psi\,d_x + \sin\psi\,d_y}{\|\mathbf{d}\|}\right) + \|\mathbf{u}_a-\mathbf{u}_{a,ref}\|^2_R.
+    \end{aligned}
     \label{eq:uav_mpc_stage_cost}
 \end{equation}
 
 The terminal cost $\ell_f$ keeps the tracking and regularization terms of \eqref{eq:uav_mpc_stage_cost} and drops the one on the input, since no input is chosen at the final node of the horizon,
 \begin{equation}
-    \ell_f(\mathbf{x}_a) = \|\mathbf{p}-\mathbf{p}_{ref}\|^2_{Q_p} + \|\mathbf{v}-\mathbf{v}_{ref}\|^2_{Q_v} + \big\|[\phi,\theta]^T\big\|^2_{Q_{tilt}} + \big\|[\phi_{cmd},\theta_{cmd}]^T\big\|^2_{Q_{tiltcmd}}.
+    \ell_f(\mathbf{x}_a) = \|\mathbf{p}-\mathbf{p}_{ref}\|^2_{Q_p} + \|\mathbf{v}-\mathbf{v}_{ref}\|^2_{Q_v} + \big\|[\phi,\theta]^T\big\|^2_{Q_{tilt}} + q_\psi\left(1 - \frac{\cos\psi\,d_x + \sin\psi\,d_y}{\|\mathbf{d}\|}\right).
     \label{eq:uav_mpc_terminal_cost}
 \end{equation}
 
-The velocity and attitude are each bounded, within the vehicle's operating envelope,
+The velocity and tilt are each bounded, within the vehicle's operating envelope. Since the horizontal and vertical velocity are limited by different physical factors, the vehicle's speed is bounded separately in each,
 \begin{equation}
-    \mathcal{X}: \; |\dot x|,|\dot y|,|\dot z| \le v_{max}, \quad |\phi|,|\phi_{cmd}| \le \phi_{max}, \quad |\theta|,|\theta_{cmd}| \le \theta_{max},
+    \big\|[\dot x,\dot y]^T\big\| \le v_{xy,max}, \quad |\dot z| \le v_{z,max}, \quad |\phi| \le \phi_{max}, \quad |\theta| \le \theta_{max}.
     \label{eq:uav_mpc_state_bounds}
 \end{equation}
-while the attitude command rate and the thrust acceleration are bounded as inputs,
+
+Unlike the thruster commands of the USV, which the previous instant's own command already keeps within their bounds, the velocity and attitude of \eqref{eq:uav_mpc_state_bounds} are subject to external disturbances such as wind. A gust can push the vehicle's true state past these bounds regardless of what the NMPC has commanded, and if they are enforced as hard bounds, the solver has no feasible solution to return from such a state, even though it must still produce one at every sampling instant.
+
+A soft constraint avoids this by allowing a bound to be exceeded, at a cost. Each bound in \eqref{eq:uav_mpc_state_bounds} is loosened by its own slack $\sigma_j\ge0$, $j=1,\dots,4$, and a term
 \begin{equation}
-    \mathcal{U}: \; |\dot\phi_{cmd}| \le \dot\phi_{max}, \quad |\dot\theta_{cmd}| \le \dot\theta_{max}, \quad a_{T,min} \le a_T \le a_{T,max}.
+    \rho(\sigma) = z\sigma + Z\sigma^2, \qquad z,Z\ge0,
+    \label{eq:uav_mpc_slack_penalty}
+\end{equation}
+is added to the cost for each one, penalizing $\sigma_j>0$ while still preferring $\sigma_j=0$ whenever the original bound can be met on its own.
+
+The attitude rate and the thrust remain bounded as hard inputs,
+\begin{equation}
+    \mathcal{U}: \; |\dot\phi| \le \dot\phi_{max}, \quad |\dot\theta| \le \dot\theta_{max}, \quad |\dot\psi| \le \dot\psi_{max}, \quad T_{min} \le T \le T_{max}.
     \label{eq:uav_mpc_input_bounds}
 \end{equation}
-Unlike the thruster commands of the USV, the velocity and attitude of \eqref{eq:uav_mpc_state_bounds} are not solely determined by the vehicle's own previous command, and are subject to external disturbances such as wind; the bounds in \eqref{eq:uav_mpc_state_bounds} are therefore treated as soft constraints, penalized when violated rather than strictly enforced.
 
-The tether limits the distance between the vehicle and its attachment point on the vessel, at position $\mathbf{p}_v = [x_v,y_v,0]^T$,
+The tether limits the distance between the vehicle and its attachment point on the vessel, at position $\mathbf{p}_v = [x_v,y_v,0]^T$, to its maximum length $L_{max}$. Since the vessel is itself being predicted by the USV NMPC, $\mathbf{p}_v$ is received at each node as the vessel's predicted position there. This constraint is softened the same way, with its own slack $\sigma_5\ge0$ weighted more heavily by \eqref{eq:uav_mpc_slack_penalty}, keeping it close to strictly enforced,
 \begin{equation}
-    g(\mathbf{x}_a) = (x-x_v)^2 + (y-y_v)^2 + z^2 - L_{max}^2 \le 0,
+    g(\mathbf{x}_a) = (x-x_v)^2 + (y-y_v)^2 + z^2 - L_{max}^2 \le \sigma_5.
     \label{eq:uav_mpc_tether_constraint}
 \end{equation}
-also treated as a soft constraint, and penalized more heavily than \eqref{eq:uav_mpc_state_bounds} to keep it close to strictly enforced.
+
+Collecting \eqref{eq:uav_mpc_state_bounds} and \eqref{eq:uav_mpc_tether_constraint}, with their slacks stacked as $\boldsymbol\sigma=[\sigma_1,\dots,\sigma_5]^T\ge\mathbf{0}$, gives the soft constraint set $\mathcal{X}_\sigma$ of admissible pairs $(\mathbf{x}_a,\boldsymbol\sigma)$, and the aggregate penalty
+\begin{equation}
+    P(\boldsymbol\sigma) = \sum_{j=1}^{5} \rho(\sigma_j).
+    \label{eq:uav_mpc_aggregate_penalty}
+\end{equation}
 
 \subsubsection*{Optimal Control Problem}
 
 At every sampling instant $k$, the initial state is set from the vehicle's current estimate,
 \begin{equation}
-    \hat{\mathbf{x}}_{a,k|k} = \big[x_k,y_k,z_k,\dot x_k,\dot y_k,\dot z_k,\ \phi_k,\theta_k,\phi_{cmd,k-1},\theta_{cmd,k-1}\big]^T,
+    \hat{\mathbf{x}}_{a,k|k} = \big[x_k,y_k,z_k,\dot x_k,\dot y_k,\dot z_k,\ \phi_k,\theta_k,\psi_k\big]^T.
     \label{eq:uav_mpc_initial_condition}
 \end{equation}
-where $\phi_{cmd,k-1},\theta_{cmd,k-1}$ are the last attitude commands applied, since no sensor measures them directly.
 
-Collecting the cost, the model, and the constraints gives the optimal control problem the UAV solves at every sampling instant,
+Collecting the cost, the model, and the constraints gives the optimal control problem the UAV solves at every sampling instant, with the slack vector $\hat{\boldsymbol\sigma}_{k+i|k}$ entering as an additional decision variable,
 \begin{align}
-    \min_{\hat{\mathbf{x}}_a,\,\hat{\mathbf{u}}_a} \quad & \sum_{i=0}^{N-1} \ell\big(\hat{\mathbf{x}}_{a,k+i|k},\hat{\mathbf{u}}_{a,k+i|k}\big) + \ell_f\big(\hat{\mathbf{x}}_{a,k+N|k}\big) \notag \\
-    \text{s.t.} \quad & \hat{\mathbf{x}}_{a,k|k} = \big[x_k,y_k,z_k,\dot x_k,\dot y_k,\dot z_k,\phi_k,\theta_k,\phi_{cmd,k-1},\theta_{cmd,k-1}\big]^T, \notag \\
+    \min_{\hat{\mathbf{x}}_a,\,\hat{\mathbf{u}}_a,\,\hat{\boldsymbol\sigma}} \quad & \sum_{i=0}^{N-1} \Big[\ell\big(\hat{\mathbf{x}}_{a,k+i|k},\hat{\mathbf{u}}_{a,k+i|k}\big) + P\big(\hat{\boldsymbol\sigma}_{k+i|k}\big)\Big] + \ell_f\big(\hat{\mathbf{x}}_{a,k+N|k}\big) + P\big(\hat{\boldsymbol\sigma}_{k+N|k}\big) \notag \\
+    \text{s.t.} \quad & \hat{\mathbf{x}}_{a,k|k} = \big[x_k,y_k,z_k,\dot x_k,\dot y_k,\dot z_k,\phi_k,\theta_k,\psi_k\big]^T, \notag \\
     & \hat{\mathbf{x}}_{a,k+i+1|k} = F\big(\hat{\mathbf{x}}_{a,k+i|k},\hat{\mathbf{u}}_{a,k+i|k}\big), \quad i=0,\dots,N-1, \notag \\
-    & \hat{\mathbf{x}}_{a,k+i|k} \in \mathcal{X}, \quad i=0,\dots,N, \notag \\
-    & \hat{\mathbf{u}}_{a,k+i|k} \in \mathcal{U}, \quad i=0,\dots,N-1, \notag \\
-    & g\big(\hat{\mathbf{x}}_{a,k+i|k}\big) \le 0, \quad i=0,\dots,N, \label{eq:uav_mpc_ocp}
+    & \big(\hat{\mathbf{x}}_{a,k+i|k},\hat{\boldsymbol\sigma}_{k+i|k}\big) \in \mathcal{X}_\sigma, \quad i=0,\dots,N, \notag \\
+    & \hat{\mathbf{u}}_{a,k+i|k} \in \mathcal{U}, \quad i=0,\dots,N-1, \label{eq:uav_mpc_ocp}
 \end{align}
-where $F$ is the one-step map obtained by discretizing $f(\cdot)$. The vehicle receives the first input $\hat{\mathbf{u}}_{a,k|k}$ of the solution; applying it over one sampling interval yields $\phi_{cmd,k},\theta_{cmd,k}$, which become the attitude command components of the initial condition at the next instant.
+where $F$ is the one-step map obtained by discretizing $f(\cdot)$. The vehicle receives the first input $\hat{\mathbf{u}}_{a,k|k}$ of the solution, applying it over one sampling interval.
