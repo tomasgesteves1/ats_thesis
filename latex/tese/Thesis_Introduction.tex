@@ -18,7 +18,7 @@ This chapter introduces the thesis, presenting the context, motivation, and obje
 
 Saving lives at sea, protecting marine ecosystems, and securing maritime infrastructure all rely on one essential capability: understanding what is happening, where, and when. In vast and dynamic maritime environments, this requires maintaining reliable, high-resolution situational awareness over long periods. The \gls{emsa} recognises this challenge and highlights the need for continuous monitoring and locally persistent operations to enable effective maritime surveillance and response~\cite{europeanmaritimesafetyagencyEMSAOutlook2025_v302025}.
 
-Different maritime assets meet this challenge in complementary ways. Surface vessels give a physical presence at sea, with long endurance and large payload capacity~\cite{introduction_motivation_vessel_sensors,introduction_motivation_vessel_tasks}. However, their range is limited by line of sight, and operations are expensive~\cite{introduction_motivation_vessel_limitations}. Aerial platforms, such as manned aircraft and \glspl{uav}, allow fast deployment and elevated sensing~\cite{introduction_motivation_aerial_surveillance}. Yet, aircraft are costly, and \glspl{uav} suffer from low endurance and unreliable communication~\cite{introduction_motivation_uavs_limitations}.
+Different maritime assets meet this challenge in complementary ways. Surface vessels give a physical presence at sea, with long endurance and large payload capacity~\cite{introduction_motivation_vessel_sensors,introduction_motivation_vessel_tasks}. However, their range is limited by line of sight, and operations are expensive~\cite{introduction_motivation_vessel_limitations}. Aerial platforms, such as manned aircraft and \glspl{uav}, allow fast deployment and elevated sensing~\cite{introduction_motivation_aerial_surveillance}. However, aircraft are costly, and \glspl{uav} suffer from low endurance and unreliable communication~\cite{introduction_motivation_uavs_limitations}.
 
 Together, these assets form a connected system rather than separate solutions. Each one compensates for what the other lacks. \glspl{usv} provide long-term presence at sea at much lower cost than crewed vessels, allowing wide and affordable patrols. \glspl{uav} extend this reach by sensing beyond the horizon from the air. Working as a team, they maintain continuous and local maritime awareness. This motivates the study of coordinated \gls{usv}--\gls{uav} systems, where cooperation creates mission capabilities that neither platform can achieve alone in complex and changing environments.
 
@@ -46,7 +46,7 @@ Most existing tethered \gls{uav} systems focus on power delivery and communicati
 
 This work addresses the problem of controlling a cooperative system composed of an autonomous surface vessel (the WAM-V USV) and a physically connected quadrotor (the x500 UAV) operating in a coordinated manner. The objective of such a system is to autonomously execute maritime missions by following predefined waypoints or continuous reference trajectories, while respecting the physical and operational constraints of both platforms and of the tether that connects them.
 
-To achieve this objective, the control framework must be capable of handling different phases of operation and mission requirements. This includes the definition of multiple control modes that allow the system to perform manoeuvres such as takeoff and landing, as well as different forms of coordinated motion during navigation. The UAV NMPC must actively prevent the tether from exceeding its maximum physical length, utilizing soft constraints and slacks, while the USV NMPC coordinates the planar movement of the dynamic anchor deck.
+To achieve this objective, the control framework must be capable of handling different phases of operation and mission requirements. This includes the definition of multiple control modes that allow the system to perform manoeuvres such as takeoff and landing, as well as different forms of coordinated motion during navigation. Both NMPCs actively prevent the tether from exceeding the maximum admissible separation distance, utilizing soft constraints and slacks, while exchanging predicted trajectories to coordinate the motion of the aerial vehicle and the dynamic vessel deck.
 
 \section{System Overview}
 \label{sec:intro_system_overview}
@@ -55,13 +55,13 @@ Interaction with the system is defined at the mission level. The operator select
 
 Based on the selected mission and active control mode, the system generates coordinated motion for both the \gls{usv} and the \gls{uav}. This process combines planning and control to compute trajectories and actuation commands that satisfy vehicle and tether constraints while pursuing the mission objectives. The WAM-V USV acts as the leader planar platform carrying an active winch system on its deck. The winch dynamically spools the tether in or out to manage slack and cable tension. The x500 UAV follows a relative orbit or observation trajectory above the USV, using its elevated perspective to record visual data.
 
-Figure~\ref{fig:placeholder} presents a high-level block diagram of the proposed system, showing the interaction between the coordinator, the decentralized NMPC solvers, the vehicles, and the co-simulation interfaces.
+Figure~\ref{fig:intro_block_diagram} presents a high-level block diagram of the proposed system, showing the interaction between the coordinator, the decentralized NMPC solvers, the vehicles, and the co-simulation interfaces.
 
 \begin{figure}[H]
     \centering
     \includegraphics[width=0.85\linewidth]{Figures/introduction/block_diagram.pdf}
     \caption{High-level block diagram of the proposed cooperative control system.}
-    \label{fig:placeholder}
+    \label{fig:intro_block_diagram}
 \end{figure}
 
 \section{Expected Contributions}
@@ -74,7 +74,7 @@ This thesis contributes to the design, implementation, and evaluation of coopera
     \item The modeling and experimental identification of the UAV inner-loop attitude response lag ($\tau = 0.15\,\text{s}$) using PX4 doublets flight data.
     \item The design and implementation of a virtual winch controller operating in both geometric and tension-feedback PD modes to prevent cable slackness and tension spikes.
     \item A realistic co-simulation setup in Gazebo Harmonic, integrated with the PX4 Software-in-the-Loop (SITL) firmware and the MoorDyn physics engine for multi-body lumped-mass line representation.
-    \item The verification of NMPC constraints enforcement (states, inputs, and tether length limits) and evaluation of solver latency.
+    \item The verification of NMPC constraint enforcement (states, inputs, and tether separation limits) and evaluation of solver latency.
     \item The validation of the entire cooperative control stack under an integrated search and pursuit mission targeting a vessel teleoperated in real-time.
 \end{itemize}
 
@@ -84,9 +84,9 @@ This thesis contributes to the design, implementation, and evaluation of coopera
 The remainder of this dissertation is organized as follows:
 \begin{itemize}
     \item \textbf{Chapter 2 (Literature Review and State of the Art)} reviews existing research in cooperative marine-aerial robotics, tethered drones, and predictive control algorithms.
-    \item \textbf{Chapter 3 (System Modeling)} derives the kinematic and dynamic models of both vehicles, as well as the coupling tether and winch formulations.
-    \item \textbf{Chapter 4 (Cooperative Control Design)} details the decentralized NMPC mathematical formulation, cost functions, physical constraints, and winch spooling control laws.
-    \item \textbf{Chapter 5 (Simulation Environment and Software Implementation)} introduces the physical characteristics of the virtual WAM-V and x500 platforms, the simulation setup, and the software modularity.
+    \item \textbf{Chapter 3 (System Modeling)} derives the kinematic and dynamic models of both vehicles, as well as the catenary tether force model.
+    \item \textbf{Chapter 4 (Cooperative Control Design)} details the decentralized NMPC mathematical formulation, cost functions, and physical constraints for both platforms.
+    \item \textbf{Chapter 5 (Simulation Environment and Software Implementation)} introduces the physical characteristics of the virtual WAM-V and x500 platforms, the active winch spooling controller, the MoorDyn tether integration, the simulation setup, and the software modularity.
     \item \textbf{Chapter 6 (Results and Discussion)} evaluates the model validation, parameter identification, tracking precision, constraint enforcement, solver latency, and the target pursuit mission.
     \item \textbf{Chapter 7 (Conclusions and Future Work)} summarizes the findings of the thesis and outlines directions for future research.
 \end{itemize}

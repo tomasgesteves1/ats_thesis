@@ -26,14 +26,14 @@ Depending on the available physical knowledge and data, modeling methodologies a
 \begin{itemize}
     \item \textbf{White-Box Modelling:} Based on first principles and physical laws that govern system behaviour. By expressing the dynamics through analytical formulations, often derived from Newtonian mechanics, hydrodynamics, or aerodynamics, this approach provides clear insight into stability, controllability, and energy transfer. To preserve analytical tractability, simplifying assumptions such as linearisation or the neglect of higher-order effects are commonly introduced. 
     \item \textbf{Grey-Box Modelling:} Lies between purely analytical and purely data-driven approaches. The structure of the model is defined using physical insight, while parameters that are difficult to determine analytically, such as hydrodynamic or aerodynamic coefficients, are estimated from experimental data. This combination preserves a clear physical interpretation while improving accuracy through calibration.
-    \item \textbf{Black-Box Modelling:} Relying entirely on measured input--output data to describe system behaviour. Rather than using explicit physical laws, this approach identifies mathematical relationships that best fit the observed data. Typical examples include linear parametric models, state-space representations obtained from data, and learning-based methods.
+    \item \textbf{Black-Box Modelling:} Relies entirely on measured input--output data to describe system behaviour. Rather than using explicit physical laws, this approach identifies mathematical relationships that best fit the observed data. Typical examples include linear parametric models, state-space representations obtained from data, and learning-based methods.
 \end{itemize}
 
 \subsection{Tether Dynamics Modeling}
 \label{subsec:sota_tether_modeling}
 Modeling flexible tethers is critical since they introduce highly nonlinear forces and kinematic constraints on the vehicles:
 \begin{itemize}
-    \item \textbf{Quasistatic Catenary Models:} Describe the steady-state profile of a heavy cable suspended between two points. These models use catenary equations to resolve cable sag and tension analytically, assuming the line is in static equilibrium at each step. While computationally efficient, they neglect dynamic effects such as transverse wave propagation and drag forces, making them unsuitable for rapid aerial maneuvers.
+    \item \textbf{Quasistatic Catenary Models:} Describe the steady-state profile of a heavy cable suspended between two points. These models use catenary equations to resolve cable sag and tension analytically, assuming the line is in static equilibrium at each step. While computationally efficient, they neglect dynamic effects such as transverse wave propagation and drag forces, making them unsuitable for rapid aerial manoeuvres.
     \item \textbf{Lumped-Mass Models:} Discretize the tether into a finite chain of nodes, or "lumped masses", connected by spring-damper segments. Each segment models axial elasticity, damping, and hydrodynamic drag, while the nodes resolve gravitational and buoyancy forces. This formulation, implemented in solvers such as MoorDyn, offers a high-fidelity representation of transient tether whip, slackness, and hydrodynamic drag under dynamic boundary conditions.
     \item \textbf{Finite-Segment and Multi-Body Models:} Formulate the line as a chain of rigid cylinders connected by spherical joints. This approach computes bending and torsional moments accurately, but requires solving high-index differential-algebraic equations, which increases the computational burden.
 \end{itemize}
@@ -42,7 +42,7 @@ Modeling flexible tethers is critical since they introduce highly nonlinear forc
 \label{subsec:sota_estimation}
 System identification offers an alternative path by constructing models directly from measured input--output data when physical knowledge is incomplete. Optimisation-based estimation focuses on identifying model parameters offline by minimising the mismatch between measured and predicted system outputs. This is typically achieved through cost functions based on least-squares formulations, including weighted least-squares and prediction-error methods (PEM) \cite{tangirala2013principles}. For nonlinear or constrained problems, advanced optimisation schemes such as trust-region methods and constrained least-squares are often employed, allowing grey-box models to be calibrated while enforcing physical bounds and regularisation.
 
-\subsection{Related Work on System Identification}
+\subsection{Related Work on Tethered Vehicle Modeling}
 \label{subsec:sota_sysid_related}
 In systems connected by a tether, the model of the overall system must account at least for the tether geometry to constrain the relative motion of the agents and avoid physically infeasible configurations that could lead to tether failure.
 
@@ -75,7 +75,7 @@ Extensions to nonlinear systems led to the development of \gls{nmpc}, which repl
 \label{subsec:sota_winch_control}
 In tethered UAV operations, winch design is a core element:
 \begin{itemize}
-    \item \textbf{Passive Tension Tethers:} Rely on spring-loaded spools or constant-torque slip rings. While simple and requiring no electrical control, they cannot adapt to fast vessel maneuvers, leading to large tension spikes or excessive slack.
+    \item \textbf{Passive Tension Tethers:} Rely on spring-loaded spools or constant-torque slip rings. While simple and requiring no electrical control, they cannot adapt to fast vessel manoeuvres, leading to large tension spikes or excessive slack.
     \item \textbf{Active Spooling Winches:} Utilize motorized actuators regulated by microcontrollers. The winch dynamically adjusts the tether length based on geometric tracking (distance between platforms) or force-feedback algorithms.
     \item \textbf{Tension-Feedback and Active Heave Compensation (AHC):} Read force telemetry from a load cell. A closed-loop proportional-derivative (PD) controller regulates the winch spooling speed to maintain a target tension. In maritime environments, this functions as AHC, isolating the flying quadrotor from wave-induced vessel heave.
 \end{itemize}
@@ -137,4 +137,4 @@ A centralised predictive planning approach is presented in \cite{novakCollaborat
 
 Planning is addressed from a different perspective in \cite{zhangCooperativeControlFramework2025}, where cooperative behaviour is achieved through coordinated path following. A predefined path is assigned to the \gls{usv}, while the \gls{uav} generates its motion online as part of the control process to maintain coordination. In this framework, planning is limited to the online generation of the \gls{uav} motion, and no cooperative path planning between the two vehicles is performed.
 
-Overall, existing works typically adopt one of two approaches to planning in \gls{uav}--\gls{usv} systems, either a predefined path is assigned to one vehicle while the other generates its motion online to follow or support it, or both vehicles generate their motion online as part of a predictive control framework.
+Overall, existing works typically adopt one of two approaches to planning in \gls{uav}--\gls{usv} systems: either a predefined path is assigned to one vehicle while the other generates its motion online to follow or support it, or both vehicles generate their motion online as part of a predictive control framework.

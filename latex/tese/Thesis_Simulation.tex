@@ -247,7 +247,7 @@ A flexible tether, managed by an active winch system on the catamaran's deck, ph
 
     \subsection{Active Winch and Anchor Coupling}
     \label{sec:sim_moordyn_integration}
-    The active winch is mounted on the WAM-V deck, offset by $\mathbf{p}_{\mathrm{anchor}, v} = [-0.8, 0.0, 0.0]^T\,\text{m}$ from the center of gravity. The winch dynamically spools the tether to adjust its unstretched length $L_{tether}$ between $1.5\,\text{m}$ and $50.0\,\text{m}$, with a maximum spooling speed of $10.0\,\text{m/s}$.
+    The active winch is mounted on the WAM-V deck, offset by $\mathbf{p}_{\mathrm{anchor}, v} = [-0.8, 0.0, 0.0]^\top\,\text{m}$ from the center of gravity. The winch dynamically spools the tether to adjust its unstretched length $L_{tether}$ between $1.5\,\text{m}$ and $50.0\,\text{m}$, with a maximum spooling speed of $10.0\,\text{m/s}$.
     
     The winch operates in two control modes. In geometric mode, the tether length is set to $115\%$ of the line-of-sight distance between the vehicles, with the slack factor preventing sudden tension spikes. In tension mode, a PD controller regulates the spooling rate to maintain a target tension of $T_{target} = 0.1\,\text{N}$, using a proportional gain of $K_p = 1.8\,\text{m/(s}\cdot\text{N)}$ and a derivative gain of $K_d = 0.1$.
     
@@ -297,7 +297,7 @@ To run and coordinate the simulation, a co-simulation environment is built in Ga
 
     The control algorithms process this feedback to execute three main control loops:
     \begin{itemize}
-        \item \textbf{USV Control Loop (10 Hz):} The Nonlinear Model Predictive Control (NMPC) node receives the vessel's ground-truth odometry and calculates the virtual forces and moment $[X, Y, N]^T$. The thruster allocation block maps these virtual forces to steering angles and motor thrust commands published to Gazebo.
+        \item \textbf{USV Control Loop (10 Hz):} The Nonlinear Model Predictive Control (NMPC) node receives the vessel's ground-truth odometry and calculates the virtual forces and moment $[X, Y, N]^\top$. The thruster allocation block maps these virtual forces to steering angles and motor thrust commands published to Gazebo.
         \item \textbf{UAV Control Loop (50 Hz):} The NMPC node receives the drone's ground-truth telemetry and the relative USV position to calculate collective thrust and attitude rates. These targets are published to the PX4 flight controller via Micro XRCE-DDS.
         \item \textbf{Tether and Winch Loop (50 Hz):} The MoorDyn node receives vehicle poses from TF, updates the cable state, and publishes the calculated tension forces to Gazebo. Simultaneously, the winch controller computes the spooling rate command $\dot{L}_{tether}$ to update the unstretched length of the cable in MoorDyn.
     \end{itemize}

@@ -137,7 +137,7 @@ Predicting the vessel's motion, as needed for trajectory tracking and predictive
 The state vector $\mathbf{x}_v \in \mathbb{R}^6$ is given by
 \begin{equation}
     \label{eq:usv_state_vector}
-    \mathbf{x}_v = [x, y, \psi, u, v, r]^T,
+    \mathbf{x}_v = [x, y, \psi, u, v, r]^\top,
 \end{equation}
 where:
 \begin{itemize}
@@ -149,7 +149,7 @@ where:
 The control input vector $\mathbf{u}_v \in \mathbb{R}^3$ is given by
 \begin{equation}
     \label{eq:usv_input_vector}
-    \mathbf{u}_v = [X, Y, N]^T,
+    \mathbf{u}_v = [X, Y, N]^\top,
 \end{equation}
 where:
 \begin{itemize}
@@ -413,7 +413,7 @@ The yaw moment produced by a planar force $(f_x, f_y)$ applied at $(r_x, r_y)$ i
     \label{eq:usv_thruster_moment}
 \end{equation}
 
-Equations~\eqref{eq:usv_thruster_force_sum} and~\eqref{eq:usv_thruster_moment} complete the mapping from the four physical actuator commands $T_L, T_R, \alpha_L, \alpha_R$ to the control input $\mathbf{u}_v = [X, Y, N]^T$ used by the dynamic model.
+Equations~\eqref{eq:usv_thruster_force_sum} and~\eqref{eq:usv_thruster_moment} complete the mapping from the four physical actuator commands $T_L, T_R, \alpha_L, \alpha_R$ to the control input $\mathbf{u}_v = [X, Y, N]^\top$ used by the dynamic model.
 
 
 % ==============================================================================
@@ -434,7 +434,7 @@ Predicting the vehicle's motion, as needed for trajectory tracking and predictiv
 The state vector $\mathbf{x}_a \in \mathbb{R}^6$ is given by
 \begin{equation}
     \label{eq:uav_state_vector}
-    \mathbf{x}_a = [x, y, z, \dot{x}, \dot{y}, \dot{z}]^T,
+    \mathbf{x}_a = [x, y, z, \dot{x}, \dot{y}, \dot{z}]^\top,
 \end{equation}
 where:
 \begin{itemize}
@@ -444,7 +444,7 @@ where:
 The control input vector $\mathbf{u}_a \in \mathbb{R}^4$ is given by
 \begin{equation}
     \label{eq:uav_input_vector}
-    \mathbf{u}_a = [T, \phi, \theta, \psi]^T,
+    \mathbf{u}_a = [T, \phi, \theta, \psi]^\top,
 \end{equation}
 where:
 \begin{itemize}
@@ -535,7 +535,7 @@ Figure~\ref{fig:uav_thrust_vectoring} illustrates this projection in the longitu
 
         % Gravity Vector (MATLAB Blue)
         \draw[compVec] (0,0) -- (0, -1.7) 
-            node[left, font=\footnotesize, okiBlue, xshift=-2pt, yshift=2pt] {$m\mathbf{g} = [0, 0, -mg]^T$};
+            node[left, font=\footnotesize, okiBlue, xshift=-2pt, yshift=2pt] {$m\mathbf{g} = [0, 0, -mg]^\top$};
 
         % -- TILTED QUADROTOR STRUCTURE --
         % Rotated airframe arm (at angle -\thetaAngle)
@@ -627,6 +627,7 @@ Substituting \eqref{eq:uav_thrust_inertial} and \eqref{eq:uav_gravity} into \eqr
 
 \subsection{Tether Force Model}
 \label{subsec:mod_uav_tether}
+\label{subsec:mod_tether_force_model}
 
 In addition to thrust and gravity, the vehicle is subject to a force transmitted through a tether connecting the origin $\mathcal{O}_a$ of $\{\mathcal{B}_a\}$ to a fixed attachment point on the WAM-V, whose position $\mathbf{p}_v$ is treated here only as a known geometric anchor, without modeling the (negligible) reaction force exerted on the boat.
 
