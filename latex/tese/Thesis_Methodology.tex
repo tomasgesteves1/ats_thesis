@@ -1,0 +1,14 @@
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%                                                                      %
+%     File: Thesis_Methodology.tex                                     %
+%     Tex Master: Thesis.tex                                           %
+%                                                                      %
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+\chapter{Proposed Methodology}
+\label{chapter:methodology}
+
+This chapter presents the theoretical and algorithmic methodology developed in this work for the autonomous cooperative control of the tethered USV-UAV system. It is structured into two main parts: Section~\ref{sec:system_modeling} derives the control-oriented kinematic and dynamic models of both vehicles, their actuator mappings, and the physical coupling introduced by the tether; Section~\ref{sec:system_control} then formulates the cooperative Nonlinear Model Predictive Control (NMPC) architecture that exploits these models to compute optimal, collision-free, and constraint-respecting trajectories.
+
+\input{Methodology/01_SystemModeling}
+\input{Methodology/02_SystemControl}
