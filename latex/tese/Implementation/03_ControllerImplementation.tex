@@ -8,3 +8,15 @@
 % ==============================================================================
 \section{Controller Implementation}
 \label{sec:controller_implementation}
+
+\subsection{Embedded Optimization Framework (CasADi \& Acados Pipeline)}
+\label{subsec:nmpc_solver_framework}
+% Symbolic modeling with CasADi, C code export via Acados, HPIPM quadratic programming solver and BLASFEO linear algebra kernels
+
+\subsection{USV Controller Implementation}
+\label{subsec:usv_controller_implementation}
+% Discretization (Ts = 0.1s, N = 20, Tf = 2.0s), SQP Gauss-Newton solver, tuning weights (Q, R), virtual force limits, thruster allocation mapping
+
+\subsection{UAV Controller Implementation}
+\label{subsec:uav_controller_implementation}
+% High-rate discretization (Ts = 0.02s, N = 50, Tf = 1.0s), SQP-RTI algorithm, cost tuning, tether constraint handling with slack variables, PX4 uORB interface
