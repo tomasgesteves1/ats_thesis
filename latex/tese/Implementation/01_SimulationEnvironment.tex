@@ -202,18 +202,65 @@ The tether is coupled to the vehicles by a \gls{ros} node, as shown in Figure~\r
 \subsection{Tether Winch}
 \label{sec:tether_winch}
 
-The model of the tether used by the controllers assumes that its slack is kept close to a constant value $\varepsilon_0$ (Section~\ref{sec:system_modeling}), which requires a mechanism that adjusts the length of the cable as the vehicles move. In a real system, this is the function of a winch on the vessel, which spools the cable in and out. In simulation, only the effect of the winch is reproduced, which is the variation of the length of the cable, and not the winch itself.
+The model of the tether used by the controllers assumes that its slack is kept close to a constant value $\varepsilon_0$ (Section~\ref{sec:system_modeling}), which requires a mechanism that adjusts the length of the cable as the vehicles move. In a real system, this is the function of a winch on the vessel, which spools the cable in and out. In simulation, this mechanism is represented by a virtual winch that varies the length of the cable.
 
 At each step, the virtual winch computes the length that gives the desired slack for the current distance $d$ between the attachment points,
 \begin{equation}
     L_{\text{ref}} = \frac{d}{1-\varepsilon_0},
     \label{eq:winch_length}
 \end{equation}
-and changes the unstretched length of the cable towards this value, at a speed limited to $v_{\text{winch}}$. The slack is therefore kept approximately constant, except when the distance changes faster than the winch can follow. The values used are $\varepsilon_0 = 0.05$ and $v_{\text{winch}} = 5\,\text{m/s}$, and the dynamics of the motor and of the drum are not modelled. Figure~\ref{fig:winch_slack} shows the length of the cable following the distance between the vehicles, and the resulting slack ratio.
+and changes the unstretched length of the cable towards this value. A real system cannot follow the variations of the distance instantly, because of the speed of the winch and the delay in the measurement of the distance. To account for this limitation, the rate of change of the length is limited to $v_{\text{winch}}$, so that the slack deviates from $\varepsilon_0$ when the distance changes faster than the system can follow. The values used are $\varepsilon_0 = 0.05$ and $v_{\text{winch}} = 5\,\text{m/s}$.
 
-% \begin{figure}[!htbp]
-%     \centering
-%     \includegraphics[width=0.85\textwidth]{Implementation/figures/winch_slack.pdf}
-%     \caption{Distance between the attachment points, length of the cable, and slack ratio during <cenário>.}
-%     \label{fig:winch_slack}
-% \end{figure}
+Figures~\ref{fig:winch_shape} and~\ref{fig:winch_sweep} show the effect of the slack ratio on the tether, for the same trajectory of the \gls{uav} and for $\varepsilon_0 = 2\%$, $5\%$, and $10\%$. A larger slack makes the cable sag more between the vehicles (Figure~\ref{fig:winch_shape}), and the length of the cable follows the distance between them, staying above it by a margin that grows with $\varepsilon_0$ (Figure~\ref{fig:winch_geometry}). The tension at the \gls{uav} follows the distance, since the weight of the cable that it supports increases with it, and decreases as the slack increases (Figure~\ref{fig:winch_tension}).
+
+\begin{figure}[!htbp]
+    \centering
+    \subfloat[$\varepsilon_0 = 2\%$.]{
+        \includegraphics[width=0.32\textwidth]{Implementation/figures/slack_2.png}
+        \label{fig:winch_shape_2}
+    }
+    \hfill
+    \subfloat[$\varepsilon_0 = 5\%$.]{
+        \includegraphics[width=0.32\textwidth]{Implementation/figures/slack_5.png}
+        \label{fig:winch_shape_5}
+    }
+    \hfill
+    \subfloat[$\varepsilon_0 = 10\%$.]{
+        \includegraphics[width=0.32\textwidth]{Implementation/figures/slack_10.png}
+        \label{fig:winch_shape_10}
+    }
+    \caption{Shape of the tether for different slack ratios, displayed in Foxglove.}
+    \label{fig:winch_shape}
+\end{figure}
+
+\begin{figure}[!htbp]
+    \centering
+    \subfloat[Distance (dashed) and cable length (solid).]{
+        \includegraphics[width=0.48\textwidth]{Implementation/figures/slack_geometry.pdf}
+        \label{fig:winch_geometry}
+    }
+    \hfill
+    \subfloat[Tension at the \acrshort{uav}.]{
+        \includegraphics[width=0.48\textwidth]{Implementation/figures/slack_tension.pdf}
+        \label{fig:winch_tension}
+    }
+    \caption{Distance between the attachment points, length of the cable, and tension at the \acrshort{uav} for the same trajectory and different slack ratios.}
+    \label{fig:winch_sweep}
+\end{figure}
+
+Table~\ref{tab:winch_slack} summarises these results. The maximum distance between the vehicles is about $14\,\text{m}$ in the three runs, differing by $5\,\text{cm}$ at most, which confirms that the trajectory is the same. From $\varepsilon_0 = 2\%$ to $10\%$, the mean tension decreases from $2.07\,\text{N}$ to $1.62\,\text{N}$, a reduction of $22\%$, and the maximum from $3.38\,\text{N}$ to $2.88\,\text{N}$. These values are small compared with the weight of the \gls{uav}, which is $20.2\,\text{N}$, so that the value of $\varepsilon_0$ is not critical, and $5\%$ is used as a compromise between the amount of loose cable and the tension.
+
+\begin{table}[!htbp]
+    \centering
+    \caption{Tension at the \acrshort{uav} and maximum distance between the vehicles for different slack ratios, over the $60\,\text{s}$ of the trajectory.}
+    \label{tab:winch_slack}
+    \begin{tabular}{ccccc}
+        \toprule
+        \textbf{$\varepsilon_0$} & \textbf{Mean} (N) & \textbf{Maximum} (N) & \textbf{Std. dev.} (N) & \textbf{Max. distance} (m) \\
+        \midrule
+        $2\%$  & $2.07$ & $3.38$ & $0.73$ & $13.99$ \\
+        $5\%$  & $1.78$ & $3.08$ & $0.69$ & $14.03$ \\
+        $10\%$ & $1.62$ & $2.88$ & $0.64$ & $13.98$ \\
+        \bottomrule
+    \end{tabular}
+\end{table}

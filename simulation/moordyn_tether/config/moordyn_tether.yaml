@@ -46,10 +46,10 @@ moordyn_tether_node:
     # Virtual Winch configuration
     # Prevents slack cable sag or excessive pulling.
     winch_enabled: true
-    winch_mode: "tension"      # "geometric" (slack_factor) or "tension" (target_tension)
+    winch_mode: "geometric"    # "geometric" (slack_factor) or "tension" (target_tension)
     
     # Geometric Mode:
-    winch_slack_factor: 1.15   # 1.15 = 15 % extra cable beyond straight-line span
+    winch_slack_factor: 1.10   # 1.10 = 10 % extra cable beyond straight-line span
     
     # Tension Mode:
     winch_target_tension: -0.1 # Target tension [N] on Z-axis (e.g., -0.5N pulling down)

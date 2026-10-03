@@ -1,0 +1,16 @@
+uav_trajectory_line_node:
+  ros__parameters:
+    line_length: 20.0             # Total horizontal length of longitudinal line [m]
+    line_yaw: 0.0                 # Orientation angle (0.0 rad = along world X axis)
+    center_x: 0.0                 # Center X coordinate [m]
+    center_y: 0.0                 # Center Y coordinate [m]
+    min_altitude: 3.0             # Minimum altitude at start of line [m]
+    max_altitude: 10.0            # Maximum altitude at end of line [m]
+    acceleration: 2.0             # Linear acceleration for speed transitions [m/s^2]
+    hover_time: 12.0              # Initial hover time for takeoff / stabilization [s]
+    pause_time: 4.0               # Pause at waypoints and reversal points [s]
+    speed_levels: [2.0, 3.0]      # Successive speed steps [m/s]
+    horizon_stages: 50            # Number of preview steps for MPC horizon
+    control_period: 0.02          # MPC sample time dt [s] (50 Hz)
+    update_rate_hz: 50.0          # Rate for trajectory generation loop [Hz]
+    world_frame: "world"
