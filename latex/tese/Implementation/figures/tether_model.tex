@@ -1,0 +1,69 @@
+\begin{figure}[!htbp]
+    \centering
+    \subfloat[Cable divided into nodes and segments.]{
+        \begin{tikzpicture}[
+            node/.style={circle, fill=black, inner sep=1.6pt},
+            note/.style={font=\scriptsize, align=center},
+            ptr/.style={-{Stealth[length=4pt]}, thin, gray}
+        ]
+            % Node positions along a sagging cable
+            \foreach \k in {0,...,6} {
+                \pgfmathsetmacro{\t}{\k/6}
+                \pgfmathsetmacro{\x}{5.4*\t}
+                \pgfmathsetmacro{\y}{1.5*\t-1.1*4*\t*(1-\t)}
+                \coordinate (n\k) at (\x,\y);
+            }
+            % Segments
+            \foreach \k in {0,...,5} {
+                \pgfmathtruncatemacro{\kk}{\k+1}
+                \draw[thick] (n\k) -- (n\kk);
+            }
+            % Free nodes
+            \foreach \k in {1,...,5} {
+                \node[node] at (n\k) {};
+            }
+            % End points: attached to the vehicles
+            \draw[fill=gray!30] ($(n0)+(-0.17,-0.17)$) rectangle ($(n0)+(0.17,0.17)$);
+            \draw[fill=gray!30] ($(n6)+(-0.17,-0.17)$) rectangle ($(n6)+(0.17,0.17)$);
+            \node[note] at ($(n0)+(0,-0.55)$) {Attached\\to the \acrshort{usv}};
+            \node[note] at ($(n6)+(0,0.6)$) {Attached\\to the \acrshort{uav}};
+            % Annotations
+            \node[note] (lnode) at ($(n2)+(0,-0.95)$) {Node $i$\\(lumped mass)};
+            \draw[ptr] (lnode.north) -- ($(n2)+(0,-0.1)$);
+            \node[note] (lseg) at ($(n4)+(-1.2,0.95)$) {Segment\\(spring and damper)};
+            \draw[ptr] (lseg.south) -- ($($(n3)!0.5!(n4)$)+(0,0.05)$);
+        \end{tikzpicture}
+        \label{fig:tether_chain}
+    }
+    \hfill
+    \subfloat[Forces on a node.]{
+        \begin{tikzpicture}[
+            node/.style={circle, fill=black, inner sep=1.6pt},
+            force/.style={-{Stealth[length=6pt]}, very thick, red!70!black},
+            lab/.style={font=\scriptsize}
+        ]
+            \coordinate (c) at (0,0);
+            \coordinate (a) at (-2.2,0.9);
+            \coordinate (b) at (2.2,0.5);
+            % Neighbouring segments (spring symbol)
+            \draw[decorate, decoration={zigzag, segment length=5pt, amplitude=1.6pt}, gray!60] (c) -- (a);
+            \draw[decorate, decoration={zigzag, segment length=5pt, amplitude=1.6pt}, gray!60] (c) -- (b);
+            \node[node] at (a) {};
+            \node[node] at (b) {};
+            \node[node, inner sep=2.4pt] at (c) {};
+            \node[lab, above=3pt] at (a) {node $i-1$};
+            \node[lab, above=3pt] at (b) {node $i+1$};
+            \node[lab, below right] at (c) {node $i$};
+            % Forces on node i
+            \draw[force] (c) -- ($(c)!1.5cm!(a)$) node[lab, midway, above, sloped, black, inner sep=2pt] {$\mathbf{T}_{i-1}$};
+            \draw[force] (c) -- ($(c)!1.5cm!(b)$) node[lab, midway, above, sloped, black, inner sep=2pt] {$\mathbf{T}_{i}$};
+            \draw[force] (c) -- (0,-1.1) node[lab, below, black] {$m_i\mathbf{g}$};
+            % Velocity and drag
+            \draw[-{Stealth[length=5pt]}, thin, gray, dashed] (c) -- (0.75,0.8) node[lab, right, black] {$\mathbf{v}_i$};
+            \draw[force] (c) -- (-0.75,-0.8) node[lab, left, black] {$\mathbf{F}^{\text{drag}}_i$};
+        \end{tikzpicture}
+        \label{fig:tether_forces}
+    }
+    \caption{Lumped-mass model of the tether. Bending forces are not shown.}
+    \label{fig:tether_model}
+\end{figure}

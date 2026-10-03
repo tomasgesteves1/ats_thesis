@@ -10,7 +10,8 @@
 
 Chapter~\ref{chapter:methodology} defines the models and the controllers of the tethered USV--UAV system, but their behaviour and performance can only be assessed once they are implemented and executed. This depends on how the controllers interact with the vehicles, the tether, and the marine environment, which cannot be studied analytically.
 
-For this reason, a realistic simulation environment was developed to support the design of the controllers. It represents the vehicles and the tether, and provides controlled and repeatable conditions under which the controllers are tested. The controllers were then implemented to run in real time and adapted to the vehicles used in simulation. Finally, manoeuvres and missions were defined to evaluate the performance of the controllers in representative operations.
+For this reason, a realistic simulation environment, integrated with \gls{ros}~2, was developed to support the design of the controllers. It represents the vehicles and the tether, and provides controlled and repeatable conditions under which the controllers are tested. The controllers were then implemented to run in real time and adapted to the vehicles used in simulation. Finally, manoeuvres and missions were defined to evaluate the performance of the controllers in representative operations.
+
 
 \input{Implementation/01_SimulationEnvironment}
 \input{Implementation/02_SystemIdentification}

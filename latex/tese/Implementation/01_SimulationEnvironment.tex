@@ -9,25 +9,211 @@
 \section{Simulation Environment}
 \label{sec:simulation_environment}
 
-Validating the cooperative \gls{nmpc} architecture developed in Chapter~\ref{chapter:control} requires a platform where the USV, the UAV, and the tether connecting them can be exercised under realistic and repeatable conditions. Testing directly on physical hardware is costly, slow to iterate on, and exposes the vehicles to damage whenever a controller is misconfigured or a new maneuver is tried for the first time. A simulation environment removes these constraints: controllers can be developed and debugged through many fast iterations, without waiting on hardware availability or risking the platforms themselves.
+Simulation is the natural first step in the development of the controllers, since it allows them to be tested and adjusted before being used on the real vehicles. The simulations in this work are run in Gazebo \cite{koenig2004gazebo}, a robotics simulator. A simulator is a program that creates a virtual environment, places robots in it, and calculates how they would behave in reality. At each step, it receives the commands sent to the robots, computes the forces acting on them, updates their positions accordingly, and returns the measurements that their sensors would produce. To the controller, the simulated robot behaves like a real one.
 
-Simulation also makes it possible to evaluate performance under conditions that are difficult, dangerous, or simply impractical to reproduce physically. Scenarios such as strong wind gusts, one controller failing to find a feasible solution, or the \gls{uav} being unable to keep pace with the \gls{usv}, can be run as many times as needed, with the exact same initial conditions and disturbances, something field testing cannot guarantee due to the inherent variability of a real environment. This repeatability is essential for a fair comparison between controllers or parameter choices, since any difference observed can be attributed to the change being tested rather than to uncontrolled environmental variation. Every state of the system is also available exactly, without the sensor noise or estimation error present in a physical setup, which allows the behaviour of the controllers themselves to be isolated and analyzed independently of state estimation.
-
-Beyond validating the control strategy, the simulated system is also used to develop and test the surrounding software architecture: the communication between the two \gls{nmpc} controllers, the coordination of maneuvers, and the central dashboard that monitors and manages the mission. Building this environment on \gls{ros} and Gazebo allows the same middleware and software structure used here to carry over to a future deployment on physical hardware, reducing the gap between the simulated and the real system.
-
-This chapter details the practical implementation of the cooperative system across five main areas: the simulation environment (Section~\ref{sec:simulation_environment}), system identification (Section~\ref{sec:system_identification}), controller implementation and solver tuning (Section~\ref{sec:controller_implementation}), coordinated maneuvers and mission logic (Section~\ref{sec:maneuvers_and_missions}), and the underlying software architecture and operator dashboard (Section~\ref{sec:software_architecture_and_dashboard}).
+This allows controllers to be developed through many fast iterations, and different scenarios to be repeated under the same conditions, which makes the comparison between controllers and parameter choices fair. Sensor noise and estimation error can also be included in simulation, but they can be left out during development, so that the behaviour of the controllers is analysed on its own.
 
 \subsection{World}
 \label{sec:world}
 
-\subsection{WAM-V Catamaran}
-\label{sec:wam_v_catamaran}
+The space where the simulation takes place is called the world. It contains the environment around the robots, such as the terrain, obstacles, and light, and defines the rules that apply inside it, such as the way time advances, the physical effects that are calculated, and the sensors that can be simulated. The robots are not part of the world. They are added to it afterwards, and what happens to them results from the interaction between their own models and the world in which they are placed.
 
+A world is defined in a text file that lists its elements and the plugins that enable its behaviour. Plugins are software modules that add functionality to the simulator, such as the calculation of buoyancy or the simulation of sensors.
+
+The world used in this work represents an open water area, shown in Figure~\ref{fig:world_view}. It consists of a sea surface and a seabed below it, and the buoyancy is calculated from the density of the water, which allows the hull of the \gls{usv} to float. The world also enables the simulation of the sensors that the vehicles can use to estimate their state, such as inertial, magnetic, pressure, and satellite positioning sensors.
+
+\begin{figure}[!htbp]
+    \centering
+    \includegraphics[width=0.7\textwidth]{Implementation/figures/world.png}
+    \caption{View of the simulated world}
+    \label{fig:world_view}
+\end{figure}
+
+The vehicles operate at sea, where wind, waves, and currents act on them. The world allows these disturbances to be included, so that the controllers can be tested under conditions that their models do not predict. Each disturbance acts through a different physical path. Wind applies a force on the bodies exposed to the air, waves change the height of the water surface and therefore the buoyancy of the hull, and currents move the water itself, which changes the drag on the submerged bodies. These disturbances can be enabled, disabled, or adjusted for each test.
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\subsection{Wave Adaptive Modular Vessel}
+\label{sec:usv_model}
+
+The \gls{wamv} is a catamaran with two inflatable hulls connected by a central payload deck, used in maritime robotics competitions. In this work it is the \gls{usv} of the tethered system. It was chosen mainly because its payload deck is large enough to serve as a platform for the takeoff and landing of the \gls{uav}. In addition, a complete and publicly available model of the vessel exists in the \gls{vrx} simulation framework \cite{bingham2019vrx}, so that the work could focus on the control and not on building and validating a vessel model. Figure~\ref{fig:wamv_render} shows the vehicle in the simulated world.
+
+\begin{figure}[!htbp]
+    \centering
+    \includegraphics[width=0.7\textwidth]{Implementation/figures/wamv.png}
+    \caption{The \acrshort{wamv} catamaran in the simulated world.}
+    \label{fig:wamv_render}
+\end{figure}
+
+In the simulator, a vehicle is described by a model that lists its bodies, the joints that connect them, and for each body its mass, its inertia, and its geometry. The \gls{wamv} is represented by a main rigid body, which includes the hulls, the deck, and the batteries, with a mass of $227\,\text{kg}$ and moments of inertia of $181$, $408$, and $495\,\text{kg}\cdot\text{m}^2$ about the longitudinal, lateral, and vertical axes. The two thrusters and the sensors are separate bodies attached to it through joints. The thrusters can rotate to steer the vessel, while the joints of the sensors are fixed. Including all bodies, the total mass is $259.10\,\text{kg}$.
+
+The catamaran has an overall length of $4.90\,\text{m}$ and a beam of $2.40\,\text{m}$. The payload deck, with $1.85\,\text{m}$ in length and $1.00\,\text{m}$ in width, is supported by the two hulls at about $1.25\,\text{m}$ above the water surface, as shown in Figure~\ref{fig:wamv_schematic}.
+
+\input{Implementation/figures/wamv_layout.tex}
+
+The behaviour of the vessel on the water is determined by how the simulator reproduces the forces that the water exerts on it. The hulls are kept afloat by a buoyancy force, which is calculated from the volume of each hull below the water surface. When waves are present, this volume changes along the hulls and the catamaran pitches and rolls accordingly. As the vessel moves, the water also resists its motion through drag forces and moments applied in the six \glspl{dof}. For a velocity $\nu_i$ along or about each degree of freedom, the drag is
+\begin{equation}
+    D_i = -\left(d_i^{\text{lin}} + d_i^{\text{quad}}\,|\nu_i|\right)\nu_i,
+    \label{eq:usv_drag}
+\end{equation}
+where $d_i^{\text{lin}}$ and $d_i^{\text{quad}}$ are the linear and quadratic coefficients. The negative sign makes the drag oppose the motion, and the linear term dominates at low speeds while the quadratic term dominates at higher speeds. This makes the vehicle slow down naturally when the propulsion is cut off. The coefficients of each degree of freedom, given in Table~\ref{tab:usv_damping_parameters}, are those provided by the \gls{vrx} model.
+
+\begin{table}[htbp]
+    \centering
+    \caption{Hydrodynamic damping coefficients of the simulated \acrshort{wamv}.}
+    \label{tab:usv_damping_parameters}
+    \begin{tabular}{lccc}
+        \toprule
+        \textbf{Damping Mode} & \textbf{Linear Coefficient} & \textbf{Quadratic Coefficient} & \textbf{Unit} \\
+        \midrule
+        Surge & $100.00$ & $150.00$ & $\text{N}/(\text{m/s})$ or $\text{N}/(\text{m/s})^2$ \\
+        Sway & $100.00$ & $100.00$ & $\text{N}/(\text{m/s})$ or $\text{N}/(\text{m/s})^2$ \\
+        Heave & $500.00$ & -- & $\text{N}/(\text{m/s})$ \\
+        Roll & $300.00$ & $600.00$ & $\text{N}\cdot\text{m}/(\text{rad/s})$ or $\text{N}\cdot\text{m}/(\text{rad/s})^2$ \\
+        Pitch & $900.00$ & $900.00$ & $\text{N}\cdot\text{m}/(\text{rad/s})$ or $\text{N}\cdot\text{m}/(\text{rad/s})^2$ \\
+        Yaw & $800.00$ & $800.00$ & $\text{N}\cdot\text{m}/(\text{rad/s})$ or $\text{N}\cdot\text{m}/(\text{rad/s})^2$ \\
+        \bottomrule
+    \end{tabular}
+\end{table}
+
+The vehicle is propelled by two azimuth thrusters, one at the stern of each hull, and it steers by rotating them instead of using a rudder. To move, the model needs to receive, for each thruster, the thrust force that it must produce, in newtons, and its steering angle. The angle is limited to $\pm 30$ degrees, to avoid twisting the power cables, and its rate of change to $10$ degrees per second. The thrust is limited to $510.0\,\text{N}$ in the forward direction, a value representative of the electric outboard motors used on the \gls{wamv} in robotics competitions, such as the Torqeedo Cruise 2.0 \cite{torqeedo_cruise_manual}. In reverse, the propeller is less efficient, which is modelled with a multiplier of $0.746$ that limits the thrust to $-380.0\,\text{N}$.
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 \subsection{X500 Quadrotor}
 \label{sec:x500_quadrotor}
 
+The Holybro X500 v2 \cite{holybro_x500} is a quadrotor, and in this work it is the \gls{uav} of the tethered system. It was chosen mainly because it is heavier and more stable than small multirotors, which makes it better suited to fly with a tether attached to it. Its size is also compatible with the payload deck of the \gls{wamv}, leaving enough room for takeoff and landing, and a complete model of the vehicle is available in the simulation ecosystem of the PX4 autopilot \cite{meier2015px4}, so that the work could focus on the control and not on building and validating a vehicle model. Figure~\ref{fig:x500_render} shows the vehicle in the simulated world.
+
+\begin{figure}[!htbp]
+    \centering
+    \includegraphics[width=0.7\textwidth]{Implementation/figures/drone_world.png}
+    \caption{The x500 quadrotor in the simulated world.}
+    \label{fig:x500_render}
+\end{figure}
+
+The x500 is described in the simulator in the same way as the \gls{wamv}, by a model that lists its bodies, the joints that connect them, and the mass and inertia of each one. It consists of a main rigid body, which includes the frame and the sensors, and of four rotors, which are separate bodies connected to it through rotating joints. Their masses, inertias, and positions are given in Table~\ref{tab:x500_parameters}. The rotors are $0.348\,\text{m}$ apart along the sides of the frame and about $0.49\,\text{m}$ apart along the diagonal. The landing gear is $0.264\,\text{m}$ wide, and the motor mounts are $0.26\,\text{m}$ above the ground, as shown in Figure~\ref{fig:x500_schematic}.
+
+\input{Implementation/figures/x500_layout.tex}
+
+\begin{table}[!htbp]
+    \centering
+    \caption{Parameters of the simulated x500, based on the PX4 model \cite{px4_x500_model}.}
+    \label{tab:x500_parameters}
+    \begin{tabular}{lcc}
+        \toprule
+        \textbf{Parameter} & \textbf{Value} & \textbf{Unit} \\
+        \midrule
+        Main body mass & $2.0$ & $\text{kg}$ \\
+        Rotor mass (each) & $0.016$ & $\text{kg}$ \\
+        Total mass & $2.06$ & $\text{kg}$ \\
+        Moment of inertia, longitudinal and lateral axes & $0.0217$ & $\text{kg}\cdot\text{m}^2$ \\
+        Moment of inertia, vertical axis & $0.040$ & $\text{kg}\cdot\text{m}^2$ \\
+        Rotor position, along each horizontal axis & $\pm 0.174$ & $\text{m}$ \\
+        \midrule
+        Thrust coefficient $k_F$ & $1.11\times 10^{-5}$ & $\text{N}/(\text{rad/s})^2$ \\
+        Moment coefficient $k_M$ & $0.016$ & $\text{m}$ \\
+        Maximum rotor speed & $1000$ & $\text{rad/s}$ \\
+        Rotor time constant, accelerating & $12.5$ & $\text{ms}$ \\
+        Rotor time constant, decelerating & $25$ & $\text{ms}$ \\
+        \bottomrule
+    \end{tabular}
+\end{table}
+
+The vehicle is lifted by the thrust that its rotors produce by pushing air downwards. The model receives, for each rotor $i$, a command with its angular speed $\omega_i$, in rad/s, and each rotor produces a thrust force $F_i$ and a reaction moment $M_i$ that depend on it \cite{mahony2012multirotor},
+\begin{equation}
+    F_i = k_F\,\omega_i^2, \qquad M_i = s_i\,k_M\,F_i,
+    \label{eq:x500_rotor}
+\end{equation}
+where $k_F$ is the thrust coefficient, $k_M$ is the moment coefficient, and $s_i = \pm 1$ gives the sign of the moment, which depends on the direction of rotation. Rotors on the same diagonal rotate in the same direction and adjacent rotors in opposite directions, so that the reaction moments balance each other when the vehicle hovers. The model also includes the aerodynamic drag of the rotors.
+
+The rotors have limits that the model reproduces. The speed of each rotor does not change instantly, and it follows the command with the time constants given in Table~\ref{tab:x500_parameters}, up to the maximum speed given in the same table. At this speed, each rotor produces about $11.1\,\text{N}$, and the four together produce $44.5\,\text{N}$. As the weight of the vehicle is $20.2\,\text{N}$, the thrust-to-weight ratio is about $2.2$. In hovering, the rotors produce about $45\%$ of their maximum thrust, at a speed of about $675\,\text{rad/s}$, which leaves about $24\,\text{N}$ available to manoeuvre and to counter the force of the tether.
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 \subsection{Tether}
 \label{sec:tether}
 
+The tether couples the two vehicles, so the behaviour of the system depends on how it is represented. To evaluate the controllers as close as possible to real operation, they should be tested against a tether model that is more detailed than the one used in their design. The model used by the controllers, described in Section~\ref{sec:system_modeling}, approximates the tether by a catenary linearised around a constant slack. This simplification keeps the computational cost low, since the controllers evaluate the model at every step of the prediction horizon within each sampling interval. The simulated tether does not have this constraint, so a more detailed model can be used. Since this type of cable is not included in the vehicle models, it is simulated separately and coupled to them.
+
+The tether is simulated with MoorDyn \cite{hall2015moordyn}, a tool that represents a cable as a chain of lumped masses connected by segments that behave as springs and dampers. Each segment resists stretching and bending, while the weight and the drag of the cable are calculated at the nodes between segments. The slack and the tension of the cable result from the motion of these nodes, without assuming a shape for the cable. MoorDyn runs separately from Gazebo, which does not represent the cable itself but receives its effect on the vehicles through the forces that MoorDyn calculates. The cable is therefore displayed in a separate visualisation tool, Foxglove \cite{foxglove}, as shown in Figure~\ref{fig:tether_foxglove}.
+
+\begin{figure}[!htbp]
+    \centering
+    \subfloat[Side view.]{
+        \reflectbox{\includegraphics[height=5.5cm]{Implementation/figures/drone_foxglove_side.png}}
+        \label{fig:tether_foxglove_side}
+    }
+    \hfill
+    \subfloat[Top view.]{
+        \includegraphics[height=5.5cm]{Implementation/figures/drone_foxglove_top.png}
+        \label{fig:tether_foxglove_top}
+    }
+    \caption{The tether between the \acrshort{usv} and the \acrshort{uav}, displayed in Foxglove.}
+    \label{fig:tether_foxglove}
+\end{figure}
+
+In this type of model, the mass of the cable is concentrated at the nodes, and the segments between them have no mass, as shown in Figure~\ref{fig:tether_chain}. The motion of each free node $i$ follows from Newton's second law, with the forces shown in Figure~\ref{fig:tether_forces},
+\begin{equation}
+    m_i\,\ddot{\mathbf{p}}_i = \mathbf{T}_{i-1} + \mathbf{T}_i + \mathbf{F}^{\text{bend}}_i + m_i\mathbf{g} + \mathbf{F}^{\text{drag}}_i,
+    \label{eq:tether_node}
+\end{equation}
+where $m_i$ and $\mathbf{p}_i$ are the mass and the position of the node, $\mathbf{T}_{i-1}$ and $\mathbf{T}_i$ are the tensions of the two adjacent segments, $\mathbf{F}^{\text{bend}}_i$ is the force due to the bending of the cable at the node, and $\mathbf{F}^{\text{drag}}_i$ is the drag, which opposes the velocity of the node. The magnitude of the tension of a segment depends on its elongation and on the rate at which it changes,
+\begin{equation}
+    T =
+    \begin{cases}
+        EA\,\eta + BA\,\dot{\eta}, & \eta > 0,\\
+        0, & \eta \le 0,
+    \end{cases}
+    \qquad \eta = \frac{\ell - \ell_0}{\ell_0},
+    \label{eq:tether_tension}
+\end{equation}
+where $\ell$ and $\ell_0$ are the current and the unstretched lengths of the segment, $EA$ is the axial stiffness, and $BA$ is the damping coefficient, which is defined through the damping ratio given in Table~\ref{tab:tether_parameters}. A segment that is shorter than its unstretched length carries no tension, so the cable can go slack. The accelerations are then integrated in time to obtain the new position and velocity of every node. The end nodes are not integrated, since their motion is imposed by the vehicles, and the forces at these nodes are the forces that the cable exerts on them.
+
+\input{Implementation/figures/tether_model.tex}
+
+The parameters of the model are the mass per unit length, which gives the mass $m_i$ of each node in~\eqref{eq:tether_node}, the axial stiffness $EA$ and the damping ratio, which define the tension in~\eqref{eq:tether_tension}, the bending stiffness, and the drag coefficients. Their values are given in Table~\ref{tab:tether_parameters}, together with the number of segments and the time step used to integrate the equations. The mass per unit length and the diameter are based on commercial micro-tethers for drones that provide power and data \cite{elistair_safet2,linden_microtethers}, and the axial stiffness is estimated from the tensile strength of these tethers. The length of the cable is not fixed, and it is changed by the winch described in Section~\ref{sec:tether_winch}.
+
+\begin{table}[!htbp]
+    \centering
+    \caption{Parameters of the simulated tether.}
+    \label{tab:tether_parameters}
+    \begin{tabular}{lcc}
+        \toprule
+        \textbf{Parameter} & \textbf{Value} & \textbf{Unit} \\
+        \midrule
+        Diameter & $3$ & $\text{mm}$ \\
+        Mass per unit length & $0.020$ & $\text{kg/m}$ \\
+        Axial stiffness, $EA$ & $5\times 10^{4}$ & $\text{N}$ \\
+        Damping ratio (relative to critical) & $0.8$ & -- \\
+        Bending stiffness & $2\times 10^{-5}$ & $\text{N}\cdot\text{m}^2$ \\
+        Transverse drag coefficient & $1.2$ & -- \\
+        Axial drag coefficient & $0.005$ & -- \\
+        Number of segments & $30$ & -- \\
+        Integration time step & $0.02$ & $\text{ms}$ \\
+        \bottomrule
+    \end{tabular}
+\end{table}
+
+The tether is coupled to the vehicles by a \gls{ros} node, as shown in Figure~\ref{fig:tether_coupling}. At each step, the node reads the position and the velocity of the two attachment points, which are the tether anchor on the deck of the \gls{usv} and the centre of the body of the \gls{uav}, and gives them to MoorDyn. MoorDyn imposes them as the motion of the ends of the cable, integrates the cable over the step, and returns the force vector at each attachment point, which is applied to the vehicles in Gazebo.
+
+\input{Implementation/figures/tether_coupling.tex}
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 \subsection{Tether Winch}
 \label{sec:tether_winch}
+
+The model of the tether used by the controllers assumes that its slack is kept close to a constant value $\varepsilon_0$ (Section~\ref{sec:system_modeling}), which requires a mechanism that adjusts the length of the cable as the vehicles move. In a real system, this is the function of a winch on the vessel, which spools the cable in and out. In simulation, only the effect of the winch is reproduced, which is the variation of the length of the cable, and not the winch itself.
+
+At each step, the virtual winch computes the length that gives the desired slack for the current distance $d$ between the attachment points,
+\begin{equation}
+    L_{\text{ref}} = \frac{d}{1-\varepsilon_0},
+    \label{eq:winch_length}
+\end{equation}
+and changes the unstretched length of the cable towards this value, at a speed limited to $v_{\text{winch}}$. The slack is therefore kept approximately constant, except when the distance changes faster than the winch can follow. The values used are $\varepsilon_0 = 0.05$ and $v_{\text{winch}} = 5\,\text{m/s}$, and the dynamics of the motor and of the drum are not modelled. Figure~\ref{fig:winch_slack} shows the length of the cable following the distance between the vehicles, and the resulting slack ratio.
+
+% \begin{figure}[!htbp]
+%     \centering
+%     \includegraphics[width=0.85\textwidth]{Implementation/figures/winch_slack.pdf}
+%     \caption{Distance between the attachment points, length of the cable, and slack ratio during <cenário>.}
+%     \label{fig:winch_slack}
+% \end{figure}
