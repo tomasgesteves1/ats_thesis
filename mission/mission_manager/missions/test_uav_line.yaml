@@ -1,6 +1,6 @@
 id: "test_uav_line"
 name: "Test UAV Longitudinal Line"
-description: "Drone MPC test on an inclined longitudinal line trajectory (3m to 10m altitude) at 2 and 3 m/s"
+description: "Drone MPC test on an inclined longitudinal line trajectory (3m to 10m altitude) at 5 and 8 m/s"
 category: "test"
 icon: "straight"
 
@@ -56,9 +56,9 @@ user_params:
   - key: "acceleration"
     label: "Acceleration"
     type: "float"
-    default: 2.0
+    default: 3.5
     min: 0.5
-    max: 3.0
+    max: 4.0
     unit: "m/s²"
     ros_mapping:
       node: "uav_trajectory_line_node"

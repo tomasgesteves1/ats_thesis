@@ -161,6 +161,10 @@ void UavMpcNode::trajectoryPathCallback(const nav_msgs::msg::Path::SharedPtr msg
     }
     
     pipeline_->setExternalReferencePath(path_points);
+
+    // The reference yaw travels in the orientation of the first pose (identity -> yaw 0)
+    const auto& q = msg->poses.front().pose.orientation;
+    yaw_ref_ = std::atan2(2.0 * (q.w * q.z + q.x * q.y), 1.0 - 2.0 * (q.y * q.y + q.z * q.z));
 }
 
 void UavMpcNode::tetherLengthCallback(const std_msgs::msg::Float64::SharedPtr msg) {
@@ -568,7 +572,7 @@ void UavMpcNode::publishAttitudeSetpoint(const UavControlOutput& output) {
     att_msg.timestamp = this->get_clock()->now().nanoseconds() / 1000;
     
     double q_d[4];
-    uav_mpc::kinematics::computeDesiredQuaternion(output.u_opt[0], output.u_opt[1], 0.0, q_d);
+    uav_mpc::kinematics::computeDesiredQuaternion(output.u_opt[0], output.u_opt[1], yaw_ref_, q_d);
     att_msg.q_d[0] = static_cast<float>(q_d[0]);
     att_msg.q_d[1] = static_cast<float>(q_d[1]);
     att_msg.q_d[2] = static_cast<float>(q_d[2]);

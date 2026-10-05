@@ -25,6 +25,7 @@ public:
     UavMpcNode();
 
 private:
+    double yaw_ref_{0.0};  ///< Reference yaw from the external path orientation [rad]
     void odomCallback(const nav_msgs::msg::Odometry::SharedPtr msg);
     void targetCallback(const geometry_msgs::msg::Point::SharedPtr msg);
     void trajectoryPathCallback(const nav_msgs::msg::Path::SharedPtr msg);

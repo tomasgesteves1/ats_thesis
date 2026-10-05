@@ -41,6 +41,7 @@ def generate_launch_description():
         ],
         remappings=[
             ('reference_path', '/uav/reference_path'),
+            ('odom', '/drone/ground_truth/odometry'),
         ]
     )
 

@@ -1,5 +1,6 @@
 #include "test_uav_line/test_uav_line_node.hpp"
 #include <geometry_msgs/msg/pose_stamped.hpp>
+#include <cmath>
 
 namespace test_uav_line {
 
@@ -17,6 +18,12 @@ TestUavLineNode::TestUavLineNode()
     this->declare_parameter<double>("hover_time", 12.0);
     this->declare_parameter<double>("pause_time", 4.0);
     this->declare_parameter<std::vector<double>>("speed_levels", std::vector<double>{2.0, 3.0});
+    this->declare_parameter<bool>("perpendicular_lines", true);
+    this->declare_parameter<double>("circle_radius", 5.0);
+    this->declare_parameter<double>("circle_speed", 2.5);
+    this->declare_parameter<int>("circle_laps", 2);
+    this->declare_parameter<double>("yaw_amplitude", 1.2);
+    this->declare_parameter<int>("yaw_cycles", 3);
     this->declare_parameter<int>("horizon_stages", 50);
     this->declare_parameter<double>("control_period", 0.02);
     this->declare_parameter<double>("update_rate_hz", 50.0);
@@ -33,9 +40,21 @@ TestUavLineNode::TestUavLineNode()
     cfg.hover_time = this->get_parameter("hover_time").as_double();
     cfg.pause_time = this->get_parameter("pause_time").as_double();
     cfg.speed_levels = this->get_parameter("speed_levels").as_double_array();
+    cfg.perpendicular_lines = this->get_parameter("perpendicular_lines").as_bool();
+    cfg.circle_radius = this->get_parameter("circle_radius").as_double();
+    cfg.circle_speed = this->get_parameter("circle_speed").as_double();
+    cfg.circle_laps = this->get_parameter("circle_laps").as_int();
+    cfg.yaw_amplitude = this->get_parameter("yaw_amplitude").as_double();
+    cfg.yaw_cycles = this->get_parameter("yaw_cycles").as_int();
 
     pipeline_ = std::make_unique<TestUavLinePipeline>();
     pipeline_->init(cfg);
+
+    // The mission clock only starts once the UAV has taken off and reached the hover altitude,
+    // so that the whole sequence is flown regardless of how long arming/takeoff take.
+    start_altitude_ = 0.5 * (cfg.min_altitude + cfg.max_altitude) - 1.0;
+    odom_sub_ = this->create_subscription<nav_msgs::msg::Odometry>(
+        "odom", 10, std::bind(&TestUavLineNode::odomCallback, this, std::placeholders::_1));
 
     // Relative publishers (Rule 4 of CODE_STANDARDS.md)
     path_pub_ = this->create_publisher<nav_msgs::msg::Path>("reference_path", 10);
@@ -54,14 +73,20 @@ TestUavLineNode::TestUavLineNode()
                 cfg.line_length, cfg.min_altitude, cfg.max_altitude, pipeline_->getTotalDuration());
 }
 
+void TestUavLineNode::odomCallback(const nav_msgs::msg::Odometry::SharedPtr msg) {
+    drone_z_ = msg->pose.pose.position.z;
+}
+
 void TestUavLineNode::timerCallback() {
     const double now_sec = this->get_clock()->now().seconds();
 
-    if (start_time_ < 0.0) {
+    if (start_time_ < 0.0 && drone_z_ >= start_altitude_) {
         start_time_ = now_sec;
+        RCLCPP_INFO(this->get_logger(), "UAV reached %.1f m: starting trajectory sequence.", drone_z_);
     }
 
-    const double elapsed = now_sec - start_time_;
+    // Until then the reference is the initial hover point (elapsed = 0)
+    const double elapsed = (start_time_ < 0.0) ? 0.0 : now_sec - start_time_;
     const int steps = this->get_parameter("horizon_stages").as_int();
     const double dt = this->get_parameter("control_period").as_double();
     const std::string world_frame = this->get_parameter("world_frame").as_string();
@@ -79,7 +104,9 @@ void TestUavLineNode::timerCallback() {
         pose.pose.position.x = pt.px;
         pose.pose.position.y = pt.py;
         pose.pose.position.z = pt.pz;
-        pose.pose.orientation.w = 1.0;
+        // Reference yaw travels in the pose orientation (rotation about world Z)
+        pose.pose.orientation.z = std::sin(0.5 * pt.yaw);
+        pose.pose.orientation.w = std::cos(0.5 * pt.yaw);
         path_msg.poses.push_back(pose);
     }
 

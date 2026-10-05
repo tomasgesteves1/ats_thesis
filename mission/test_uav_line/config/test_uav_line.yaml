@@ -6,10 +6,16 @@ uav_trajectory_line_node:
     center_y: 0.0                 # Center Y coordinate [m]
     min_altitude: 3.0             # Minimum altitude at start of line [m]
     max_altitude: 10.0            # Maximum altitude at end of line [m]
-    acceleration: 2.0             # Linear acceleration for speed transitions [m/s^2]
+    acceleration: 3.5             # Linear acceleration for speed transitions [m/s^2]
     hover_time: 12.0              # Initial hover time for takeoff / stabilization [s]
     pause_time: 4.0               # Pause at waypoints and reversal points [s]
-    speed_levels: [2.0, 3.0]      # Successive speed steps [m/s]
+    speed_levels: [5.0, 8.0]      # One inclined line per speed [m/s]
+    perpendicular_lines: true     # Each successive line is rotated 90 deg from the previous one
+    circle_radius: 5.0            # Final circle radius [m] (<= 0 disables it)
+    circle_speed: 2.5             # Circle tangential speed [m/s]
+    circle_laps: 2                # Number of laps
+    yaw_amplitude: 1.2            # Yaw oscillation amplitude along the circle [rad]
+    yaw_cycles: 3                 # Full yaw oscillations over the whole circle
     horizon_stages: 50            # Number of preview steps for MPC horizon
     control_period: 0.02          # MPC sample time dt [s] (50 Hz)
     update_rate_hz: 50.0          # Rate for trajectory generation loop [Hz]
