@@ -1,0 +1,81 @@
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%                                                                      %
+%     File: Implementation/02_ModelValidation.tex                      %
+%     Tex Master: ../Thesis.tex                                        %
+%                                                                      %
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+% ==============================================================================
+\section{Model Validation}
+\label{sec:model_validation}
+
+Before incorporating the vehicle and tether models into the real-time controllers developed in Chapter~\ref{chapter:methodology}, their accuracy and validity must be verified against the high-fidelity simulation environment described in Section~\ref{sec:simulation_environment}. This ensures that the simplified analytical formulations adequately capture the dominant physical dynamics while remaining computationally tractable for online execution.
+
+\subsection{USV Dynamics Validation}
+\label{subsec:usv_validation}
+% Hydrodynamic parameter verification and damping validation in surge, sway, and yaw
+
+\subsection{UAV Inner-Loop Dynamics Validation}
+\label{subsec:uav_validation}
+% Attitude response and verification of the inner-loop attitude lag (tau = 0.15 s)
+
+\subsection{Tether Model Validation}
+\label{subsec:tether_model_validation}
+
+The control architecture developed in Chapter~\ref{chapter:methodology} requires an estimate of the three-dimensional force $\mathbf{F}_{\mathrm{tether}}^{\mathcal{I}}$ exerted by the cable on the \gls{uav} to compensate for tether coupling and enforce tension constraints. In simulation, the cable is represented by a high-fidelity lumped-mass model in MoorDyn, which captures multi-node elasticity, bending stiffness, and hydrodynamic drag. However, evaluating such a high-degree-of-freedom representation or solving the non-linear catenary boundary value problem numerically at every control cycle or across the prediction horizon of an \gls{mpc} is computationally prohibitive. A closed-form, control-oriented model is therefore essential to provide instantaneous force predictions with negligible computational overhead.
+
+The first-principles formulation derived in Section~\ref{subsec:mod_tether_force_model} computes the tether force directly from its nominal physical specifications under steady winch regulation. With the winch maintaining the slack ratio around $\varepsilon_0 = 0.05$, the linear mass density $\mu = 0.020\,\text{kg/m}$ and gravitational acceleration $g = 9.81\,\text{m/s}^2$ yield a nominal tension-distance coefficient of
+\begin{equation}
+    c_d(\varepsilon_0) = \frac{\mu\,g}{1 - \varepsilon_0} = \frac{0.020 \times 9.81}{1 - 0.05} \approx 0.2065\,\text{N/m},
+    \label{eq:tether_val_cd}
+\end{equation}
+giving the scalar tension estimate $T_{\mathrm{theo}}(d) = c_d(\varepsilon_0)\,d$, where $d = \|\mathbf{p}_v - \mathbf{p}\|$ is the Euclidean distance between the \gls{usv} and the \gls{uav}. In terms of the unstretched cable length $L$, this corresponds to $T_{\mathrm{theo}}(L) = \mu\,g\,L = 0.1962\,L$. The three-dimensional direction $\hat{\mathbf{d}}$ is constructed by tilting the line-of-sight chord $\hat{\mathbf{d}}_0$ towards the vertical by the nominal catenary elevation deflection angle $\gamma(\alpha) = \gamma_0\cos\alpha$, where $\gamma_0 = 28.0^\circ$ is the nominal deflection at $\varepsilon_0 = 0.05$ and $\alpha$ is the chord depression angle. To assess whether this nominal model adequately captures the coupling dynamics, its predictions are evaluated against telemetry from the 30-segment MoorDyn simulator recorded during a $60.5\,\text{s}$ flight trajectory with separation distances ranging from $4.6\,\text{m}$ to $14.0\,\text{m}$. Furthermore, the formulation is benchmarked against two widespread simplifications from the tethered multirotor literature.
+\begin{enumerate}
+    \item \textbf{Pure Vertical Ballast}, which assumes that the tether hangs directly downward as an equivalent vertical load with $\mathbf{F}_{\mathrm{pure\_z}} = [0,\,0,\,-T_{\mathrm{theo}}]^T$, neglecting horizontal coupling.
+    \item \textbf{Pointing to \gls{usv} (Straight Chord)}, which assumes a taut cable between the attachment points with $\gamma = 0^\circ$, directing the full tension along the direct line of sight with $\mathbf{F}_{\mathrm{chord}} = T_{\mathrm{theo}}\,\hat{\mathbf{d}}_0$.
+\end{enumerate}
+
+Figure~\ref{fig:model_fit_comparison} compares the predicted scalar tension magnitude $T_{\mathrm{theo}}(t)$ with the filtered MoorDyn telemetry over the trajectory. The theoretical linear relation with $c_d = 0.2065\,\text{N/m}$ follows the actual tension closely across the entire operating range, achieving a coefficient of determination of $R^2 = 91.2\%$ and an \gls{rmse} of $0.2031\,\text{N}$.
+
+\begin{figure}[!htbp]
+    \centering
+    \includegraphics[width=0.75\textwidth]{Implementation/figures/02_model_validation/model_fit_comparison.pdf}
+    \caption{Tether tension magnitude at the \gls{uav}.}
+    \label{fig:model_fit_comparison}
+\end{figure}
+
+When resolved into Cartesian components in the inertial frame in Figure~\ref{fig:model_fit_3d}, the importance of accounting for the catenary deflection angle $\gamma_0 = 28.0^\circ$ becomes evident. The proposed formulation accurately tracks both the horizontal restoring force $F_x$ with $R^2 = 97.6\%$ and $\text{RMSE} = 0.1457\,\text{N}$, as well as the vertical downward pull $F_z$ with $R^2 = 86.9\%$ and $\text{RMSE} = 0.2339\,\text{N}$. In contrast, the pure vertical simplification fails completely to capture horizontal interaction forces with $R^2 = -0.7\%$, while the straight chord approximation directs excess tension into the horizontal axis and underestimates vertical load because it ignores the natural sag of the cable.
+
+\begin{figure}[!htbp]
+    \centering
+    \includegraphics[width=0.82\textwidth]{Implementation/figures/02_model_validation/model_fit_3d_components.pdf}
+    \caption{Three-dimensional tether force components at the \gls{uav}.}
+    \label{fig:model_fit_3d}
+\end{figure}
+
+The temporal evolution of the three-dimensional prediction error norm $\|\mathbf{F}_{\mathrm{true}} - \mathbf{F}_{\mathrm{model}}\|$, presented in Figure~\ref{fig:model_fit_residuals}, reveals the stability of each approach during dynamic manoeuvres. While the baseline simplifications experience large transient error surges exceeding $1.6\,\text{N}$ during vehicle reversals, the proposed catenary model maintains a low and bounded residual below $0.4\,\text{N}$ throughout the entire flight profile.
+
+\begin{figure}[!htbp]
+    \centering
+    \includegraphics[width=0.75\textwidth]{Implementation/figures/02_model_validation/model_fit_residuals.pdf}
+    \caption{Three-dimensional tether force error norm.}
+    \label{fig:model_fit_residuals}
+\end{figure}
+
+Table~\ref{tab:tether_model_benchmark} summarises the quantitative performance across the complete benchmark trajectory. The proposed first-principles model achieves an overall three-dimensional \gls{rmse} of $0.2757\,\text{N}$, reducing the spatial force error by more than $70\%$ compared to both the straight chord model with $0.8991\,\text{N}$ ($+226.1\%$ error) and the pure vertical model with $1.0332\,\text{N}$ ($+274.7\%$ error). These results confirm that the closed-form catenary approximation captures the dominant coupling forces with sufficient fidelity for real-time feedforward compensation, while avoiding the prohibitive computational cost of numerical catenary solvers or multi-segment models.
+
+\begin{table}[!htbp]
+    \centering
+    \caption{Tether force model benchmark.}
+    \label{tab:tether_model_benchmark}
+    \begin{tabular}{lcccccc}
+        \toprule
+        \textbf{Model} & \textbf{$F_x$ $R^2$} & \textbf{$F_x$ RMSE} & \textbf{$F_z$ $R^2$} & \textbf{$F_z$ RMSE} & \textbf{3D RMSE} & \textbf{Error Increase} \\
+        & (\%) & (N) & (\%) & (N) & (N) & \\
+        \midrule
+        \textbf{Proposed Catenary} & $\mathbf{97.6}$ & $\mathbf{0.1457}$ & $\mathbf{86.9}$ & $\mathbf{0.2339}$ & $\mathbf{0.2757}$ & \textbf{Baseline} \\
+        Pointing to \gls{usv} ($\gamma = 0^\circ$) & $57.4$ & $0.6135$ & $-3.8$ & $0.6572$ & $0.8991$ & $+226.1\%$ \\
+        Pure Vertical ($F_z = -T$) & $-0.7$ & $0.9438$ & $57.6$ & $0.4200$ & $1.0332$ & $+274.7\%$ \\
+        \bottomrule
+    \end{tabular}
+\end{table}

@@ -15,6 +15,7 @@ import argparse
 import glob
 import numpy as np
 import matplotlib.pyplot as plt
+from scipy.signal import butter, filtfilt
 
 # Add system_identification root to path for shared thesis styling
 sys_id_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), "../.."))
@@ -108,7 +109,20 @@ def read_bag_data(bag_path):
     return data
 
 
-def align_and_interpolate(data, align_to_motion=True):
+def apply_zero_phase_filter(signal_array, fs=50.0, cutoff_hz=0.8, order=2):
+    """
+    Apply an offline zero-phase forward-backward Butterworth low-pass filter (filtfilt)
+    to remove high-frequency lumped-mass numerical chatter from MoorDyn telemetry.
+    """
+    if len(signal_array) < 15:
+        return signal_array.copy()
+    nyq = 0.5 * fs
+    normal_cutoff = min(cutoff_hz / nyq, 0.99)
+    b, a = butter(order, normal_cutoff, btype="low", analog=False)
+    return filtfilt(b, a, signal_array)
+
+
+def align_and_interpolate(data, align_to_motion=True, cutoff_hz=0.8, filter_order=2):
     """Align timestamps so t=0 starts at the first distance/tension valley (climbing upwards)."""
     if len(data["odom_time"]) == 0:
         return data
@@ -141,6 +155,16 @@ def align_and_interpolate(data, align_to_motion=True):
     data["dist_time"] -= t0
     data["length_time"] -= t0
     data["odom_time"] -= t0
+
+    # Estimate sampling frequency of raw telemetry (~50 Hz)
+    dt_raw = np.median(np.diff(data["force_time"])) if len(data["force_time"]) > 1 else 0.02
+    fs_raw = 1.0 / dt_raw if dt_raw > 0 else 50.0
+
+    # Apply offline zero-phase low-pass filter to MoorDyn tether tension force
+    if cutoff_hz is not None and cutoff_hz > 0 and len(data["force_mag"]) > 0:
+        data["force_mag"] = apply_zero_phase_filter(
+            data["force_mag"], fs=fs_raw, cutoff_hz=cutoff_hz, order=filter_order
+        )
 
     # Filter data: start at t = 0 (valley floor) and clamp to the return to center (≈ 60.5s)
     f_mask = (data["force_time"] >= 0.0) & (data["force_time"] <= 60.5)
@@ -195,6 +219,24 @@ def main():
         help="Directory to save output figures (.pdf and .png)",
     )
     parser.add_argument(
+        "--thesis_dir",
+        type=str,
+        default="src/latex/tese/Implementation/figures/01_simulation_environment",
+        help="Directory to update thesis figures directly (.pdf)",
+    )
+    parser.add_argument(
+        "--cutoff_hz",
+        type=float,
+        default=0.8,
+        help="Cutoff frequency for offline zero-phase Butterworth low-pass filter on MoorDyn telemetry [Hz] (default: 0.8)",
+    )
+    parser.add_argument(
+        "--filter_order",
+        type=int,
+        default=2,
+        help="Order of Butterworth low-pass filter (default: 2)",
+    )
+    parser.add_argument(
         "--no-align",
         action="store_true",
         help="Do not align t=0 to motion start",
@@ -221,7 +263,12 @@ def main():
         print(f"\nProcessing '{bag_path}'...")
         try:
             raw_data = read_bag_data(bag_path)
-            aligned_data = align_and_interpolate(raw_data, align_to_motion=not args.no_align)
+            aligned_data = align_and_interpolate(
+                raw_data,
+                align_to_motion=not args.no_align,
+                cutoff_hz=args.cutoff_hz,
+                filter_order=args.filter_order,
+            )
             label, color, slack_val = parse_slack_label(bag_path)
             dataset.append({
                 "path": bag_path,
@@ -278,6 +325,10 @@ def main():
 
     tension_path = os.path.join(args.output_dir, "slack_tension")
     save_figure(fig_tension, tension_path, save_png=False)
+    if args.thesis_dir and os.path.exists(args.thesis_dir):
+        thesis_tension_path = os.path.join(args.thesis_dir, "slack_tension")
+        save_figure(fig_tension, thesis_tension_path, save_png=False)
+        print(f"Updated thesis tension figure: {thesis_tension_path}.pdf")
     plt.close(fig_tension)
 
     # -------------------------------------------------------------
@@ -312,6 +363,10 @@ def main():
 
     geom_path = os.path.join(args.output_dir, "slack_geometry")
     save_figure(fig_geom, geom_path, save_png=False)
+    if args.thesis_dir and os.path.exists(args.thesis_dir):
+        thesis_geom_path = os.path.join(args.thesis_dir, "slack_geometry")
+        save_figure(fig_geom, thesis_geom_path, save_png=False)
+        print(f"Updated thesis geometry figure: {thesis_geom_path}.pdf")
     plt.close(fig_geom)
 
     print("\nIndividual thesis figures exported successfully!")

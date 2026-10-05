@@ -24,7 +24,7 @@ The world used in this work represents an open water area, shown in Figure~\ref{
 
 \begin{figure}[!htbp]
     \centering
-    \includegraphics[width=0.7\textwidth]{Implementation/figures/world.png}
+    \includegraphics[width=0.7\textwidth]{Implementation/figures/01_simulation_environment/world.png}
     \caption{View of the simulated world}
     \label{fig:world_view}
 \end{figure}
@@ -40,7 +40,7 @@ The \gls{wamv} is a catamaran with two inflatable hulls connected by a central p
 
 \begin{figure}[!htbp]
     \centering
-    \includegraphics[width=0.7\textwidth]{Implementation/figures/wamv.png}
+    \includegraphics[width=0.7\textwidth]{Implementation/figures/01_simulation_environment/wamv.png}
     \caption{The \acrshort{wamv} catamaran in the simulated world.}
     \label{fig:wamv_render}
 \end{figure}
@@ -49,7 +49,7 @@ In the simulator, a vehicle is described by a model that lists its bodies, the j
 
 The catamaran has an overall length of $4.90\,\text{m}$ and a beam of $2.40\,\text{m}$. The payload deck, with $1.85\,\text{m}$ in length and $1.00\,\text{m}$ in width, is supported by the two hulls at about $1.25\,\text{m}$ above the water surface, as shown in Figure~\ref{fig:wamv_schematic}.
 
-\input{Implementation/figures/wamv_layout.tex}
+\input{Implementation/figures/01_simulation_environment/wamv_layout.tex}
 
 The behaviour of the vessel on the water is determined by how the simulator reproduces the forces that the water exerts on it. The hulls are kept afloat by a buoyancy force, which is calculated from the volume of each hull below the water surface. When waves are present, this volume changes along the hulls and the catamaran pitches and rolls accordingly. As the vessel moves, the water also resists its motion through drag forces and moments applied in the six \glspl{dof}. For a velocity $\nu_i$ along or about each degree of freedom, the drag is
 \begin{equation}
@@ -86,14 +86,14 @@ The Holybro X500 v2 \cite{holybro_x500} is a quadrotor, and in this work it is t
 
 \begin{figure}[!htbp]
     \centering
-    \includegraphics[width=0.7\textwidth]{Implementation/figures/drone_world.png}
+    \includegraphics[width=0.7\textwidth]{Implementation/figures/01_simulation_environment/drone_world.png}
     \caption{The x500 quadrotor in the simulated world.}
     \label{fig:x500_render}
 \end{figure}
 
 The x500 is described in the simulator in the same way as the \gls{wamv}, by a model that lists its bodies, the joints that connect them, and the mass and inertia of each one. It consists of a main rigid body, which includes the frame and the sensors, and of four rotors, which are separate bodies connected to it through rotating joints. Their masses, inertias, and positions are given in Table~\ref{tab:x500_parameters}. The rotors are $0.348\,\text{m}$ apart along the sides of the frame and about $0.49\,\text{m}$ apart along the diagonal. The landing gear is $0.264\,\text{m}$ wide, and the motor mounts are $0.26\,\text{m}$ above the ground, as shown in Figure~\ref{fig:x500_schematic}.
 
-\input{Implementation/figures/x500_layout.tex}
+\input{Implementation/figures/01_simulation_environment/x500_layout.tex}
 
 \begin{table}[!htbp]
     \centering
@@ -139,12 +139,12 @@ The tether is simulated with MoorDyn \cite{hall2015moordyn}, a tool that represe
 \begin{figure}[!htbp]
     \centering
     \subfloat[Side view.]{
-        \reflectbox{\includegraphics[height=5.5cm]{Implementation/figures/drone_foxglove_side.png}}
+        \reflectbox{\includegraphics[height=5.5cm]{Implementation/figures/01_simulation_environment/drone_foxglove_side.png}}
         \label{fig:tether_foxglove_side}
     }
     \hfill
     \subfloat[Top view.]{
-        \includegraphics[height=5.5cm]{Implementation/figures/drone_foxglove_top.png}
+        \includegraphics[height=5.5cm]{Implementation/figures/01_simulation_environment/drone_foxglove_top.png}
         \label{fig:tether_foxglove_top}
     }
     \caption{The tether between the \acrshort{usv} and the \acrshort{uav}, displayed in Foxglove.}
@@ -168,7 +168,7 @@ where $m_i$ and $\mathbf{p}_i$ are the mass and the position of the node, $\math
 \end{equation}
 where $\ell$ and $\ell_0$ are the current and the unstretched lengths of the segment, $EA$ is the axial stiffness, and $BA$ is the damping coefficient, which is defined through the damping ratio given in Table~\ref{tab:tether_parameters}. A segment that is shorter than its unstretched length carries no tension, so the cable can go slack. The accelerations are then integrated in time to obtain the new position and velocity of every node. The end nodes are not integrated, since their motion is imposed by the vehicles, and the forces at these nodes are the forces that the cable exerts on them.
 
-\input{Implementation/figures/tether_model.tex}
+\input{Implementation/figures/01_simulation_environment/tether_model.tex}
 
 The parameters of the model are the mass per unit length, which gives the mass $m_i$ of each node in~\eqref{eq:tether_node}, the axial stiffness $EA$ and the damping ratio, which define the tension in~\eqref{eq:tether_tension}, the bending stiffness, and the drag coefficients. Their values are given in Table~\ref{tab:tether_parameters}, together with the number of segments and the time step used to integrate the equations. The mass per unit length and the diameter are based on commercial micro-tethers for drones that provide power and data \cite{elistair_safet2,linden_microtethers}, and the axial stiffness is estimated from the tensile strength of these tethers. The length of the cable is not fixed, and it is changed by the winch described in Section~\ref{sec:tether_winch}.
 
@@ -195,7 +195,7 @@ The parameters of the model are the mass per unit length, which gives the mass $
 
 The tether is coupled to the vehicles by a \gls{ros} node, as shown in Figure~\ref{fig:tether_coupling}. At each step, the node reads the position and the velocity of the two attachment points, which are the tether anchor on the deck of the \gls{usv} and the centre of the body of the \gls{uav}, and gives them to MoorDyn. MoorDyn imposes them as the motion of the ends of the cable, integrates the cable over the step, and returns the force vector at each attachment point, which is applied to the vehicles in Gazebo.
 
-\input{Implementation/figures/tether_coupling.tex}
+\input{Implementation/figures/01_simulation_environment/tether_coupling.tex}
 
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -216,17 +216,17 @@ Figures~\ref{fig:winch_shape} and~\ref{fig:winch_sweep} show the effect of the s
 \begin{figure}[!htbp]
     \centering
     \subfloat[$\varepsilon_0 = 2\%$.]{
-        \includegraphics[width=0.32\textwidth]{Implementation/figures/slack_2.png}
+        \includegraphics[width=0.32\textwidth]{Implementation/figures/01_simulation_environment/slack_2.png}
         \label{fig:winch_shape_2}
     }
     \hfill
     \subfloat[$\varepsilon_0 = 5\%$.]{
-        \includegraphics[width=0.32\textwidth]{Implementation/figures/slack_5.png}
+        \includegraphics[width=0.32\textwidth]{Implementation/figures/01_simulation_environment/slack_5.png}
         \label{fig:winch_shape_5}
     }
     \hfill
     \subfloat[$\varepsilon_0 = 10\%$.]{
-        \includegraphics[width=0.32\textwidth]{Implementation/figures/slack_10.png}
+        \includegraphics[width=0.32\textwidth]{Implementation/figures/01_simulation_environment/slack_10.png}
         \label{fig:winch_shape_10}
     }
     \caption{Shape of the tether for different slack ratios, displayed in Foxglove.}
@@ -236,12 +236,12 @@ Figures~\ref{fig:winch_shape} and~\ref{fig:winch_sweep} show the effect of the s
 \begin{figure}[!htbp]
     \centering
     \subfloat[Distance (dashed) and cable length (solid).]{
-        \includegraphics[width=0.48\textwidth]{Implementation/figures/slack_geometry.pdf}
+        \includegraphics[width=0.48\textwidth]{Implementation/figures/01_simulation_environment/slack_geometry.pdf}
         \label{fig:winch_geometry}
     }
     \hfill
     \subfloat[Tension at the \acrshort{uav}.]{
-        \includegraphics[width=0.48\textwidth]{Implementation/figures/slack_tension.pdf}
+        \includegraphics[width=0.48\textwidth]{Implementation/figures/01_simulation_environment/slack_tension.pdf}
         \label{fig:winch_tension}
     }
     \caption{Distance between the attachment points, length of the cable, and tension at the \acrshort{uav} for the same trajectory and different slack ratios.}

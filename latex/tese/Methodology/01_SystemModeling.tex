@@ -640,21 +640,28 @@ Denoting by $L \geq d$ the tether length at a given instant, its slack is conven
 \end{equation}
 with $\varepsilon = 0$ corresponding to a taut tether, and $\varepsilon$ increasing as more slack is introduced.
 
-Under its own weight, a tether hanging between two fixed points takes the shape of a catenary, contained in the vertical plane defined by the two attachment points. In this plane, the exact catenary equations relate $\varepsilon$ to the angle $\gamma$ by which the tension direction at $\mathcal{O}_a$ deviates from $\hat{\mathbf{d}}_0$ towards the vertical, and to the tension magnitude $T_{\mathrm{tether}}$ at that point.
+Under its own weight, a tether of linear mass density $\mu$ suspended between two attachment points takes the shape of a catenary, contained in the vertical plane defined by the two endpoints. Due to the geometric self-similarity of the catenary curve at a given slack ratio $\varepsilon$, the tension magnitude scales proportionally with the straight-line separation distance $d$ (or unstretched length $L$), while the tension direction is governed by the angular deflection $\gamma$ by which the tension vector at $\mathcal{O}_a$ deviates from $\hat{\mathbf{d}}_0$ towards the vertical.
 
-These relations, denoted $\gamma_{\mathrm{exact}}(\varepsilon)$ and $T_{\mathrm{tether}}^{\mathrm{exact}}(\varepsilon)$, do not admit a closed-form solution. Evaluating them exactly therefore requires an iterative numerical solution at every time step.
+The exact relations governing the deflection angle $\gamma_{\mathrm{exact}}(\varepsilon,\alpha)$ and the normalized tension coefficient $c_d^{\mathrm{exact}}(\varepsilon,\alpha) = T_{\mathrm{tether}}/d$ do not admit a closed-form analytical solution, requiring numerical root-finding algorithms at every control cycle.
 
-The tether control scheme considered in this work maintains $\varepsilon$ close to a constant operating point $\varepsilon_0$. This makes it possible to avoid repeatedly solving these equations as the vehicle moves, by approximating them locally about $\varepsilon_0$.
-
-This motivates approximating $\gamma_{\mathrm{exact}}(\cdot)$ and $T_{\mathrm{tether}}^{\mathrm{exact}}(\cdot)$ by their first-order Taylor expansions about $\varepsilon_0$,
+The tether control scheme considered in this work maintains $\varepsilon$ close to a constant operating point $\varepsilon_0$. Under this operational regime, the tension magnitude scales linearly with the separation distance $d$:
 \begin{equation}
-    \gamma(\varepsilon) = \gamma(\varepsilon_0) + \gamma'(\varepsilon_0)\,(\varepsilon - \varepsilon_0), \qquad
-    T_{\mathrm{tether}}(\varepsilon) = T_{\mathrm{tether}}(\varepsilon_0) + T_{\mathrm{tether}}'(\varepsilon_0)\,(\varepsilon - \varepsilon_0),
-    \label{eq:uav_tether_taylor}
+    T_{\mathrm{tether}}(d) = c_d(\varepsilon_0)\,d,
+    \label{eq:uav_tether_magnitude}
 \end{equation}
-which replace the exact relations with closed-form expressions whose coefficients are computed offline, once, at $\varepsilon_0$.
+where the nominal coefficient at $\varepsilon_0$ is evaluated from first principles:
+\begin{equation}
+    c_d(\varepsilon_0) = \frac{\mu\,g}{1 - \varepsilon_0},
+    \label{eq:uav_tether_cd_nominal}
+\end{equation}
+or equivalently in terms of unstretched length, $T_{\mathrm{tether}}(L) = \mu\,g\,L$. Similarly, the catenary deflection angle is given by its nominal value at $\varepsilon_0$:
+\begin{equation}
+    \gamma = \gamma(\varepsilon_0),
+    \label{eq:uav_tether_nominal}
+\end{equation}
+which replaces the transcendental relation with a closed-form expression evaluated at $\varepsilon_0$.
 
-With $\gamma(\varepsilon)$ given by the approximation in~\eqref{eq:uav_tether_taylor}, the tension direction $\hat{\mathbf{d}}(\varepsilon)$ can now be constructed. This requires first introducing the direction $\hat{\mathbf{e}}_h$, orthogonal to $\mathbf{z}^{\mathcal{I}}$ within the catenary plane,
+With $\gamma$ given by \eqref{eq:uav_tether_nominal}, the tension direction $\hat{\mathbf{d}}$ can now be constructed. This requires first introducing the direction $\hat{\mathbf{e}}_h$, orthogonal to $\mathbf{z}^{\mathcal{I}}$ within the catenary plane,
 \begin{equation}
     \hat{\mathbf{e}}_h = \frac{\hat{\mathbf{d}}_0 - (\hat{\mathbf{d}}_0\cdot\mathbf{z}^{\mathcal{I}})\,\mathbf{z}^{\mathcal{I}}}{\|\hat{\mathbf{d}}_0 - (\hat{\mathbf{d}}_0\cdot\mathbf{z}^{\mathcal{I}})\,\mathbf{z}^{\mathcal{I}}\|},
     \label{eq:uav_tether_horizontal}
@@ -664,7 +671,7 @@ and the depression angle $\alpha$ of $\hat{\mathbf{d}}_0$ below $\hat{\mathbf{e}
     \hat{\mathbf{d}}_0 = \cos\alpha\,\hat{\mathbf{e}}_h - \sin\alpha\,\mathbf{z}^{\mathcal{I}}.
     \label{eq:uav_tether_alpha}
 \end{equation}
-Figure~\ref{fig:uav_tether_plane} illustrates this construction within the catenary plane, showing the local horizontal $\hat{\mathbf{e}}_h$, the depression angle $\alpha$, and the resulting tension direction $\hat{\mathbf{d}}(\varepsilon)$, tilted further from $\hat{\mathbf{d}}_0$ by the angle $\gamma$.
+Figure~\ref{fig:uav_tether_plane} illustrates this construction within the catenary plane, showing the local horizontal $\hat{\mathbf{e}}_h$, the depression angle $\alpha$, and the resulting tension direction $\hat{\mathbf{d}}$, tilted further from $\hat{\mathbf{d}}_0$ by the angle $\gamma$.
 
 
 \begin{figure}[H]
@@ -707,7 +714,7 @@ Figure~\ref{fig:uav_tether_plane} illustrates this construction within the caten
 
         % Tangent (actual tension) direction at O_a
         \draw[tangentVec] (Oa) -- (1.238,-2.654)
-            node[below right, okiVermillion, font=\footnotesize, xshift=2pt] {$\hat{\mathbf{d}}(\varepsilon)$};
+            node[below right, okiVermillion, font=\footnotesize, xshift=2pt] {$\hat{\mathbf{d}}$};
 
         % Angle gamma between the chord and the tangent, drawn further out
         \draw[angleArc] (Oa) ++(-33.69:1.3) arc (-33.69:-65:1.3);
@@ -723,14 +730,14 @@ Figure~\ref{fig:uav_tether_plane} illustrates this construction within the caten
 \end{figure}
 
 
-The tension direction at $\mathcal{O}_a$ then follows by tilting $\hat{\mathbf{d}}_0$ further towards the vertical by the angle $\gamma(\varepsilon)$, within the same plane,
+The tension direction at $\mathcal{O}_a$ then follows by tilting $\hat{\mathbf{d}}_0$ further towards the vertical by the angle $\gamma$, within the same plane,
 \begin{equation}
-    \hat{\mathbf{d}}(\varepsilon) = \cos\big(\alpha+\gamma(\varepsilon)\big)\,\hat{\mathbf{e}}_h - \sin\big(\alpha+\gamma(\varepsilon)\big)\,\mathbf{z}^{\mathcal{I}},
+    \hat{\mathbf{d}} = \cos(\alpha+\gamma)\,\hat{\mathbf{e}}_h - \sin(\alpha+\gamma)\,\mathbf{z}^{\mathcal{I}},
     \label{eq:uav_tether_direction}
 \end{equation}
 and the resulting tether force, applied at $\mathcal{O}_a$ and expressed in $\{\mathcal{I}\}$, is
 \begin{equation}
-    \mathbf{F}_{\mathrm{tether}}^{\mathcal{I}} = T_{\mathrm{tether}}(\varepsilon)\,\hat{\mathbf{d}}(\varepsilon),
+    \mathbf{F}_{\mathrm{tether}}^{\mathcal{I}} = T_{\mathrm{tether}}(d)\,\hat{\mathbf{d}} = c_d(\varepsilon_0)\,d\,\hat{\mathbf{d}},
     \label{eq:uav_tether_force}
 \end{equation}
-with $\varepsilon$ evaluated at each instant from \eqref{eq:uav_tether_geometry}--\eqref{eq:uav_tether_slack}. Equation~\eqref{eq:uav_tether_force} is the term $\mathbf{F}_{\mathrm{tether}}^{\mathcal{I}}$ introduced in \eqref{eq:uav_newton}.
+with $d$ evaluated at each instant from \eqref{eq:uav_tether_geometry}. Equation~\eqref{eq:uav_tether_force} is the term $\mathbf{F}_{\mathrm{tether}}^{\mathcal{I}}$ introduced in \eqref{eq:uav_newton}.

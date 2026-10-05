@@ -11,27 +11,40 @@ import os
 import matplotlib as mpl
 import matplotlib.pyplot as plt
 
-# Consistent Color Palette for Figures
+# Universal Color Palette for Thesis Figures
+# Rule 1: Black (#111111) for ground truth / measurements / base reference
+# Rule 2: Deterministic color cycle for comparison lines in order of addition
+# Rule 3: Solid lines for proposed/primary results; dashed (-- / -.) for baselines/simplifications
+GROUND_TRUTH_COLOR = "#111111"
+SECONDARY_COLOR = "#7f7f7f"
+
+COLOR_CYCLE = [
+    "#1f77b4",  # Series 1 / Proposed Model (Deep Blue)
+    "#ff7f0e",  # Series 2 / Alternative 1  (Warm Orange)
+    "#2ca02c",  # Series 3 / Alternative 2  (Forest Green)
+    "#d62728",  # Series 4 / Alternative 3  (Crimson Red)
+    "#9467bd",  # Series 5 / Alternative 4  (Purple)
+    "#8c564b",  # Series 6 (Brown)
+    "#e377c2",  # Series 7 (Pink)
+    "#7f7f7f",  # Series 8 (Gray)
+    "#bcbd22",  # Series 9 (Olive)
+    "#17becf",  # Series 10 (Cyan)
+]
+
+# Legacy alias dictionary preserved for backwards-compatibility
 THESIS_COLORS = {
-    # Slack Factor Experiments
-    "slack_2": "#1f77b4",    # 2% Slack (factor 1.02) - Deep Blue
-    "slack_5": "#ff7f0e",    # 5% Slack (factor 1.05) - Warm Orange
-    "slack_10": "#2ca02c",   # 10% Slack (factor 1.10) - Forest Green
-    "slack_15": "#d62728",   # 15% Slack (factor 1.15) - Crimson Red
-    
-    # Kinematics & Tracking
-    "ground_truth": "#111111", # Ground Truth / Measured - Solid Black
-    "reference": "#7f7f7f",    # Reference Path / Setpoint - Gray
-    "model_fit": "#d62728",    # Model Prediction / Identification - Red
-    "distance": "#333333",     # Geometric Distance (d) - Charcoal
-    
-    # Multi-Agent Coordination
-    "uav": "#1f77b4",          # UAV (Aerial)
-    "usv": "#2ca02c",          # USV (Marine Vessel)
-    "target": "#9467bd",       # Target Vessel (Pursuit)
-    
-    # Constraints & Thresholds
-    "limit": "#d62728",        # Constraint Bounds / Limits - Red
+    "ground_truth": GROUND_TRUTH_COLOR,
+    "reference": SECONDARY_COLOR,
+    "slack_2": COLOR_CYCLE[0],
+    "slack_5": COLOR_CYCLE[1],
+    "slack_10": COLOR_CYCLE[2],
+    "slack_15": COLOR_CYCLE[3],
+    "uav": COLOR_CYCLE[0],
+    "usv": COLOR_CYCLE[1],
+    "target": COLOR_CYCLE[4],
+    "model_fit": COLOR_CYCLE[0],
+    "distance": "#333333",
+    "limit": COLOR_CYCLE[3],
 }
 
 
