@@ -14,7 +14,7 @@ UavMpcPipeline::UavMpcPipeline()
       anchor_x_(0.0), anchor_y_(0.0), anchor_z_(0.0),
       has_boat_horizon_(false),
       L_tether_(3.0), use_tether_(true), v_max_(2.0), u_max_(15.0),
-      hover_throttle_(0.52), tilt_max_(0.2),
+      hover_throttle_(0.618), tilt_max_(0.5),
       trajectory_type_(TrajectoryType::HOLD),
       last_phi_cmd_(0.0), last_theta_cmd_(0.0), first_run_(true) {
     current_state_.resize(6, 0.0);

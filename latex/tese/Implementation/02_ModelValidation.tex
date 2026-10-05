@@ -13,7 +13,60 @@ Before incorporating the vehicle and tether models into the real-time controller
 
 \subsection{USV Dynamics Validation}
 \label{subsec:usv_validation}
-% Hydrodynamic parameter verification and damping validation in surge, sway, and yaw
+
+The three-degree-of-freedom planar dynamic model derived in Section~\ref{subsec:mod_usv_dynamics} and the thruster allocation described in Section~\ref{subsec:mod_usv_thruster_allocation} provide the predictive backbone for the \gls{usv} trajectory tracking controllers. This control-oriented model intentionally simplifies the physical system by neglecting out-of-plane heave, pitch, and roll motions, as well as wave-induced radiation and diffraction forces. Before embedding this formulation into the real-time optimization loop of the non-linear predictive controller, its ability to reproduce the vessel's planar motions must be verified against the full six-degree-of-freedom physics of the Gazebo simulator.
+
+Rather than relying on empirical grey-box fitting or tuning arbitrary parameters against experimental data, the validation is conducted strictly using the first-principles nominal parameters of the simulation environment. The total vessel mass is set to $m = 259.10\,\text{kg}$, comprising the $227.0\,\text{kg}$ catamaran hull, the two $15.0\,\text{kg}$ stern thruster assemblies, and $2.1\,\text{kg}$ of sensors and propeller pods. The yaw moment of inertia about the centre of gravity is $I_z = 695.90\,\text{kg}\cdot\text{m}^2$, obtained by combining the base hull inertia of $495.0\,\text{kg}\cdot\text{m}^2$ with the parallel axis theorem contribution of the two outboard thrusters mounted at longitudinal distance $x_{\mathrm{arm}} = 2.3738\,\text{m}$ and lateral distance $y_{\mathrm{arm}} = 1.0271\,\text{m}$. The hydrodynamic drag parameters are adopted directly from the simulator configuration given in Table~\ref{tab:usv_damping_parameters}, with linear and quadratic surge damping of $X_u = 100.0\,\text{N}/(\text{m/s})$ and $X_{uu} = 150.0\,\text{N}/(\text{m/s})^2$, sway damping of $Y_v = 100.0\,\text{N}/(\text{m/s})$ and $Y_{vv} = 100.0\,\text{N}/(\text{m/s})^2$, and yaw damping of $N_r = 800.0\,\text{N}\cdot\text{m}/(\text{rad/s})$ and $N_{rr} = 800.0\,\text{N}\cdot\text{m}/(\text{rad/s})^2$.
+
+To excite the full operating envelope of the vessel, a dynamic manual joystick maneuver was recorded in the simulator over $63.84\,\text{s}$, covering a total traversed distance of $61.29\,\text{m}$. The telemetry records the physical actuator commands dispatched to the port and starboard azimuth thrusters, shown in Figure~\ref{fig:usv_actuator_inputs}. The commanded thrust spans the full bidirectional range, reaching the forward saturation limit of $+510.0\,\text{N}$ and the reverse limit of $-380.0\,\text{N}$, while the azimuth angles rotate dynamically up to $\pm 24^\circ$.
+
+\begin{figure}[!htbp]
+    \centering
+    \includegraphics[width=0.75\textwidth]{Implementation/figures/02_model_validation/usv_actuator_inputs.pdf}
+    \caption{USV thruster inputs during the validation maneuver.}
+    \label{fig:usv_actuator_inputs}
+\end{figure}
+
+The nominal model was integrated purely open-loop using a fourth-order Runge-Kutta scheme at $50\,\text{Hz}$, driven exclusively by the actuator commands mapped through equations~\eqref{eq:usv_thruster_force_sum} and~\eqref{eq:usv_thruster_moment}. Figure~\ref{fig:usv_velocities_validation} compares the predicted body-fixed velocities against the ground-truth telemetry from the simulator. The surge velocity $u$ follows the sharp accelerations, cruising phases, and aggressive reverse braking transitions with high fidelity, achieving a coefficient of determination of $R^2 = 99.90\%$ and an \gls{rmse} of $0.0350\,\text{m/s}$. The sway velocity $v$, induced by the lateral components of the angled thrusters, is captured with $R^2 = 99.77\%$ and an \gls{rmse} of $0.0284\,\text{m/s}$. The yaw rate $r$ reproduces both transient steering peaks and sustained rotations, yielding $R^2 = 98.94\%$ and an \gls{rmse} of $0.9925^\circ/\text{s}$.
+
+\begin{figure}[!htbp]
+    \centering
+    \includegraphics[width=0.75\textwidth]{Implementation/figures/02_model_validation/usv_velocities_validation.pdf}
+    \caption{USV body-fixed velocities validation.}
+    \label{fig:usv_velocities_validation}
+\end{figure}
+
+The kinematic validity of the planar model over extended horizons is demonstrated in Figure~\ref{fig:usv_trajectory_validation}. Over the entire $63.84\,\text{s}$ run, the predicted vessel heading $\psi$ remains tightly aligned with the simulated catamaran, obtaining an $R^2$ of $99.78\%$ and an \gls{rmse} of $7.0173^\circ$. In the horizontal plane, the cumulative Euclidean position error between the open-loop integration and the ground truth reaches an \gls{rmse} of $2.190\,\text{m}$, which corresponds to only $3.57\%$ of the total distance traveled. This small divergence is attributed to unmodeled wave-induced roll and pitch perturbations and the absence of any feedback correction during the open-loop simulation.
+
+\begin{figure}[!htbp]
+    \centering
+    \includegraphics[width=0.82\textwidth]{Implementation/figures/02_model_validation/usv_trajectory_validation.pdf}
+    \caption{USV trajectory and heading validation.}
+    \label{fig:usv_trajectory_validation}
+\end{figure}
+
+Table~\ref{tab:usv_validation_metrics} provides a quantitative summary of the validation metrics across all state variables. The close agreement across all velocity and kinematic states confirms that the first-principles 3-DOF formulation and its thruster allocation equations capture the vessel dynamics with sufficient accuracy for model-based predictive control, without requiring grey-box parameter estimation.
+
+\begin{table}[!htbp]
+    \centering
+    \caption{USV open-loop model validation metrics.}
+    \label{tab:usv_validation_metrics}
+    \begin{tabular}{lccccc}
+        \toprule
+        \textbf{State} & \textbf{Unit} & \textbf{RMSE} & \textbf{MAE} & \textbf{$R^2$ (\%)} & \textbf{Max Error} \\
+        \midrule
+        Surge velocity $u$ & $\text{m/s}$ & $0.0350$ & $0.0235$ & $99.90$ & $0.1372$ \\
+        Sway velocity $v$ & $\text{m/s}$ & $0.0284$ & $0.0217$ & $99.77$ & $0.1010$ \\
+        Yaw rate $r$ & $\text{deg/s}$ & $0.9925$ & $0.5989$ & $98.94$ & $3.5991$ \\
+        Heading $\psi$ & $\text{deg}$ & $7.0173$ & $5.8392$ & $99.78$ & $11.0267$ \\
+        Longitudinal position $x$ & $\text{m}$ & $1.9996$ & $1.4632$ & $89.65$ & $3.2867$ \\
+        Lateral position $y$ & $\text{m}$ & $0.8926$ & $0.6802$ & $98.17$ & $1.3779$ \\
+        \midrule
+        Euclidean position $e_p$ & $\text{m}$ & $2.1901$ & $1.6575$ & -- & $3.4990$ \\
+        \bottomrule
+    \end{tabular}
+\end{table}
+
 
 \subsection{UAV Inner-Loop Dynamics Validation}
 \label{subsec:uav_validation}

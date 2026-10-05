@@ -16,7 +16,7 @@ UavMpcNode::UavMpcNode()
       odom_received_(false),
       vehicle_status_received_(false),
       offboard_setpoint_counter_(0),
-      px4_hover_thrust_(0.7265),
+      px4_hover_thrust_(0.618),
       current_system_id_(2),
       last_boat_horizon_time_(0, 0, RCL_ROS_TIME),
       active_tether_max_length_(-1.0),
@@ -36,8 +36,8 @@ UavMpcNode::UavMpcNode()
     this->declare_parameter<std::string>("trajectory_type", "hold");
     this->declare_parameter<double>("v_max", 10.0);
     this->declare_parameter<double>("u_max", 19.62);
-    this->declare_parameter<double>("hover_throttle", 0.7265);
-    this->declare_parameter<double>("tilt_max", 0.4);
+    this->declare_parameter<double>("hover_throttle", 0.618);
+    this->declare_parameter<double>("tilt_max", 0.5);
     this->declare_parameter<double>("hold_height", 2.0);
     this->declare_parameter<double>("takeoff_height", 4.0);
     this->declare_parameter<double>("weight_position", 20.0);
