@@ -34,6 +34,7 @@ ament_target_dependencies(test_uav_line_node
   geometry_msgs
   nav_msgs
   std_msgs
+  px4_msgs
 )
 
 # 3. Custom Bootstrap Node executable

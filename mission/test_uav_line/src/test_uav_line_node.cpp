@@ -1,6 +1,7 @@
 #include "test_uav_line/test_uav_line_node.hpp"
 #include <geometry_msgs/msg/pose_stamped.hpp>
 #include <cmath>
+#include <limits>
 
 namespace test_uav_line {
 
@@ -24,6 +25,10 @@ TestUavLineNode::TestUavLineNode()
     this->declare_parameter<int>("circle_laps", 2);
     this->declare_parameter<double>("yaw_amplitude", 1.2);
     this->declare_parameter<int>("yaw_cycles", 3);
+    this->declare_parameter<bool>("px4_offboard", true);
+    this->declare_parameter<double>("px4_origin_x", 0.3);
+    this->declare_parameter<double>("px4_origin_y", 0.0);
+    this->declare_parameter<double>("px4_origin_z", 1.4);
     this->declare_parameter<int>("horizon_stages", 50);
     this->declare_parameter<double>("control_period", 0.02);
     this->declare_parameter<double>("update_rate_hz", 50.0);
@@ -47,6 +52,11 @@ TestUavLineNode::TestUavLineNode()
     cfg.yaw_amplitude = this->get_parameter("yaw_amplitude").as_double();
     cfg.yaw_cycles = this->get_parameter("yaw_cycles").as_int();
 
+    px4_offboard_ = this->get_parameter("px4_offboard").as_bool();
+    px4_origin_[0] = this->get_parameter("px4_origin_x").as_double();
+    px4_origin_[1] = this->get_parameter("px4_origin_y").as_double();
+    px4_origin_[2] = this->get_parameter("px4_origin_z").as_double();
+
     pipeline_ = std::make_unique<TestUavLinePipeline>();
     pipeline_->init(cfg);
 
@@ -55,6 +65,14 @@ TestUavLineNode::TestUavLineNode()
     start_altitude_ = 0.5 * (cfg.min_altitude + cfg.max_altitude) - 1.0;
     odom_sub_ = this->create_subscription<nav_msgs::msg::Odometry>(
         "odom", 10, std::bind(&TestUavLineNode::odomCallback, this, std::placeholders::_1));
+
+    if (px4_offboard_) {
+        // Trajectory goes straight to the PX4 position controller (offboard), without the NMPC
+        offboard_mode_pub_ = this->create_publisher<px4_msgs::msg::OffboardControlMode>(
+            "/px4_1/fmu/in/offboard_control_mode", rclcpp::SensorDataQoS());
+        px4_setpoint_pub_ = this->create_publisher<px4_msgs::msg::TrajectorySetpoint>(
+            "/px4_1/fmu/in/trajectory_setpoint", rclcpp::SensorDataQoS());
+    }
 
     // Relative publishers (Rule 4 of CODE_STANDARDS.md)
     path_pub_ = this->create_publisher<nav_msgs::msg::Path>("reference_path", 10);
@@ -75,6 +93,48 @@ TestUavLineNode::TestUavLineNode()
 
 void TestUavLineNode::odomCallback(const nav_msgs::msg::Odometry::SharedPtr msg) {
     drone_z_ = msg->pose.pose.position.z;
+}
+
+void TestUavLineNode::publishPx4Setpoint(const std::vector<TrajectoryPoint>& points, double dt) {
+    const uint64_t stamp_us = this->get_clock()->now().nanoseconds() / 1000;
+
+    px4_msgs::msg::OffboardControlMode mode{};
+    mode.timestamp = stamp_us;
+    mode.position = true;
+    mode.velocity = true;
+    mode.acceleration = true;
+    mode.attitude = false;
+    mode.body_rate = false;
+    mode.thrust_and_torque = false;
+    mode.direct_actuator = false;
+    offboard_mode_pub_->publish(mode);
+
+    const auto& p = points.front();
+    // Acceleration feedforward by finite difference of the reference velocity
+    double ax = 0.0, ay = 0.0, az = 0.0;
+    if (points.size() > 1 && dt > 0.0) {
+        ax = (points[1].vx - p.vx) / dt;
+        ay = (points[1].vy - p.vy) / dt;
+        az = (points[1].vz - p.vz) / dt;
+    }
+
+    // World ENU -> PX4 local NED, relative to the PX4 origin (spawn point):
+    // N = y, E = x, D = -z ; yaw_ned = pi/2 - yaw_enu
+    px4_msgs::msg::TrajectorySetpoint sp{};
+    sp.timestamp = stamp_us;
+    sp.position[0] = static_cast<float>(p.py - px4_origin_[1]);
+    sp.position[1] = static_cast<float>(p.px - px4_origin_[0]);
+    sp.position[2] = static_cast<float>(-(p.pz - px4_origin_[2]));
+    sp.velocity[0] = static_cast<float>(p.vy);
+    sp.velocity[1] = static_cast<float>(p.vx);
+    sp.velocity[2] = static_cast<float>(-p.vz);
+    sp.acceleration[0] = static_cast<float>(ay);
+    sp.acceleration[1] = static_cast<float>(ax);
+    sp.acceleration[2] = static_cast<float>(-az);
+    sp.jerk[0] = sp.jerk[1] = sp.jerk[2] = std::numeric_limits<float>::quiet_NaN();
+    sp.yaw = static_cast<float>(M_PI_2 - p.yaw);
+    sp.yawspeed = std::numeric_limits<float>::quiet_NaN();
+    px4_setpoint_pub_->publish(sp);
 }
 
 void TestUavLineNode::timerCallback() {
@@ -111,6 +171,9 @@ void TestUavLineNode::timerCallback() {
     }
 
     path_pub_->publish(path_msg);
+    if (px4_offboard_) {
+        publishPx4Setpoint(points, dt);
+    }
 
     const bool finished = pipeline_->isFinished(elapsed);
     std_msgs::msg::Bool finished_msg;
