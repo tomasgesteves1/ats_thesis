@@ -1,0 +1,14 @@
+/mocap_bridge:
+  ros__parameters:
+    use_sim_time: true
+    odom_topic: "/drone/ground_truth/odometry"
+    px4_vo_topic: "/px4_1/fmu/in/vehicle_visual_odometry"
+    position_variance: 0.001
+    orientation_variance: 0.0001
+    velocity_variance: 0.001
+    px4_command_topic: "/px4_1/fmu/in/vehicle_command"
+    set_global_origin: true
+    origin_latitude: 42.35821841111111
+    origin_longitude: -71.0479235555555
+    origin_altitude: 0.0
+    target_system: 2

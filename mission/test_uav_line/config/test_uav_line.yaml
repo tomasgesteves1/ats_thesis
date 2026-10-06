@@ -20,7 +20,7 @@ uav_trajectory_line_node:
     control_period: 0.02          # MPC sample time dt [s] (50 Hz)
     update_rate_hz: 50.0          # Rate for trajectory generation loop [Hz]
     px4_offboard: true            # Feed the trajectory straight to the PX4 position controller (no NMPC)
-    px4_origin_x: 0.3             # World position of the PX4 local origin = drone spawn point [m]
+    px4_origin_x: 0.0             # World position of the PX4 local origin (0.0 with MoCap Ground Truth)
     px4_origin_y: 0.0
-    px4_origin_z: 1.4
+    px4_origin_z: 0.0
     world_frame: "world"

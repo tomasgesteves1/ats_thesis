@@ -202,16 +202,17 @@ The tether is coupled to the vehicles by a \gls{ros} node, as shown in Figure~\r
 \subsection{Tether Winch}
 \label{sec:tether_winch}
 
-The model of the tether used by the controllers assumes that its slack is kept close to a constant value $\varepsilon_0$ (Section~\ref{sec:system_modeling}), which requires a mechanism that adjusts the length of the cable as the vehicles move. In a real system, this is the function of a winch on the vessel, which spools the cable in and out. In simulation, this mechanism is represented by a virtual winch that varies the length of the cable.
+The model of the tether used by the controllers in Section~\ref{sec:system_modeling} assumes that its slack is kept close to a constant value $\varepsilon_0$, which requires a mechanism that adjusts the length of the cable as the vehicles move. In a real system, this can be achieved by a winch system on the vessel, which spools the cable in and out. In simulation, this mechanism is represented by a virtual winch that varies the length of the cable.
 
-At each step, the virtual winch computes the length that gives the desired slack for the current distance $d$ between the attachment points,
+At each step, the virtual winch reads the distance $d$ between the attachment points and computes the length that gives the desired slack,
 \begin{equation}
     L_{\text{ref}} = \frac{d}{1-\varepsilon_0},
     \label{eq:winch_length}
 \end{equation}
-and changes the unstretched length of the cable towards this value. A real system cannot follow the variations of the distance instantly, because of the speed of the winch and the delay in the measurement of the distance. To account for this limitation, the rate of change of the length is limited to $v_{\text{winch}}$, so that the slack deviates from $\varepsilon_0$ when the distance changes faster than the system can follow. The values used are $\varepsilon_0 = 0.05$ and $v_{\text{winch}} = 5\,\text{m/s}$.
+which it then applies as the unstretched length of the cable in MoorDyn. % TODO: confirmar onde o guincho le d e onde escreve L (mesmo no ROS da Sec. 4.1.4?)
+A real system cannot follow the variations of the distance instantly, because of the speed of the winch and the delay in the measurement of the distance. To account for this limitation, the rate of change of the length is limited to $v_{\text{winch}}$, so that the slack deviates from $\varepsilon_0$ when the distance changes faster than the system can follow. The values used are $\varepsilon_0 = 0.05$ and $v_{\text{winch}} = 5\,\text{m/s}$. % TODO: justificar v_winch (valor realista? escolha de simulacao?)
 
-Figures~\ref{fig:winch_shape} and~\ref{fig:winch_sweep} show the effect of the slack ratio on the tether, for the same trajectory of the \gls{uav} and for $\varepsilon_0 = 2\%$, $5\%$, and $10\%$. A larger slack makes the cable sag more between the vehicles (Figure~\ref{fig:winch_shape}), and the length of the cable follows the distance between them, staying above it by a margin that grows with $\varepsilon_0$ (Figure~\ref{fig:winch_geometry}). The tension at the \gls{uav} follows the distance, since the weight of the cable that it supports increases with it, and decreases as the slack increases (Figure~\ref{fig:winch_tension}).
+To evaluate the effect of the slack ratio, the same trajectory of the \gls{uav} was flown with $\varepsilon_0 = 2\%$, $5\%$, and $10\%$. A larger slack makes the cable sag more between the vehicles (Figure~\ref{fig:winch_shape}), and the length of the cable follows the distance between them, staying above it by a margin that grows with $\varepsilon_0$ (Figure~\ref{fig:winch_geometry}). The tension at the \gls{uav} follows the distance, since the weight of the cable that it supports increases with it, and decreases as the slack increases (Figure~\ref{fig:winch_tension}). Table~\ref{tab:winch_slack} quantifies these results. The maximum distance between the vehicles is about $14\,\text{m}$ in the three runs, differing by $5\,\text{cm}$ at most, which confirms that the trajectory is the same. From $\varepsilon_0 = 2\%$ to $10\%$, the mean tension decreases from $2.07\,\text{N}$ to $1.62\,\text{N}$, a reduction of $22\%$, and the maximum from $3.38\,\text{N}$ to $2.88\,\text{N}$.
 
 \begin{figure}[!htbp]
     \centering
@@ -248,8 +249,6 @@ Figures~\ref{fig:winch_shape} and~\ref{fig:winch_sweep} show the effect of the s
     \label{fig:winch_sweep}
 \end{figure}
 
-Table~\ref{tab:winch_slack} summarises these results. The maximum distance between the vehicles is about $14\,\text{m}$ in the three runs, differing by $5\,\text{cm}$ at most, which confirms that the trajectory is the same. From $\varepsilon_0 = 2\%$ to $10\%$, the mean tension decreases from $2.07\,\text{N}$ to $1.62\,\text{N}$, a reduction of $22\%$, and the maximum from $3.38\,\text{N}$ to $2.88\,\text{N}$. These values are small compared with the weight of the \gls{uav}, which is $20.2\,\text{N}$, so that the value of $\varepsilon_0$ is not critical, and $5\%$ is used as a compromise between the amount of loose cable and the tension.
-
 \begin{table}[!htbp]
     \centering
     \caption{Tension at the \acrshort{uav} and maximum distance between the vehicles for different slack ratios, over the $60\,\text{s}$ of the trajectory.}
@@ -264,3 +263,5 @@ Table~\ref{tab:winch_slack} summarises these results. The maximum distance betwe
         \bottomrule
     \end{tabular}
 \end{table}
+
+These tensions are small compared with the weight of the \gls{uav}, which is $20.2\,\text{N}$, so the value of $\varepsilon_0$ is not critical for the system. A value of $5\%$ is therefore adopted, as a compromise between the amount of loose cable, which grows with $\varepsilon_0$, and the tension, which decreases with it.

@@ -180,6 +180,12 @@ def generate_launch_description():
         )
     )
 
+    mocap_bridge_launch = IncludeLaunchDescription(
+        PythonLaunchDescriptionSource(
+            os.path.join(get_package_share_directory('mocap_bridge'), 'launch', 'mocap_bridge.launch.py')
+        )
+    )
+
     # Cleanup de processos Zombies (PX4)
     force_kill_zombies = RegisterEventHandler(
         event_handler=OnShutdown(
@@ -202,6 +208,8 @@ def generate_launch_description():
         bridge,
         foxglove_bridge,
         frame_manager_launch,
+        mocap_bridge_launch,
         tether_node,
         force_kill_zombies
     ])
+

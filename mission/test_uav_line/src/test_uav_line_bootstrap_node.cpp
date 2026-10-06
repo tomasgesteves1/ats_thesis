@@ -63,13 +63,22 @@ private:
         
         switch (state_) {
             case UavState::STANDBY: {
+                if (latest_status_->nav_state != px4_msgs::msg::VehicleStatus::NAVIGATION_STATE_OFFBOARD) {
+                    if (counter_ % 20 == 0) {
+                        RCLCPP_INFO_THROTTLE(this->get_logger(), *this->get_clock(), 3000,
+                            "Requesting OFFBOARD mode before arming...");
+                        publishVehicleCommand(px4_msgs::msg::VehicleCommand::VEHICLE_CMD_DO_SET_MODE, 1.0f, 6.0f);
+                    }
+                    counter_++;
+                }
+
                 if (latest_status_->pre_flight_checks_pass) {
                     RCLCPP_INFO(this->get_logger(), "Transition: STANDBY -> ARMING. Pre-flight checks passed.");
                     state_ = UavState::ARMING;
                     counter_ = 0;
                 } else {
                     RCLCPP_INFO_THROTTLE(this->get_logger(), *this->get_clock(), 3000,
-                        "Pre-flight checks failing...");
+                        "Pre-flight checks failing, awaiting OFFBOARD transition...");
                 }
                 break;
             }

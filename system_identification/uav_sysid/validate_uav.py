@@ -25,7 +25,9 @@ from pathlib import Path
 from scipy.interpolate import interp1d
 from scipy.signal import savgol_filter
 from scipy.spatial.transform import Rotation as R
-from rosbags.highlevel import AnyReader
+import rosbag2_py
+from rclpy.serialization import deserialize_message
+from rosidl_runtime_py.utilities import get_message
 
 CURRENT_DIR = os.path.dirname(os.path.abspath(__file__))
 SYSID_DIR = os.path.dirname(CURRENT_DIR)
@@ -50,6 +52,15 @@ MU_TETHER = 0.020       # kg/m, linear mass density
 EPS0 = 0.05             # nominal operating slack ratio
 GAMMA0 = np.deg2rad(28.0)  # rad, nominal catenary deflection angle
 C_D = MU_TETHER * G / (1.0 - EPS0)  # N/m, nominal tension-distance coefficient (0.2065 N/m)
+
+# Nominal Rotor Drag (from x500/model.sdf: 4 rotors, c_drag = 8.06428e-5, k_m = 1.11e-5)
+# At nominal hover thrust T0 ~ 21.7 N, omega0 = sqrt((T0/4)/k_m) ~ 699 rad/s
+D_ROTOR = 0.227         # N*s/m, planar horizontal rotor drag coefficient
+
+# Nominal PX4 Attitude Inner-Loop Dynamic Parameters (from PX4: MC_ROLL_P=6.5, MC_PITCH_P=6.5, MC_YAW_P=2.8)
+TAU_ATT_RP = 1.0 / 6.5  # ~0.154 s, roll and pitch time constant (tau = 1/P)
+TAU_ATT_YAW = 1.0 / 2.8 # ~0.357 s, yaw time constant (tau = 1/P)
+DELAY_OFFBOARD = 0.02   # s, 50 Hz offboard transport delay
 
 # Nominal Tether Anchor on USV (from frame_manager_params.yaml: z_offset = 1.3 - 0.265 = 1.035 m)
 NOMINAL_ANCHOR_OFFSET = np.array([0.0, 0.0, 1.035])
@@ -82,7 +93,7 @@ def parse_args():
         description="Validate Thesis Section 3.2 UAV Model with first-principles tether coupling."
     )
     default_bag = os.path.abspath(
-        os.path.join(CURRENT_DIR, "../../../bags/uav_px4_offboard_20261005_213544")
+        os.path.join(CURRENT_DIR, "../../../bags/uav_px4_offboard_20261006_135407")
     )
     parser.add_argument("--bag", type=str, default=default_bag, help="Path to ROS 2 bag folder")
     parser.add_argument("--skip", type=float, default=14.0,
@@ -122,29 +133,38 @@ def nominal_tether_force(p_uav, p_anchor):
 def read_bag(bag_path):
     print(f"[INFO] Reading telemetry from: {bag_path}")
     raw = {k: [] for k in TOPICS}
-    with AnyReader([Path(bag_path)]) as reader:
-        conns = [c for c in reader.connections if c.topic in TOPICS]
-        for conn, stamp, rawdata in reader.messages(connections=conns):
-            msg = reader.deserialize(rawdata, conn.msgtype)
-            t_w = stamp / 1e9
-            tp = conn.topic
-            if tp.endswith('ground_truth/odometry'):
-                p = msg.pose.pose.position
-                q = msg.pose.pose.orientation
-                v = msg.twist.twist.linear
-                t_s = msg.header.stamp.sec + msg.header.stamp.nanosec * 1e-9
-                raw[tp].append([t_w, t_s, p.x, p.y, p.z, q.x, q.y, q.z, q.w, v.x, v.y, v.z])
-            elif tp.endswith('vehicle_attitude_setpoint'):
-                raw[tp].append([t_w, *msg.q_d, msg.thrust_body[2]])
-            elif tp.endswith('hover_thrust_estimate'):
-                if msg.valid:
-                    raw[tp].append([t_w, msg.hover_thrust])
-            elif tp.endswith('/wrench'):
-                if 'x500' in msg.entity.name:
-                    f = msg.wrench.force
-                    raw[tp].append([t_w, f.x, f.y, f.z])
-            else:
-                raw[tp].append([t_w, msg.data])
+    reader = rosbag2_py.SequentialReader()
+    storage_options = rosbag2_py.StorageOptions(uri=str(bag_path))
+    converter_options = rosbag2_py.ConverterOptions(input_serialization_format='cdr', output_serialization_format='cdr')
+    reader.open(storage_options, converter_options)
+
+    topic_types = {t.name: t.type for t in reader.get_all_topics_and_types()}
+    type_map = {t: get_message(topic_types[t]) for t in TOPICS if t in topic_types}
+
+    while reader.has_next():
+        topic, data, stamp = reader.read_next()
+        if topic not in type_map:
+            continue
+        msg = deserialize_message(data, type_map[topic])
+        t_w = stamp / 1e9
+        tp = topic
+        if tp.endswith('ground_truth/odometry'):
+            p = msg.pose.pose.position
+            q = msg.pose.pose.orientation
+            v = msg.twist.twist.linear
+            t_s = msg.header.stamp.sec + msg.header.stamp.nanosec * 1e-9
+            raw[tp].append([t_w, t_s, p.x, p.y, p.z, q.x, q.y, q.z, q.w, v.x, v.y, v.z])
+        elif tp.endswith('vehicle_attitude_setpoint'):
+            raw[tp].append([t_w, *msg.q_d, msg.thrust_body[2]])
+        elif tp.endswith('hover_thrust_estimate'):
+            if msg.valid:
+                raw[tp].append([t_w, msg.hover_thrust])
+        elif tp.endswith('/wrench'):
+            if 'x500' in msg.entity.name:
+                f = msg.wrench.force
+                raw[tp].append([t_w, f.x, f.y, f.z])
+        else:
+            raw[tp].append([t_w, msg.data])
     return {k: np.array(v) for k, v in raw.items()}
 
 
@@ -195,6 +215,25 @@ def build_dataset(raw, skip=0.0):
     theta_dot_cmd = np.gradient(cmd[:, 1], TS)
     psi_dot_cmd = np.gradient(cmd[:, 2], TS)
 
+    # Model Attitude: Nominal PX4 Inner-Loop Response (tau = 1/P from MC_ROLL_P, MC_YAW_P)
+    N_pts = len(t_grid)
+    roll_mod = np.zeros(N_pts)
+    pitch_mod = np.zeros(N_pts)
+    yaw_mod = np.zeros(N_pts)
+    roll_mod[0], pitch_mod[0], yaw_mod[0] = cmd[0, 0], cmd[0, 1], cmd[0, 2]
+    delay_steps = int(round(DELAY_OFFBOARD / TS))
+    alpha_rp = TS / TAU_ATT_RP
+    alpha_yaw = TS / TAU_ATT_YAW
+    for k in range(1, N_pts):
+        idx = max(0, k - delay_steps)
+        roll_mod[k] = roll_mod[k-1] + alpha_rp * (cmd[idx, 0] - roll_mod[k-1])
+        pitch_mod[k] = pitch_mod[k-1] + alpha_rp * (cmd[idx, 1] - pitch_mod[k-1])
+        yaw_mod[k] = yaw_mod[k-1] + alpha_yaw * (cmd[idx, 2] - yaw_mod[k-1])
+
+    phi_dot_mod = np.gradient(roll_mod, TS)
+    theta_dot_mod = np.gradient(pitch_mod, TS)
+    psi_dot_mod = np.gradient(yaw_mod, TS)
+
     # USV Ground Truth State & Nominal Anchor Position
     pb = on_grid(b_odom[:, 1], b_odom[:, 2:5])
     qb = on_grid(b_odom[:, 1], b_odom[:, 5:9])
@@ -219,12 +258,20 @@ def build_dataset(raw, skip=0.0):
     wr = raw['/world/wamv_world/wrench']
     f_wrench = on_grid(wall2sim(wr[:, 0]), wr[:, 1:4])
 
+    # Ground-truth angular rates (numerical gradient of measured attitude)
+    phi_dot_gt = np.gradient(roll, TS)
+    theta_dot_gt = np.gradient(pitch, TS)
+    psi_dot_gt = np.gradient(yaw, TS)
+
     return {
         't': t, 'dt': TS,
         'p': p, 'v': v_world, 'rot': rot,
         'roll': roll, 'pitch': pitch, 'yaw': yaw,
         'roll_c': cmd[:, 0], 'pitch_c': cmd[:, 1], 'yaw_c': cmd[:, 2],
         'phi_dot_c': phi_dot_cmd, 'theta_dot_c': theta_dot_cmd, 'psi_dot_c': psi_dot_cmd,
+        'phi_dot_gt': phi_dot_gt, 'theta_dot_gt': theta_dot_gt, 'psi_dot_gt': psi_dot_gt,
+        'roll_mod': roll_mod, 'pitch_mod': pitch_mod, 'yaw_mod': yaw_mod,
+        'phi_dot_mod': phi_dot_mod, 'theta_dot_mod': theta_dot_mod, 'psi_dot_mod': psi_dot_mod,
         'thr_norm': cmd[:, 3], 'hover': hover, 'T': thrust,
         'pb': pb, 'rot_b': rot_b, 'p_anchor': p_anchor_nom,
         'f_tether_pull': f_tether_pull,
@@ -266,7 +313,10 @@ def uav_dynamics_sec32(x, u, p_anchor):
     f_tether = nominal_tether_force(x[:3], p_anchor)
     a_tether = f_tether / MASS
 
-    v_dot = a_thrust + a_grav + a_tether
+    # Nominal planar rotor drag (SDF MulticopterMotorModel: D_ROTOR = 0.227 N*s/m)
+    a_drag = np.array([-(D_ROTOR / MASS) * vx, -(D_ROTOR / MASS) * vy, 0.0])
+
+    v_dot = a_thrust + a_grav + a_tether + a_drag
 
     # Attitude rates: eta_dot = u_rates (Eq. 3.94)
     att_dot = np.array([phi_dot, theta_dot, psi_dot])
@@ -285,10 +335,12 @@ def rk4_step(x, u1, u2, pa1, pa2, dt):
     return x + (dt / 6.0) * (k1 + 2.0 * k2 + 2.0 * k3 + k4)
 
 
-def simulate_horizon(k0, n_h, data, use_meas_attitude=False):
+def simulate_horizon(k0, n_h, data):
     """
     Open-loop integration of the Section 3.2 model over n_h steps.
     Initial condition x(0) is taken strictly from ground-truth odometry at k0.
+    Attitude is initialised from ground-truth measurement (as the NMPC state
+    estimator would provide at runtime), then propagated using modelled rates.
     """
     dt = data['dt']
     x_sim = np.zeros((n_h + 1, 9))
@@ -300,26 +352,11 @@ def simulate_horizon(k0, n_h, data, use_meas_attitude=False):
 
     for i in range(n_h):
         k = k0 + i
-        if use_meas_attitude:
-            # Baseline: feed measured attitude directly to isolate translational block
-            dphi1 = np.gradient(data['roll'][k:k+2], dt)[0] if k+1 < len(data['t']) else 0.0
-            dphi2 = dphi1
-            dtheta1 = np.gradient(data['pitch'][k:k+2], dt)[0] if k+1 < len(data['t']) else 0.0
-            dtheta2 = dtheta1
-            dpsi1 = np.gradient(data['yaw'][k:k+2], dt)[0] if k+1 < len(data['t']) else 0.0
-            dpsi2 = dpsi1
-            u1 = np.array([dphi1, dtheta1, dpsi1, data['T'][k]])
-            u2 = np.array([dphi2, dtheta2, dpsi2, data['T'][k+1]])
-        else:
-            u1 = np.array([data['phi_dot_c'][k], data['theta_dot_c'][k], data['psi_dot_c'][k], data['T'][k]])
-            u2 = np.array([data['phi_dot_c'][k+1], data['theta_dot_c'][k+1], data['psi_dot_c'][k+1], data['T'][k+1]])
-
+        u1 = np.array([data['phi_dot_mod'][k], data['theta_dot_mod'][k], data['psi_dot_mod'][k], data['T'][k]])
+        u2 = np.array([data['phi_dot_mod'][k+1], data['theta_dot_mod'][k+1], data['psi_dot_mod'][k+1], data['T'][k+1]])
         pa1 = data['p_anchor'][k]
         pa2 = data['p_anchor'][k+1]
         x_sim[i + 1] = rk4_step(x_sim[i], u1, u2, pa1, pa2, dt)
-
-        if use_meas_attitude:
-            x_sim[i + 1, 6:9] = np.array([data['roll'][k+1], data['pitch'][k+1], data['yaw'][k+1]])
 
     return x_sim
 
@@ -376,15 +413,15 @@ def plot_attitude_tracking(data, out_dirs):
     set_thesis_style()
     t = data['t']
     fig, axs = plt.subplots(3, 1, figsize=(7.2, 6.4), sharex=True)
-    keys = [('roll', 'roll_c', 'Roll', r'\phi'),
-            ('pitch', 'pitch_c', 'Pitch', r'\theta'),
-            ('yaw', 'yaw_c', 'Yaw', r'\psi')]
+    keys = [('roll', 'roll_mod', 'Roll', r'\phi'),
+            ('pitch', 'pitch_mod', 'Pitch', r'\theta'),
+            ('yaw', 'yaw_mod', 'Yaw', r'\psi')]
 
-    for ax, (meas_k, cmd_k, name, sym) in zip(axs, keys):
-        ax.plot(t, np.rad2deg(data[cmd_k]), color=COLOR_CYCLE[1], linewidth=1.2,
-                linestyle='-.', label=f'Command ${sym}_c$')
+    for ax, (meas_k, mod_k, name, sym) in zip(axs, keys):
         ax.plot(t, np.rad2deg(data[meas_k]), color=GROUND_TRUTH_COLOR, linewidth=1.4,
                 label='Ground Truth')
+        ax.plot(t, np.rad2deg(data[mod_k]), color=COLOR_CYCLE[0], linewidth=1.3,
+                linestyle='--', label=f'Section 3.2 Model (${sym}$)')
         ax.set_ylabel(f'{name} [deg]')
         ax.grid(True, linestyle=':', alpha=0.6)
         ax.legend(loc='upper right', framealpha=0.9)
@@ -414,22 +451,17 @@ def plot_acceleration(data, a_meas, a_model, out_dirs):
     plt.close(fig)
 
 
-def plot_prediction_error(horizon_t, curves, out_dirs):
+def plot_prediction_error(horizon_t, pos_rmse, vel_rmse, out_dirs):
     set_thesis_style()
     fig, axs = plt.subplots(1, 2, figsize=(7.6, 3.6))
-    styles = ['-', '--', '-.', ':']
-    for i, (label, c) in enumerate(curves.items()):
-        col = COLOR_CYCLE[i]
-        axs[0].plot(horizon_t, c['pos_rmse'], color=col, linestyle=styles[i % 4],
-                    linewidth=1.5, label=label)
-        axs[1].plot(horizon_t, c['vel_rmse'], color=col, linestyle=styles[i % 4],
-                    linewidth=1.5, label=label)
+    axs[0].plot(horizon_t, pos_rmse, color=COLOR_CYCLE[0], linewidth=1.5, label='Section 3.2 Model')
+    axs[1].plot(horizon_t, vel_rmse, color=COLOR_CYCLE[0], linewidth=1.5, label='Section 3.2 Model')
     axs[0].set_ylabel('Position error RMSE [m]')
     axs[1].set_ylabel('Velocity error RMSE [m/s]')
     for ax in axs:
         ax.set_xlabel('Prediction horizon [s]')
         ax.grid(True, linestyle=':', alpha=0.6)
-    axs[0].legend(loc='upper left', framealpha=0.9)
+        ax.legend(loc='upper left', framealpha=0.9)
     plt.tight_layout()
     for d in out_dirs:
         save_figure(fig, os.path.join(d, 'uav_prediction_error'), save_png=True)
@@ -470,6 +502,39 @@ def plot_prediction_examples(data, windows, out_dirs):
     plt.close(fig)
 
 
+def plot_tether_force_validation(data, f_nominal_tether, out_dirs):
+    set_thesis_style()
+    t = data['t']
+    f_wrench = data['F_wrench']
+    f_mag_nom = np.linalg.norm(f_nominal_tether, axis=1)
+    f_mag_wrench = np.linalg.norm(f_wrench, axis=1)
+
+    fig, axs = plt.subplots(4, 1, figsize=(7.2, 7.8), sharex=True)
+
+    labels = [r'$F_x$', r'$F_y$', r'$F_z$']
+    for i in range(3):
+        axs[i].plot(t, f_wrench[:, i], color=GROUND_TRUTH_COLOR, linewidth=1.3, label='MoorDyn Ground Truth')
+        axs[i].plot(t, f_nominal_tether[:, i], color=COLOR_CYCLE[i], linewidth=1.3, linestyle='--',
+                    label=f'Section 3.2 Model ({labels[i]})')
+        axs[i].set_ylabel(f'{labels[i]} [N]')
+        axs[i].grid(True, linestyle=':', alpha=0.6)
+        loc = 'lower right' if i == 2 else 'upper right'
+        axs[i].legend(loc=loc, framealpha=0.9, ncol=2)
+
+    axs[3].plot(t, f_mag_wrench, color=GROUND_TRUTH_COLOR, linewidth=1.3, label=r'MoorDyn Wrench $\|\mathbf{F}\|$')
+    axs[3].plot(t, f_mag_nom, color=COLOR_CYCLE[0], linewidth=1.3, linestyle='--',
+                label=r'Section 3.2 Model $\|\mathbf{F}\|$')
+    axs[3].set_ylabel(r'$\|\mathbf{F}\|$ [N]')
+    axs[3].set_xlabel('Time [s]')
+    axs[3].grid(True, linestyle=':', alpha=0.6)
+    axs[3].legend(loc='upper right', framealpha=0.9, ncol=2)
+
+    plt.tight_layout()
+    for d in out_dirs:
+        save_figure(fig, os.path.join(d, 'uav_tether_force_validation'), save_png=True)
+    plt.close(fig)
+
+
 # ==============================================================================
 # MAIN VALIDATION PIPELINE
 # ==============================================================================
@@ -488,20 +553,15 @@ def main():
     print(f"Prediction Horizon: N = {N_HORIZON} steps, Ts = {dt} s -> T_horizon = {N_HORIZON*dt:.2f} s")
     print(f"Telemetry window: {t[-1]:.2f} s ({N} samples at 50 Hz)")
 
-    # --- 1. ATTITUDE TRACKING (IDEAL VS MEASURED) ---
-    print("\n[1] ATTITUDE TRACKING (Commanded setpoints vs Ground Truth)")
+    # --- 1. ATTITUDE INNER-LOOP VALIDATION ---
+    print("\n[1] ATTITUDE INNER-LOOP VALIDATION (Section 3.2 Model vs Ground Truth)")
     att_metrics = {}
-    rate_keys = {'roll': 'phi_dot_c', 'pitch': 'theta_dot_c', 'yaw': 'psi_dot_c'}
     for key, name in [('roll', 'Roll'), ('pitch', 'Pitch'), ('yaw', 'Yaw')]:
         meas = np.rad2deg(data[key])
-        cmd = np.rad2deg(data[key + '_c'])
-        m = compute_metrics(meas, cmd)
+        mod = np.rad2deg(data[key + '_mod'])
+        m = compute_metrics(meas, mod)
         att_metrics[key] = m
-        rk = rate_keys[key]
-        rate_cmd_max = np.rad2deg(np.abs(data[rk]).max())
-        rate_cmd_p99 = np.rad2deg(np.percentile(np.abs(data[rk]), 99))
-        print(f"  {name:<6}: RMSE = {m['rmse']:.3f} deg, MAE = {m['mae']:.3f} deg, Max = {m['max']:.2f} deg, R2 = {m['r2']:.1f}% | "
-              f"Max |rate_cmd| = {rate_cmd_max:.1f} deg/s (P99 = {rate_cmd_p99:.1f} deg/s)")
+        print(f"  {name:<6}: RMSE = {m['rmse']:.3f} deg, MAE = {m['mae']:.3f} deg, Max = {m['max']:.2f} deg, R2 = {m['r2']:.1f}%")
 
     # --- 2. THRUST MAPPING & HOVER BALANCE ---
     print("\n[2] THRUST MAPPING & EQUILIBRIUM (T_hover = mg + |F_tether,z|)")
@@ -520,15 +580,19 @@ def main():
 
     # --- 3. ACCELERATION LEVEL VALIDATION ---
     print("\n[3] ONE-STEP-AHEAD ACCELERATION COMPARISON")
+    # State x uses ground-truth attitude: at NMPC runtime, the state estimator
+    # provides the true current attitude (phi, theta, psi), not a first-order prediction.
+    # Input u uses modelled angular rates (phi_dot_mod) since those are the control inputs.
     a_sec32 = np.zeros((N, 3))
     for k in range(N):
         x = np.array([*data['p'][k], *data['v'][k], data['roll'][k], data['pitch'][k], data['yaw'][k]])
-        u = np.array([data['phi_dot_c'][k], data['theta_dot_c'][k], data['psi_dot_c'][k], data['T'][k]])
+        u = np.array([data['phi_dot_mod'][k], data['theta_dot_mod'][k], data['psi_dot_mod'][k], data['T'][k]])
         pa = data['p_anchor'][k]
         a_sec32[k] = uav_dynamics_sec32(x, u, pa)[3:6]
 
+    a_err_3d = np.sqrt(np.mean(np.sum((a_meas - a_sec32) ** 2, axis=1)))
     m_acc = [compute_metrics(a_meas[:, i], a_sec32[:, i]) for i in range(3)]
-    print("  Sec 3.2 Model (com tether): " +
+    print(f"  Section 3.2 Model: 3D RMSE = {a_err_3d:.3f} m/s^2 | " +
           " | ".join(f"{ax}: RMSE {m['rmse']:.3f} m/s^2 (R2 {m['r2']:.1f}%)" for ax, m in zip('xyz', m_acc)))
 
     # --- 4. TETHER FORCE EVALUATION ---
@@ -544,43 +608,33 @@ def main():
 
     # --- 5. MULTI-STEP OPEN-LOOP PREDICTION OVER HORIZON (1.0 s) ---
     print("\n[4] MULTI-STEP OPEN-LOOP PREDICTION (N = 50 steps, Horizon = 1.0 s)")
-    variants = {
-        'Sec 3.2 (Comando)': {'use_meas_att': False},
-        'Sec 3.2 (Atitude medida)': {'use_meas_att': True},
-    }
-
     n_h = N_HORIZON
     starts = np.arange(0, N - n_h - 1, 5)  # window every 0.1 s
-    curves, final_err, sample_windows = {}, {}, []
+    sample_windows = []
 
-    for name, cfg in variants.items():
-        err_p = np.zeros((len(starts), n_h + 1, 3))
-        err_v = np.zeros((len(starts), n_h + 1, 3))
-        for j, k0 in enumerate(starts):
-            s = simulate_horizon(k0, n_h, data, cfg['use_meas_att'])
-            err_p[j] = s[:, :3] - data['p'][k0:k0 + n_h + 1]
-            err_v[j] = s[:, 3:6] - data['v'][k0:k0 + n_h + 1]
-            if name == 'Sec 3.2 (Comando)' and k0 % 250 == 0:
-                sample_windows.append((k0, s))
+    err_p = np.zeros((len(starts), n_h + 1, 3))
+    err_v = np.zeros((len(starts), n_h + 1, 3))
+    for j, k0 in enumerate(starts):
+        s = simulate_horizon(k0, n_h, data)
+        err_p[j] = s[:, :3] - data['p'][k0:k0 + n_h + 1]
+        err_v[j] = s[:, 3:6] - data['v'][k0:k0 + n_h + 1]
+        if k0 % 250 == 0:
+            sample_windows.append((k0, s))
 
-        pos_norm = np.linalg.norm(err_p, axis=2)
-        vel_norm = np.linalg.norm(err_v, axis=2)
-        curves[name] = {
-            'pos_rmse': np.sqrt(np.mean(pos_norm ** 2, axis=0)),
-            'vel_rmse': np.sqrt(np.mean(vel_norm ** 2, axis=0)),
-        }
-        final_err[name] = {
-            'pos_rmse': curves[name]['pos_rmse'][-1],
-            'xy_rmse': np.sqrt(np.mean(np.sum(err_p[:, -1, :2] ** 2, axis=1))),
-            'z_rmse': np.sqrt(np.mean(err_p[:, -1, 2] ** 2)),
-            'pos_p95': np.percentile(pos_norm[:, -1], 95),
-            'pos_max': pos_norm[:, -1].max(),
-            'vel_rmse': curves[name]['vel_rmse'][-1],
-        }
+    pos_norm = np.linalg.norm(err_p, axis=2)
+    vel_norm = np.linalg.norm(err_v, axis=2)
+    pos_rmse_curve = np.sqrt(np.mean(pos_norm ** 2, axis=0))
+    vel_rmse_curve = np.sqrt(np.mean(vel_norm ** 2, axis=0))
 
-    for name, e in final_err.items():
-        print(f"  {name:<28}: Pos RMSE {e['pos_rmse']:.3f} m (xy {e['xy_rmse']:.3f}, z {e['z_rmse']:.3f}), "
-              f"P95 {e['pos_p95']:.3f} m, Max {e['pos_max']:.3f} m | Vel RMSE {e['vel_rmse']:.3f} m/s")
+    final_pos_rmse = pos_rmse_curve[-1]
+    final_xy_rmse = np.sqrt(np.mean(np.sum(err_p[:, -1, :2] ** 2, axis=1)))
+    final_z_rmse = np.sqrt(np.mean(err_p[:, -1, 2] ** 2))
+    final_pos_p95 = np.percentile(pos_norm[:, -1], 95)
+    final_pos_max = pos_norm[:, -1].max()
+    final_vel_rmse = vel_rmse_curve[-1]
+
+    print(f"  Section 3.2 Model           : Pos RMSE {final_pos_rmse:.3f} m (xy {final_xy_rmse:.3f}, z {final_z_rmse:.3f}), "
+          f"P95 {final_pos_p95:.3f} m, Max {final_pos_max:.3f} m | Vel RMSE {final_vel_rmse:.3f} m/s")
 
     print("=" * 78 + "\n")
 
@@ -599,7 +653,8 @@ def main():
     plot_actuator_inputs(data, out_dirs)
     plot_attitude_tracking(data, out_dirs)
     plot_acceleration(data, a_meas, a_sec32, out_dirs)
-    plot_prediction_error(horizon_t, curves, out_dirs)
+    plot_tether_force_validation(data, f_nominal_tether, out_dirs)
+    plot_prediction_error(horizon_t, pos_rmse_curve, vel_rmse_curve, out_dirs)
     plot_prediction_examples(data, sample_windows, out_dirs)
     print(f"[INFO] Plots successfully generated and exported to {out_dirs}")
 

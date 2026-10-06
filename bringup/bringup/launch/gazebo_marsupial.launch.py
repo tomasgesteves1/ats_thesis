@@ -179,6 +179,12 @@ def generate_launch_description():
         )
     )
 
+    mocap_bridge_launch = IncludeLaunchDescription(
+        PythonLaunchDescriptionSource(
+            os.path.join(get_package_share_directory('mocap_bridge'), 'launch', 'mocap_bridge.launch.py')
+        )
+    )
+
     # Cleanup do PX4
     force_kill_px4 = RegisterEventHandler(
         event_handler=OnShutdown(
@@ -204,5 +210,7 @@ def generate_launch_description():
         bridge,
         foxglove_bridge,
         frame_manager_launch,
+        mocap_bridge_launch,
         force_kill_px4
     ])
+

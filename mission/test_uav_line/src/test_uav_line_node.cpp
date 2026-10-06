@@ -26,9 +26,9 @@ TestUavLineNode::TestUavLineNode()
     this->declare_parameter<double>("yaw_amplitude", 1.2);
     this->declare_parameter<int>("yaw_cycles", 3);
     this->declare_parameter<bool>("px4_offboard", true);
-    this->declare_parameter<double>("px4_origin_x", 0.3);
+    this->declare_parameter<double>("px4_origin_x", 0.0);
     this->declare_parameter<double>("px4_origin_y", 0.0);
-    this->declare_parameter<double>("px4_origin_z", 1.4);
+    this->declare_parameter<double>("px4_origin_z", 0.0);
     this->declare_parameter<int>("horizon_stages", 50);
     this->declare_parameter<double>("control_period", 0.02);
     this->declare_parameter<double>("update_rate_hz", 50.0);
