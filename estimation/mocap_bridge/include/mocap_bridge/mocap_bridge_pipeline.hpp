@@ -13,7 +13,13 @@ struct BridgeConfig {
 class MocapBridgePipeline {
 public:
     explicit MocapBridgePipeline(const BridgeConfig& config);
+
     kinematics::NedOdometry process(const kinematics::EnuOdometry& in) const;
+    kinematics::NedOdometry processEnuToNed(const kinematics::EnuOdometry& in) const;
+    kinematics::EnuOdometry processNedToEnu(const kinematics::NedOdometry& in) const;
+    kinematics::EulerAngles computeEuler(const std::array<double, 4>& q_xyzw) const;
+    kinematics::OdometryError computeError(const kinematics::EnuOdometry& gt, const kinematics::EnuOdometry& est) const;
+
     const BridgeConfig& getConfig() const { return config_; }
 
 private:

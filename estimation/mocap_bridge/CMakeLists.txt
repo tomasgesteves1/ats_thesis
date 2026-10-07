@@ -8,6 +8,7 @@ endif()
 find_package(ament_cmake REQUIRED)
 find_package(rclcpp REQUIRED)
 find_package(nav_msgs REQUIRED)
+find_package(geometry_msgs REQUIRED)
 find_package(px4_msgs REQUIRED)
 find_package(Eigen3 REQUIRED)
 
@@ -36,6 +37,7 @@ target_link_libraries(mocap_bridge_node
 ament_target_dependencies(mocap_bridge_node
   rclcpp
   nav_msgs
+  geometry_msgs
   px4_msgs
 )
 

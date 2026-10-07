@@ -3,6 +3,9 @@
     use_sim_time: true
     odom_topic: "/drone/ground_truth/odometry"
     px4_vo_topic: "/px4_1/fmu/in/vehicle_visual_odometry"
+    px4_odom_topic: "/px4_1/fmu/out/vehicle_odometry"
+    publish_debug_topics: true
+    euler_in_degrees: false
     position_variance: 0.001
     orientation_variance: 0.0001
     velocity_variance: 0.001
@@ -12,3 +15,4 @@
     origin_longitude: -71.0479235555555
     origin_altitude: 0.0
     target_system: 2
+
