@@ -6,9 +6,9 @@
     px4_odom_topic: "/px4_1/fmu/out/vehicle_odometry"
     publish_debug_topics: true
     euler_in_degrees: false
-    position_variance: 0.001
-    orientation_variance: 0.0001
-    velocity_variance: 0.001
+    position_variance: 0.0001
+    orientation_variance: 0.00001
+    velocity_variance: 0.0001
     px4_command_topic: "/px4_1/fmu/in/vehicle_command"
     set_global_origin: true
     origin_latitude: 42.35821841111111

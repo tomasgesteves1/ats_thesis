@@ -132,8 +132,13 @@ void MocapBridgeNode::odomCallback(const nav_msgs::msg::Odometry::SharedPtr msg)
 
     px4_msgs::msg::VehicleOdometry vo_msg{};
     const uint64_t now_us = this->get_clock()->now().nanoseconds() / 1000;
+    uint64_t sample_us = static_cast<uint64_t>(msg->header.stamp.sec) * 1000000ULL +
+                         static_cast<uint64_t>(msg->header.stamp.nanosec) / 1000ULL;
+    if (sample_us == 0) {
+        sample_us = now_us;
+    }
     vo_msg.timestamp = now_us;
-    vo_msg.timestamp_sample = now_us;
+    vo_msg.timestamp_sample = sample_us;
 
     vo_msg.pose_frame = px4_msgs::msg::VehicleOdometry::POSE_FRAME_NED;
     vo_msg.position[0] = ned.position[0];
