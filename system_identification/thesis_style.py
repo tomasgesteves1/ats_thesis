@@ -37,8 +37,8 @@ COLOR_CYCLE = [
 # - Prediction Model (Proposed): Vivid color solid line (focal point)
 SIMULATION_LINESTYLE = "-"
 MODEL_LINESTYLE = "-"
-SIMULATION_LINEWIDTH = 1.4
-MODEL_LINEWIDTH = 1.3
+SIMULATION_LINEWIDTH = 1.25
+MODEL_LINEWIDTH = 1.0
 
 # Legacy alias dictionary preserved for backwards-compatibility
 THESIS_COLORS = {
@@ -138,7 +138,9 @@ def save_figure(fig, output_path, save_png=False, dpi=300):
     fig.savefig(pdf_path, format="pdf", bbox_inches="tight")
     print(f"Saved vector figure (LaTeX ready): {pdf_path}")
 
-    if save_png:
+    # Never pollute LaTeX directories with PNG files (thesis uses vector PDFs exclusively)
+    is_latex_dir = "latex" in os.path.abspath(base).split(os.sep)
+    if save_png and not is_latex_dir:
         png_path = f"{base}.png"
         fig.savefig(png_path, format="png", dpi=dpi, bbox_inches="tight")
         print(f"Saved raster figure (300 DPI):     {png_path}")

@@ -403,22 +403,25 @@ def plot_actuator_inputs(data, out_dirs):
     t = data['t']
     fig, axs = plt.subplots(3, 1, figsize=(7.2, 5.8), sharex=True)
 
-    axs[0].plot(t, np.rad2deg(data['roll_c']), color=COLOR_CYCLE[0], label=r'Roll $\phi_c$', linewidth=1.3)
-    axs[0].plot(t, np.rad2deg(data['pitch_c']), color=COLOR_CYCLE[1], label=r'Pitch $\theta_c$', linewidth=1.3)
+    axs[0].plot(t, np.rad2deg(data['roll_c']), color=COLOR_CYCLE[0], label=r'Roll $\phi_c$', linewidth=1.15)
+    axs[0].plot(t, np.rad2deg(data['pitch_c']), color=COLOR_CYCLE[1], label=r'Pitch $\theta_c$', linewidth=1.15)
     axs[0].set_ylabel('Attitude cmd [deg]')
+    axs[0].set_ylim([-32.0, 50.0])
     axs[0].legend(loc='upper right', framealpha=0.9, ncol=2)
 
-    axs[1].plot(t, np.rad2deg(data['yaw_c']), color=COLOR_CYCLE[2], label=r'Yaw $\psi_c$', linewidth=1.3)
+    axs[1].plot(t, np.rad2deg(data['yaw_c']), color=COLOR_CYCLE[2], label=r'Yaw $\psi_c$', linewidth=1.15)
     axs[1].set_ylabel('Yaw cmd [deg]')
+    axs[1].set_ylim([-90.0, 100.0])
     axs[1].legend(loc='upper right', framealpha=0.9)
 
-    axs[2].plot(t, data['T'], color=COLOR_CYCLE[0], linewidth=1.3, label='Commanded thrust $T$')
+    axs[2].plot(t, data['T'], color=COLOR_CYCLE[0], linewidth=1.15, label='Commanded thrust $T$')
     if data.get('include_tether', False):
-        axs[2].plot(t, MASS * G + data['f_tether_pull'], color='gray', linestyle='--', linewidth=1.1,
+        axs[2].plot(t, MASS * G + data['f_tether_pull'], color='gray', linestyle='--', linewidth=1.0,
                     alpha=0.8, label=r'Hover balance $mg + F_{\mathrm{tether},z}$')
     axs[2].axhline(MASS * G, color='r', linestyle=':', alpha=0.7, label=f'Nominal weight $mg={MASS*G:.2f}$ N')
     axs[2].set_ylabel('Thrust [N]')
     axs[2].set_xlabel('Time [s]')
+    axs[2].set_ylim([15.5, 30.5])
     axs[2].legend(loc='upper right', framealpha=0.9, ncol=3)
 
     for ax in axs:
@@ -433,21 +436,28 @@ def plot_attitude_tracking(data, out_dirs):
     set_thesis_style()
     t = data['t']
     fig, axs = plt.subplots(3, 1, figsize=(7.2, 6.4), sharex=True)
-    keys = [('roll', 'roll_mod', 'Roll', r'\phi'),
-            ('pitch', 'pitch_mod', 'Pitch', r'\theta'),
-            ('yaw', 'yaw_mod', 'Yaw', r'\psi')]
+    keys = [('roll', 'roll_mod', 'Roll'),
+            ('pitch', 'pitch_mod', 'Pitch'),
+            ('yaw', 'yaw_mod', 'Yaw')]
 
-    for ax, (meas_k, mod_k, name, sym) in zip(axs, keys):
-        ax.plot(t, np.rad2deg(data[meas_k]), color=SIMULATION_COLOR, linewidth=1.5,
-                label='Simulation')
-        ax.plot(t, np.rad2deg(data[mod_k]), color=COLOR_CYCLE[0], linewidth=1.3,
-                linestyle='-', label=f'Prediction Model (${sym}$)')
+    l_sim, l_mod = None, None
+    for ax, (meas_k, mod_k, name) in zip(axs, keys):
+        l_sim, = ax.plot(t, np.rad2deg(data[meas_k]), color=SIMULATION_COLOR, linewidth=1.25,
+                         label='Simulation')
+        l_mod, = ax.plot(t, np.rad2deg(data[mod_k]), color=COLOR_CYCLE[0], linewidth=1.0,
+                         linestyle='-', label='Prediction Model')
         ax.set_ylabel(f'{name} [deg]')
         ax.grid(True, linestyle=':', alpha=0.6)
-        ax.legend(loc='upper right', framealpha=0.9)
 
+    axs[0].set_ylim([-28.0, 30.0])
+    axs[1].set_ylim([-28.0, 25.0])
+    axs[2].set_ylim([-85.0, 85.0])
     axs[-1].set_xlabel('Time [s]')
-    plt.tight_layout()
+
+    # Shared top legend: guaranteed zero overlap with any transient spike
+    fig.legend([l_sim, l_mod], ['Simulation', 'Prediction Model'],
+               loc='upper center', bbox_to_anchor=(0.5, 0.99), ncol=2, frameon=True)
+    plt.tight_layout(rect=[0.0, 0.0, 1.0, 0.95])
     for d in out_dirs:
         save_figure(fig, os.path.join(d, 'uav_attitude_validation'), save_png=True)
     plt.close(fig)
@@ -457,15 +467,22 @@ def plot_acceleration(data, a_meas, a_model, out_dirs):
     set_thesis_style()
     t = data['t']
     fig, axs = plt.subplots(3, 1, figsize=(7.2, 5.8), sharex=True)
+    l_sim, l_mod = None, None
     for i, (ax, name) in enumerate(zip(axs, ('x', 'y', 'z'))):
-        ax.plot(t, a_meas[:, i], color=SIMULATION_COLOR, linewidth=1.5, label='Simulation')
-        ax.plot(t, a_model[:, i], color=COLOR_CYCLE[0], linewidth=1.3, linestyle='-',
-                label='Prediction Model')
+        l_sim, = ax.plot(t, a_meas[:, i], color=SIMULATION_COLOR, linewidth=1.25, label='Simulation')
+        l_mod, = ax.plot(t, a_model[:, i], color=COLOR_CYCLE[0], linewidth=1.0, linestyle='-',
+                         label='Prediction Model')
         ax.set_ylabel(f'$\\ddot{{{name}}}$ [m/s$^2$]')
         ax.grid(True, linestyle=':', alpha=0.6)
-    axs[0].legend(loc='upper right', framealpha=0.9, ncol=2)
+    axs[0].set_ylim([-7.5, 7.5])
+    axs[1].set_ylim([-7.5, 7.5])
+    axs[2].set_ylim([-2.5, 3.5])
     axs[-1].set_xlabel('Time [s]')
-    plt.tight_layout()
+
+    # Shared top legend: guaranteed zero overlap with any transient spike
+    fig.legend([l_sim, l_mod], ['Simulation', 'Prediction Model'],
+               loc='upper center', bbox_to_anchor=(0.5, 0.99), ncol=2, frameon=True)
+    plt.tight_layout(rect=[0.0, 0.0, 1.0, 0.95])
     for d in out_dirs:
         save_figure(fig, os.path.join(d, 'uav_acceleration_validation'), save_png=True)
     plt.close(fig)
@@ -473,53 +490,72 @@ def plot_acceleration(data, a_meas, a_model, out_dirs):
 
 def plot_prediction_error(horizon_t, pos_rmse, vel_rmse, out_dirs):
     set_thesis_style()
-    fig, axs = plt.subplots(1, 2, figsize=(7.6, 3.6))
-    axs[0].plot(horizon_t, pos_rmse, color=COLOR_CYCLE[0], linewidth=1.5, label='Prediction Model')
-    axs[1].plot(horizon_t, vel_rmse, color=COLOR_CYCLE[0], linewidth=1.5, label='Prediction Model')
-    axs[0].set_ylabel('Position error RMSE [m]')
-    axs[1].set_ylabel('Velocity error RMSE [m/s]')
-    for ax in axs:
-        ax.set_xlabel('Prediction horizon [s]')
-        ax.grid(True, linestyle=':', alpha=0.6)
-        ax.legend(loc='upper left', framealpha=0.9)
+    # 1. Position error RMSE vs Prediction horizon
+    fig_pos, ax_pos = plt.subplots(figsize=(5.6, 3.4))
+    ax_pos.plot(horizon_t, pos_rmse, color=COLOR_CYCLE[0], linewidth=1.2, label='Prediction Model')
+    ax_pos.set_xlabel('Prediction horizon [s]')
+    ax_pos.set_ylabel('Position error RMSE [m]')
+    ax_pos.grid(True, linestyle=':', alpha=0.6)
+    ax_pos.legend(loc='upper left', framealpha=0.9)
     plt.tight_layout()
     for d in out_dirs:
-        save_figure(fig, os.path.join(d, 'uav_prediction_error'), save_png=True)
-    plt.close(fig)
+        save_figure(fig_pos, os.path.join(d, 'uav_prediction_error_pos'), save_png=True)
+        save_figure(fig_pos, os.path.join(d, 'uav_prediction_error'), save_png=True)
+    plt.close(fig_pos)
+
+    # 2. Velocity error RMSE vs Prediction horizon
+    fig_vel, ax_vel = plt.subplots(figsize=(5.6, 3.4))
+    ax_vel.plot(horizon_t, vel_rmse, color=COLOR_CYCLE[0], linewidth=1.2, label='Prediction Model')
+    ax_vel.set_xlabel('Prediction horizon [s]')
+    ax_vel.set_ylabel('Velocity error RMSE [m/s]')
+    ax_vel.grid(True, linestyle=':', alpha=0.6)
+    ax_vel.legend(loc='upper left', framealpha=0.9)
+    plt.tight_layout()
+    for d in out_dirs:
+        save_figure(fig_vel, os.path.join(d, 'uav_prediction_error_vel'), save_png=True)
+    plt.close(fig_vel)
 
 
 def plot_prediction_examples(data, windows, out_dirs):
     set_thesis_style()
-    fig, axs = plt.subplots(1, 2, figsize=(7.6, 3.8), gridspec_kw={'width_ratios': [1.2, 1]})
-    axs[0].plot(data['p'][:, 0], data['p'][:, 1], color=SIMULATION_COLOR,
-                linewidth=1.4, label='Simulation')
+    # 1. 2D Spatial trajectory with prediction chords (1:1 aspect ratio)
+    fig_traj, ax_traj = plt.subplots(figsize=(5.2, 4.4))
+    ax_traj.plot(data['p'][:, 0], data['p'][:, 1], color=SIMULATION_COLOR,
+                linewidth=1.2, label='Simulation')
     for j, (k0, s) in enumerate(windows):
-        axs[0].plot(s[:, 0], s[:, 1], color=COLOR_CYCLE[0], linewidth=2.0,
+        ax_traj.plot(s[:, 0], s[:, 1], color=COLOR_CYCLE[0], linewidth=1.4,
                     label='1 s predictions' if j == 0 else None)
-        axs[0].plot(s[0, 0], s[0, 1], 'o', color=COLOR_CYCLE[0], markersize=3)
-    axs[0].set_xlabel('$x$ [m]')
-    axs[0].set_ylabel('$y$ [m]')
-    axs[0].axis('equal')
-    axs[0].grid(True, linestyle=':', alpha=0.6)
-    axs[0].legend(loc='best', framealpha=0.9)
+        ax_traj.plot(s[0, 0], s[0, 1], 'o', color=COLOR_CYCLE[0], markersize=3)
+    ax_traj.set_xlabel('$x$ [m]')
+    ax_traj.set_ylabel('$y$ [m]')
+    ax_traj.margins(0.12)
+    ax_traj.axis('equal')
+    ax_traj.grid(True, linestyle=':', alpha=0.6)
+    ax_traj.legend(loc='upper right', framealpha=0.9)
+    plt.tight_layout()
+    for d in out_dirs:
+        save_figure(fig_traj, os.path.join(d, 'uav_prediction_trajectory'), save_png=True)
+        save_figure(fig_traj, os.path.join(d, 'uav_prediction_examples'), save_png=True)
+    plt.close(fig_traj)
 
-    # Zoom on the window with the largest horizontal velocity
+    # 2. Zoom on the window with the largest horizontal velocity
+    fig_det, ax_det = plt.subplots(figsize=(5.6, 3.4))
     k0, s = max(windows, key=lambda w: np.linalg.norm(data['v'][w[0], :2]))
     n = len(s) - 1
     tt = np.arange(n + 1) * data['dt']
     for i, (name, col) in enumerate(zip(('x', 'y'), COLOR_CYCLE[:2])):
-        axs[1].plot(tt, data['p'][k0:k0 + n + 1, i] - data['p'][k0, i], color=SIMULATION_COLOR,
-                    linewidth=1.5, label='Simulation' if i == 0 else None)
-        axs[1].plot(tt, s[:, i] - s[0, i], color=col, linewidth=1.3, linestyle='-',
+        ax_det.plot(tt, data['p'][k0:k0 + n + 1, i] - data['p'][k0, i], color=SIMULATION_COLOR,
+                    linewidth=1.25, label='Simulation' if i == 0 else None)
+        ax_det.plot(tt, s[:, i] - s[0, i], color=col, linewidth=1.0, linestyle='-',
                     label=f'Prediction ${name}$')
-    axs[1].set_xlabel('Time since window start [s]')
-    axs[1].set_ylabel('Displacement [m]')
-    axs[1].grid(True, linestyle=':', alpha=0.6)
-    axs[1].legend(loc='best', framealpha=0.9)
+    ax_det.set_xlabel('Time since window start [s]')
+    ax_det.set_ylabel('Displacement [m]')
+    ax_det.grid(True, linestyle=':', alpha=0.6)
+    ax_det.legend(loc='best', framealpha=0.9)
     plt.tight_layout()
     for d in out_dirs:
-        save_figure(fig, os.path.join(d, 'uav_prediction_examples'), save_png=True)
-    plt.close(fig)
+        save_figure(fig_det, os.path.join(d, 'uav_prediction_detail'), save_png=True)
+    plt.close(fig_det)
 
 
 def plot_tether_force_validation(data, f_nominal_tether, out_dirs):
@@ -533,16 +569,16 @@ def plot_tether_force_validation(data, f_nominal_tether, out_dirs):
 
     labels = [r'$F_x$', r'$F_y$', r'$F_z$']
     for i in range(3):
-        axs[i].plot(t, f_wrench[:, i], color=SIMULATION_COLOR, linewidth=1.5, label='MoorDyn Ground Truth')
-        axs[i].plot(t, f_nominal_tether[:, i], color=COLOR_CYCLE[i], linewidth=1.3, linestyle='-',
+        axs[i].plot(t, f_wrench[:, i], color=SIMULATION_COLOR, linewidth=1.25, label='MoorDyn Ground Truth')
+        axs[i].plot(t, f_nominal_tether[:, i], color=COLOR_CYCLE[i], linewidth=1.0, linestyle='-',
                     label=f'Prediction Model ({labels[i]})')
         axs[i].set_ylabel(f'{labels[i]} [N]')
         axs[i].grid(True, linestyle=':', alpha=0.6)
         loc = 'lower right' if i == 2 else 'upper right'
         axs[i].legend(loc=loc, framealpha=0.9, ncol=2)
 
-    axs[3].plot(t, f_mag_wrench, color=SIMULATION_COLOR, linewidth=1.5, label=r'MoorDyn Wrench $\|\mathbf{F}\|$')
-    axs[3].plot(t, f_mag_nom, color=COLOR_CYCLE[0], linewidth=1.3, linestyle='-',
+    axs[3].plot(t, f_mag_wrench, color=SIMULATION_COLOR, linewidth=1.25, label=r'MoorDyn Wrench $\|\mathbf{F}\|$')
+    axs[3].plot(t, f_mag_nom, color=COLOR_CYCLE[0], linewidth=1.0, linestyle='-',
                 label=r'Prediction Model $\|\mathbf{F}\|$')
     axs[3].set_ylabel(r'$\|\mathbf{F}\|$ [N]')
     axs[3].set_xlabel('Time [s]')

@@ -30,7 +30,15 @@ sys_id_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), "../.."))
 if sys_id_dir not in sys.path:
     sys.path.append(sys_id_dir)
 
-from thesis_style import set_thesis_style, save_figure, GROUND_TRUTH_COLOR, COLOR_CYCLE, THESIS_COLORS
+from thesis_style import (
+    set_thesis_style,
+    save_figure,
+    SIMULATION_COLOR,
+    SIMULATION_LINEWIDTH,
+    MODEL_LINEWIDTH,
+    COLOR_CYCLE,
+    THESIS_COLORS,
+)
 
 try:
     import rosbag2_py
@@ -365,14 +373,22 @@ def main():
     os.makedirs(args.output_dir, exist_ok=True)
 
     # Universal thesis color hierarchy:
-    # Ground Truth: Black (#111111)
+    # Ground Truth / Simulation (MoorDyn): Neutral gray (#666666)
     # Proposed Model (Series 1): COLOR_CYCLE[0] (Blue #1f77b4, solid)
     # Baseline 1 (Series 2):     COLOR_CYCLE[1] (Orange #ff7f0e, dashed --)
     # Baseline 2 (Series 3):     COLOR_CYCLE[2] (Green #2ca02c, dash-dotted -.)
-    c_gt = GROUND_TRUTH_COLOR
+    c_gt = SIMULATION_COLOR
     c_cat = COLOR_CYCLE[0]
     c_chord = COLOR_CYCLE[1]
     c_z = COLOR_CYCLE[2]
+
+    # Destination directories for export (script plots dir + thesis chapter)
+    thesis_dir = os.path.abspath(os.path.join(
+        os.path.dirname(__file__), "../../../latex/tese/Implementation/figures/02_model_validation"
+    ))
+    out_dirs = [args.output_dir]
+    if os.path.exists(thesis_dir):
+        out_dirs.append(thesis_dir)
 
     # -------------------------------------------------------------
     # Plot 1: 3D Force Components (Fx, Fy, Fz vs Time)
@@ -380,26 +396,26 @@ def main():
     fig_3d, (ax_fx, ax_fy, ax_fz) = plt.subplots(3, 1, figsize=(6.2, 5.8), sharex=True)
 
     # Fx Subplot
-    l_gt, = ax_fx.plot(t_grid, fx_true, color=c_gt, linewidth=1.4, label="MoorDyn")
-    l_cat, = ax_fx.plot(t_grid, F_cat[:, 0], color=c_cat, linewidth=1.3, label="Catenary Model")
-    l_chord, = ax_fx.plot(t_grid, F_chord[:, 0], color=c_chord, linewidth=1.1, linestyle="--", label="Pointing to USV")
-    l_z, = ax_fx.plot(t_grid, F_pure_z[:, 0], color=c_z, linewidth=1.1, linestyle="-.", label="Pure Vertical")
+    l_gt, = ax_fx.plot(t_grid, fx_true, color=c_gt, linewidth=SIMULATION_LINEWIDTH, label="MoorDyn")
+    l_cat, = ax_fx.plot(t_grid, F_cat[:, 0], color=c_cat, linewidth=MODEL_LINEWIDTH, label="Catenary Model")
+    l_chord, = ax_fx.plot(t_grid, F_chord[:, 0], color=c_chord, linewidth=1.0, linestyle="--", label="Pointing to USV")
+    l_z, = ax_fx.plot(t_grid, F_pure_z[:, 0], color=c_z, linewidth=1.0, linestyle="-.", label="Pure Vertical")
     ax_fx.set_ylabel(r"$F_x$ [N]")
     ax_fx.set_ylim([-2.3, 2.3])
 
     # Fy Subplot
-    ax_fy.plot(t_grid, fy_true, color=c_gt, linewidth=1.4)
-    ax_fy.plot(t_grid, F_cat[:, 1], color=c_cat, linewidth=1.3)
-    ax_fy.plot(t_grid, F_chord[:, 1], color=c_chord, linewidth=1.1, linestyle="--")
-    ax_fy.plot(t_grid, F_pure_z[:, 1], color=c_z, linewidth=1.1, linestyle="-.")
+    ax_fy.plot(t_grid, fy_true, color=c_gt, linewidth=SIMULATION_LINEWIDTH)
+    ax_fy.plot(t_grid, F_cat[:, 1], color=c_cat, linewidth=MODEL_LINEWIDTH)
+    ax_fy.plot(t_grid, F_chord[:, 1], color=c_chord, linewidth=1.0, linestyle="--")
+    ax_fy.plot(t_grid, F_pure_z[:, 1], color=c_z, linewidth=1.0, linestyle="-.")
     ax_fy.set_ylabel(r"$F_y$ [N]")
     ax_fy.set_ylim([-0.12, 0.12])
 
     # Fz Subplot
-    ax_fz.plot(t_grid, fz_true, color=c_gt, linewidth=1.4)
-    ax_fz.plot(t_grid, F_cat[:, 2], color=c_cat, linewidth=1.3)
-    ax_fz.plot(t_grid, F_pure_z[:, 2], color=c_z, linewidth=1.1, linestyle="-.")
-    ax_fz.plot(t_grid, F_chord[:, 2], color=c_chord, linewidth=1.1, linestyle="--")
+    ax_fz.plot(t_grid, fz_true, color=c_gt, linewidth=SIMULATION_LINEWIDTH)
+    ax_fz.plot(t_grid, F_cat[:, 2], color=c_cat, linewidth=MODEL_LINEWIDTH)
+    ax_fz.plot(t_grid, F_pure_z[:, 2], color=c_z, linewidth=1.0, linestyle="-.")
+    ax_fz.plot(t_grid, F_chord[:, 2], color=c_chord, linewidth=1.0, linestyle="--")
     ax_fz.set_xlabel("Time [s]")
     ax_fz.set_ylabel(r"$F_z$ [N]")
     ax_fz.set_ylim([-3.0, 0.1])
@@ -415,52 +431,54 @@ def main():
         frameon=True,
     )
     plt.tight_layout(rect=[0.0, 0.0, 1.0, 0.94])
-    save_figure(
-        fig_3d,
-        os.path.join(args.output_dir, "model_fit_3d_components"),
-        save_png=args.save_png,
-    )
+    for d in out_dirs:
+        save_figure(
+            fig_3d,
+            os.path.join(d, "model_fit_3d_components"),
+            save_png=args.save_png,
+        )
     plt.close(fig_3d)
 
     # -------------------------------------------------------------
     # Plot 2: Magnitude Comparison (Time)
     # -------------------------------------------------------------
     fig_time, ax_time = plt.subplots(figsize=(6.0, 3.0))
-    ax_time.plot(t_grid, f_true, label="MoorDyn", color=c_gt, linewidth=1.4)
-    ax_time.plot(t_grid, T_pred, label="Catenary Model", color=c_cat, linewidth=1.3)
+    ax_time.plot(t_grid, f_true, label="MoorDyn", color=c_gt, linewidth=SIMULATION_LINEWIDTH)
+    ax_time.plot(t_grid, T_pred, label="Catenary Model", color=c_cat, linewidth=MODEL_LINEWIDTH)
     ax_time.set_xlabel("Time [s]")
     ax_time.set_ylabel(r"$T_{\mathrm{tether}}$ [N]")
-    ax_time.set_ylim(bottom=0.0, top=3.8)
+    ax_time.set_ylim(bottom=0.0, top=4.0)
     ax_time.legend(loc="upper right", fontsize=8.5)  # t=50-60s is low (y < 1.9), top right is completely free
     plt.tight_layout()
-    save_figure(
-        fig_time,
-        os.path.join(args.output_dir, "model_fit_comparison"),
-        save_png=args.save_png,
-    )
+    for d in out_dirs:
+        save_figure(
+            fig_time,
+            os.path.join(d, "model_fit_comparison"),
+            save_png=args.save_png,
+        )
     plt.close(fig_time)
-
 
     # -------------------------------------------------------------
     # Plot 3: 3D Residuals & Error Benchmark
     # -------------------------------------------------------------
     fig_res, ax_res = plt.subplots(figsize=(6.0, 3.0))
-    ax_res.plot(t_grid, cat_err_3d, label="Catenary Model", color=c_cat, linewidth=1.4)
-    ax_res.plot(t_grid, chord_err_3d, label="Pointing to USV", color=c_chord, linewidth=1.1, linestyle="--")
-    ax_res.plot(t_grid, z_err_3d, label="Pure Vertical", color=c_z, linewidth=1.1, linestyle="-.")
+    ax_res.plot(t_grid, cat_err_3d, label="Catenary Model", color=c_cat, linewidth=MODEL_LINEWIDTH)
+    ax_res.plot(t_grid, chord_err_3d, label="Pointing to USV", color=c_chord, linewidth=1.0, linestyle="--")
+    ax_res.plot(t_grid, z_err_3d, label="Pure Vertical", color=c_z, linewidth=1.0, linestyle="-.")
     ax_res.set_xlabel("Time [s]")
     ax_res.set_ylabel(r"$\|\mathbf{F}_{\mathrm{true}} - \mathbf{F}_{\mathrm{model}}\|$ [N]")
-    ax_res.set_ylim(bottom=0.0, top=2.3)
+    ax_res.set_ylim(bottom=0.0, top=2.6)
     ax_res.legend(loc="upper center", ncol=3, fontsize=8.5)  # Horizontal top center has zero curve overlap
     plt.tight_layout()
-    save_figure(
-        fig_res,
-        os.path.join(args.output_dir, "model_fit_residuals"),
-        save_png=args.save_png,
-    )
+    for d in out_dirs:
+        save_figure(
+            fig_res,
+            os.path.join(d, "model_fit_residuals"),
+            save_png=args.save_png,
+        )
     plt.close(fig_res)
 
-    print("\nAll figures generated successfully in:", args.output_dir)
+    print("\nAll figures generated successfully in:", out_dirs)
 
 
 
