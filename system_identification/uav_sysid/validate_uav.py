@@ -93,7 +93,7 @@ def parse_args():
         description="Validate Thesis Section 3.2 UAV Model with first-principles tether coupling."
     )
     default_bag = os.path.abspath(
-        os.path.join(CURRENT_DIR, "../../../bags/uav_px4_offboard_20261006_135407")
+        os.path.join(CURRENT_DIR, "../../../bags/uav_px4_offboard_20261008_095455")
     )
     parser.add_argument("--bag", type=str, default=default_bag, help="Path to ROS 2 bag folder")
     parser.add_argument("--skip", type=float, default=14.0,
@@ -653,7 +653,7 @@ def main():
     plot_actuator_inputs(data, out_dirs)
     plot_attitude_tracking(data, out_dirs)
     plot_acceleration(data, a_meas, a_sec32, out_dirs)
-    plot_tether_force_validation(data, f_nominal_tether, out_dirs)
+    # plot_tether_force_validation(data, f_nominal_tether, out_dirs)
     plot_prediction_error(horizon_t, pos_rmse_curve, vel_rmse_curve, out_dirs)
     plot_prediction_examples(data, sample_windows, out_dirs)
     print(f"[INFO] Plots successfully generated and exported to {out_dirs}")
