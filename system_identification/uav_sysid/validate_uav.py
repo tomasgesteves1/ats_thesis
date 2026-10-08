@@ -38,6 +38,7 @@ from thesis_style import (
     set_thesis_style,
     save_figure,
     GROUND_TRUTH_COLOR,
+    SIMULATION_COLOR,
     COLOR_CYCLE,
 )
 
@@ -437,10 +438,10 @@ def plot_attitude_tracking(data, out_dirs):
             ('yaw', 'yaw_mod', 'Yaw', r'\psi')]
 
     for ax, (meas_k, mod_k, name, sym) in zip(axs, keys):
-        ax.plot(t, np.rad2deg(data[meas_k]), color=GROUND_TRUTH_COLOR, linewidth=1.4,
-                label='Ground Truth')
+        ax.plot(t, np.rad2deg(data[meas_k]), color=SIMULATION_COLOR, linewidth=1.5,
+                label='Simulation')
         ax.plot(t, np.rad2deg(data[mod_k]), color=COLOR_CYCLE[0], linewidth=1.3,
-                linestyle='--', label=f'Section 3.2 Model (${sym}$)')
+                linestyle='-', label=f'Prediction Model (${sym}$)')
         ax.set_ylabel(f'{name} [deg]')
         ax.grid(True, linestyle=':', alpha=0.6)
         ax.legend(loc='upper right', framealpha=0.9)
@@ -457,9 +458,9 @@ def plot_acceleration(data, a_meas, a_model, out_dirs):
     t = data['t']
     fig, axs = plt.subplots(3, 1, figsize=(7.2, 5.8), sharex=True)
     for i, (ax, name) in enumerate(zip(axs, ('x', 'y', 'z'))):
-        ax.plot(t, a_meas[:, i], color=GROUND_TRUTH_COLOR, linewidth=1.3, label='Ground Truth')
-        ax.plot(t, a_model[:, i], color=COLOR_CYCLE[0], linewidth=1.3, linestyle='--',
-                label='Section 3.2 Model')
+        ax.plot(t, a_meas[:, i], color=SIMULATION_COLOR, linewidth=1.5, label='Simulation')
+        ax.plot(t, a_model[:, i], color=COLOR_CYCLE[0], linewidth=1.3, linestyle='-',
+                label='Prediction Model')
         ax.set_ylabel(f'$\\ddot{{{name}}}$ [m/s$^2$]')
         ax.grid(True, linestyle=':', alpha=0.6)
     axs[0].legend(loc='upper right', framealpha=0.9, ncol=2)
@@ -473,8 +474,8 @@ def plot_acceleration(data, a_meas, a_model, out_dirs):
 def plot_prediction_error(horizon_t, pos_rmse, vel_rmse, out_dirs):
     set_thesis_style()
     fig, axs = plt.subplots(1, 2, figsize=(7.6, 3.6))
-    axs[0].plot(horizon_t, pos_rmse, color=COLOR_CYCLE[0], linewidth=1.5, label='Section 3.2 Model')
-    axs[1].plot(horizon_t, vel_rmse, color=COLOR_CYCLE[0], linewidth=1.5, label='Section 3.2 Model')
+    axs[0].plot(horizon_t, pos_rmse, color=COLOR_CYCLE[0], linewidth=1.5, label='Prediction Model')
+    axs[1].plot(horizon_t, vel_rmse, color=COLOR_CYCLE[0], linewidth=1.5, label='Prediction Model')
     axs[0].set_ylabel('Position error RMSE [m]')
     axs[1].set_ylabel('Velocity error RMSE [m/s]')
     for ax in axs:
@@ -490,8 +491,8 @@ def plot_prediction_error(horizon_t, pos_rmse, vel_rmse, out_dirs):
 def plot_prediction_examples(data, windows, out_dirs):
     set_thesis_style()
     fig, axs = plt.subplots(1, 2, figsize=(7.6, 3.8), gridspec_kw={'width_ratios': [1.2, 1]})
-    axs[0].plot(data['p'][:, 0], data['p'][:, 1], color=GROUND_TRUTH_COLOR,
-                linewidth=1.3, label='Ground Truth')
+    axs[0].plot(data['p'][:, 0], data['p'][:, 1], color=SIMULATION_COLOR,
+                linewidth=1.4, label='Simulation')
     for j, (k0, s) in enumerate(windows):
         axs[0].plot(s[:, 0], s[:, 1], color=COLOR_CYCLE[0], linewidth=2.0,
                     label='1 s predictions' if j == 0 else None)
@@ -507,10 +508,10 @@ def plot_prediction_examples(data, windows, out_dirs):
     n = len(s) - 1
     tt = np.arange(n + 1) * data['dt']
     for i, (name, col) in enumerate(zip(('x', 'y'), COLOR_CYCLE[:2])):
-        axs[1].plot(tt, data['p'][k0:k0 + n + 1, i] - data['p'][k0, i], color=GROUND_TRUTH_COLOR,
-                    linewidth=1.4, label='Ground Truth' if i == 0 else None)
-        axs[1].plot(tt, s[:, i] - s[0, i], color=col, linewidth=1.4, linestyle='--',
-                    label=f'Model ${name}$')
+        axs[1].plot(tt, data['p'][k0:k0 + n + 1, i] - data['p'][k0, i], color=SIMULATION_COLOR,
+                    linewidth=1.5, label='Simulation' if i == 0 else None)
+        axs[1].plot(tt, s[:, i] - s[0, i], color=col, linewidth=1.3, linestyle='-',
+                    label=f'Prediction ${name}$')
     axs[1].set_xlabel('Time since window start [s]')
     axs[1].set_ylabel('Displacement [m]')
     axs[1].grid(True, linestyle=':', alpha=0.6)
@@ -532,17 +533,17 @@ def plot_tether_force_validation(data, f_nominal_tether, out_dirs):
 
     labels = [r'$F_x$', r'$F_y$', r'$F_z$']
     for i in range(3):
-        axs[i].plot(t, f_wrench[:, i], color=GROUND_TRUTH_COLOR, linewidth=1.3, label='MoorDyn Ground Truth')
-        axs[i].plot(t, f_nominal_tether[:, i], color=COLOR_CYCLE[i], linewidth=1.3, linestyle='--',
-                    label=f'Section 3.2 Model ({labels[i]})')
+        axs[i].plot(t, f_wrench[:, i], color=SIMULATION_COLOR, linewidth=1.5, label='MoorDyn Ground Truth')
+        axs[i].plot(t, f_nominal_tether[:, i], color=COLOR_CYCLE[i], linewidth=1.3, linestyle='-',
+                    label=f'Prediction Model ({labels[i]})')
         axs[i].set_ylabel(f'{labels[i]} [N]')
         axs[i].grid(True, linestyle=':', alpha=0.6)
         loc = 'lower right' if i == 2 else 'upper right'
         axs[i].legend(loc=loc, framealpha=0.9, ncol=2)
 
-    axs[3].plot(t, f_mag_wrench, color=GROUND_TRUTH_COLOR, linewidth=1.3, label=r'MoorDyn Wrench $\|\mathbf{F}\|$')
-    axs[3].plot(t, f_mag_nom, color=COLOR_CYCLE[0], linewidth=1.3, linestyle='--',
-                label=r'Section 3.2 Model $\|\mathbf{F}\|$')
+    axs[3].plot(t, f_mag_wrench, color=SIMULATION_COLOR, linewidth=1.5, label=r'MoorDyn Wrench $\|\mathbf{F}\|$')
+    axs[3].plot(t, f_mag_nom, color=COLOR_CYCLE[0], linewidth=1.3, linestyle='-',
+                label=r'Prediction Model $\|\mathbf{F}\|$')
     axs[3].set_ylabel(r'$\|\mathbf{F}\|$ [N]')
     axs[3].set_xlabel('Time [s]')
     axs[3].grid(True, linestyle=':', alpha=0.6)

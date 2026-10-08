@@ -12,11 +12,12 @@ import matplotlib as mpl
 import matplotlib.pyplot as plt
 
 # Universal Color Palette for Thesis Figures
-# Rule 1: Black (#111111) for ground truth / measurements / base reference
-# Rule 2: Deterministic color cycle for comparison lines in order of addition
-# Rule 3: Solid lines for proposed/primary results; dashed (-- / -.) for baselines/simplifications
-GROUND_TRUTH_COLOR = "#111111"
-SECONDARY_COLOR = "#7f7f7f"
+# Rule 1: Neutral Gray (#666666) for simulation / ground truth baseline reference
+# Rule 2: Deterministic color cycle for model predictions & comparison lines
+# Rule 3: Solid lines for proposed/primary results; distinct styling for baselines
+GROUND_TRUTH_COLOR = "#666666"
+SIMULATION_COLOR = "#666666"
+SECONDARY_COLOR = "#888888"
 
 COLOR_CYCLE = [
     "#1f77b4",  # Series 1 / Proposed Model (Deep Blue)
@@ -31,10 +32,20 @@ COLOR_CYCLE = [
     "#17becf",  # Series 10 (Cyan)
 ]
 
+# Visual styling rules for lines
+# - Simulation / Ground Truth: Neutral gray solid line, slightly thicker baseline
+# - Prediction Model (Proposed): Vivid color solid line (focal point)
+SIMULATION_LINESTYLE = "-"
+MODEL_LINESTYLE = "-"
+SIMULATION_LINEWIDTH = 1.4
+MODEL_LINEWIDTH = 1.3
+
 # Legacy alias dictionary preserved for backwards-compatibility
 THESIS_COLORS = {
     "ground_truth": GROUND_TRUTH_COLOR,
+    "simulation": SIMULATION_COLOR,
     "reference": SECONDARY_COLOR,
+    "model": COLOR_CYCLE[0],
     "slack_2": COLOR_CYCLE[0],
     "slack_5": COLOR_CYCLE[1],
     "slack_10": COLOR_CYCLE[2],
