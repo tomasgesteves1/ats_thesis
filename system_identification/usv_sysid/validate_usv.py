@@ -4,6 +4,7 @@ USV Dynamics Validation Script (Tethered UAV-USV Project)
 Validates the first-principles 3-DOF planar Fossen model using nominal simulator
 parameters against Gazebo ground truth telemetry from rosbag recordings.
 Strictly relies on simulator specifications without empirical data fitting.
+Implements receding horizon multi-step prediction (NMPC horizon = 2.0 s).
 """
 
 import os
@@ -26,7 +27,8 @@ from thesis_style import (
     set_thesis_style,
     save_figure,
     GROUND_TRUTH_COLOR,
-    COLOR_CYCLE
+    SIMULATION_COLOR,
+    COLOR_CYCLE,
 )
 
 # Nominal physical parameters directly from Thesis (Table 4.1 / model.sdf)
@@ -47,6 +49,9 @@ N_RR_NOMINAL = 800.00
 # Thruster geometry relative to CG (meters)
 THRUSTER_X_ARM = 2.373776
 THRUSTER_Y_ARM = 1.027135
+
+# NMPC Horizon: N = 20 steps at Ts = 0.1 s -> T_horizon = 2.0 s (at 50 Hz dt=0.02s -> N_HORIZON = 100)
+N_HORIZON = 100
 
 
 def parse_args():
@@ -155,12 +160,7 @@ def load_telemetry(bag_path):
     }
 
 
-def simulate_model(data):
-    t = data['t']
-    dt = data['dt']
-    N = len(t)
-    
-    # Thruster allocation (Thesis Eq. 3.18, 3.19 / Control Eq. 4.X)
+def compute_thruster_forces(data):
     T_L = data['T_L']
     T_R = data['T_R']
     a_L = data['alpha_L']
@@ -169,49 +169,49 @@ def simulate_model(data):
     X = T_L * np.cos(a_L) + T_R * np.cos(a_R)
     Y = T_L * np.sin(a_L) + T_R * np.sin(a_R)
     N_moment = -THRUSTER_X_ARM * (T_L * np.sin(a_L) + T_R * np.sin(a_R)) - THRUSTER_Y_ARM * (T_L * np.cos(a_L) - T_R * np.cos(a_R))
-    
-    m = MASS_NOMINAL
-    Iz = IZZ_NOMINAL
-    Xu = X_U_NOMINAL
-    Xuu = X_UU_NOMINAL
-    Yv = Y_V_NOMINAL
-    Yvv = Y_VV_NOMINAL
-    Nr = N_R_NOMINAL
-    Nrr = N_RR_NOMINAL
-    
-    # States: [x, y, psi, u, v, r]
+    return np.column_stack([X, Y, N_moment])
+
+
+def usv_dynamics(s, tau):
+    """
+    Continuous 3-DOF Fossen planar model (Thesis Section 3.1 & Table 4.1).
+    State s in R^6: [x, y, psi, u, v, r]^T
+    Input tau in R^3: [X, Y, N]^T
+    """
+    x, y, psi, u, v, r = s
+    X_in, Y_in, N_in = tau
+    x_dot = u * np.cos(psi) - v * np.sin(psi)
+    y_dot = u * np.sin(psi) + v * np.cos(psi)
+    psi_dot = r
+    u_dot = (X_in - (X_U_NOMINAL + X_UU_NOMINAL * abs(u)) * u) / MASS_NOMINAL + v * r
+    v_dot = (Y_in - (Y_V_NOMINAL + Y_VV_NOMINAL * abs(v)) * v) / MASS_NOMINAL - u * r
+    r_dot = (N_in - (N_R_NOMINAL + N_RR_NOMINAL * abs(r)) * r) / IZZ_NOMINAL
+    return np.array([x_dot, y_dot, psi_dot, u_dot, v_dot, r_dot])
+
+
+def rk4_step(s, tau1, tau2, dt):
+    """Fourth-order Runge-Kutta step with linear interpolation of generalized forces."""
+    tau_mid = 0.5 * (tau1 + tau2)
+    k1 = usv_dynamics(s, tau1)
+    k2 = usv_dynamics(s + 0.5 * dt * k1, tau_mid)
+    k3 = usv_dynamics(s + 0.5 * dt * k2, tau_mid)
+    k4 = usv_dynamics(s + dt * k3, tau2)
+    return s + (dt / 6.0) * (k1 + 2.0 * k2 + 2.0 * k3 + k4)
+
+
+def simulate_full(data, tau):
+    """Full-duration open-loop simulation across the complete recorded bag."""
+    dt = data['dt']
+    N = len(data['t'])
     sim_states = np.zeros((N, 6))
     sim_states[0] = [
-        data['x_gt'][0],
-        data['y_gt'][0],
-        data['psi_gt'][0],
-        data['u_gt'][0],
-        data['v_gt'][0],
-        data['r_gt'][0]
+        data['x_gt'][0], data['y_gt'][0], data['psi_gt'][0],
+        data['u_gt'][0], data['v_gt'][0], data['r_gt'][0]
     ]
-    
-    def f_ode(s, Xin, Yin, Nin):
-        x, y, psi, u, v, r = s
-        x_dot = u * np.cos(psi) - v * np.sin(psi)
-        y_dot = u * np.sin(psi) + v * np.cos(psi)
-        psi_dot = r
-        u_dot = (Xin - (Xu + Xuu * abs(u)) * u) / m + v * r
-        v_dot = (Yin - (Yv + Yvv * abs(v)) * v) / m - u * r
-        r_dot = (Nin - (Nr + Nrr * abs(r)) * r) / Iz
-        return np.array([x_dot, y_dot, psi_dot, u_dot, v_dot, r_dot])
-    
     for k in range(N - 1):
-        s_k = sim_states[k]
-        k1 = f_ode(s_k, X[k], Y[k], N_moment[k])
-        k2 = f_ode(s_k + 0.5 * dt * k1, 0.5 * (X[k] + X[k+1]), 0.5 * (Y[k] + Y[k+1]), 0.5 * (N_moment[k] + N_moment[k+1]))
-        k3 = f_ode(s_k + 0.5 * dt * k2, 0.5 * (X[k] + X[k+1]), 0.5 * (Y[k] + Y[k+1]), 0.5 * (N_moment[k] + N_moment[k+1]))
-        k4 = f_ode(s_k + dt * k3, X[k+1], Y[k+1], N_moment[k+1])
-        sim_states[k+1] = s_k + (dt / 6.0) * (k1 + 2 * k2 + 2 * k3 + k4)
+        sim_states[k + 1] = rk4_step(sim_states[k], tau[k], tau[k + 1], dt)
         
     return {
-        'X': X,
-        'Y': Y,
-        'N_moment': N_moment,
         'x_sim': sim_states[:, 0],
         'y_sim': sim_states[:, 1],
         'psi_sim': sim_states[:, 2],
@@ -221,159 +221,240 @@ def simulate_model(data):
     }
 
 
+def simulate_horizon(k0, n_h, data, tau):
+    """
+    Receding horizon open-loop integration over n_h steps.
+    Initial state s(0) is taken strictly from ground-truth odometry at k0.
+    """
+    dt = data['dt']
+    s_sim = np.zeros((n_h + 1, 6))
+    s_sim[0] = [
+        data['x_gt'][k0], data['y_gt'][k0], data['psi_gt'][k0],
+        data['u_gt'][k0], data['v_gt'][k0], data['r_gt'][k0]
+    ]
+    for i in range(n_h):
+        k = k0 + i
+        s_sim[i + 1] = rk4_step(s_sim[i], tau[k], tau[k + 1], dt)
+    return s_sim
+
+
 def compute_metrics(y_true, y_pred):
-    rmse = np.sqrt(np.mean((y_true - y_pred)**2))
-    ss_tot = np.sum((y_true - np.mean(y_true))**2)
-    ss_res = np.sum((y_true - y_pred)**2)
-    r2 = 1.0 - (ss_res / ss_tot) if ss_tot > 1e-6 else 0.0
-    mae = np.mean(np.abs(y_true - y_pred))
-    max_err = np.max(np.abs(y_true - y_pred))
-    return {'rmse': rmse, 'r2': r2 * 100.0, 'mae': mae, 'max': max_err}
+    err = y_true - y_pred
+    ss_tot = np.sum((y_true - np.mean(y_true)) ** 2)
+    ss_res = np.sum(err ** 2)
+    r2 = 100.0 * (1.0 - ss_res / ss_tot) if ss_tot > 1e-6 else 0.0
+    return {
+        'rmse': np.sqrt(np.mean(err ** 2)),
+        'r2': r2,
+        'mae': np.mean(np.abs(err)),
+        'max': np.max(np.abs(err))
+    }
 
 
-def plot_results(data, sim_res, output_dirs):
+# ==============================================================================
+# PLOTTING FUNCTIONS (IST THESIS STYLE)
+# ==============================================================================
+def plot_actuator_inputs(data, out_dirs):
     set_thesis_style()
     t = data['t']
-    
-    # --------------------------------------------------------------------------
-    # Figure 1: Body Velocities (u, v, r)
-    # --------------------------------------------------------------------------
-    fig1, axs1 = plt.subplots(3, 1, figsize=(7.2, 5.8), sharex=True)
-    
-    # Surge u
-    axs1[0].plot(t, data['u_gt'], color=GROUND_TRUTH_COLOR, label='Ground Truth', linewidth=1.4)
-    axs1[0].plot(t, sim_res['u_sim'], color=COLOR_CYCLE[0], label='Nominal Model', linewidth=1.4, linestyle='--')
-    axs1[0].set_ylabel('$u$ [m/s]')
-    axs1[0].grid(True, linestyle=':', alpha=0.6)
-    axs1[0].legend(loc='upper right', framealpha=0.9)
-    
-    # Sway v
-    axs1[1].plot(t, data['v_gt'], color=GROUND_TRUTH_COLOR, label='Ground Truth', linewidth=1.4)
-    axs1[1].plot(t, sim_res['v_sim'], color=COLOR_CYCLE[0], label='Nominal Model', linewidth=1.4, linestyle='--')
-    axs1[1].set_ylabel('$v$ [m/s]')
-    axs1[1].grid(True, linestyle=':', alpha=0.6)
-    
-    # Yaw rate r
-    axs1[2].plot(t, np.rad2deg(data['r_gt']), color=GROUND_TRUTH_COLOR, label='Ground Truth', linewidth=1.4)
-    axs1[2].plot(t, np.rad2deg(sim_res['r_sim']), color=COLOR_CYCLE[0], label='Nominal Model', linewidth=1.4, linestyle='--')
-    axs1[2].set_ylabel('$r$ [deg/s]')
-    axs1[2].set_xlabel('Time [s]')
-    axs1[2].grid(True, linestyle=':', alpha=0.6)
-    
-    plt.tight_layout()
-    for d in output_dirs:
-        save_figure(fig1, os.path.join(d, 'usv_velocities_validation'), save_png=True)
-    plt.close(fig1)
-    
-    # --------------------------------------------------------------------------
-    # Figure 2: Trajectory XY and Heading
-    # --------------------------------------------------------------------------
-    fig2, axs2 = plt.subplots(1, 2, figsize=(7.6, 3.8))
-    
-    # Trajectory XY
-    axs2[0].plot(data['x_gt'], data['y_gt'], color=GROUND_TRUTH_COLOR, label='Ground Truth', linewidth=1.5)
-    axs2[0].plot(sim_res['x_sim'], sim_res['y_sim'], color=COLOR_CYCLE[0], label='Nominal Model', linewidth=1.5, linestyle='--')
-    axs2[0].plot(data['x_gt'][0], data['y_gt'][0], 'ko', markersize=5, label='Start')
-    axs2[0].set_xlabel('$x$ [m]')
-    axs2[0].set_ylabel('$y$ [m]')
-    axs2[0].grid(True, linestyle=':', alpha=0.6)
-    axs2[0].axis('equal')
-    axs2[0].legend(loc='lower left', framealpha=0.9)
-    
-    # Heading psi
-    axs2[1].plot(t, np.rad2deg(data['psi_gt']), color=GROUND_TRUTH_COLOR, label='Ground Truth', linewidth=1.4)
-    axs2[1].plot(t, np.rad2deg(sim_res['psi_sim']), color=COLOR_CYCLE[0], label='Nominal Model', linewidth=1.4, linestyle='--')
-    axs2[1].set_xlabel('Time [s]')
-    axs2[1].set_ylabel(r'Heading $\psi$ [deg]')
-    axs2[1].grid(True, linestyle=':', alpha=0.6)
-    axs2[1].legend(loc='upper right', framealpha=0.9)
-    
-    plt.tight_layout()
-    for d in output_dirs:
-        save_figure(fig2, os.path.join(d, 'usv_trajectory_validation'), save_png=True)
-    plt.close(fig2)
-
-    # --------------------------------------------------------------------------
-    # Figure 3: Actuator Commands
-    # --------------------------------------------------------------------------
-    fig3, axs3 = plt.subplots(2, 1, figsize=(7.2, 4.4), sharex=True)
+    fig, axs = plt.subplots(2, 1, figsize=(7.2, 4.4), sharex=True)
     
     # Thruster Forces
-    axs3[0].plot(t, data['T_L'], color=COLOR_CYCLE[0], label='Port ($T_L$)', linewidth=1.3)
-    axs3[0].plot(t, data['T_R'], color=COLOR_CYCLE[1], label='Starboard ($T_R$)', linewidth=1.3)
-    axs3[0].axhline(510.0, color='r', linestyle=':', alpha=0.5, label='Fwd Limit ($510\\,\\mathrm{N}$)')
-    axs3[0].axhline(-380.0, color='r', linestyle=':', alpha=0.5, label='Rev Limit ($-380\\,\\mathrm{N}$)')
-    axs3[0].set_ylabel('Thrust [N]')
-    axs3[0].grid(True, linestyle=':', alpha=0.6)
-    axs3[0].legend(loc='upper right', framealpha=0.9, ncol=2)
+    axs[0].plot(t, data['T_L'], color=COLOR_CYCLE[0], label='Port ($T_L$)', linewidth=1.3)
+    axs[0].plot(t, data['T_R'], color=COLOR_CYCLE[1], label='Starboard ($T_R$)', linewidth=1.3)
+    axs[0].axhline(510.0, color='r', linestyle=':', alpha=0.6, label='Fwd Limit ($510\\,\\mathrm{N}$)')
+    axs[0].axhline(-380.0, color='r', linestyle=':', alpha=0.6, label='Rev Limit ($-380\\,\\mathrm{N}$)')
+    axs[0].set_ylabel('Thrust [N]')
+    axs[0].grid(True, linestyle=':', alpha=0.6)
+    axs[0].legend(loc='upper right', framealpha=0.9, ncol=2)
     
     # Azimuth Angles
-    axs3[1].plot(t, np.rad2deg(data['alpha_L']), color=COLOR_CYCLE[0], label=r'Port ($\alpha_L$)', linewidth=1.3)
-    axs3[1].plot(t, np.rad2deg(data['alpha_R']), color=COLOR_CYCLE[1], label=r'Starboard ($\alpha_R$)', linewidth=1.3)
-    axs3[1].axhline(30.0, color='r', linestyle=':', alpha=0.5)
-    axs3[1].axhline(-30.0, color='r', linestyle=':', alpha=0.5)
-    axs3[1].set_ylabel('Azimuth [deg]')
-    axs3[1].set_xlabel('Time [s]')
-    axs3[1].grid(True, linestyle=':', alpha=0.6)
-    axs3[1].legend(loc='upper right', framealpha=0.9)
+    axs[1].plot(t, np.rad2deg(data['alpha_L']), color=COLOR_CYCLE[0], label=r'Port ($\alpha_L$)', linewidth=1.3)
+    axs[1].plot(t, np.rad2deg(data['alpha_R']), color=COLOR_CYCLE[1], label=r'Starboard ($\alpha_R$)', linewidth=1.3)
+    axs[1].axhline(30.0, color='r', linestyle=':', alpha=0.6, label=r'Limit ($\pm 30^\circ$)')
+    axs[1].axhline(-30.0, color='r', linestyle=':', alpha=0.6)
+    axs[1].set_ylabel('Azimuth [deg]')
+    axs[1].set_xlabel('Time [s]')
+    axs[1].grid(True, linestyle=':', alpha=0.6)
+    axs[1].legend(loc='upper right', framealpha=0.9, ncol=2)
     
     plt.tight_layout()
-    for d in output_dirs:
-        save_figure(fig3, os.path.join(d, 'usv_actuator_inputs'), save_png=True)
-    plt.close(fig3)
+    for d in out_dirs:
+        save_figure(fig, os.path.join(d, 'usv_actuator_inputs'), save_png=True)
+    plt.close(fig)
+
+
+def plot_velocities_validation(data, sim_res, out_dirs):
+    set_thesis_style()
+    t = data['t']
+    fig, axs = plt.subplots(3, 1, figsize=(7.2, 5.8), sharex=True)
     
-    print("[INFO] Plots successfully generated and exported.")
+    # Surge u
+    axs[0].plot(t, data['u_gt'], color=SIMULATION_COLOR, label='Simulation', linewidth=1.5)
+    axs[0].plot(t, sim_res['u_sim'], color=COLOR_CYCLE[0], label='Prediction Model', linewidth=1.3, linestyle='-')
+    axs[0].set_ylabel('$u$ [m/s]')
+    axs[0].grid(True, linestyle=':', alpha=0.6)
+    axs[0].legend(loc='upper right', framealpha=0.9)
+    
+    # Sway v
+    axs[1].plot(t, data['v_gt'], color=SIMULATION_COLOR, label='Simulation', linewidth=1.5)
+    axs[1].plot(t, sim_res['v_sim'], color=COLOR_CYCLE[0], label='Prediction Model', linewidth=1.3, linestyle='-')
+    axs[1].set_ylabel('$v$ [m/s]')
+    axs[1].grid(True, linestyle=':', alpha=0.6)
+    
+    # Yaw rate r
+    axs[2].plot(t, np.rad2deg(data['r_gt']), color=SIMULATION_COLOR, label='Simulation', linewidth=1.5)
+    axs[2].plot(t, np.rad2deg(sim_res['r_sim']), color=COLOR_CYCLE[0], label='Prediction Model', linewidth=1.3, linestyle='-')
+    axs[2].set_ylabel('$r$ [deg/s]')
+    axs[2].set_xlabel('Time [s]')
+    axs[2].grid(True, linestyle=':', alpha=0.6)
+    
+    plt.tight_layout()
+    for d in out_dirs:
+        save_figure(fig, os.path.join(d, 'usv_velocities_validation'), save_png=True)
+    plt.close(fig)
+
+
+def plot_prediction_error(horizon_t, pos_rmse, vel_rmse, out_dirs):
+    set_thesis_style()
+    fig, axs = plt.subplots(1, 2, figsize=(7.6, 3.6))
+    axs[0].plot(horizon_t, pos_rmse, color=COLOR_CYCLE[0], linewidth=1.5, label='Prediction Model')
+    axs[1].plot(horizon_t, vel_rmse, color=COLOR_CYCLE[0], linewidth=1.5, label='Prediction Model')
+    axs[0].set_ylabel('Position error RMSE [m]')
+    axs[1].set_ylabel('Velocity error RMSE [m/s]')
+    for ax in axs:
+        ax.set_xlabel('Prediction horizon [s]')
+        ax.grid(True, linestyle=':', alpha=0.6)
+        ax.legend(loc='upper left', framealpha=0.9)
+    plt.tight_layout()
+    for d in out_dirs:
+        save_figure(fig, os.path.join(d, 'usv_prediction_error'), save_png=True)
+    plt.close(fig)
+
+
+def plot_prediction_examples(data, windows, out_dirs):
+    set_thesis_style()
+    fig, axs = plt.subplots(1, 2, figsize=(7.6, 3.8), gridspec_kw={'width_ratios': [1.2, 1]})
+    
+    # 2D Trajectory with prediction chords overlaid
+    axs[0].plot(data['x_gt'], data['y_gt'], color=SIMULATION_COLOR, linewidth=1.4, label='Simulation')
+    for j, (k0, s) in enumerate(windows):
+        axs[0].plot(s[:, 0], s[:, 1], color=COLOR_CYCLE[0], linewidth=2.0,
+                    label='2 s predictions' if j == 0 else None)
+        axs[0].plot(s[0, 0], s[0, 1], 'o', color=COLOR_CYCLE[0], markersize=3)
+    axs[0].plot(data['x_gt'][0], data['y_gt'][0], 's', color='#333333', markersize=5, label='Start')
+    axs[0].set_xlabel('$x$ [m]')
+    axs[0].set_ylabel('$y$ [m]')
+    axs[0].axis('equal')
+    axs[0].grid(True, linestyle=':', alpha=0.6)
+    axs[0].legend(loc='best', framealpha=0.9)
+    
+    # Zoom on the window with highest velocity
+    k0, s = max(windows, key=lambda w: np.linalg.norm([data['u_gt'][w[0]], data['v_gt'][w[0]]]))
+    n = len(s) - 1
+    tt = np.arange(n + 1) * data['dt']
+    
+    dx_true = data['x_gt'][k0:k0 + n + 1] - data['x_gt'][k0]
+    dy_true = data['y_gt'][k0:k0 + n + 1] - data['y_gt'][k0]
+    dx_pred = s[:, 0] - s[0, 0]
+    dy_pred = s[:, 1] - s[0, 1]
+    
+    axs[1].plot(tt, dx_true, color=SIMULATION_COLOR, linewidth=1.5, label='Simulation')
+    axs[1].plot(tt, dy_true, color=SIMULATION_COLOR, linewidth=1.5)
+    axs[1].plot(tt, dx_pred, color=COLOR_CYCLE[0], linewidth=1.3, linestyle='-', label=r'Prediction $x$')
+    axs[1].plot(tt, dy_pred, color=COLOR_CYCLE[1], linewidth=1.3, linestyle='-', label=r'Prediction $y$')
+    
+    axs[1].set_xlabel('Time since window start [s]')
+    axs[1].set_ylabel('Displacement [m]')
+    axs[1].grid(True, linestyle=':', alpha=0.6)
+    axs[1].legend(loc='best', framealpha=0.9)
+    
+    plt.tight_layout()
+    for d in out_dirs:
+        save_figure(fig, os.path.join(d, 'usv_prediction_examples'), save_png=True)
+        # Also export as usv_trajectory_validation for backwards-compatibility with LaTeX document
+        save_figure(fig, os.path.join(d, 'usv_trajectory_validation'), save_png=True)
+    plt.close(fig)
 
 
 def main():
     args = parse_args()
     data = load_telemetry(args.bag)
-    sim_res = simulate_model(data)
+    dt = data['dt']
+    N_pts = len(data['t'])
     
-    # Calculate performance metrics
-    m_u = compute_metrics(data['u_gt'], sim_res['u_sim'])
-    m_v = compute_metrics(data['v_gt'], sim_res['v_sim'])
-    m_r = compute_metrics(data['r_gt'], sim_res['r_sim'])
-    m_psi = compute_metrics(np.rad2deg(data['psi_gt']), np.rad2deg(sim_res['psi_sim']))
-    m_x = compute_metrics(data['x_gt'], sim_res['x_sim'])
-    m_y = compute_metrics(data['y_gt'], sim_res['y_sim'])
+    tau = compute_thruster_forces(data)
+    sim_full = simulate_full(data, tau)
     
-    pos_err = np.sqrt((data['x_gt'] - sim_res['x_sim'])**2 + (data['y_gt'] - sim_res['y_sim'])**2)
-    rmse_pos = np.sqrt(np.mean(pos_err**2))
-    max_pos = np.max(pos_err)
+    # 1. Continuous Full-Duration Velocity Metrics
+    m_u = compute_metrics(data['u_gt'], sim_full['u_sim'])
+    m_v = compute_metrics(data['v_gt'], sim_full['v_sim'])
+    m_r = compute_metrics(data['r_gt'], sim_full['r_sim'])
+    m_psi = compute_metrics(np.rad2deg(data['psi_gt']), np.rad2deg(sim_full['psi_sim']))
+    m_x = compute_metrics(data['x_gt'], sim_full['x_sim'])
+    m_y = compute_metrics(data['y_gt'], sim_full['y_sim'])
     
     dx = np.diff(data['x_gt'])
     dy = np.diff(data['y_gt'])
     total_distance = np.sum(np.sqrt(dx**2 + dy**2))
     
-    print("\n" + "=" * 65)
-    print("      USV DYNAMICS FIRST-PRINCIPLES VALIDATION REPORT")
-    print("=" * 65)
-    print(f"Trajectory Duration: {data['t'][-1]:.2f} s | Distance: {total_distance:.2f} m")
-    print("-" * 65)
-    print(f"{'State':<15} | {'RMSE':<12} | {'MAE':<12} | {'R^2 (%)':<10} | {'Max Err':<10}")
-    print("-" * 65)
-    print(f"{'Surge u (m/s)':<15} | {m_u['rmse']:<12.4f} | {m_u['mae']:<12.4f} | {m_u['r2']:<10.2f} | {m_u['max']:<10.4f}")
-    print(f"{'Sway v (m/s)':<15} | {m_v['rmse']:<12.4f} | {m_v['mae']:<12.4f} | {m_v['r2']:<10.2f} | {m_v['max']:<10.4f}")
-    print(f"{'Yaw r (deg/s)':<15} | {np.rad2deg(m_r['rmse']):<12.4f} | {np.rad2deg(m_r['mae']):<12.4f} | {m_r['r2']:<10.2f} | {np.rad2deg(m_r['max']):<10.4f}")
-    print(f"{'Heading (deg)':<15} | {m_psi['rmse']:<12.4f} | {m_psi['mae']:<12.4f} | {m_psi['r2']:<10.2f} | {m_psi['max']:<10.4f}")
-    print(f"{'Position X (m)':<15} | {m_x['rmse']:<12.4f} | {m_x['mae']:<12.4f} | {m_x['r2']:<10.2f} | {m_x['max']:<10.4f}")
-    print(f"{'Position Y (m)':<15} | {m_y['rmse']:<12.4f} | {m_y['mae']:<12.4f} | {m_y['r2']:<10.2f} | {m_y['max']:<10.4f}")
-    print("-" * 65)
-    print(f"Euclidean Position RMSE: {rmse_pos:.3f} m ({rmse_pos/total_distance*100:.2f}% of path) | Max Error: {max_pos:.3f} m")
-    print("=" * 65 + "\n")
+    print("\n" + "=" * 78)
+    print("      THESIS SECTION 3.1 USV NMPC MODEL FIRST-PRINCIPLES VALIDATION")
+    print("=" * 78)
+    print(f"Nominal Parameters: m = {MASS_NOMINAL:.2f} kg | Iz = {IZZ_NOMINAL:.2f} kg*m^2 | Arms: [{THRUSTER_X_ARM:.2f}, {THRUSTER_Y_ARM:.2f}] m")
+    print(f"Hydrodynamics: Xu = {X_U_NOMINAL}, Xuu = {X_UU_NOMINAL} | Yv = {Y_V_NOMINAL}, Yvv = {Y_VV_NOMINAL} | Nr = {N_R_NOMINAL}, Nrr = {N_RR_NOMINAL}")
+    print(f"Prediction Horizon: N = {N_HORIZON} steps, Ts = {dt} s -> T_horizon = {N_HORIZON*dt:.2f} s")
+    print(f"Telemetry window: {data['t'][-1]:.2f} s ({N_pts} samples at 50 Hz, {total_distance:.2f} m traversed)")
+    
+    print("\n[1] BODY VELOCITIES & DYNAMICS (First-Principles Model vs Ground Truth)")
+    print(f"  Surge u : RMSE = {m_u['rmse']:.4f} m/s, MAE = {m_u['mae']:.4f} m/s, Max = {m_u['max']:.4f} m/s, R2 = {m_u['r2']:.1f}%")
+    print(f"  Sway v  : RMSE = {m_v['rmse']:.4f} m/s, MAE = {m_v['mae']:.4f} m/s, Max = {m_v['max']:.4f} m/s, R2 = {m_v['r2']:.1f}%")
+    print(f"  Yaw r   : RMSE = {np.rad2deg(m_r['rmse']):.4f} deg/s, MAE = {np.rad2deg(m_r['mae']):.4f} deg/s, Max = {np.rad2deg(m_r['max']):.4f} deg/s, R2 = {m_r['r2']:.1f}%")
+    print(f"  Heading : RMSE = {m_psi['rmse']:.4f} deg, MAE = {m_psi['mae']:.4f} deg, Max = {m_psi['max']:.4f} deg, R2 = {m_psi['r2']:.1f}%")
+    
+    # 2. Multi-Step Receding Horizon Open-Loop Prediction (2.0 s NMPC horizon)
+    print("\n[2] MULTI-STEP OPEN-LOOP PREDICTION (N = 100 steps, Horizon = 2.0 s)")
+    n_h = N_HORIZON
+    starts = np.arange(0, N_pts - n_h - 1, 5)  # slide window every 0.1 s
+    sample_windows = []
+    
+    err_pos = np.zeros((len(starts), n_h + 1))
+    err_vel = np.zeros((len(starts), n_h + 1))
+    
+    for j, k0 in enumerate(starts):
+        s_sim = simulate_horizon(k0, n_h, data, tau)
+        p_true = np.column_stack([data['x_gt'][k0:k0 + n_h + 1], data['y_gt'][k0:k0 + n_h + 1]])
+        err_pos[j] = np.linalg.norm(s_sim[:, :2] - p_true, axis=1)
+        v_true = np.column_stack([data['u_gt'][k0:k0 + n_h + 1], data['v_gt'][k0:k0 + n_h + 1]])
+        err_vel[j] = np.linalg.norm(s_sim[:, 3:5] - v_true, axis=1)
+        if k0 % 250 == 0:
+            sample_windows.append((k0, s_sim))
+            
+    pos_rmse_curve = np.sqrt(np.mean(err_pos ** 2, axis=0))
+    vel_rmse_curve = np.sqrt(np.mean(err_vel ** 2, axis=0))
+    horizon_t = np.arange(n_h + 1) * dt
+    
+    print(f"  Horizon 0.5 s: Pos RMSE = {pos_rmse_curve[25]:.4f} m, Vel RMSE = {vel_rmse_curve[25]:.4f} m/s")
+    print(f"  Horizon 1.0 s: Pos RMSE = {pos_rmse_curve[50]:.4f} m, Vel RMSE = {vel_rmse_curve[50]:.4f} m/s")
+    print(f"  Horizon 1.5 s: Pos RMSE = {pos_rmse_curve[75]:.4f} m, Vel RMSE = {vel_rmse_curve[75]:.4f} m/s")
+    print(f"  Horizon 2.0 s: Pos RMSE = {pos_rmse_curve[100]:.4f} m, Vel RMSE = {vel_rmse_curve[100]:.4f} m/s")
+    print(f"  Final 2.0 s P95 Pos Error: {np.percentile(err_pos[:, -1], 95):.4f} m | Max Pos Error: {err_pos[:, -1].max():.4f} m")
+    print("=" * 78 + "\n")
     
     # Destination directories
     plot_dir = os.path.join(CURRENT_DIR, "plots")
     os.makedirs(plot_dir, exist_ok=True)
-    
     out_dirs = [plot_dir]
     if args.export:
         thesis_dir = os.path.abspath(os.path.join(CURRENT_DIR, "../../latex/tese/Implementation/figures/02_model_validation"))
         os.makedirs(thesis_dir, exist_ok=True)
         out_dirs.append(thesis_dir)
         
-    plot_results(data, sim_res, out_dirs)
+    plot_actuator_inputs(data, out_dirs)
+    plot_velocities_validation(data, sim_full, out_dirs)
+    plot_prediction_error(horizon_t, pos_rmse_curve, vel_rmse_curve, out_dirs)
+    plot_prediction_examples(data, sample_windows, out_dirs)
+    print(f"[INFO] All USV figures successfully generated and exported to {out_dirs}")
 
 
 if __name__ == "__main__":
