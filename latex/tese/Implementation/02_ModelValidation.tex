@@ -22,7 +22,7 @@ To excite the full operating envelope of the vessel, a dynamic manual joystick m
 
 \begin{figure}[!htbp]
     \centering
-    \includegraphics[width=0.75\textwidth]{Implementation/figures/02_model_validation/usv_actuator_inputs.pdf}
+    \includegraphics[width=0.55\textwidth]{Implementation/figures/02_model_validation/usv_actuator_inputs.pdf}
     \caption{USV thruster inputs during the validation maneuver.}
     \label{fig:usv_actuator_inputs}
 \end{figure}
@@ -31,38 +31,62 @@ The nominal model was integrated purely open-loop using a fourth-order Runge-Kut
 
 \begin{figure}[!htbp]
     \centering
-    \includegraphics[width=0.75\textwidth]{Implementation/figures/02_model_validation/usv_velocities_validation.pdf}
+    \includegraphics[width=0.55\textwidth]{Implementation/figures/02_model_validation/usv_velocities_validation.pdf}
     \caption{USV body-fixed velocities validation.}
     \label{fig:usv_velocities_validation}
 \end{figure}
 
-The kinematic validity of the planar model over extended horizons is demonstrated in Figure~\ref{fig:usv_trajectory_validation}. Over the entire $63.84\,\text{s}$ run, the predicted vessel heading $\psi$ remains tightly aligned with the simulated catamaran, obtaining an $R^2$ of $99.78\%$ and an \gls{rmse} of $7.0173^\circ$. In the horizontal plane, the cumulative Euclidean position error between the open-loop integration and the ground truth reaches an \gls{rmse} of $2.190\,\text{m}$, which corresponds to only $3.57\%$ of the total distance traveled. This small divergence is attributed to unmodeled wave-induced roll and pitch perturbations and the absence of any feedback correction during the open-loop simulation.
+The kinematic validity of the planar model over extended horizons is demonstrated in Figure~\ref{fig:usv_trajectory_validation}. Over the entire $63.84\,\text{s}$ run, the predicted vessel heading $\psi$ remains tightly aligned with the simulated catamaran, obtaining an $R^2$ of $99.78\%$ and an \gls{rmse} of $7.0173^\circ$. In the horizontal plane, the cumulative Euclidean position error between the open-loop integration and the ground truth reaches an \gls{rmse} of $2.190\,\text{m}$, which corresponds to only $3.57\%$ of the total distance traveled over $61.29\,\text{m}$.
+
+When evaluated in the operational context of the non-linear model predictive controller over the receding horizon $T_h = 2.0\,\text{s}$ ($N = 100$ integration steps at $50\,\text{Hz}$), the local predictive capability of the first-principles formulation is exceptionally high. As shown in Figure~\ref{fig:usv_trajectory_validation}, the predicted trajectory segments track the actual vessel displacements with sub-decimetre precision. Figure~\ref{fig:usv_prediction_error} illustrates the error growth as a function of the prediction horizon: at the full $2.0\,\text{s}$ horizon, the position error achieves an \gls{rmse} of only $0.0411\,\text{m}$ ($4.1\,\text{cm}$) with a $95\text{th}$ percentile of $0.0793\,\text{m}$ ($7.9\,\text{cm}$), and the velocity error reaches an \gls{rmse} of $0.0402\,\text{m/s}$.
 
 \begin{figure}[!htbp]
     \centering
-    \includegraphics[width=0.60\textwidth]{Implementation/figures/02_model_validation/usv_trajectory_validation.pdf}
-    \caption{USV trajectory validation with two-second receding-horizon predictions overlaid on the simulation ground truth.}
+    \includegraphics[width=0.50\textwidth]{Implementation/figures/02_model_validation/usv_prediction_trajectory.pdf}
+    \caption{Two-second open-loop predictions along the USV trajectory.}
     \label{fig:usv_trajectory_validation}
 \end{figure}
 
-Table~\ref{tab:usv_validation_metrics} provides a quantitative summary of the validation metrics across all state variables. The close agreement across all velocity and kinematic states confirms that the first-principles 3-DOF formulation and its thruster allocation equations capture the vessel dynamics with sufficient accuracy for model-based predictive control, without requiring grey-box parameter estimation.
+\begin{figure}[!htbp]
+    \centering
+    \subfloat[Position error RMSE.]{
+        \includegraphics[width=0.48\textwidth]{Implementation/figures/02_model_validation/usv_prediction_error_pos.pdf}
+        \label{fig:usv_prediction_error_pos}
+    }
+    \hfill
+    \subfloat[Velocity error RMSE.]{
+        \includegraphics[width=0.48\textwidth]{Implementation/figures/02_model_validation/usv_prediction_error_vel.pdf}
+        \label{fig:usv_prediction_error_vel}
+    }
+    \caption{USV open-loop prediction error RMSE as a function of the prediction horizon.}
+    \label{fig:usv_prediction_error}
+\end{figure}
+
+Table~\ref{tab:usv_validation_metrics} provides a quantitative summary of the validation metrics across all state variables, covering both the full-run open-loop simulation and the receding-horizon predictions. The close agreement across all velocity and kinematic states confirms that the first-principles 3-DOF formulation and its thruster allocation equations capture the vessel dynamics with sufficient accuracy for model-based predictive control, without requiring grey-box parameter estimation.
 
 \begin{table}[!htbp]
     \centering
-    \caption{USV open-loop model validation metrics.}
+    \caption{USV model validation metrics: open-loop full run ($63.8\,\text{s}$) and receding horizon ($T_h = 2.0\,\text{s}$).}
     \label{tab:usv_validation_metrics}
     \begin{tabular}{lccccc}
         \toprule
         \textbf{State} & \textbf{Unit} & \textbf{RMSE} & \textbf{MAE} & \textbf{$R^2$ (\%)} & \textbf{Max Error} \\
         \midrule
+        \multicolumn{6}{l}{\textit{Continuous Open-Loop Run ($63.84\,\text{s}$)}} \\
         Surge velocity $u$ & $\text{m/s}$ & $0.0350$ & $0.0235$ & $99.90$ & $0.1372$ \\
         Sway velocity $v$ & $\text{m/s}$ & $0.0284$ & $0.0217$ & $99.77$ & $0.1010$ \\
         Yaw rate $r$ & $\text{deg/s}$ & $0.9925$ & $0.5989$ & $98.94$ & $3.5991$ \\
         Heading $\psi$ & $\text{deg}$ & $7.0173$ & $5.8392$ & $99.78$ & $11.0267$ \\
         Longitudinal position $x$ & $\text{m}$ & $1.9996$ & $1.4632$ & $89.65$ & $3.2867$ \\
         Lateral position $y$ & $\text{m}$ & $0.8926$ & $0.6802$ & $98.17$ & $1.3779$ \\
-        \midrule
         Euclidean position $e_p$ & $\text{m}$ & $2.1901$ & $1.6575$ & -- & $3.4990$ \\
+        \midrule
+        \multicolumn{6}{l}{\textit{Receding Horizon Predictions ($T_h = 2.0\,\text{s}$, $N = 100$)}} \\
+        Position error $e_p$ ($T_h = 0.5\,\text{s}$) & $\text{m}$ & $0.0072$ & $0.0058$ & -- & $0.0231$ \\
+        Position error $e_p$ ($T_h = 1.0\,\text{s}$) & $\text{m}$ & $0.0166$ & $0.0135$ & -- & $0.0528$ \\
+        Position error $e_p$ ($T_h = 2.0\,\text{s}$) & $\text{m}$ & $0.0411$ & $0.0336$ & -- & $0.1296$ \\
+        Velocity error $e_v$ ($T_h = 2.0\,\text{s}$) & $\text{m/s}$ & $0.0402$ & $0.0338$ & -- & $0.1027$ \\
+        Position $95\text{th}$ percentile ($T_h = 2.0\,\text{s}$) & $\text{m}$ & $0.0793$ & -- & -- & -- \\
         \bottomrule
     \end{tabular}
 \end{table}
@@ -82,7 +106,7 @@ The data is a flight of $157\,\text{s}$ in which the reference is fed directly t
 
 \begin{figure}[!htbp]
     \centering
-    \includegraphics[width=0.75\textwidth]{Implementation/figures/02_model_validation/uav_actuator_inputs.pdf}
+    \includegraphics[width=0.55\textwidth]{Implementation/figures/02_model_validation/uav_actuator_inputs.pdf}
     \caption{UAV attitude and thrust commands during the validation flight.}
     \label{fig:uav_actuator_inputs}
 \end{figure}
@@ -92,37 +116,46 @@ The first assumption is that the attitude is reached as commanded. Figure~\ref{f
 
 \begin{figure}[!htbp]
     \centering
-    \includegraphics[width=0.75\textwidth]{Implementation/figures/02_model_validation/uav_attitude_validation.pdf}
+    \includegraphics[width=0.55\textwidth]{Implementation/figures/02_model_validation/uav_attitude_validation.pdf}
     \caption{UAV attitude tracking. Commanded and measured angles, and the identified first-order lag with delay.}
     \label{fig:uav_attitude_validation}
 \end{figure}
 
 \paragraph{How closely does the model reproduce the reference, in the way it is used?}
-At the level of the acceleration, shown in Figure~\ref{fig:uav_acceleration_validation}, the model driven by the measured attitude reproduces the motion with an \gls{rmse} of $0.397$, $0.418$, and $0.200\,\text{m/s}^2$ along $x$, $y$, and $z$ ($R^2 = 83.0\%$, $85.6\%$, and $76.2\%$). Driven by the commanded attitude, the horizontal errors become $0.632$ and $0.691\,\text{m/s}^2$. In the use that matters for the controller, the open-loop prediction over the horizon of $1\,\text{s}$, from the measured position and velocity, Figure~\ref{fig:uav_prediction_error} and Table~\ref{tab:uav_validation_metrics} show that the position error at the end of the horizon is $0.148\,\text{m}$ in \gls{rmse} with the measured attitude and $0.203\,\text{m}$ with the commanded one, with $95$th percentiles of $0.32$ and $0.45\,\text{m}$ and velocity errors of $0.263$ and $0.348\,\text{m/s}$, for displacements of up to $8\,\text{m}$ in the window (Figure~\ref{fig:uav_prediction_examples}).
+At the level of the acceleration, shown in Figure~\ref{fig:uav_acceleration_validation}, the model driven by the measured attitude reproduces the motion with an \gls{rmse} of $0.397$, $0.418$, and $0.200\,\text{m/s}^2$ along $x$, $y$, and $z$ ($R^2 = 83.0\%$, $85.6\%$, and $76.2\%$). Driven by the commanded attitude, the horizontal errors become $0.632$ and $0.691\,\text{m/s}^2$. In the use that matters for the controller, the open-loop prediction over the horizon of $1\,\text{s}$, from the measured position and velocity, Figure~\ref{fig:uav_prediction_error} and Table~\ref{tab:uav_validation_metrics} show that the position error at the end of the horizon is $0.148\,\text{m}$ in \gls{rmse} with the measured attitude and $0.203\,\text{m}$ with the commanded one, with $95$th percentiles of $0.32$ and $0.45\,\text{m}$ and velocity errors of $0.263$ and $0.348\,\text{m/s}$, for displacements of up to $8\,\text{m}$ along the trajectory (Figure~\ref{fig:uav_prediction_trajectory}).
 
 \begin{figure}[!htbp]
     \centering
-    \includegraphics[width=0.75\textwidth]{Implementation/figures/02_model_validation/uav_acceleration_validation.pdf}
+    \includegraphics[width=0.55\textwidth]{Implementation/figures/02_model_validation/uav_acceleration_validation.pdf}
     \caption{UAV inertial acceleration. Ground truth and model driven by the measured attitude.}
     \label{fig:uav_acceleration_validation}
 \end{figure}
 
 \begin{figure}[!htbp]
     \centering
-    \includegraphics[width=0.70\textwidth]{Implementation/figures/02_model_validation/uav_prediction_error.pdf}
-    \caption{UAV position prediction error RMSE as a function of the prediction horizon.}
+    \subfloat[Position error RMSE.]{
+        \includegraphics[width=0.48\textwidth]{Implementation/figures/02_model_validation/uav_prediction_error_pos.pdf}
+        \label{fig:uav_prediction_error_pos}
+    }
+    \hfill
+    \subfloat[Velocity error RMSE.]{
+        \includegraphics[width=0.48\textwidth]{Implementation/figures/02_model_validation/uav_prediction_error_vel.pdf}
+        \label{fig:uav_prediction_error_vel}
+    }
+    \caption{UAV open-loop prediction error RMSE as a function of the prediction horizon.}
     \label{fig:uav_prediction_error}
 \end{figure}
 
 \begin{figure}[!htbp]
     \centering
-    \includegraphics[width=0.60\textwidth]{Implementation/figures/02_model_validation/uav_prediction_examples.pdf}
-    \caption{One-second open-loop spatial predictions along the flight trajectory.}
-    \label{fig:uav_prediction_examples}
+    \includegraphics[width=0.50\textwidth]{Implementation/figures/02_model_validation/uav_prediction_trajectory.pdf}
+    \caption{One-second open-loop predictions along the UAV flight trajectory.}
+    \label{fig:uav_prediction_trajectory}
 \end{figure}
 
 \begin{table}[!htbp]
     \centering
+    \small
     \caption{UAV open-loop prediction error at the end of the $1\,\text{s}$ horizon.}
     \label{tab:uav_validation_metrics}
     \begin{tabular}{lccccc}
@@ -162,28 +195,27 @@ Figure~\ref{fig:model_fit_comparison} compares the predicted scalar tension magn
 
 \begin{figure}[!htbp]
     \centering
-    \includegraphics[width=0.75\textwidth]{Implementation/figures/02_model_validation/model_fit_comparison.pdf}
-    \caption{Tether tension magnitude at the \gls{uav}.}
-    \label{fig:model_fit_comparison}
+    \subfloat[Tether tension magnitude $T_{\mathrm{tether}}(t)$.\label{fig:model_fit_comparison}]{
+        \includegraphics[width=0.48\textwidth]{Implementation/figures/02_model_validation/model_fit_comparison.pdf}
+    }
+    \hfill
+    \subfloat[Three-dimensional force prediction error norm.\label{fig:model_fit_residuals}]{
+        \includegraphics[width=0.48\textwidth]{Implementation/figures/02_model_validation/model_fit_residuals.pdf}
+    }
+    \caption{Tether tension magnitude and three-dimensional prediction error norm compared against MoorDyn telemetry.}
+    \label{fig:tether_model_fit_metrics}
 \end{figure}
 
 When resolved into Cartesian components in the inertial frame in Figure~\ref{fig:model_fit_3d}, the importance of accounting for the catenary deflection angle $\gamma_0 = 28.0^\circ$ becomes evident. The proposed formulation accurately tracks both the horizontal restoring force $F_x$ with $R^2 = 97.6\%$ and $\text{RMSE} = 0.1457\,\text{N}$, as well as the vertical downward pull $F_z$ with $R^2 = 86.9\%$ and $\text{RMSE} = 0.2339\,\text{N}$. In contrast, the pure vertical simplification fails completely to capture horizontal interaction forces with $R^2 = -0.7\%$, while the straight chord approximation directs excess tension into the horizontal axis and underestimates vertical load because it ignores the natural sag of the cable.
 
 \begin{figure}[!htbp]
     \centering
-    \includegraphics[width=0.82\textwidth]{Implementation/figures/02_model_validation/model_fit_3d_components.pdf}
+    \includegraphics[width=0.55\textwidth]{Implementation/figures/02_model_validation/model_fit_3d_components.pdf}
     \caption{Three-dimensional tether force components at the \gls{uav}.}
     \label{fig:model_fit_3d}
 \end{figure}
 
 The temporal evolution of the three-dimensional prediction error norm $\|\mathbf{F}_{\mathrm{true}} - \mathbf{F}_{\mathrm{model}}\|$, presented in Figure~\ref{fig:model_fit_residuals}, reveals the stability of each approach during dynamic manoeuvres. While the baseline simplifications experience large transient error surges exceeding $1.6\,\text{N}$ during vehicle reversals, the proposed catenary model maintains a low and bounded residual below $0.4\,\text{N}$ throughout the entire flight profile.
-
-\begin{figure}[!htbp]
-    \centering
-    \includegraphics[width=0.75\textwidth]{Implementation/figures/02_model_validation/model_fit_residuals.pdf}
-    \caption{Three-dimensional tether force error norm.}
-    \label{fig:model_fit_residuals}
-\end{figure}
 
 Table~\ref{tab:tether_model_benchmark} summarises the quantitative performance across the complete benchmark trajectory. The proposed first-principles model achieves an overall three-dimensional \gls{rmse} of $0.2757\,\text{N}$, reducing the spatial force error by more than $70\%$ compared to both the straight chord model with $0.8991\,\text{N}$ ($+226.1\%$ error) and the pure vertical model with $1.0332\,\text{N}$ ($+274.7\%$ error). These results confirm that the closed-form catenary approximation captures the dominant coupling forces with sufficient fidelity for real-time feedforward compensation, while avoiding the prohibitive computational cost of numerical catenary solvers or multi-segment models.
 

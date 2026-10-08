@@ -491,7 +491,7 @@ def plot_acceleration(data, a_meas, a_model, out_dirs):
 def plot_prediction_error(horizon_t, pos_rmse, vel_rmse, out_dirs):
     set_thesis_style()
     # 1. Position error RMSE vs Prediction horizon
-    fig_pos, ax_pos = plt.subplots(figsize=(5.6, 3.4))
+    fig_pos, ax_pos = plt.subplots(figsize=(5.4, 3.4))
     ax_pos.plot(horizon_t, pos_rmse, color=COLOR_CYCLE[0], linewidth=1.2, label='Prediction Model')
     ax_pos.set_xlabel('Prediction horizon [s]')
     ax_pos.set_ylabel('Position error RMSE [m]')
@@ -504,7 +504,7 @@ def plot_prediction_error(horizon_t, pos_rmse, vel_rmse, out_dirs):
     plt.close(fig_pos)
 
     # 2. Velocity error RMSE vs Prediction horizon
-    fig_vel, ax_vel = plt.subplots(figsize=(5.6, 3.4))
+    fig_vel, ax_vel = plt.subplots(figsize=(5.4, 3.4))
     ax_vel.plot(horizon_t, vel_rmse, color=COLOR_CYCLE[0], linewidth=1.2, label='Prediction Model')
     ax_vel.set_xlabel('Prediction horizon [s]')
     ax_vel.set_ylabel('Velocity error RMSE [m/s]')
@@ -519,7 +519,7 @@ def plot_prediction_error(horizon_t, pos_rmse, vel_rmse, out_dirs):
 def plot_prediction_examples(data, windows, out_dirs):
     set_thesis_style()
     # 1. 2D Spatial trajectory with prediction chords (1:1 aspect ratio)
-    fig_traj, ax_traj = plt.subplots(figsize=(5.2, 4.4))
+    fig_traj, ax_traj = plt.subplots(figsize=(4.6, 4.2))
     ax_traj.plot(data['p'][:, 0], data['p'][:, 1], color=SIMULATION_COLOR,
                 linewidth=1.2, label='Simulation')
     for j, (k0, s) in enumerate(windows):
@@ -538,8 +538,8 @@ def plot_prediction_examples(data, windows, out_dirs):
         save_figure(fig_traj, os.path.join(d, 'uav_prediction_examples'), save_png=True)
     plt.close(fig_traj)
 
-    # 2. Zoom on the window with the largest horizontal velocity
-    fig_det, ax_det = plt.subplots(figsize=(5.6, 3.4))
+    # 2. Zoom on the window with the largest horizontal velocity (matched height 3.6 in)
+    fig_det, ax_det = plt.subplots(figsize=(5.4, 3.6))
     k0, s = max(windows, key=lambda w: np.linalg.norm(data['v'][w[0], :2]))
     n = len(s) - 1
     tt = np.arange(n + 1) * data['dt']

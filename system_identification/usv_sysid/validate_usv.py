@@ -325,7 +325,7 @@ def plot_velocities_validation(data, sim_res, out_dirs):
 def plot_prediction_error(horizon_t, pos_rmse, vel_rmse, out_dirs):
     set_thesis_style()
     # 1. Position error RMSE vs Prediction horizon
-    fig_pos, ax_pos = plt.subplots(figsize=(5.6, 3.4))
+    fig_pos, ax_pos = plt.subplots(figsize=(5.4, 3.4))
     ax_pos.plot(horizon_t, pos_rmse, color=COLOR_CYCLE[0], linewidth=1.2, label='Prediction Model')
     ax_pos.set_xlabel('Prediction horizon [s]')
     ax_pos.set_ylabel('Position error RMSE [m]')
@@ -338,7 +338,7 @@ def plot_prediction_error(horizon_t, pos_rmse, vel_rmse, out_dirs):
     plt.close(fig_pos)
 
     # 2. Velocity error RMSE vs Prediction horizon
-    fig_vel, ax_vel = plt.subplots(figsize=(5.6, 3.4))
+    fig_vel, ax_vel = plt.subplots(figsize=(5.4, 3.4))
     ax_vel.plot(horizon_t, vel_rmse, color=COLOR_CYCLE[0], linewidth=1.2, label='Prediction Model')
     ax_vel.set_xlabel('Prediction horizon [s]')
     ax_vel.set_ylabel('Velocity error RMSE [m/s]')
@@ -353,7 +353,7 @@ def plot_prediction_error(horizon_t, pos_rmse, vel_rmse, out_dirs):
 def plot_prediction_examples(data, windows, out_dirs):
     set_thesis_style()
     # 1. 2D Spatial trajectory with prediction chords (1:1 aspect ratio)
-    fig_traj, ax_traj = plt.subplots(figsize=(5.2, 4.4))
+    fig_traj, ax_traj = plt.subplots(figsize=(4.6, 4.2))
     ax_traj.plot(data['x_gt'], data['y_gt'], color=SIMULATION_COLOR, linewidth=1.2, label='Simulation')
     for j, (k0, s) in enumerate(windows):
         ax_traj.plot(s[:, 0], s[:, 1], color=COLOR_CYCLE[0], linewidth=1.4,
@@ -373,8 +373,8 @@ def plot_prediction_examples(data, windows, out_dirs):
         save_figure(fig_traj, os.path.join(d, 'usv_trajectory_validation'), save_png=True)
     plt.close(fig_traj)
     
-    # 2. Detail of highest-velocity prediction window
-    fig_det, ax_det = plt.subplots(figsize=(5.6, 3.4))
+    # 2. Detail of highest-velocity prediction window (matched height 3.6 in)
+    fig_det, ax_det = plt.subplots(figsize=(5.4, 3.6))
     k0, s = max(windows, key=lambda w: np.linalg.norm([data['u_gt'][w[0]], data['v_gt'][w[0]]]))
     n = len(s) - 1
     tt = np.arange(n + 1) * data['dt']
