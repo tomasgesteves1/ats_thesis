@@ -13,7 +13,7 @@ def generate_launch_description():
     
     # 1. Configurações de Posição
     # Barco
-    boat_x, boat_y, boat_z = 0.0, 0.0, 0.2
+    boat_x, boat_y, boat_z = -0.288249, 0.0, 0.2  # base_link origin = system CG (0.288 m aft of the old hull origin)
     # Drone (Pousado no Convés)
     drone_world_x, drone_world_z = 0.3, 1.65
     # Gancho (Onde o tether começa)

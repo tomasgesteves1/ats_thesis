@@ -5,7 +5,7 @@ import numpy as np
 # Ground Truth Physical Parameters from model.sdf (VRX WAM-V) - Section 4.2.1
 # ==============================================================================
 MASS = 259.10          # Nominal rigid body mass (kg) (Catamaran 227 + 2 Thrusters 30 + Sensors 2.1)
-IZZ = 695.90           # Nominal yaw moment of inertia about CG (kg*m^2) (Base 495 + Parallel Axis Theorem)
+IZZ = 683.22           # Yaw moment of inertia about CG = base_link origin (kg*m^2), from model.sdf
 
 # Hydrodynamic damping coefficients from Table 4.1 (VRX SimpleHydrodynamics)
 X_U = 100.00           # Linear surge damping (N/(m/s))
@@ -16,7 +16,7 @@ N_R = 800.00           # Linear yaw damping (N*m/(rad/s))
 N_RR = 800.00          # Quadratic yaw damping (N*m/(rad/s)^2)
 
 # Thruster geometric configuration (coordinates relative to CG)
-THRUSTER_X_ARM = -2.373776  # Longitudinal position of thrusters (m)
+THRUSTER_X_ARM = -2.085527  # Longitudinal position of thrusters rel. to CG = base_link origin (m)
 THRUSTER_Y_ARM = 1.027135   # Lateral distance from centerline to thrusters (m)
 
 def wamv_dynamics_numerical(x, u_virtual):

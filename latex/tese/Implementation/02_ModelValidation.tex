@@ -9,45 +9,38 @@
 \section{Models Validation}
 \label{sec:model_validation}
 
-Before incorporating the vehicle and tether models into the real-time controllers developed in Chapter~\ref{chapter:methodology}, their accuracy and validity must be verified against the high-fidelity simulation environment described in Section~\ref{sec:simulation_environment}. This ensures that the simplified analytical formulations adequately capture the dominant physical dynamics while remaining computationally tractable for online execution.
-
-Each model is compared with the ground-truth state of the simulator. The parameters of the models are the nominal ones of the simulator (Section~\ref{sec:simulation_environment}), and none is fitted to the data. The models are driven by the inputs recorded in the simulator, and their output is compared with the recorded response. The agreement is quantified by the \gls{rmse}, expressed in the units of each quantity, and by the \gls{nrmse}, which is the \gls{rmse} divided by the range of the ground-truth signal.
+Before incorporating the vehicle and tether models into the real-time controllers developed in Chapter~\ref{chapter:methodology}, their accuracy must be verified against the high-fidelity simulation environment described in Section~\ref{sec:simulation_environment} to ensure they capture the dominant dynamics while remaining computationally tractable. Each model is evaluated using the nominal simulator parameters without parameter fitting, driven by recorded inputs from representative manoeuvres. Model fidelity is quantified by the \gls{rmse} in physical units and by the \gls{nrmse}, defined as the \gls{rmse} normalised by the signal range.
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 \subsection{\texorpdfstring{\gls{usv} Model}{USV Model}}
 \label{subsec:usv_validation}
 
-The model under validation is the predictive model of the \gls{usv} \gls{nmpc} (Section~\ref{sec:ctrl_usv_mpc}), with the parameters of the simulator (Section~\ref{sec:simulation_environment}) listed in Table~\ref{tab:usv_model_parameters}. The yaw moment of inertia includes the contribution of the two $15.0\,\text{kg}$ thrusters, which are separate bodies in the simulator,
-\begin{equation}
-    I_z = 495.0 + 2 \times 15.0\,\left(x_{\mathrm{arm}}^2 + y_{\mathrm{arm}}^2\right) \approx 695.70\,\text{kg}\cdot\text{m}^2.
-    \label{eq:usv_val_iz}
-\end{equation}
+The model under validation is the planar model of the \gls{usv} used in the \gls{nmpc} (Section~\ref{sec:ctrl_usv_mpc}), with the parameters of the simulator (Section~\ref{sec:simulation_environment}) listed in Table~\ref{tab:usv_model_parameters}. The origin of the body frame coincides with the centre of gravity of the vehicle, including the thrusters, and the thruster arms and the yaw moment of inertia are expressed with respect to it.
 
 \begin{table}[htbp]
     \centering
     \caption{Parameters of the \gls{usv} model.}
     \label{tab:usv_model_parameters}
-    \begin{tabular}{llcl}
+    \begin{tabular}{llr}
         \toprule
-        \textbf{Parameter} & \textbf{Symbol} & \textbf{Value} & \textbf{Unit} \\
+        \textbf{Parameter} & \textbf{Symbol} & \textbf{Value} \\
         \midrule
-        Mass & $m$ & $259.10$ & $\text{kg}$ \\
-        Yaw moment of inertia & $I_z$ & $695.70$ & $\text{kg}\cdot\text{m}^2$ \\
-        Thruster longitudinal distance & $x_{\mathrm{arm}}$ & $2.3738$ & $\text{m}$ \\
-        Thruster lateral distance & $y_{\mathrm{arm}}$ & $1.0271$ & $\text{m}$ \\
-        \midrule
-        Linear surge damping & $X_u$ & $100.0$ & $\text{N}/(\text{m/s})$ \\
-        Quadratic surge damping, forward & $X_{uu}^{+}$ & $150.0$ & $\text{N}/(\text{m/s})^2$ \\
-        Quadratic surge damping, backward & $X_{uu}^{-}$ & $150.0$ & $\text{N}/(\text{m/s})^2$ \\
-        Linear sway damping & $Y_v$ & $100.0$ & $\text{N}/(\text{m/s})$ \\
-        Quadratic sway damping & $Y_{vv}$ & $100.0$ & $\text{N}/(\text{m/s})^2$ \\
-        Linear yaw damping & $N_r$ & $800.0$ & $\text{N}\cdot\text{m}/(\text{rad/s})$ \\
-        Quadratic yaw damping & $N_{rr}$ & $800.0$ & $\text{N}\cdot\text{m}/(\text{rad/s})^2$ \\
+        Mass & $m$ & $259.10\,\text{kg}$ \\
+        Yaw moment of inertia & $I_z$ & $683.22\,\text{kg}\cdot\text{m}^2$ \\
+        Thruster longitudinal arm & $x_{\mathrm{arm}}$ & $2.0855\,\text{m}$ \\
+        Thruster lateral arm & $y_{\mathrm{arm}}$ & $1.0271\,\text{m}$ \\
+        Linear surge damping & $X_u$ & $100.0\,\text{N}/(\text{m/s})$ \\
+        Quadratic surge damping (forward) & $X_{uu}^{+}$ & $150.0\,\text{N}/(\text{m/s})^2$ \\
+        Quadratic surge damping (backward) & $X_{uu}^{-}$ & $150.0\,\text{N}/(\text{m/s})^2$ \\
+        Linear sway damping & $Y_v$ & $100.0\,\text{N}/(\text{m/s})$ \\
+        Quadratic sway damping & $Y_{vv}$ & $100.0\,\text{N}/(\text{m/s})^2$ \\
+        Linear yaw damping & $N_r$ & $800.0\,\text{N}\cdot\text{m}/(\text{rad/s})$ \\
+        Quadratic yaw damping & $N_{rr}$ & $800.0\,\text{N}\cdot\text{m}/(\text{rad/s})^2$ \\
         \bottomrule
     \end{tabular}
 \end{table}
 
-The \gls{usv} was driven manually with a joystick for $63.84\,\text{s}$. Figure~\ref{fig:usv_actuator_inputs} shows the commands sent to the thrusters during this manoeuvre, which were recorded. The model is given the same commands, starting from the initial state of the \gls{usv}, and its response is computed at $50\,\text{Hz}$.
+The \gls{usv} was driven in open loop for $69.98\,\text{s}$ with a sequence of constant thrust and azimuth commands, which includes forward acceleration, azimuth steps to excite sway and yaw, a phase with the thrusters released while the vehicle still has lateral velocity, differential thrust, and a reversal of the azimuth. Figure~\ref{fig:usv_actuator_inputs} shows the commands sent to the thrusters, which were recorded. The model is given the same commands, starting from the initial state of the \gls{usv}, and its response is computed at $50\,\text{Hz}$.
 
 \begin{figure}[htbp]
     \centering
@@ -55,7 +48,6 @@ The \gls{usv} was driven manually with a joystick for $63.84\,\text{s}$. Figure~
         \includegraphics[width=0.48\textwidth]{Implementation/figures/02_model_validation/usv_actuator_inputs_thrust.pdf}
         \label{fig:usv_actuator_inputs_thrust}
     }
-    \hfill
     \subfloat[Azimuth angle commands.]{
         \includegraphics[width=0.48\textwidth]{Implementation/figures/02_model_validation/usv_actuator_inputs_azimuth.pdf}
         \label{fig:usv_actuator_inputs_azimuth}
@@ -64,20 +56,18 @@ The \gls{usv} was driven manually with a joystick for $63.84\,\text{s}$. Figure~
     \label{fig:usv_actuator_inputs}
 \end{figure}
 
-Figure~\ref{fig:usv_velocities_validation} compares the body-fixed velocities predicted by the first-principles model with the ground-truth simulation over the entire $63.84\,\text{s}$ run. The surge velocity $u$, sway velocity $v$, and yaw rate $r$ exhibit an \gls{rmse} of $0.0350\,\text{m/s}$, $0.0284\,\text{m/s}$, and $0.9925^\circ/\text{s}$, corresponding to an \gls{nrmse} of $0.82\%$, $0.95\%$, and $2.40\%$, respectively. The decoupled model tracks both longitudinal accelerations and differential steering accurately. Small transient discrepancies in yaw rate during aggressive lateral manoeuvres ($t \approx 44\,\text{s}$ and $t \approx 53\,\text{s}$) stem from higher-order hydrodynamic effects that are omitted from the planar control model, including the moment induced by lateral hull drift ($N_v v$), thrust wake impingement on the hull during reverse operation, and differential pontoon submergence.
+Figure~\ref{fig:usv_velocities_validation} compares the body-fixed velocities predicted by the model with the ground-truth simulation over the entire $69.98\,\text{s}$ run. Surge ($u$), sway ($v$), and yaw rate ($r$) achieve \gls{rmse} values of $0.0134\,\text{m/s}$, $0.0103\,\text{m/s}$, and $0.1960^\circ/\text{s}$ (\gls{nrmse} of $0.77\%$, $0.36\%$, and $0.44\%$, respectively). The model captures both the longitudinal accelerations and the differential steering, including the yaw rate while the thrusters are released with a non-zero lateral velocity.
 
-\begin{figure}[!htbp]
+\begin{figure}[htbp]
     \centering
     \subfloat[Surge velocity $u$.]{
         \includegraphics[width=0.32\textwidth]{Implementation/figures/02_model_validation/usv_velocity_u_validation.pdf}
         \label{fig:usv_velocity_u_validation}
     }
-    \hfill
     \subfloat[Sway velocity $v$.]{
         \includegraphics[width=0.32\textwidth]{Implementation/figures/02_model_validation/usv_velocity_v_validation.pdf}
         \label{fig:usv_velocity_v_validation}
     }
-    \hfill
     \subfloat[Yaw rate $r$.]{
         \includegraphics[width=0.32\textwidth]{Implementation/figures/02_model_validation/usv_velocity_r_validation.pdf}
         \label{fig:usv_velocity_r_validation}
@@ -86,26 +76,36 @@ Figure~\ref{fig:usv_velocities_validation} compares the body-fixed velocities pr
     \label{fig:usv_velocities_validation}
 \end{figure}
 
-Because the \gls{nmpc} operates over a finite prediction horizon of $T_h = 2.0\,\text{s}$ rather than in open loop across the entire mission, the predictive accuracy over this short window is the primary determinant of closed-loop performance. To evaluate the model in this setting, multi-step predictions were computed along the trajectory, each initialised strictly from the current state of the simulator. Figure~\ref{fig:usv_prediction_error} illustrates the trajectory chords and the growth of the position and velocity errors as a function of the prediction horizon. At $T_h = 2.0\,\text{s}$, the position error reaches an \gls{rmse} of $0.0411\,\text{m}$ ($0.82\%$), the heading error $1.4030^\circ$ ($2.43\%$), the linear velocity error $0.0402\,\text{m/s}$ ($1.53\%$), and the yaw rate error $0.9864^\circ/\text{s}$ ($2.39\%$). All validation metrics are summarised in Table~\ref{tab:usv_validation_metrics}. Because all normalised errors remain below $2.5\%$, the decoupled 3-DOF formulation captures the dominant vehicle dynamics with sufficient fidelity while ensuring computational tractability for real-time optimal control.
+Because the \gls{nmpc} operates over a finite prediction horizon of $T_h = 2.0\,\text{s}$, multi-step prediction accuracy is the primary determinant of closed-loop performance. Figures~\ref{fig:usv_prediction_error} and~\ref{fig:usv_prediction_error_vel_r} depict open-loop predictions initialised along the trajectory and the resulting error growth. At $T_h = 2.0\,\text{s}$, position error reaches an \gls{rmse} of $0.0144\,\text{m}$ ($0.37\%$), heading error $0.1895^\circ$ ($0.39\%$), linear velocity error $0.0156\,\text{m/s}$ ($0.78\%$), and yaw rate error $0.1983^\circ/\text{s}$ ($0.45\%$). All validation metrics are summarised in Table~\ref{tab:usv_validation_metrics}. With all normalised errors below $1.0\%$, the model provides sufficient fidelity for optimal control while ensuring computational tractability.
 
-\begin{figure}[!htbp]
+\begin{figure}[htbp]
     \centering
     \subfloat[Trajectory with $2.0\,\text{s}$ predictions.\label{fig:usv_trajectory_validation}]{
         \includegraphics[width=0.32\textwidth]{Implementation/figures/02_model_validation/usv_prediction_trajectory.pdf}
     }
-    \hfill
-    \subfloat[Position error RMSE.\label{fig:usv_prediction_error_pos}]{
+    \subfloat[Position error $e_p$.\label{fig:usv_prediction_error_pos}]{
         \includegraphics[width=0.32\textwidth]{Implementation/figures/02_model_validation/usv_prediction_error_pos.pdf}
     }
-    \hfill
-    \subfloat[Velocity error RMSE.\label{fig:usv_prediction_error_vel}]{
-        \includegraphics[width=0.32\textwidth]{Implementation/figures/02_model_validation/usv_prediction_error_vel.pdf}
+    \subfloat[Heading error $e_\psi$.\label{fig:usv_prediction_error_psi}]{
+        \includegraphics[width=0.32\textwidth]{Implementation/figures/02_model_validation/usv_prediction_error_psi.pdf}
     }
-    \caption{\Gls{usv} multi-step open-loop prediction performance over the $T_h = 2.0\,\text{s}$ horizon.}
+    \caption{\Gls{usv} multi-step open-loop prediction of the trajectory, position, and heading over the $T_h = 2.0\,\text{s}$ horizon.}
     \label{fig:usv_prediction_error}
 \end{figure}
 
-\begin{table}[!htbp]
+\begin{figure}[htbp]
+    \centering
+    \subfloat[Linear velocity error $e_v$.\label{fig:usv_prediction_error_vel}]{
+        \includegraphics[width=0.48\textwidth]{Implementation/figures/02_model_validation/usv_prediction_error_vel.pdf}
+    }
+    \subfloat[Yaw rate error $e_r$.\label{fig:usv_prediction_error_r}]{
+        \includegraphics[width=0.48\textwidth]{Implementation/figures/02_model_validation/usv_prediction_error_r.pdf}
+    }
+    \caption{\Gls{usv} multi-step open-loop prediction error of the linear velocity and yaw rate over the $T_h = 2.0\,\text{s}$ horizon.}
+    \label{fig:usv_prediction_error_vel_r}
+\end{figure}
+
+\begin{table}[htbp]
     \centering
     \caption{\Gls{usv} model validation errors.}
     \label{tab:usv_validation_metrics}
@@ -113,16 +113,16 @@ Because the \gls{nmpc} operates over a finite prediction horizon of $T_h = 2.0\,
         \toprule
         \textbf{State} & \textbf{Unit} & \textbf{RMSE} & \textbf{NRMSE (\%)} & \textbf{Max Error} \\
         \midrule
-        \multicolumn{5}{l}{\textit{Velocities over the whole run ($63.84\,\text{s}$)}} \\
-        Surge velocity $u$ & $\text{m/s}$ & $0.0350$ & $0.82$ & $0.1372$ \\
-        Sway velocity $v$ & $\text{m/s}$ & $0.0284$ & $0.95$ & $0.1010$ \\
-        Yaw rate $r$ & $\text{deg/s}$ & $0.9925$ & $2.40$ & $3.5991$ \\
+        \multicolumn{5}{l}{\textit{Velocities over the whole run ($69.98\,\text{s}$)}} \\
+        Surge velocity $u$ & $\text{m/s}$ & $0.0134$ & $0.77$ & $0.0766$ \\
+        Sway velocity $v$ & $\text{m/s}$ & $0.0103$ & $0.36$ & $0.0480$ \\
+        Yaw rate $r$ & $\text{deg/s}$ & $0.1960$ & $0.44$ & $1.9984$ \\
         \midrule
         \multicolumn{5}{l}{\textit{Predictions over the horizon ($T_h = 2.0\,\text{s}$)}} \\
-        Position error $e_p$ & $\text{m}$ & $0.0411$ & $0.82$ & $0.1296$ \\
-        Heading error $e_\psi$ & $\text{deg}$ & $1.4030$ & $2.43$ & $5.0300$ \\
-        Linear velocity error $e_v$ & $\text{m/s}$ & $0.0402$ & $1.53$ & $0.1260$ \\
-        Yaw rate error $e_r$ & $\text{deg/s}$ & $0.9864$ & $2.39$ & $3.6275$ \\
+        Position error $e_p$ & $\text{m}$ & $0.0144$ & $0.37$ & $0.0930$ \\
+        Heading error $e_\psi$ & $\text{deg}$ & $0.1895$ & $0.39$ & $1.2355$ \\
+        Linear velocity error $e_v$ & $\text{m/s}$ & $0.0156$ & $0.78$ & $0.0778$ \\
+        Yaw rate error $e_r$ & $\text{deg/s}$ & $0.1983$ & $0.45$ & $1.9927$ \\
         \bottomrule
     \end{tabular}
 \end{table}
@@ -140,7 +140,7 @@ The reference is the ground-truth state of the vehicle in the Gazebo simulation,
 \paragraph{What data is used, and what does it cover?}
 The data is a flight of $157\,\text{s}$ in which the reference is fed directly to the position controller of PX4 in offboard mode, instead of to the \gls{nmpc}. As the purpose of the flight is to identify the model and not to evaluate the controller, this gives commands that are independent of the \gls{nmpc}, and the attitude and thrust generated by the PX4 controller are recorded. The reference was built to excite the motion in all directions. It has two inclined lines flown at $5$ and $8\,\text{m/s}$, perpendicular to each other and each climbing from $3$ to $10\,\text{m}$, followed by a circle of $5\,\text{m}$ radius during which the yaw oscillates by $\pm 69^\circ$ independently of the motion. The vehicle covers $188\,\text{m}$ horizontally at up to $8.0\,\text{m/s}$ and changes altitude between $2.8$ and $9.8\,\text{m}$ at up to $2.6\,\text{m/s}$, while the distance to the tether anchor varies from $4.2$ to $14.7\,\text{m}$. The commands, shown in Figure~\ref{fig:uav_actuator_inputs}, reach roll and pitch angles of $25.5^\circ$ and $22.6^\circ$, and a thrust between $18.3$ and $26.4\,\text{N}$ around the weight $mg = 20.2\,\text{N}$.
 
-\begin{figure}[!htbp]
+\begin{figure}[htbp]
     \centering
     \includegraphics[width=0.55\textwidth]{Implementation/figures/02_model_validation/uav_actuator_inputs.pdf}
     \caption{\Gls{uav} attitude and thrust commands during the validation flight.}
@@ -150,7 +150,7 @@ The data is a flight of $157\,\text{s}$ in which the reference is fed directly t
 \paragraph{Do the assumptions of the model hold in the data?}
 The first assumption is that the attitude is reached as commanded. Figure~\ref{fig:uav_attitude_validation} shows that it is reached with a delay: taking the setpoint as the attitude gives an \gls{rmse} of $2.27^\circ$ in roll, $2.23^\circ$ in pitch, and $5.88^\circ$ in yaw (\gls{nrmse} of $4.76\%$, $4.92\%$, and $4.20\%$), with largest deviations of about $20^\circ$ where the command changes abruptly at the transitions between segments of the reference. A first-order lag with a transport delay of about $22\,\text{ms}$ explains the residual, with time constants of $0.121\,\text{s}$ in roll and pitch and $0.311\,\text{s}$ in yaw, and reduces the \gls{nrmse} to $1.47\%$, $1.16\%$, and $0.86\%$. The second assumption is that the commanded thrust is the thrust produced. The thrust acceleration implied by the measured motion has a mean of $9.905\,\text{m/s}^2$, against $9.901\,\text{m/s}^2$ commanded, which gives a gain of $1.001$ between the two, with an \gls{rmse} of $0.211\,\text{m/s}^2$ (\gls{nrmse} of $5.22\%$). The mapping through the hover thrust is therefore adequate over the whole range of the thrust.
 
-\begin{figure}[!htbp]
+\begin{figure}[htbp]
     \centering
     \includegraphics[width=0.55\textwidth]{Implementation/figures/02_model_validation/uav_attitude_validation.pdf}
     \caption{\Gls{uav} attitude tracking. Commanded and measured angles, and the identified first-order lag with delay.}
@@ -160,14 +160,14 @@ The first assumption is that the attitude is reached as commanded. Figure~\ref{f
 \paragraph{How closely does the model reproduce the reference, in the way it is used?}
 At the level of the acceleration, shown in Figure~\ref{fig:uav_acceleration_validation}, the model driven by the measured attitude reproduces the motion with an \gls{rmse} of $0.397$, $0.418$, and $0.200\,\text{m/s}^2$ along $x$, $y$, and $z$ (\gls{nrmse} of $3.10\%$, $3.34\%$, and $3.94\%$), respectively. Driven by the commanded attitude, the horizontal errors become $0.632$ and $0.691\,\text{m/s}^2$ (\gls{nrmse} of $4.93\%$ and $5.51\%$). In the use that matters for the controller, the open-loop prediction over the horizon of $1\,\text{s}$, from the measured position and velocity, Figure~\ref{fig:uav_prediction_error} and Table~\ref{tab:uav_validation_metrics} show that the position error at the end of the horizon is $0.148\,\text{m}$ in \gls{rmse} with the measured attitude and $0.203\,\text{m}$ with the commanded one, with $95$th percentiles of $0.32$ and $0.45\,\text{m}$ and velocity errors of $0.263$ and $0.348\,\text{m/s}$, for displacements of up to $8\,\text{m}$ along the trajectory (Figure~\ref{fig:uav_prediction_trajectory}).
 
-\begin{figure}[!htbp]
+\begin{figure}[htbp]
     \centering
     \includegraphics[width=0.55\textwidth]{Implementation/figures/02_model_validation/uav_acceleration_validation.pdf}
     \caption{\Gls{uav} inertial acceleration. Ground truth and model driven by the measured attitude.}
     \label{fig:uav_acceleration_validation}
 \end{figure}
 
-\begin{figure}[!htbp]
+\begin{figure}[htbp]
     \centering
     \subfloat[Position error RMSE.]{
         \includegraphics[width=0.48\textwidth]{Implementation/figures/02_model_validation/uav_prediction_error_pos.pdf}
@@ -182,16 +182,15 @@ At the level of the acceleration, shown in Figure~\ref{fig:uav_acceleration_vali
     \label{fig:uav_prediction_error}
 \end{figure}
 
-\begin{figure}[!htbp]
+\begin{figure}[htbp]
     \centering
     \includegraphics[width=0.50\textwidth]{Implementation/figures/02_model_validation/uav_prediction_trajectory.pdf}
     \caption{One-second open-loop predictions along the \gls{uav} flight trajectory.}
     \label{fig:uav_prediction_trajectory}
 \end{figure}
 
-\begin{table}[!htbp]
+\begin{table}[htbp]
     \centering
-    \small
     \caption{\Gls{uav} open-loop prediction error at the end of the $1\,\text{s}$ horizon.}
     \label{tab:uav_validation_metrics}
     \begin{tabular}{lccccc}
@@ -230,7 +229,7 @@ giving the scalar tension estimate $T_{\mathrm{theo}}(d) = c_d(\varepsilon_0)\,d
 
 Figure~\ref{fig:model_fit_comparison} compares the predicted scalar tension magnitude $T_{\mathrm{theo}}(t)$ with the filtered MoorDyn telemetry over the trajectory. The theoretical linear relation with $c_d = 0.2065\,\text{N/m}$ follows the actual tension closely across the entire operating range, achieving an \gls{rmse} of $0.2031\,\text{N}$ and an \gls{nrmse} of $8.79\%$.
 
-\begin{figure}[!htbp]
+\begin{figure}[htbp]
     \centering
     \subfloat[Tether tension magnitude $T_{\mathrm{tether}}(t)$.\label{fig:model_fit_comparison}]{
         \includegraphics[width=0.48\textwidth]{Implementation/figures/02_model_validation/model_fit_comparison.pdf}
@@ -245,7 +244,7 @@ Figure~\ref{fig:model_fit_comparison} compares the predicted scalar tension magn
 
 When resolved into Cartesian components in the inertial frame in Figure~\ref{fig:model_fit_3d}, the importance of accounting for the catenary deflection angle $\gamma_0 = 28.0^\circ$ becomes evident. The proposed formulation accurately tracks both the horizontal restoring force $F_x$ with an \gls{rmse} of $0.1457\,\text{N}$ (\gls{nrmse} of $5.19\%$), as well as the vertical downward pull $F_z$ with an \gls{rmse} of $0.2339\,\text{N}$ (\gls{nrmse} of $10.87\%$). In contrast, the pure vertical simplification fails to capture horizontal interaction forces with an \gls{nrmse} of $33.62\%$, while the straight chord approximation exhibits substantial errors in both axes ($21.85\%$ and $30.55\%$, respectively) because it ignores the natural sag of the tether.
 
-\begin{figure}[!htbp]
+\begin{figure}[htbp]
     \centering
     \includegraphics[width=0.55\textwidth]{Implementation/figures/02_model_validation/model_fit_3d_components.pdf}
     \caption{Three-dimensional tether force components at the \gls{uav}.}
@@ -256,9 +255,8 @@ The temporal evolution of the three-dimensional prediction error norm $\|\mathbf
 
 Table~\ref{tab:tether_model_benchmark} summarises the quantitative performance across the complete benchmark trajectory. The proposed first-principles model achieves an overall three-dimensional \gls{rmse} of $0.2757\,\text{N}$, reducing the spatial force error by more than $70\%$ compared to both the straight chord model with $0.8991\,\text{N}$ ($+226.1\%$ error) and the pure vertical model with $1.0332\,\text{N}$ ($+274.7\%$ error). These results confirm that the closed-form catenary approximation captures the dominant coupling forces with sufficient fidelity for real-time feedforward compensation, while avoiding the prohibitive computational cost of numerical catenary solvers or multi-segment models.
 
-\begin{table}[!htbp]
+\begin{table}[htbp]
     \centering
-    \small
     \caption{Tether force model benchmark.}
     \label{tab:tether_model_benchmark}
     \begin{tabular}{lcccccc}

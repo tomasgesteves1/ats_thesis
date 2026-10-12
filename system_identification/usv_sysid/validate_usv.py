@@ -34,9 +34,14 @@ from thesis_style import (
 # Nominal physical parameters directly from Thesis (Table 4.1 / model.sdf)
 # Total Mass: Base (227 kg) + 2 Engines (30 kg) + Sensors/Props (2.1 kg) = 259.10 kg
 MASS_NOMINAL = 259.10
-# Total Yaw Inertia: Base Izz (495 kg*m^2) + Parallel Axis Theorem for 2 engines:
-# 495.0 + 2 * 15.0 * ((-2.373776)^2 + 1.027135^2) = 695.9 kg*m^2
-IZZ_NOMINAL = 695.90
+# Total yaw inertia about the whole-system CG (= base_link origin and CoM in the current model.sdf):
+# hull + 2 engines + 2 propellers + sensors, computed from model.sdf (parallel-axis theorem).
+IZZ_NOMINAL = 683.22
+
+# Longitudinal CG offset w.r.t. the base_link origin. In the current model.sdf the base_link origin and CoM
+# are at the whole-system CG (motor/sensor masses lumped into base_link), so x_g = 0 (decoupled model).
+# Pass --xg to evaluate a model with an offset (e.g. -0.288 for the old model.sdf.bak).
+XG_NOMINAL = 0.0
 
 # Hydrodynamic damping coefficients from Table 4.1 (VRX SimpleHydrodynamics)
 X_U_NOMINAL = 100.00
@@ -47,7 +52,7 @@ N_R_NOMINAL = 800.00
 N_RR_NOMINAL = 800.00
 
 # Thruster geometry relative to CG (meters)
-THRUSTER_X_ARM = 2.373776
+THRUSTER_X_ARM = 2.085527  # 2.373776 - 0.288249 (thrusters relative to the CG)
 THRUSTER_Y_ARM = 1.027135
 
 # NMPC Horizon: N = 20 steps at Ts = 0.1 s -> T_horizon = 2.0 s (at 50 Hz dt=0.02s -> N_HORIZON = 100)
@@ -58,6 +63,7 @@ def parse_args():
     parser = argparse.ArgumentParser(description="Validate USV planar model against rosbag telemetry.")
     default_bag = os.path.abspath(os.path.join(CURRENT_DIR, "../../../bags/mission_sysid_20261005_194359"))
     parser.add_argument("--bag", type=str, default=default_bag, help="Path to ROS 2 bag folder")
+    parser.add_argument("--xg", type=float, default=0.0, help="CG offset x_g w.r.t. the odometry origin [m] (0 = decoupled model)")
     parser.add_argument("--export", action="store_true", default=True, help="Export figures to thesis directory")
     return parser.parse_args()
 
@@ -174,18 +180,30 @@ def compute_thruster_forces(data):
 
 def usv_dynamics(s, tau):
     """
-    Continuous 3-DOF Fossen planar model (Thesis Section 3.1 & Table 4.1).
-    State s in R^6: [x, y, psi, u, v, r]^T
-    Input tau in R^3: [X, Y, N]^T
+    Continuous 3-DOF planar rigid-body model referenced at the base_link origin O (CG offset x_g).
+    State s in R^6: [x, y, psi, u, v, r]^T   (u, v = velocity of O, as published by the odometry)
+    Input tau in R^3: [X, Y, N]^T            (forces/moment about O; drag also applied at O, as in VRX)
+
+    m (u_dot - v r - x_g r^2) = X
+    m (v_dot + u r + x_g r_dot) = Y
+    Io r_dot + m x_g (v_dot + u r) = N          (x_g = 0 recovers the decoupled Fossen model)
     """
     x, y, psi, u, v, r = s
     X_in, Y_in, N_in = tau
     x_dot = u * np.cos(psi) - v * np.sin(psi)
     y_dot = u * np.sin(psi) + v * np.cos(psi)
     psi_dot = r
-    u_dot = (X_in - (X_U_NOMINAL + X_UU_NOMINAL * abs(u)) * u) / MASS_NOMINAL + v * r
-    v_dot = (Y_in - (Y_V_NOMINAL + Y_VV_NOMINAL * abs(v)) * v) / MASS_NOMINAL - u * r
-    r_dot = (N_in - (N_R_NOMINAL + N_RR_NOMINAL * abs(r)) * r) / IZZ_NOMINAL
+    X = X_in - (X_U_NOMINAL + X_UU_NOMINAL * abs(u)) * u
+    Y = Y_in - (Y_V_NOMINAL + Y_VV_NOMINAL * abs(v)) * v
+    N = N_in - (N_R_NOMINAL + N_RR_NOMINAL * abs(r)) * r
+    m, xg = MASS_NOMINAL, XG_NOMINAL
+    u_dot = (X + m * (v * r + xg * r * r)) / m
+    # Solve the 2x2 coupled system for [v_dot, r_dot]
+    b1 = Y - m * u * r
+    b2 = N - m * xg * u * r
+    det = m * IZZ_NOMINAL - (m * xg) ** 2
+    v_dot = (IZZ_NOMINAL * b1 - m * xg * b2) / det
+    r_dot = (m * b2 - m * xg * b1) / det
     return np.array([x_dot, y_dot, psi_dot, u_dot, v_dot, r_dot])
 
 
@@ -316,6 +334,14 @@ def plot_actuator_inputs(data, out_dirs):
     plt.close(fig_az)
 
 
+def auto_ylim(*series, pad=0.08, headroom=0.30):
+    """Y limits from the data with a margin, plus extra room at the top for the legend."""
+    lo = min(np.min(x) for x in series)
+    hi = max(np.max(x) for x in series)
+    span = max(hi - lo, 1e-9)
+    return [lo - pad * span, hi + (pad + headroom) * span]
+
+
 def plot_velocities_validation(data, sim_res, out_dirs):
     set_thesis_style()
     t = data['t']
@@ -325,20 +351,20 @@ def plot_velocities_validation(data, sim_res, out_dirs):
     l_sim, = axs[0].plot(t, data['u_gt'], color=SIMULATION_COLOR, label='Simulation', linewidth=1.25)
     l_mod, = axs[0].plot(t, sim_res['u_sim'], color=COLOR_CYCLE[0], label='Prediction Model', linewidth=1.0, linestyle='-')
     axs[0].set_ylabel('$u$ [m/s]')
-    axs[0].set_ylim([-2.4, 2.6])
+    axs[0].set_ylim(auto_ylim(data['u_gt'], sim_res['u_sim']))
     axs[0].grid(True, linestyle=':', alpha=0.6)
     
     axs[1].plot(t, data['v_gt'], color=SIMULATION_COLOR, label='Simulation', linewidth=1.25)
     axs[1].plot(t, sim_res['v_sim'], color=COLOR_CYCLE[0], label='Prediction Model', linewidth=1.0, linestyle='-')
     axs[1].set_ylabel('$v$ [m/s]')
-    axs[1].set_ylim([-2.2, 1.4])
+    axs[1].set_ylim(auto_ylim(data['v_gt'], sim_res['v_sim']))
     axs[1].grid(True, linestyle=':', alpha=0.6)
     
     axs[2].plot(t, np.rad2deg(data['r_gt']), color=SIMULATION_COLOR, label='Simulation', linewidth=1.25)
     axs[2].plot(t, np.rad2deg(sim_res['r_sim']), color=COLOR_CYCLE[0], label='Prediction Model', linewidth=1.0, linestyle='-')
     axs[2].set_ylabel('$r$ [deg/s]')
     axs[2].set_xlabel('Time [s]')
-    axs[2].set_ylim([-12.0, 38.0])
+    axs[2].set_ylim(auto_ylim(np.rad2deg(data['r_gt']), np.rad2deg(sim_res['r_sim'])))
     axs[2].grid(True, linestyle=':', alpha=0.6)
 
     fig.legend([l_sim, l_mod], ['Simulation', 'Prediction Model'],
@@ -360,7 +386,7 @@ def plot_velocities_validation(data, sim_res, out_dirs):
         ax_v.plot(t, y_sim, color=COLOR_CYCLE[0], label='Prediction Model', linewidth=1.0)
         ax_v.set_ylabel(f'${var}$ [{unit}]')
         ax_v.set_xlabel('Time [s]')
-        ax_v.set_ylim(ylim)
+        ax_v.set_ylim(auto_ylim(y_gt, y_sim))
         ax_v.grid(True, linestyle=':', alpha=0.6)
         ax_v.legend(loc='upper right', framealpha=0.9, fontsize=7.5)
         plt.tight_layout()
@@ -369,7 +395,7 @@ def plot_velocities_validation(data, sim_res, out_dirs):
         plt.close(fig_v)
 
 
-def plot_prediction_error(horizon_t, pos_rmse, vel_rmse, out_dirs):
+def plot_prediction_error(horizon_t, pos_rmse, psi_rmse, vel_rmse, r_rmse, out_dirs):
     set_thesis_style()
     # 1. Position error RMSE vs Prediction horizon
     fig_pos, ax_pos = plt.subplots(figsize=(5.4, 3.4))
@@ -384,7 +410,19 @@ def plot_prediction_error(horizon_t, pos_rmse, vel_rmse, out_dirs):
         save_figure(fig_pos, os.path.join(d, 'usv_prediction_error'), save_png=True)
     plt.close(fig_pos)
 
-    # 2. Velocity error RMSE vs Prediction horizon
+    # 2. Heading error RMSE vs Prediction horizon
+    fig_psi, ax_psi = plt.subplots(figsize=(5.4, 3.4))
+    ax_psi.plot(horizon_t, psi_rmse, color=COLOR_CYCLE[0], linewidth=1.2, label='Prediction Model')
+    ax_psi.set_xlabel('Prediction horizon [s]')
+    ax_psi.set_ylabel('Heading error RMSE [deg]')
+    ax_psi.grid(True, linestyle=':', alpha=0.6)
+    ax_psi.legend(loc='upper left', framealpha=0.9)
+    plt.tight_layout()
+    for d in out_dirs:
+        save_figure(fig_psi, os.path.join(d, 'usv_prediction_error_psi'), save_png=True)
+    plt.close(fig_psi)
+
+    # 3. Velocity error RMSE vs Prediction horizon
     fig_vel, ax_vel = plt.subplots(figsize=(5.4, 3.4))
     ax_vel.plot(horizon_t, vel_rmse, color=COLOR_CYCLE[0], linewidth=1.2, label='Prediction Model')
     ax_vel.set_xlabel('Prediction horizon [s]')
@@ -395,6 +433,43 @@ def plot_prediction_error(horizon_t, pos_rmse, vel_rmse, out_dirs):
     for d in out_dirs:
         save_figure(fig_vel, os.path.join(d, 'usv_prediction_error_vel'), save_png=True)
     plt.close(fig_vel)
+
+    # 4. Yaw rate error RMSE vs Prediction horizon
+    fig_r, ax_r = plt.subplots(figsize=(5.4, 3.4))
+    ax_r.plot(horizon_t, r_rmse, color=COLOR_CYCLE[0], linewidth=1.2, label='Prediction Model')
+    ax_r.set_xlabel('Prediction horizon [s]')
+    ax_r.set_ylabel('Yaw rate error RMSE [deg/s]')
+    ax_r.grid(True, linestyle=':', alpha=0.6)
+    ax_r.legend(loc='upper left', framealpha=0.9)
+    plt.tight_layout()
+    for d in out_dirs:
+        save_figure(fig_r, os.path.join(d, 'usv_prediction_error_r'), save_png=True)
+    plt.close(fig_r)
+
+    # 5. Combined 2x2 grid of all 4 errors (Pos, Heading, Velocity, Yaw rate)
+    fig_all, axs_all = plt.subplots(2, 2, figsize=(7.2, 5.0), sharex=True)
+    axs_all[0, 0].plot(horizon_t, pos_rmse, color=COLOR_CYCLE[0], linewidth=1.2)
+    axs_all[0, 0].set_ylabel('Position error RMSE [m]')
+    axs_all[0, 0].grid(True, linestyle=':', alpha=0.6)
+
+    axs_all[0, 1].plot(horizon_t, psi_rmse, color=COLOR_CYCLE[0], linewidth=1.2)
+    axs_all[0, 1].set_ylabel('Heading error RMSE [deg]')
+    axs_all[0, 1].grid(True, linestyle=':', alpha=0.6)
+
+    axs_all[1, 0].plot(horizon_t, vel_rmse, color=COLOR_CYCLE[0], linewidth=1.2)
+    axs_all[1, 0].set_ylabel('Velocity error RMSE [m/s]')
+    axs_all[1, 0].set_xlabel('Prediction horizon [s]')
+    axs_all[1, 0].grid(True, linestyle=':', alpha=0.6)
+
+    axs_all[1, 1].plot(horizon_t, r_rmse, color=COLOR_CYCLE[0], linewidth=1.2)
+    axs_all[1, 1].set_ylabel('Yaw rate error RMSE [deg/s]')
+    axs_all[1, 1].set_xlabel('Prediction horizon [s]')
+    axs_all[1, 1].grid(True, linestyle=':', alpha=0.6)
+
+    plt.tight_layout()
+    for d in out_dirs:
+        save_figure(fig_all, os.path.join(d, 'usv_prediction_error_all'), save_png=True)
+    plt.close(fig_all)
 
 
 def plot_prediction_examples(data, windows, out_dirs):
@@ -448,6 +523,8 @@ def plot_prediction_examples(data, windows, out_dirs):
 
 def main():
     args = parse_args()
+    global XG_NOMINAL
+    XG_NOMINAL = args.xg
     data = load_telemetry(args.bag)
     dt = data['dt']
     N_pts = len(data['t'])
@@ -470,7 +547,7 @@ def main():
     print("\n" + "=" * 78)
     print("      THESIS SECTION 3.1 USV NMPC MODEL FIRST-PRINCIPLES VALIDATION")
     print("=" * 78)
-    print(f"Nominal Parameters: m = {MASS_NOMINAL:.2f} kg | Iz = {IZZ_NOMINAL:.2f} kg*m^2 | Arms: [{THRUSTER_X_ARM:.2f}, {THRUSTER_Y_ARM:.2f}] m")
+    print(f"Nominal Parameters: m = {MASS_NOMINAL:.2f} kg | Iz = {IZZ_NOMINAL:.2f} kg*m^2 | x_g = {XG_NOMINAL:.3f} m | Arms: [{THRUSTER_X_ARM:.2f}, {THRUSTER_Y_ARM:.2f}] m")
     print(f"Hydrodynamics: Xu = {X_U_NOMINAL}, Xuu = {X_UU_NOMINAL} | Yv = {Y_V_NOMINAL}, Yvv = {Y_VV_NOMINAL} | Nr = {N_R_NOMINAL}, Nrr = {N_RR_NOMINAL}")
     print(f"Prediction Horizon: N = {N_HORIZON} steps, Ts = {dt} s -> T_horizon = {N_HORIZON*dt:.2f} s")
     print(f"Telemetry window: {data['t'][-1]:.2f} s ({N_pts} samples at 50 Hz, {total_distance:.2f} m traversed)")
@@ -484,7 +561,7 @@ def main():
     # 2. Multi-Step Receding Horizon Open-Loop Prediction (2.0 s NMPC horizon)
     print("\n[2] MULTI-STEP OPEN-LOOP PREDICTION (N = 100 steps, Horizon = 2.0 s)")
     n_h = N_HORIZON
-    starts = np.arange(0, N_pts - n_h - 1, 5)  # slide window every 0.1 s
+    starts = np.arange(0, N_pts - n_h - 1, 1)  # slide window every sample (0.02 s)
     sample_windows = []
     
     err_pos = np.zeros((len(starts), n_h + 1))
@@ -537,7 +614,7 @@ def main():
         
     plot_actuator_inputs(data, out_dirs)
     plot_velocities_validation(data, sim_full, out_dirs)
-    plot_prediction_error(horizon_t, pos_rmse_curve, vel_rmse_curve, out_dirs)
+    plot_prediction_error(horizon_t, pos_rmse_curve, psi_rmse_curve, vel_rmse_curve, r_rmse_curve, out_dirs)
     plot_prediction_examples(data, sample_windows, out_dirs)
     print(f"[INFO] All USV figures successfully generated and exported to {out_dirs}")
 

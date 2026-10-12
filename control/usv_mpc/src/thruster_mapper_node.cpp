@@ -18,7 +18,7 @@ public:
       target_left_thrust_(0.0), target_right_thrust_(0.0)
   {
     // Declare parameters with WAM-V defaults (Rule 2 of CODE_STANDARDS.md)
-    this->declare_parameter<double>("thruster_x_arm", -2.373776);
+    this->declare_parameter<double>("thruster_x_arm", -2.085527);
     this->declare_parameter<double>("thruster_y_arm", 1.027135);
     this->declare_parameter<double>("reverse_efficiency", 0.746);
     this->declare_parameter<double>("max_thrust", 2350.0);
