@@ -431,6 +431,45 @@ def plot_actuator_inputs(data, out_dirs):
         save_figure(fig, os.path.join(d, 'uav_actuator_inputs'), save_png=True)
     plt.close(fig)
 
+    # Individual plots (side by side in LaTeX)
+    fig_a, ax_a = plt.subplots(figsize=(3.5, 2.7))
+    ax_a.plot(t, np.rad2deg(data['roll_c']), color=COLOR_CYCLE[0], label=r'Roll $\phi_c$', linewidth=1.15)
+    ax_a.plot(t, np.rad2deg(data['pitch_c']), color=COLOR_CYCLE[1], label=r'Pitch $\theta_c$', linewidth=1.15)
+    ax_a.set_ylabel('Attitude cmd [deg]')
+    ax_a.set_xlabel('Time [s]')
+    ax_a.set_ylim([-32.0, 50.0])
+    ax_a.grid(True, linestyle=':', alpha=0.6)
+    ax_a.legend(loc='upper right', framealpha=0.9, ncol=2, fontsize=7.5)
+    plt.tight_layout()
+    for d in out_dirs:
+        save_figure(fig_a, os.path.join(d, 'uav_actuator_inputs_attitude'), save_png=True)
+    plt.close(fig_a)
+
+    fig_y, ax_y = plt.subplots(figsize=(3.5, 2.7))
+    ax_y.plot(t, np.rad2deg(data['yaw_c']), color=COLOR_CYCLE[2], label=r'Yaw $\psi_c$', linewidth=1.15)
+    ax_y.set_ylabel('Yaw cmd [deg]')
+    ax_y.set_xlabel('Time [s]')
+    ax_y.set_ylim([-90.0, 100.0])
+    ax_y.grid(True, linestyle=':', alpha=0.6)
+    ax_y.legend(loc='upper right', framealpha=0.9, fontsize=7.5)
+    plt.tight_layout()
+    for d in out_dirs:
+        save_figure(fig_y, os.path.join(d, 'uav_actuator_inputs_yaw'), save_png=True)
+    plt.close(fig_y)
+
+    fig_t, ax_t = plt.subplots(figsize=(3.5, 2.7))
+    ax_t.plot(t, data['T'], color=COLOR_CYCLE[0], linewidth=1.15, label='Commanded thrust $T$')
+    ax_t.axhline(MASS * G, color='r', linestyle=':', alpha=0.7, label=f'Weight $mg={MASS*G:.2f}$ N')
+    ax_t.set_ylabel('Thrust [N]')
+    ax_t.set_xlabel('Time [s]')
+    ax_t.set_ylim([15.5, 30.5])
+    ax_t.grid(True, linestyle=':', alpha=0.6)
+    ax_t.legend(loc='upper right', framealpha=0.9, fontsize=7.5)
+    plt.tight_layout()
+    for d in out_dirs:
+        save_figure(fig_t, os.path.join(d, 'uav_actuator_inputs_thrust'), save_png=True)
+    plt.close(fig_t)
+
 
 def plot_attitude_tracking(data, out_dirs):
     set_thesis_style()
@@ -462,6 +501,21 @@ def plot_attitude_tracking(data, out_dirs):
         save_figure(fig, os.path.join(d, 'uav_attitude_validation'), save_png=True)
     plt.close(fig)
 
+    ylims = {'roll': [-28.0, 34.0], 'pitch': [-28.0, 30.0], 'yaw': [-85.0, 105.0]}
+    for meas_k, mod_k, name in keys:
+        fig_i, ax_i = plt.subplots(figsize=(3.5, 2.7))
+        ax_i.plot(t, np.rad2deg(data[meas_k]), color=SIMULATION_COLOR, linewidth=1.25, label='Simulation')
+        ax_i.plot(t, np.rad2deg(data[mod_k]), color=COLOR_CYCLE[0], linewidth=1.0, label='Prediction Model')
+        ax_i.set_ylabel(f'{name} [deg]')
+        ax_i.set_xlabel('Time [s]')
+        ax_i.set_ylim(ylims[meas_k])
+        ax_i.grid(True, linestyle=':', alpha=0.6)
+        ax_i.legend(loc='upper right', framealpha=0.9, fontsize=7.5)
+        plt.tight_layout()
+        for d in out_dirs:
+            save_figure(fig_i, os.path.join(d, f'uav_attitude_{meas_k}_validation'), save_png=True)
+        plt.close(fig_i)
+
 
 def plot_acceleration(data, a_meas, a_model, out_dirs):
     set_thesis_style()
@@ -486,6 +540,21 @@ def plot_acceleration(data, a_meas, a_model, out_dirs):
     for d in out_dirs:
         save_figure(fig, os.path.join(d, 'uav_acceleration_validation'), save_png=True)
     plt.close(fig)
+
+    ylims = [[-7.5, 10.0], [-7.5, 10.0], [-2.5, 4.5]]
+    for i, name in enumerate(('x', 'y', 'z')):
+        fig_i, ax_i = plt.subplots(figsize=(3.5, 2.7))
+        ax_i.plot(t, a_meas[:, i], color=SIMULATION_COLOR, linewidth=1.25, label='Simulation')
+        ax_i.plot(t, a_model[:, i], color=COLOR_CYCLE[0], linewidth=1.0, label='Prediction Model')
+        ax_i.set_ylabel(f'$\\ddot{{{name}}}$ [m/s$^2$]')
+        ax_i.set_xlabel('Time [s]')
+        ax_i.set_ylim(ylims[i])
+        ax_i.grid(True, linestyle=':', alpha=0.6)
+        ax_i.legend(loc='upper right', framealpha=0.9, fontsize=7.5)
+        plt.tight_layout()
+        for d in out_dirs:
+            save_figure(fig_i, os.path.join(d, f'uav_acceleration_{name}_validation'), save_png=True)
+        plt.close(fig_i)
 
 
 def plot_prediction_error(horizon_t, pos_rmse, vel_rmse, out_dirs):
