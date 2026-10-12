@@ -15,7 +15,7 @@ Before incorporating the vehicle and tether models into the real-time controller
 \subsection{\texorpdfstring{\gls{usv} Model}{USV Model}}
 \label{subsec:usv_validation}
 
-The model under validation is the planar model of the \gls{usv} used in the \gls{nmpc} (Section~\ref{sec:ctrl_usv_mpc}), with the parameters of the simulator (Section~\ref{sec:simulation_environment}) listed in Table~\ref{tab:usv_model_parameters}. The origin of the body frame coincides with the centre of gravity of the vehicle, including the thrusters, and the thruster arms and the yaw moment of inertia are expressed with respect to it.
+The first model to be validated is the one used by the \gls{usv} \gls{nmpc}, presented in Section~\ref{sec:ctrl_usv_mpc}. It predicts how the vessel moves from the commands sent to its thrusters, so its accuracy determines how well the controller can anticipate the motion of the vessel. To compare it with the simulator, the parameters of the model are set to the values of the simulated vessel, described in Section~\ref{sec:simulation_environment}. These values are listed in Table~\ref{tab:usv_model_parameters}.
 
 \begin{table}[htbp]
     \centering
@@ -40,7 +40,7 @@ The model under validation is the planar model of the \gls{usv} used in the \gls
     \end{tabular}
 \end{table}
 
-The \gls{usv} was driven in open loop for $69.96\,\text{s}$ with a sequence of constant thrust and azimuth commands, with the azimuth limited to $\pm 30^\circ$ and to a rate of $10^\circ/\text{s}$ as in the controller (Section~\ref{sec:simulation_environment}), which includes forward acceleration, azimuth changes to excite sway and yaw, a phase with the thrusters released while the vehicle still has lateral velocity, differential thrust, and a reversal of the azimuth. Figure~\ref{fig:usv_actuator_inputs} shows the commands sent to the thrusters, which were recorded. The model is given the same commands, starting from the initial state of the \gls{usv}, and its response is computed at $50\,\text{Hz}$.
+To compare the model with the simulator, the \gls{usv} was driven in open loop for $69.96\,\text{s}$ with a sequence of thrust and azimuth commands chosen to excite the three velocities of the model, surge, sway, and yaw rate. Figure~\ref{fig:usv_actuator_inputs} shows the commands sent to the thrusters, which were recorded together with the resulting motion of the vessel. The model is then given the same commands, starting from the initial state of the vessel, and computes the velocities over the whole run without any correction from the simulator, to be compared with the recorded ones.
 
 \begin{figure}[htbp]
     \centering
@@ -56,7 +56,7 @@ The \gls{usv} was driven in open loop for $69.96\,\text{s}$ with a sequence of c
     \label{fig:usv_actuator_inputs}
 \end{figure}
 
-Figure~\ref{fig:usv_velocities_validation} compares the body-fixed velocities predicted by the model with the ground-truth simulation over the entire $69.96\,\text{s}$ run. Surge ($u$), sway ($v$), and yaw rate ($r$) achieve \gls{rmse} values of $0.0129\,\text{m/s}$, $0.0092\,\text{m/s}$, and $0.1579^\circ/\text{s}$ (\gls{nrmse} of $0.74\%$, $0.32\%$, and $0.35\%$, respectively). The model captures both the longitudinal accelerations and the differential steering, including the yaw rate while the thrusters are released with a non-zero lateral velocity.
+The dynamics of the model are first tested over the whole run, in a single continuous test that covers all the conditions of the manoeuvre and in which the model never receives the state of the simulator. Figure~\ref{fig:usv_velocities_validation} compares the surge velocity $u$, the sway velocity $v$, and the yaw rate $r$ of the model with those of the simulator. Only the velocities are compared, because the damping force of the water grows with them and limits their error. The position and the heading are only the integral of the velocities, and would accumulate their small errors over the run. The errors of the three velocities, listed in Table~\ref{tab:usv_validation_metrics}, are below $1\%$ of their range.
 
 \begin{figure}[htbp]
     \centering
@@ -76,33 +76,36 @@ Figure~\ref{fig:usv_velocities_validation} compares the body-fixed velocities pr
     \label{fig:usv_velocities_validation}
 \end{figure}
 
-Because the \gls{nmpc} operates over a finite prediction horizon of $T_h = 2.0\,\text{s}$, multi-step prediction accuracy is the primary determinant of closed-loop performance. Figures~\ref{fig:usv_prediction_error} and~\ref{fig:usv_prediction_error_vel_r} depict open-loop predictions initialised along the trajectory and the resulting error growth. At $T_h = 2.0\,\text{s}$, position error reaches an \gls{rmse} of $0.0143\,\text{m}$ ($0.37\%$), heading error $0.1599^\circ$ ($0.33\%$), linear velocity error $0.0147\,\text{m/s}$ ($0.73\%$), and yaw rate error $0.1594^\circ/\text{s}$ ($0.36\%$). All validation metrics are summarised in Table~\ref{tab:usv_validation_metrics}. With all normalised errors below $1.0\%$, the model provides sufficient fidelity for optimal control while ensuring computational tractability.
+The \gls{nmpc} does not use the model over the whole run, but over a prediction horizon of $T_h = 2.0\,\text{s}$ that always starts from the current state of the \gls{usv}. To evaluate the model in this use, predictions of $2.0\,\text{s}$ were computed along the trajectory of the run, each one starting from the state of the simulator and driven by the recorded commands. Figure~\ref{fig:usv_trajectory_validation} shows these predictions over the trajectory of the vessel. Since each prediction starts from the state of the simulator, the errors of the position and the heading accumulate only over the horizon, which is the time span of the \gls{nmpc} prediction.
 
 \begin{figure}[htbp]
     \centering
-    \subfloat[Trajectory with $2.0\,\text{s}$ predictions.\label{fig:usv_trajectory_validation}]{
-        \includegraphics[width=0.32\textwidth]{Implementation/figures/02_model_validation/usv_prediction_trajectory.pdf}
-    }
-    \subfloat[Position error $e_p$.\label{fig:usv_prediction_error_pos}]{
-        \includegraphics[width=0.32\textwidth]{Implementation/figures/02_model_validation/usv_prediction_error_pos.pdf}
-    }
-    \subfloat[Heading error $e_\psi$.\label{fig:usv_prediction_error_psi}]{
-        \includegraphics[width=0.32\textwidth]{Implementation/figures/02_model_validation/usv_prediction_error_psi.pdf}
-    }
-    \caption{\Gls{usv} multi-step open-loop prediction of the trajectory, position, and heading over the $T_h = 2.0\,\text{s}$ horizon.}
-    \label{fig:usv_prediction_error}
+    \includegraphics[width=0.50\textwidth]{Implementation/figures/02_model_validation/usv_prediction_trajectory.pdf}
+    \caption{\Gls{usv} trajectory and $2.0\,\text{s}$ predictions.}
+    \label{fig:usv_trajectory_validation}
 \end{figure}
 
+The error of these predictions grows with how far ahead they are made. Figure~\ref{fig:usv_prediction_error} presents the error of the position, the heading, the linear velocity, and the yaw rate as a function of the prediction horizon, up to $T_h = 2.0\,\text{s}$. The errors grow with the horizon, and at its end they are below $1\%$ of the range of each state, as listed in Table~\ref{tab:usv_validation_metrics}, and the largest position error represents less than $2\%$ of the length of the vessel, which makes the model suitable for the \gls{nmpc}.
+
 \begin{figure}[htbp]
     \centering
+    \subfloat[Position error $e_p$.\label{fig:usv_prediction_error_pos}]{
+        \includegraphics[width=0.48\textwidth]{Implementation/figures/02_model_validation/usv_prediction_error_pos.pdf}
+    }
+    \hfill
+    \subfloat[Heading error $e_\psi$.\label{fig:usv_prediction_error_psi}]{
+        \includegraphics[width=0.48\textwidth]{Implementation/figures/02_model_validation/usv_prediction_error_psi.pdf}
+    }
+    \\[2ex]
     \subfloat[Linear velocity error $e_v$.\label{fig:usv_prediction_error_vel}]{
         \includegraphics[width=0.48\textwidth]{Implementation/figures/02_model_validation/usv_prediction_error_vel.pdf}
     }
+    \hfill
     \subfloat[Yaw rate error $e_r$.\label{fig:usv_prediction_error_r}]{
         \includegraphics[width=0.48\textwidth]{Implementation/figures/02_model_validation/usv_prediction_error_r.pdf}
     }
-    \caption{\Gls{usv} multi-step open-loop prediction error of the linear velocity and yaw rate over the $T_h = 2.0\,\text{s}$ horizon.}
-    \label{fig:usv_prediction_error_vel_r}
+    \caption{\Gls{usv} prediction errors as a function of the prediction horizon.}
+    \label{fig:usv_prediction_error}
 \end{figure}
 
 \begin{table}[htbp]
@@ -126,6 +129,7 @@ Because the \gls{nmpc} operates over a finite prediction horizon of $T_h = 2.0\,
         \bottomrule
     \end{tabular}
 \end{table}
+
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 \subsection{\texorpdfstring{\gls{uav} Model}{UAV Model}}
