@@ -40,7 +40,7 @@ The model under validation is the planar model of the \gls{usv} used in the \gls
     \end{tabular}
 \end{table}
 
-The \gls{usv} was driven in open loop for $69.98\,\text{s}$ with a sequence of constant thrust and azimuth commands, which includes forward acceleration, azimuth steps to excite sway and yaw, a phase with the thrusters released while the vehicle still has lateral velocity, differential thrust, and a reversal of the azimuth. Figure~\ref{fig:usv_actuator_inputs} shows the commands sent to the thrusters, which were recorded. The model is given the same commands, starting from the initial state of the \gls{usv}, and its response is computed at $50\,\text{Hz}$.
+The \gls{usv} was driven in open loop for $69.96\,\text{s}$ with a sequence of constant thrust and azimuth commands, with the azimuth limited to $\pm 30^\circ$ and to a rate of $10^\circ/\text{s}$ as in the controller (Section~\ref{sec:simulation_environment}), which includes forward acceleration, azimuth changes to excite sway and yaw, a phase with the thrusters released while the vehicle still has lateral velocity, differential thrust, and a reversal of the azimuth. Figure~\ref{fig:usv_actuator_inputs} shows the commands sent to the thrusters, which were recorded. The model is given the same commands, starting from the initial state of the \gls{usv}, and its response is computed at $50\,\text{Hz}$.
 
 \begin{figure}[htbp]
     \centering
@@ -56,7 +56,7 @@ The \gls{usv} was driven in open loop for $69.98\,\text{s}$ with a sequence of c
     \label{fig:usv_actuator_inputs}
 \end{figure}
 
-Figure~\ref{fig:usv_velocities_validation} compares the body-fixed velocities predicted by the model with the ground-truth simulation over the entire $69.98\,\text{s}$ run. Surge ($u$), sway ($v$), and yaw rate ($r$) achieve \gls{rmse} values of $0.0134\,\text{m/s}$, $0.0103\,\text{m/s}$, and $0.1960^\circ/\text{s}$ (\gls{nrmse} of $0.77\%$, $0.36\%$, and $0.44\%$, respectively). The model captures both the longitudinal accelerations and the differential steering, including the yaw rate while the thrusters are released with a non-zero lateral velocity.
+Figure~\ref{fig:usv_velocities_validation} compares the body-fixed velocities predicted by the model with the ground-truth simulation over the entire $69.96\,\text{s}$ run. Surge ($u$), sway ($v$), and yaw rate ($r$) achieve \gls{rmse} values of $0.0129\,\text{m/s}$, $0.0092\,\text{m/s}$, and $0.1579^\circ/\text{s}$ (\gls{nrmse} of $0.74\%$, $0.32\%$, and $0.35\%$, respectively). The model captures both the longitudinal accelerations and the differential steering, including the yaw rate while the thrusters are released with a non-zero lateral velocity.
 
 \begin{figure}[htbp]
     \centering
@@ -76,7 +76,7 @@ Figure~\ref{fig:usv_velocities_validation} compares the body-fixed velocities pr
     \label{fig:usv_velocities_validation}
 \end{figure}
 
-Because the \gls{nmpc} operates over a finite prediction horizon of $T_h = 2.0\,\text{s}$, multi-step prediction accuracy is the primary determinant of closed-loop performance. Figures~\ref{fig:usv_prediction_error} and~\ref{fig:usv_prediction_error_vel_r} depict open-loop predictions initialised along the trajectory and the resulting error growth. At $T_h = 2.0\,\text{s}$, position error reaches an \gls{rmse} of $0.0144\,\text{m}$ ($0.37\%$), heading error $0.1895^\circ$ ($0.39\%$), linear velocity error $0.0156\,\text{m/s}$ ($0.78\%$), and yaw rate error $0.1983^\circ/\text{s}$ ($0.45\%$). All validation metrics are summarised in Table~\ref{tab:usv_validation_metrics}. With all normalised errors below $1.0\%$, the model provides sufficient fidelity for optimal control while ensuring computational tractability.
+Because the \gls{nmpc} operates over a finite prediction horizon of $T_h = 2.0\,\text{s}$, multi-step prediction accuracy is the primary determinant of closed-loop performance. Figures~\ref{fig:usv_prediction_error} and~\ref{fig:usv_prediction_error_vel_r} depict open-loop predictions initialised along the trajectory and the resulting error growth. At $T_h = 2.0\,\text{s}$, position error reaches an \gls{rmse} of $0.0143\,\text{m}$ ($0.37\%$), heading error $0.1599^\circ$ ($0.33\%$), linear velocity error $0.0147\,\text{m/s}$ ($0.73\%$), and yaw rate error $0.1594^\circ/\text{s}$ ($0.36\%$). All validation metrics are summarised in Table~\ref{tab:usv_validation_metrics}. With all normalised errors below $1.0\%$, the model provides sufficient fidelity for optimal control while ensuring computational tractability.
 
 \begin{figure}[htbp]
     \centering
@@ -113,16 +113,16 @@ Because the \gls{nmpc} operates over a finite prediction horizon of $T_h = 2.0\,
         \toprule
         \textbf{State} & \textbf{Unit} & \textbf{RMSE} & \textbf{NRMSE (\%)} & \textbf{Max Error} \\
         \midrule
-        \multicolumn{5}{l}{\textit{Velocities over the whole run ($69.98\,\text{s}$)}} \\
-        Surge velocity $u$ & $\text{m/s}$ & $0.0134$ & $0.77$ & $0.0766$ \\
-        Sway velocity $v$ & $\text{m/s}$ & $0.0103$ & $0.36$ & $0.0480$ \\
-        Yaw rate $r$ & $\text{deg/s}$ & $0.1960$ & $0.44$ & $1.9984$ \\
+        \multicolumn{5}{l}{\textit{Velocities over the whole run ($69.96\,\text{s}$)}} \\
+        Surge velocity $u$ & $\text{m/s}$ & $0.0129$ & $0.74$ & $0.0760$ \\
+        Sway velocity $v$ & $\text{m/s}$ & $0.0092$ & $0.32$ & $0.0470$ \\
+        Yaw rate $r$ & $\text{deg/s}$ & $0.1579$ & $0.35$ & $1.8787$ \\
         \midrule
         \multicolumn{5}{l}{\textit{Predictions over the horizon ($T_h = 2.0\,\text{s}$)}} \\
-        Position error $e_p$ & $\text{m}$ & $0.0144$ & $0.37$ & $0.0930$ \\
-        Heading error $e_\psi$ & $\text{deg}$ & $0.1895$ & $0.39$ & $1.2355$ \\
-        Linear velocity error $e_v$ & $\text{m/s}$ & $0.0156$ & $0.78$ & $0.0778$ \\
-        Yaw rate error $e_r$ & $\text{deg/s}$ & $0.1983$ & $0.45$ & $1.9927$ \\
+        Position error $e_p$ & $\text{m}$ & $0.0143$ & $0.37$ & $0.0933$ \\
+        Heading error $e_\psi$ & $\text{deg}$ & $0.1599$ & $0.33$ & $0.8887$ \\
+        Linear velocity error $e_v$ & $\text{m/s}$ & $0.0147$ & $0.73$ & $0.0756$ \\
+        Yaw rate error $e_r$ & $\text{deg/s}$ & $0.1594$ & $0.36$ & $1.8723$ \\
         \bottomrule
     \end{tabular}
 \end{table}
