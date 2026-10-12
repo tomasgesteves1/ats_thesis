@@ -48,10 +48,10 @@ from thesis_style import (
 MASS = 2.06             # kg, nominal mass (x500 SDF: 2.0 kg airframe + 4x 0.016 kg rotors)
 G = 9.81                # m/s^2, standard gravitational acceleration
 
-# Nominal Tether Model (Sec 3.1.3 & Sec 3.2: mu = 0.020 kg/m, eps0 = 0.05, gamma0 = 28 deg)
+# Nominal Tether Model (Sec 3.1.3 & Sec 3.2: mu = 0.020 kg/m, eps0 = 0.05, gamma0 = 30.4 deg)
 MU_TETHER = 0.020       # kg/m, linear mass density
 EPS0 = 0.05             # nominal operating slack ratio
-GAMMA0 = np.deg2rad(28.0)  # rad, nominal catenary deflection angle
+GAMMA0 = np.deg2rad(30.4)  # rad, catenary deflection of a horizontal chord at eps0: atan(sinh u), sinh(u)/u = 1/(1-eps0)
 C_D = MU_TETHER * G / (1.0 - EPS0)  # N/m, nominal tension-distance coefficient (0.2065 N/m)
 
 # Actuator & Motor Physics (from x500/model.sdf & PX4 airframe 4001_gz_x500)

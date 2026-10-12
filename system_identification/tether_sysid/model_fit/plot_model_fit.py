@@ -15,7 +15,7 @@ Analyzes:
      - Model 4: Full Taylor in Slack: T(L, eps) = L * (c0 + c1 * (eps - eps0))
   2. 3D Vector Component Models (Fx, Fy, Fz):
      - Chord Line Model (gamma = 0 deg, pulling along straight line d0)
-     - Thesis Catenary Direction Model (gamma = 28 deg * cos(alpha), tilted towards vertical)
+     - Thesis Catenary Direction Model (gamma = 30.4 deg * cos(alpha), tilted towards vertical)
 """
 
 import os
@@ -312,8 +312,8 @@ def main():
     sin_alpha = - d_0[:, 2]
     alpha = np.arctan2(sin_alpha, cos_alpha)
 
-    # MODEL 1: Thesis Catenary Model (gamma_0 = 28 deg * cos(alpha))
-    gamma_0 = np.radians(28.0)
+    # MODEL 1: Thesis Catenary Model (gamma_0 = 30.4 deg * cos(alpha))
+    gamma_0 = np.radians(30.4)
     gamma_eff = gamma_0 * np.maximum(cos_alpha, 0.0)
     ang_cat = alpha + gamma_eff
     d_cat = np.column_stack([
