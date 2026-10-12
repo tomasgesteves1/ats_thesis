@@ -15,7 +15,7 @@ Analyzes:
      - Model 4: Full Taylor in Slack: T(L, eps) = L * (c0 + c1 * (eps - eps0))
   2. 3D Vector Component Models (Fx, Fy, Fz):
      - Chord Line Model (gamma = 0 deg, pulling along straight line d0)
-     - Thesis Catenary Direction Model (gamma = 24.5 deg, tilted towards vertical)
+     - Thesis Catenary Direction Model (gamma = 28 deg * cos(alpha), tilted towards vertical)
 """
 
 import os

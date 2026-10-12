@@ -62,7 +62,7 @@ OMEGA_MAX = 1000.0              # rad/s, maximum angular velocity (SIM_GZ_EC_MAX
 
 # Nominal Rotor Drag (from x500/model.sdf: 4 rotors, c_drag = 8.06428e-5, k_m = 1.11e-5)
 # At nominal hover thrust T0 ~ 20.2 N, omega0 = sqrt((T0/4)/k_m) ~ 675 rad/s
-D_ROTOR = 0.227         # N*s/m, planar horizontal rotor drag coefficient
+D_ROTOR = 0.218         # N*s/m, planar rotor drag: 4 * c_drag * omega_hover (c_drag = 8.06428e-5, omega_hover = 675 rad/s)
 
 # Nominal PX4 Attitude Inner-Loop Dynamic Parameters (from PX4: MC_ROLL_P=6.5, MC_PITCH_P=6.5, MC_YAW_P=2.8)
 TAU_ATT_RP = 1.0 / 6.5  # ~0.154 s, roll and pitch time constant (tau = 1/P)
@@ -130,7 +130,7 @@ def nominal_tether_force(p_uav, p_anchor):
     nh = np.linalg.norm(horiz)
     eh = horiz / nh if nh > 1e-6 else np.array([1.0, 0.0, 0.0])
     alpha = np.arcsin(np.clip(-d0[2], -1.0, 1.0))
-    ang = alpha + GAMMA0
+    ang = alpha + GAMMA0 * max(np.cos(alpha), 0.0)   # gamma(alpha) = gamma0 * cos(alpha)
     dhat = np.cos(ang) * eh
     dhat[2] = -np.sin(ang)
     return C_D * d * dhat
@@ -710,12 +710,15 @@ def main():
     # State x uses ground-truth attitude: at NMPC runtime, the state estimator
     # provides the true current attitude (phi, theta, psi), not a first-order prediction.
     # Input u uses modelled angular rates (phi_dot_mod) since those are the control inputs.
-    a_sec32 = np.zeros((N, 3))
+    a_sec32 = np.zeros((N, 3))        # model driven by the attitude predicted by the model (with lag)
+    a_sec32_meas = np.zeros((N, 3))   # model driven by the measured attitude
     for k in range(N):
-        x = np.array([*data['p'][k], *data['v'][k], data['roll'][k], data['pitch'][k], data['yaw'][k]])
         u = np.array([data['phi_dot_mod'][k], data['theta_dot_mod'][k], data['psi_dot_mod'][k], data['T'][k]])
         pa = data['p_anchor'][k]
+        x = np.array([*data['p'][k], *data['v'][k], data['roll_mod'][k], data['pitch_mod'][k], data['yaw_mod'][k]])
         a_sec32[k] = uav_dynamics_sec32(x, u, pa, include_tether=args.include_tether)[3:6]
+        x = np.array([*data['p'][k], *data['v'][k], data['roll'][k], data['pitch'][k], data['yaw'][k]])
+        a_sec32_meas[k] = uav_dynamics_sec32(x, u, pa, include_tether=args.include_tether)[3:6]
 
     a_err_3d = np.sqrt(np.mean(np.sum((a_meas - a_sec32) ** 2, axis=1)))
     m_acc = [compute_metrics(a_meas[:, i], a_sec32[:, i]) for i in range(3)]
@@ -762,6 +765,31 @@ def main():
 
     print(f"  Section 3.2 Model           : Pos RMSE {final_pos_rmse:.3f} m (xy {final_xy_rmse:.3f}, z {final_z_rmse:.3f}), "
           f"P95 {final_pos_p95:.3f} m, Max {final_pos_max:.3f} m | Vel RMSE {final_vel_rmse:.3f} m/s")
+
+    # --- Thesis table: RMSE, NRMSE (range of the measured quantity) and maximum error ---
+    print("\n[5] THESIS TABLE (RMSE | NRMSE | Max)")
+    def row(name, unit, meas, pred):
+        e = meas - pred
+        rm = np.sqrt(np.mean(e ** 2))
+        print(f"  {name:<34} [{unit}] RMSE {rm:.4f} | NRMSE {100 * rm / np.ptp(meas):.2f} % | Max {np.max(np.abs(e)):.4f}")
+    for key, name in [('roll', 'Roll'), ('pitch', 'Pitch'), ('yaw', 'Yaw')]:
+        row(f"{name} with lag (tau nominal)", 'deg', np.rad2deg(data[key]), np.rad2deg(data[key + '_mod']))
+        row(f"{name} without lag (commanded)", 'deg', np.rad2deg(data[key]), np.rad2deg(data[key + '_c']))
+    for i, ax in enumerate('xyz'):
+        row(f"Acceleration {ax}, model attitude", 'm/s2', a_meas[:, i], a_sec32[:, i])
+    for i, ax in enumerate('xyz'):
+        row(f"Acceleration {ax}, measured attitude", 'm/s2', a_meas[:, i], a_sec32_meas[:, i])
+    disp = np.linalg.norm(data['p'][starts + n_h] - data['p'][starts], axis=1)
+    speed = np.linalg.norm(data['v'], axis=1)
+    print(f"  Position error e_p [m]  RMSE {final_pos_rmse:.4f} | NRMSE {100 * final_pos_rmse / disp.max():.2f} % | Max {pos_norm[:, -1].max():.4f}")
+    d_xy = np.linalg.norm(data['p'][starts + n_h, :2] - data['p'][starts, :2], axis=1)
+    d_z = np.abs(data['p'][starts + n_h, 2] - data['p'][starts, 2])
+    e_xy = np.linalg.norm(err_p[:, -1, :2], axis=1)
+    e_z = np.abs(err_p[:, -1, 2])
+    print(f"  Position error xy [m]   RMSE {final_xy_rmse:.4f} | NRMSE {100 * final_xy_rmse / d_xy.max():.2f} % | Max {e_xy.max():.4f}  (max horizontal displacement {d_xy.max():.2f} m)")
+    print(f"  Position error z  [m]   RMSE {final_z_rmse:.4f} | NRMSE {100 * final_z_rmse / d_z.max():.2f} % | Max {e_z.max():.4f}  (max vertical displacement {d_z.max():.2f} m)")
+    print(f"  Velocity error e_v [m/s] RMSE {final_vel_rmse:.4f} | NRMSE {100 * final_vel_rmse / np.ptp(speed):.2f} % | Max {vel_norm[:, -1].max():.4f}")
+    print(f"  (largest displacement over horizon {disp.max():.2f} m, speed range {np.ptp(speed):.2f} m/s)")
 
     print("=" * 78 + "\n")
 

@@ -662,9 +662,9 @@ where the nominal coefficient at $\varepsilon_0$ is evaluated from first princip
     c_d(\varepsilon_0) = \frac{\mu\,g}{1 - \varepsilon_0},
     \label{eq:uav_tether_cd_nominal}
 \end{equation}
-or equivalently in terms of unstretched length, $T_{\mathrm{tether}}(L) = \mu\,g\,L$. Similarly, the catenary deflection angle is given by its nominal value at $\varepsilon_0$:
+or equivalently in terms of unstretched length, $T_{\mathrm{tether}}(L) = \mu\,g\,L$. The deflection angle also depends on the inclination of the chord, given by the depression angle $\alpha$ of $\hat{\mathbf{d}}_0$ below the local horizontal, defined in \eqref{eq:uav_tether_alpha}. Only the component of the weight of the tether normal to the chord, $\mu\,g\,L\cos\alpha$, bends it away from the straight line, so that, for the small sag of the operating point, the deflection scales with $\cos\alpha$. It is maximal for a horizontal chord and vanishes for a vertical one, where the tether hangs straight. The deflection angle is therefore given by its nominal value at $\varepsilon_0$ for a horizontal chord, $\gamma_0 = \gamma(\varepsilon_0, 0)$, scaled by $\cos\alpha$:
 \begin{equation}
-    \gamma = \gamma(\varepsilon_0),
+    \gamma(\alpha) = \gamma_0\cos\alpha,
     \label{eq:uav_tether_nominal}
 \end{equation}
 which replaces the transcendental relation with a closed-form expression evaluated at $\varepsilon_0$.
@@ -738,7 +738,7 @@ Figure~\ref{fig:uav_tether_plane} illustrates this construction within the caten
 \end{figure}
 
 
-The tension direction at $\mathcal{O}_a$ then follows by tilting $\hat{\mathbf{d}}_0$ further towards the vertical by the angle $\gamma$, within the same plane,
+The tension direction at $\mathcal{O}_a$ then follows by tilting $\hat{\mathbf{d}}_0$ further towards the vertical by the angle $\gamma(\alpha)$, within the same plane,
 \begin{equation}
     \hat{\mathbf{d}} = \cos(\alpha+\gamma)\,\hat{\mathbf{e}}_h - \sin(\alpha+\gamma)\,\mathbf{z}^{\mathcal{I}},
     \label{eq:uav_tether_direction}
