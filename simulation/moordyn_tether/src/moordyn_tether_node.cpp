@@ -45,7 +45,7 @@ MoordynTetherNode::MoordynTetherNode(const rclcpp::NodeOptions & options)
     auto drone_odom_topic = this->declare_parameter("drone_odom_topic",
                                 std::string("drone/ground_truth/odometry"));
     auto wrench_topic     = this->declare_parameter("wrench_topic",
-                                std::string("/world/wamv_world/wrench"));
+                                std::string("/world/wamv_world/wrench/persistent"));
     auto marker_topic     = this->declare_parameter("marker_topic",
                                 std::string("tether_geometry_marker"));
 
@@ -148,6 +148,13 @@ MoordynTetherNode::MoordynTetherNode(const rclcpp::NodeOptions & options)
                 physics_rate_hz_,
                 boat_anchor_frame_.c_str(), boat_base_frame_.c_str(),
                 drone_hook_frame_.c_str(),  drone_base_frame_.c_str());
+}
+
+MoordynTetherNode::~MoordynTetherNode()
+{
+    // Clear / zero out persistent wrenches in Gazebo upon node destruction
+    publishWrench(boat_link_name_, 0.0, 0.0, 0.0);
+    publishWrench(drone_link_name_, 0.0, 0.0, 0.0);
 }
 
 // ===========================================================================

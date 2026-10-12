@@ -22,7 +22,7 @@ Different maritime assets meet this challenge in complementary ways. Surface ves
 
 Together, these assets form a connected system rather than separate solutions. Each one compensates for what the other lacks. \glspl{usv} provide long-term presence at sea at much lower cost than crewed vessels, allowing wide and affordable patrols. \glspl{uav} extend this reach by sensing beyond the horizon from the air. Working as a team, they maintain continuous and local maritime awareness. This motivates the study of coordinated \gls{usv}--\gls{uav} systems, where cooperation creates mission capabilities that neither platform can achieve alone in complex and changing environments.
 
-A natural way to strengthen this cooperation is to add a physical tether between both platforms. The tether provides continuous power and reliable communication between the \gls{usv} and \gls{uav}~\cite{introduction_motivation_tethered_drones}. By placing the energy supply and communication systems on the \gls{usv}, it overcomes two main limits of maritime \glspl{uav}: short endurance and weak long-range communication. This approach has recently transitioned from academic concepts to real-world industrial systems; for instance, the marine robotics company Exail partnered with Elistair to integrate a tethered quadrotor directly onto the DriX USV catamaran for persistent maritime surveillance~\cite{exail_elistair_tethered}. Similarly, ACUA Ocean and Teledyne FLIR Defense demonstrated an integrated tethered aerial-surface system for the UK Ministry of Defence to support long-endurance maritime security and target detection~\cite{acua_ocean_teledyne_mod}.
+A natural way to strengthen this cooperation is to add a physical tether between both platforms. The tether provides continuous power and reliable communication between the \gls{usv} and \gls{uav}~\cite{introduction_motivation_tethered_drones}. By placing the energy supply and communication systems on the \gls{usv}, it overcomes two main limits of maritime \glspl{uav}: short endurance and weak long-range communication. This approach has recently transitioned from academic concepts to real-world industrial systems; for instance, the marine robotics company Exail partnered with Elistair to integrate a tethered \gls{uav} directly onto the DriX \gls{usv} catamaran for persistent maritime surveillance~\cite{exail_elistair_tethered}. Similarly, ACUA Ocean and Teledyne FLIR Defense demonstrated an integrated tethered aerial-surface system for the UK Ministry of Defence to support long-endurance maritime security and target detection~\cite{acua_ocean_teledyne_mod}.
 
 Figure~\ref{fig:tether_scheme} illustrates the configuration of the tethered \gls{usv}--\gls{uav} system considered in this work.
 
@@ -44,18 +44,18 @@ Most existing tethered \gls{uav} systems focus on power delivery and communicati
 \section{Problem Statement}
 \label{sec:intro_problem_statement}
 
-This work addresses the problem of controlling a cooperative system composed of an autonomous surface vessel (the WAM-V USV) and a physically connected quadrotor (the x500 UAV) operating in a coordinated manner. The objective of such a system is to autonomously execute maritime missions by following predefined waypoints or continuous reference trajectories, while respecting the physical and operational constraints of both platforms and of the tether that connects them.
+This work addresses the problem of controlling a cooperative system composed of a \gls{usv} (the \gls{wamv}) and a physically connected \gls{uav} (the x500) operating in a coordinated manner. The objective of such a system is to autonomously execute maritime missions by following predefined waypoints or continuous reference trajectories, while respecting the physical and operational constraints of both platforms and of the tether that connects them.
 
-To achieve this objective, the control framework must be capable of handling different phases of operation and mission requirements. This includes the definition of multiple control modes that allow the system to perform manoeuvres such as takeoff and landing, as well as different forms of coordinated motion during navigation. Both NMPCs actively prevent the tether from exceeding the maximum admissible separation distance, utilizing soft constraints and slacks, while exchanging predicted trajectories to coordinate the motion of the aerial vehicle and the dynamic vessel deck.
+To achieve this objective, the control framework must be capable of handling different phases of operation and mission requirements. This includes the definition of multiple control modes that allow the system to perform manoeuvres such as takeoff and landing, as well as different forms of coordinated motion during navigation. Both \glspl{nmpc} actively prevent the tether from exceeding the maximum admissible separation distance, utilising soft constraints and slacks, while exchanging predicted trajectories to coordinate the motion of the \gls{uav} and the dynamic \gls{usv} deck.
 
 \section{System Overview}
 \label{sec:intro_system_overview}
 
 Interaction with the system is defined at the mission level. The operator selects a mission, such as patrolling a given area, following a moving target, or visiting a set of waypoints that represent regions of interest. This mission information is received by a behaviour management layer, which selects the active control mode and handles mission logic, including switching between different relative configurations of the \gls{uav} with respect to the \gls{usv}, as well as executing specific manoeuvres such as takeoff and landing.
 
-Based on the selected mission and active control mode, the system generates coordinated motion for both the \gls{usv} and the \gls{uav}. This process combines planning and control to compute trajectories and actuation commands that satisfy vehicle and tether constraints while pursuing the mission objectives. The WAM-V USV acts as the leader planar platform carrying an active winch system on its deck. The winch dynamically spools the tether in or out to manage slack and cable tension. The x500 UAV follows a relative orbit or observation trajectory above the USV, using its elevated perspective to record visual data.
+Based on the selected mission and active control mode, the system generates coordinated motion for both the \gls{usv} and the \gls{uav}. This process combines planning and control to compute trajectories and actuation commands that satisfy vehicle and tether constraints while pursuing the mission objectives. The \gls{wamv} \gls{usv} acts as the leader planar platform carrying an active winch system on its deck. The winch dynamically spools the tether in or out to manage slack and tether tension. The x500 \gls{uav} follows a relative orbit or observation trajectory above the \gls{usv}, using its elevated perspective to record visual data.
 
-Figure~\ref{fig:intro_block_diagram} presents a high-level block diagram of the proposed system, showing the interaction between the coordinator, the decentralized NMPC solvers, the vehicles, and the co-simulation interfaces.
+Figure~\ref{fig:intro_block_diagram} presents a high-level block diagram of the proposed system, showing the interaction between the coordinator, the decentralised \gls{nmpc} solvers, the vehicles, and the co-simulation interfaces.
 
 \begin{figure}[H]
     \centering
@@ -70,23 +70,23 @@ Figure~\ref{fig:intro_block_diagram} presents a high-level block diagram of the 
 This thesis contributes to the design, implementation, and evaluation of cooperative control solutions for tethered \gls{uav}--\gls{usv} systems, to enable autonomous and persistent maritime missions. The main contributions of this work are summarised as follows:
 
 \begin{itemize}
-    \item A unified, C++ ROS 2 control pipeline utilizing Acados and HPIPM to generate and execute real-time Nonlinear Model Predictive Control solvers for both surface tracking and aerial guidance.
-    \item The modeling and experimental identification of the UAV inner-loop attitude response lag ($\tau = 0.15\,\text{s}$) using PX4 doublets flight data.
-    \item The design and implementation of a virtual winch controller operating in both geometric and tension-feedback PD modes to prevent cable slackness and tension spikes.
-    \item A realistic co-simulation setup in Gazebo Harmonic, integrated with the PX4 Software-in-the-Loop (SITL) firmware and the MoorDyn physics engine for multi-body lumped-mass line representation.
-    \item The verification of NMPC constraint enforcement (states, inputs, and tether separation limits) and evaluation of solver latency.
-    \item The validation of the entire cooperative control stack under an integrated search and pursuit mission targeting a vessel teleoperated in real-time.
+    \item A unified, C++ \gls{ros}~2 control pipeline utilising Acados and \gls{hpipm} to generate and execute real-time non-linear model predictive control solvers for both surface tracking and aerial guidance.
+    \item The modelling and experimental identification of the \gls{uav} inner-loop attitude response lag ($\tau = 0.15\,\text{s}$) using PX4 doublet flight data.
+    \item The design and implementation of a virtual winch controller operating in both geometric and tension-feedback \gls{pd} modes to prevent tether slackness and tension spikes.
+    \item A realistic co-simulation setup in Gazebo Harmonic, integrated with the PX4 Software-in-the-Loop (\gls{sitl}) firmware and the MoorDyn physics engine for multi-body lumped-mass tether representation.
+    \item The verification of \gls{nmpc} constraint enforcement (states, inputs, and tether separation limits) and evaluation of solver latency.
+    \item The validation of the entire cooperative control stack under an integrated search and pursuit mission targeting a \gls{usv} teleoperated in real time.
 \end{itemize}
 
 \section{Thesis Structure}
 \label{sec:intro_structure}
 
-The remainder of this dissertation is organized as follows:
+The remainder of this dissertation is organised as follows:
 \begin{itemize}
-    \item \textbf{Chapter 2 (Literature Review and State of the Art)} reviews existing research in cooperative marine-aerial robotics, tethered drones, and predictive control algorithms.
-    \item \textbf{Chapter 3 (System Modeling)} derives the kinematic and dynamic models of both vehicles, as well as the catenary tether force model.
-    \item \textbf{Chapter 4 (Cooperative Control Design)} details the decentralized NMPC mathematical formulation, cost functions, and physical constraints for both platforms.
-    \item \textbf{Chapter 5 (Simulation Environment and Software Implementation)} introduces the physical characteristics of the virtual WAM-V and x500 platforms, the active winch spooling controller, the MoorDyn tether integration, the simulation setup, and the software modularity.
+    \item \textbf{Chapter 2 (Literature Review and State of the Art)} reviews existing research in cooperative marine-aerial robotics, tethered \glspl{uav}, and predictive control algorithms.
+    \item \textbf{Chapter 3 (System Modelling)} derives the kinematic and dynamic models of both vehicles, as well as the catenary tether force model.
+    \item \textbf{Chapter 4 (Cooperative Control Design)} details the decentralised \gls{nmpc} mathematical formulation, cost functions, and physical constraints for both platforms.
+    \item \textbf{Chapter 5 (Simulation Environment and Software Implementation)} introduces the physical characteristics of the virtual \gls{wamv} and x500 platforms, the active winch spooling controller, the MoorDyn tether integration, the simulation setup, and the software modularity.
     \item \textbf{Chapter 6 (Results and Discussion)} evaluates the model validation, parameter identification, tracking precision, constraint enforcement, solver latency, and the target pursuit mission.
-    \item \textbf{Chapter 7 (Conclusions and Future Work)} summarizes the findings of the thesis and outlines directions for future research.
+    \item \textbf{Chapter 7 (Conclusions and Future Work)} summarises the findings of the thesis and outlines directions for future research.
 \end{itemize}

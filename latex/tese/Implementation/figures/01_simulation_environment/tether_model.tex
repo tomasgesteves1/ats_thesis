@@ -1,6 +1,6 @@
 \begin{figure}[!htbp]
     \centering
-    \subfloat[Cable divided into nodes and segments.]{
+    \subfloat[Tether divided into nodes and segments.]{
         \begin{tikzpicture}[
             node/.style={circle, fill=black, inner sep=1.6pt},
             note/.style={font=\scriptsize, align=center},
@@ -25,8 +25,8 @@
             % End points: attached to the vehicles
             \draw[fill=gray!30] ($(n0)+(-0.17,-0.17)$) rectangle ($(n0)+(0.17,0.17)$);
             \draw[fill=gray!30] ($(n6)+(-0.17,-0.17)$) rectangle ($(n6)+(0.17,0.17)$);
-            \node[note] at ($(n0)+(0,-0.55)$) {Attached\\to the \acrshort{usv}};
-            \node[note] at ($(n6)+(0,0.6)$) {Attached\\to the \acrshort{uav}};
+            \node[note] at ($(n0)+(0,-0.55)$) {Attached\\to the \gls{usv}};
+            \node[note] at ($(n6)+(0,0.6)$) {Attached\\to the \gls{uav}};
             % Annotations
             \node[note] (lnode) at ($(n2)+(0,-0.95)$) {Node $i$\\(lumped mass)};
             \draw[ptr] (lnode.north) -- ($(n2)+(0,-0.1)$);
@@ -64,6 +64,6 @@
         \end{tikzpicture}
         \label{fig:tether_forces}
     }
-    \caption{Lumped-mass model of the tether. Bending forces are not shown.}
+    \caption{Lumped-mass model of the tether.}
     \label{fig:tether_model}
 \end{figure}

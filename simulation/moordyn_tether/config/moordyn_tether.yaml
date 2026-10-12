@@ -26,7 +26,7 @@ moordyn_tether_node:
     physics_rate_hz: 50.0
 
     # Topic names (relative unless prefixed with /)
-    wrench_topic: "/world/wamv_world/wrench"
+    wrench_topic: "/world/wamv_world/wrench/persistent"
     marker_topic: "tether_geometry_marker"
 
     # Marker visualization
@@ -55,7 +55,7 @@ moordyn_tether_node:
     winch_target_tension: -0.1 # Target tension [N] on Z-axis (e.g., -0.5N pulling down)
     winch_kp_tension: 1.8     # P-gain for winch speed (m/s per N of error)
     winch_kd_tension: 0.1     # D-gain to damp oscillations
-    winch_speed_limit: 10.0   # Max winch spooling speed [m/s]
+    winch_speed_limit: 2.0    # Max winch spooling speed [m/s] (nominal mechanical limit)
     
     # Common Constraints:
     winch_min_length: 1.5      # CFL-safe minimum [m] (CFL≈0.023 with N=30, EA=100, dtM=0.0002)

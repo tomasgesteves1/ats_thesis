@@ -257,9 +257,9 @@ def compute_metrics(y_true, y_pred):
 def plot_actuator_inputs(data, out_dirs):
     set_thesis_style()
     t = data['t']
-    fig, axs = plt.subplots(2, 1, figsize=(7.2, 4.4), sharex=True)
     
-    # Thruster Forces
+    # 1. Combined 2-panel figure (legacy / backup)
+    fig, axs = plt.subplots(2, 1, figsize=(7.2, 4.4), sharex=True)
     axs[0].plot(t, data['T_L'], color=COLOR_CYCLE[0], label='Port ($T_L$)', linewidth=1.15)
     axs[0].plot(t, data['T_R'], color=COLOR_CYCLE[1], label='Starboard ($T_R$)', linewidth=1.15)
     axs[0].axhline(510.0, color='r', linestyle=':', alpha=0.6, label='Fwd Limit ($510\\,\\mathrm{N}$)')
@@ -269,7 +269,6 @@ def plot_actuator_inputs(data, out_dirs):
     axs[0].grid(True, linestyle=':', alpha=0.6)
     axs[0].legend(loc='upper right', framealpha=0.9, ncol=2)
     
-    # Azimuth Angles
     axs[1].plot(t, np.rad2deg(data['alpha_L']), color=COLOR_CYCLE[0], label=r'Port ($\alpha_L$)', linewidth=1.15)
     axs[1].plot(t, np.rad2deg(data['alpha_R']), color=COLOR_CYCLE[1], label=r'Starboard ($\alpha_R$)', linewidth=1.15)
     axs[1].axhline(30.0, color='r', linestyle=':', alpha=0.6, label=r'Limit ($\pm 30^\circ$)')
@@ -279,33 +278,62 @@ def plot_actuator_inputs(data, out_dirs):
     axs[1].set_ylim([-36.0, 58.0])
     axs[1].grid(True, linestyle=':', alpha=0.6)
     axs[1].legend(loc='upper right', framealpha=0.9, ncol=2)
-    
     plt.tight_layout()
     for d in out_dirs:
         save_figure(fig, os.path.join(d, 'usv_actuator_inputs'), save_png=True)
     plt.close(fig)
 
+    # 2. Individual Thrust Plot (side-by-side in LaTeX)
+    fig_th, ax_th = plt.subplots(figsize=(4.8, 3.2))
+    ax_th.plot(t, data['T_L'], color=COLOR_CYCLE[0], label='Port ($T_L$)', linewidth=1.15)
+    ax_th.plot(t, data['T_R'], color=COLOR_CYCLE[1], label='Starboard ($T_R$)', linewidth=1.15)
+    ax_th.axhline(510.0, color='r', linestyle=':', alpha=0.7, label=r'Limits ($\pm 510/-380\,\mathrm{N}$)')
+    ax_th.axhline(-380.0, color='r', linestyle=':', alpha=0.7)
+    ax_th.set_ylabel('Thrust [N]')
+    ax_th.set_xlabel('Time [s]')
+    ax_th.set_ylim([-450.0, 750.0])
+    ax_th.grid(True, linestyle=':', alpha=0.6)
+    ax_th.legend(loc='upper right', framealpha=0.9, fontsize=8.0)
+    plt.tight_layout()
+    for d in out_dirs:
+        save_figure(fig_th, os.path.join(d, 'usv_actuator_inputs_thrust'), save_png=True)
+    plt.close(fig_th)
+
+    # 3. Individual Azimuth Plot (side-by-side in LaTeX)
+    fig_az, ax_az = plt.subplots(figsize=(4.8, 3.2))
+    ax_az.plot(t, np.rad2deg(data['alpha_L']), color=COLOR_CYCLE[0], label=r'Port ($\alpha_L$)', linewidth=1.15)
+    ax_az.plot(t, np.rad2deg(data['alpha_R']), color=COLOR_CYCLE[1], label=r'Starboard ($\alpha_R$)', linewidth=1.15)
+    ax_az.axhline(30.0, color='r', linestyle=':', alpha=0.7, label=r'Limits ($\pm 30^\circ$)')
+    ax_az.axhline(-30.0, color='r', linestyle=':', alpha=0.7)
+    ax_az.set_ylabel('Azimuth [deg]')
+    ax_az.set_xlabel('Time [s]')
+    ax_az.set_ylim([-36.0, 55.0])
+    ax_az.grid(True, linestyle=':', alpha=0.6)
+    ax_az.legend(loc='upper right', framealpha=0.9, fontsize=8.0)
+    plt.tight_layout()
+    for d in out_dirs:
+        save_figure(fig_az, os.path.join(d, 'usv_actuator_inputs_azimuth'), save_png=True)
+    plt.close(fig_az)
+
 
 def plot_velocities_validation(data, sim_res, out_dirs):
     set_thesis_style()
     t = data['t']
-    fig, axs = plt.subplots(3, 1, figsize=(7.2, 5.8), sharex=True)
     
-    # Surge u
+    # 1. Combined 3-panel figure (legacy / backup)
+    fig, axs = plt.subplots(3, 1, figsize=(7.2, 5.8), sharex=True)
     l_sim, = axs[0].plot(t, data['u_gt'], color=SIMULATION_COLOR, label='Simulation', linewidth=1.25)
     l_mod, = axs[0].plot(t, sim_res['u_sim'], color=COLOR_CYCLE[0], label='Prediction Model', linewidth=1.0, linestyle='-')
     axs[0].set_ylabel('$u$ [m/s]')
     axs[0].set_ylim([-2.4, 2.6])
     axs[0].grid(True, linestyle=':', alpha=0.6)
     
-    # Sway v
     axs[1].plot(t, data['v_gt'], color=SIMULATION_COLOR, label='Simulation', linewidth=1.25)
     axs[1].plot(t, sim_res['v_sim'], color=COLOR_CYCLE[0], label='Prediction Model', linewidth=1.0, linestyle='-')
     axs[1].set_ylabel('$v$ [m/s]')
     axs[1].set_ylim([-2.2, 1.4])
     axs[1].grid(True, linestyle=':', alpha=0.6)
     
-    # Yaw rate r
     axs[2].plot(t, np.rad2deg(data['r_gt']), color=SIMULATION_COLOR, label='Simulation', linewidth=1.25)
     axs[2].plot(t, np.rad2deg(sim_res['r_sim']), color=COLOR_CYCLE[0], label='Prediction Model', linewidth=1.0, linestyle='-')
     axs[2].set_ylabel('$r$ [deg/s]')
@@ -313,13 +341,32 @@ def plot_velocities_validation(data, sim_res, out_dirs):
     axs[2].set_ylim([-12.0, 38.0])
     axs[2].grid(True, linestyle=':', alpha=0.6)
 
-    # Shared top legend: guaranteed zero overlap with any transient
     fig.legend([l_sim, l_mod], ['Simulation', 'Prediction Model'],
                loc='upper center', bbox_to_anchor=(0.5, 0.99), ncol=2, frameon=True)
     plt.tight_layout(rect=[0.0, 0.0, 1.0, 0.95])
     for d in out_dirs:
         save_figure(fig, os.path.join(d, 'usv_velocities_validation'), save_png=True)
     plt.close(fig)
+
+    # 2. Individual Velocity Plots (side-by-side in LaTeX: u, v, r)
+    vel_configs = [
+        ('u', 'm/s', data['u_gt'], sim_res['u_sim'], [-2.4, 2.6]),
+        ('v', 'm/s', data['v_gt'], sim_res['v_sim'], [-2.2, 1.6]),
+        ('r', 'deg/s', np.rad2deg(data['r_gt']), np.rad2deg(sim_res['r_sim']), [-12.0, 38.0])
+    ]
+    for var, unit, y_gt, y_sim, ylim in vel_configs:
+        fig_v, ax_v = plt.subplots(figsize=(3.5, 2.7))
+        ax_v.plot(t, y_gt, color=SIMULATION_COLOR, label='Simulation', linewidth=1.25)
+        ax_v.plot(t, y_sim, color=COLOR_CYCLE[0], label='Prediction Model', linewidth=1.0)
+        ax_v.set_ylabel(f'${var}$ [{unit}]')
+        ax_v.set_xlabel('Time [s]')
+        ax_v.set_ylim(ylim)
+        ax_v.grid(True, linestyle=':', alpha=0.6)
+        ax_v.legend(loc='upper right', framealpha=0.9, fontsize=7.5)
+        plt.tight_layout()
+        for d in out_dirs:
+            save_figure(fig_v, os.path.join(d, f'usv_velocity_{var}_validation'), save_png=True)
+        plt.close(fig_v)
 
 
 def plot_prediction_error(horizon_t, pos_rmse, vel_rmse, out_dirs):
@@ -442,6 +489,8 @@ def main():
     
     err_pos = np.zeros((len(starts), n_h + 1))
     err_vel = np.zeros((len(starts), n_h + 1))
+    err_psi = np.zeros((len(starts), n_h + 1))
+    err_r = np.zeros((len(starts), n_h + 1))
     
     for j, k0 in enumerate(starts):
         s_sim = simulate_horizon(k0, n_h, data, tau)
@@ -449,17 +498,31 @@ def main():
         err_pos[j] = np.linalg.norm(s_sim[:, :2] - p_true, axis=1)
         v_true = np.column_stack([data['u_gt'][k0:k0 + n_h + 1], data['v_gt'][k0:k0 + n_h + 1]])
         err_vel[j] = np.linalg.norm(s_sim[:, 3:5] - v_true, axis=1)
+        dpsi = np.arctan2(np.sin(s_sim[:, 2] - data['psi_gt'][k0:k0 + n_h + 1]),
+                          np.cos(s_sim[:, 2] - data['psi_gt'][k0:k0 + n_h + 1]))
+        err_psi[j] = np.rad2deg(np.abs(dpsi))
+        err_r[j] = np.rad2deg(np.abs(s_sim[:, 5] - data['r_gt'][k0:k0 + n_h + 1]))
         if k0 % 250 == 0:
             sample_windows.append((k0, s_sim))
             
     pos_rmse_curve = np.sqrt(np.mean(err_pos ** 2, axis=0))
     vel_rmse_curve = np.sqrt(np.mean(err_vel ** 2, axis=0))
+    psi_rmse_curve = np.sqrt(np.mean(err_psi ** 2, axis=0))
+    r_rmse_curve = np.sqrt(np.mean(err_r ** 2, axis=0))
     horizon_t = np.arange(n_h + 1) * dt
     
-    print(f"  Horizon 0.5 s: Pos RMSE = {pos_rmse_curve[25]:.4f} m, Vel RMSE = {vel_rmse_curve[25]:.4f} m/s")
-    print(f"  Horizon 1.0 s: Pos RMSE = {pos_rmse_curve[50]:.4f} m, Vel RMSE = {vel_rmse_curve[50]:.4f} m/s")
-    print(f"  Horizon 1.5 s: Pos RMSE = {pos_rmse_curve[75]:.4f} m, Vel RMSE = {vel_rmse_curve[75]:.4f} m/s")
-    print(f"  Horizon 2.0 s: Pos RMSE = {pos_rmse_curve[100]:.4f} m, Vel RMSE = {vel_rmse_curve[100]:.4f} m/s")
+    max_turn_2s = np.max([np.abs(data['psi_gt'][k0 + n_h] - data['psi_gt'][k0]) for k0 in starts])
+    max_turn_2s_deg = np.rad2deg(max_turn_2s)
+    nrmse_psi_2s = (psi_rmse_curve[100] / max_turn_2s_deg) * 100.0
+    r_range_deg = np.rad2deg(np.ptp(data['r_gt']))
+    nrmse_r_2s = (r_rmse_curve[100] / r_range_deg) * 100.0
+    
+    print(f"  Horizon 0.5 s: Pos RMSE = {pos_rmse_curve[25]:.4f} m, Psi RMSE = {psi_rmse_curve[25]:.4f} deg, Vel RMSE = {vel_rmse_curve[25]:.4f} m/s, r RMSE = {r_rmse_curve[25]:.4f} deg/s")
+    print(f"  Horizon 1.0 s: Pos RMSE = {pos_rmse_curve[50]:.4f} m, Psi RMSE = {psi_rmse_curve[50]:.4f} deg, Vel RMSE = {vel_rmse_curve[50]:.4f} m/s, r RMSE = {r_rmse_curve[50]:.4f} deg/s")
+    print(f"  Horizon 1.5 s: Pos RMSE = {pos_rmse_curve[75]:.4f} m, Psi RMSE = {psi_rmse_curve[75]:.4f} deg, Vel RMSE = {vel_rmse_curve[75]:.4f} m/s, r RMSE = {r_rmse_curve[75]:.4f} deg/s")
+    print(f"  Horizon 2.0 s: Pos RMSE = {pos_rmse_curve[100]:.4f} m, Psi RMSE = {psi_rmse_curve[100]:.4f} deg (NRMSE={nrmse_psi_2s:.2f}%), Vel RMSE = {vel_rmse_curve[100]:.4f} m/s, r RMSE = {r_rmse_curve[100]:.4f} deg/s (NRMSE={nrmse_r_2s:.2f}%)")
+    print(f"  Final 2.0 s Heading : RMSE = {psi_rmse_curve[100]:.4f} deg | NRMSE = {nrmse_psi_2s:.2f}% | Max Error: {np.max(err_psi[:, 100]):.4f} deg")
+    print(f"  Final 2.0 s Yaw Rate: RMSE = {r_rmse_curve[100]:.4f} deg/s | NRMSE = {nrmse_r_2s:.2f}% | Max Error: {np.max(err_r[:, 100]):.4f} deg/s")
     print(f"  Final 2.0 s P95 Pos Error: {np.percentile(err_pos[:, -1], 95):.4f} m | Max Pos Error: {err_pos[:, -1].max():.4f} m")
     print("=" * 78 + "\n")
     

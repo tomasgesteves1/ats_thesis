@@ -36,22 +36,22 @@ The vehicles operate at sea, where wind, waves, and currents act on them. The wo
 \subsection{Wave Adaptive Modular Vessel}
 \label{sec:usv_model}
 
-The \gls{wamv} is a catamaran with two inflatable hulls connected by a central payload deck, used in maritime robotics competitions. In this work it is the \gls{usv} of the tethered system. It was chosen mainly because its payload deck is large enough to serve as a platform for the takeoff and landing of the \gls{uav}. In addition, a complete and publicly available model of the vessel exists in the \gls{vrx} simulation framework \cite{bingham2019vrx}, so that the work could focus on the control and not on building and validating a vessel model. Figure~\ref{fig:wamv_render} shows the vehicle in the simulated world.
+The \gls{wamv} is a catamaran with two inflatable hulls connected by a central payload deck, used in maritime robotics competitions. In this work it is the \gls{usv} of the tethered system. It was chosen mainly because its payload deck is large enough to serve as a platform for the takeoff and landing of the \gls{uav}. In addition, a complete and publicly available model of the \gls{usv} exists in the \gls{vrx} simulation framework \cite{bingham2019vrx}, so that the work could focus on the control and not on building and validating a \gls{usv} model. Figure~\ref{fig:wamv_render} shows the vehicle in the simulated world.
 
 \begin{figure}[!htbp]
     \centering
     \includegraphics[width=0.7\textwidth]{Implementation/figures/01_simulation_environment/wamv.png}
-    \caption{The \acrshort{wamv} catamaran in the simulated world.}
+    \caption{The \gls{wamv} catamaran in the simulated world.}
     \label{fig:wamv_render}
 \end{figure}
 
-In the simulator, a vehicle is described by a model that lists its bodies, the joints that connect them, and for each body its mass, its inertia, and its geometry. The \gls{wamv} is represented by a main rigid body, which includes the hulls, the deck, and the batteries, with a mass of $227\,\text{kg}$ and moments of inertia of $181$, $408$, and $495\,\text{kg}\cdot\text{m}^2$ about the longitudinal, lateral, and vertical axes. The two thrusters and the sensors are separate bodies attached to it through joints. The thrusters can rotate to steer the vessel, while the joints of the sensors are fixed. Including all bodies, the total mass is $259.10\,\text{kg}$.
+In the simulator, a vehicle is described by a model that lists its bodies, the joints that connect them, and for each body its mass, its inertia, and its geometry. The \gls{wamv} is represented by a main rigid body, which includes the hulls, the deck, and the batteries, with a mass of $227\,\text{kg}$ and moments of inertia of $181$, $408$, and $495\,\text{kg}\cdot\text{m}^2$ about the longitudinal, lateral, and vertical axes. The two thrusters and the sensors are separate bodies attached to it through joints. The thrusters can rotate to steer the \gls{usv}, while the joints of the sensors are fixed. Including all bodies, the total mass is $259.10\,\text{kg}$.
 
 The catamaran has an overall length of $4.90\,\text{m}$ and a beam of $2.40\,\text{m}$. The payload deck, with $1.85\,\text{m}$ in length and $1.00\,\text{m}$ in width, is supported by the two hulls at about $1.25\,\text{m}$ above the water surface, as shown in Figure~\ref{fig:wamv_schematic}.
 
 \input{Implementation/figures/01_simulation_environment/wamv_layout.tex}
 
-The behaviour of the vessel on the water is determined by how the simulator reproduces the forces that the water exerts on it. The hulls are kept afloat by a buoyancy force, which is calculated from the volume of each hull below the water surface. When waves are present, this volume changes along the hulls and the catamaran pitches and rolls accordingly. As the vessel moves, the water also resists its motion through drag forces and moments applied in the six \glspl{dof}. For a velocity $\nu_i$ along or about each degree of freedom, the drag is
+The behaviour of the \gls{usv} on the water is determined by how the simulator reproduces the forces that the water exerts on it. The hulls are kept afloat by a buoyancy force, which is calculated from the volume of each hull below the water surface. When waves are present, this volume changes along the hulls and the catamaran pitches and rolls accordingly. As the \gls{usv} moves, the water also resists its motion through drag forces and moments applied in the six \glspl{dof}. For a velocity $\nu_i$ along or about each degree of freedom, the drag is
 \begin{equation}
     D_i = -\left(d_i^{\text{lin}} + d_i^{\text{quad}}\,|\nu_i|\right)\nu_i,
     \label{eq:usv_drag}
@@ -60,7 +60,7 @@ where $d_i^{\text{lin}}$ and $d_i^{\text{quad}}$ are the linear and quadratic co
 
 \begin{table}[htbp]
     \centering
-    \caption{Hydrodynamic damping coefficients of the simulated \acrshort{wamv}.}
+    \caption{Hydrodynamic damping coefficients of the simulated \gls{wamv}.}
     \label{tab:usv_damping_parameters}
     \begin{tabular}{lccc}
         \toprule
@@ -79,15 +79,15 @@ where $d_i^{\text{lin}}$ and $d_i^{\text{quad}}$ are the linear and quadratic co
 The vehicle is propelled by two azimuth thrusters, one at the stern of each hull, and it steers by rotating them instead of using a rudder. To move, the model needs to receive, for each thruster, the thrust force that it must produce, in newtons, and its steering angle. The angle is limited to $\pm 30$ degrees, to avoid twisting the power cables, and its rate of change to $10$ degrees per second. The thrust is limited to $510.0\,\text{N}$ in the forward direction, a value representative of the electric outboard motors used on the \gls{wamv} in robotics competitions, such as the Torqeedo Cruise 2.0 \cite{torqeedo_cruise_manual}. In reverse, the propeller is less efficient, which is modelled with a multiplier of $0.746$ that limits the thrust to $-380.0\,\text{N}$.
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-\subsection{X500 Quadrotor}
+\subsection{\texorpdfstring{x500 \Gls{uav}}{x500 UAV}}
 \label{sec:x500_quadrotor}
 
-The Holybro X500 v2 \cite{holybro_x500} is a quadrotor, and in this work it is the \gls{uav} of the tethered system. It was chosen mainly because it is heavier and more stable than small multirotors, which makes it better suited to fly with a tether attached to it. Its size is also compatible with the payload deck of the \gls{wamv}, leaving enough room for takeoff and landing, and a complete model of the vehicle is available in the simulation ecosystem of the PX4 autopilot \cite{meier2015px4}, so that the work could focus on the control and not on building and validating a vehicle model. Figure~\ref{fig:x500_render} shows the vehicle in the simulated world.
+The Holybro X500 v2 \cite{holybro_x500} is a \gls{uav}, and in this work it is the aerial vehicle of the tethered system. It was chosen mainly because it is heavier and more stable than small \glspl{uav}, which makes it better suited to fly with a tether attached to it. Its size is also compatible with the payload deck of the \gls{wamv}, leaving enough room for takeoff and landing, and a complete model of the vehicle is available in the simulation ecosystem of the PX4 autopilot \cite{meier2015px4}, so that the work could focus on the control and not on building and validating a vehicle model. Figure~\ref{fig:x500_render} shows the vehicle in the simulated world.
 
 \begin{figure}[!htbp]
     \centering
     \includegraphics[width=0.7\textwidth]{Implementation/figures/01_simulation_environment/drone_world.png}
-    \caption{The x500 quadrotor in the simulated world.}
+    \caption{The x500 \gls{uav} in the simulated world.}
     \label{fig:x500_render}
 \end{figure}
 
@@ -132,9 +132,9 @@ The rotors have limits that the model reproduces. The speed of each rotor does n
 \subsection{Tether}
 \label{sec:tether}
 
-The tether couples the two vehicles, so the behaviour of the system depends on how it is represented. To evaluate the controllers as close as possible to real operation, they should be tested against a tether model that is more detailed than the one used in their design. The model used by the controllers, described in Section~\ref{sec:system_modeling}, approximates the tether by a catenary linearised around a constant slack. This simplification keeps the computational cost low, since the controllers evaluate the model at every step of the prediction horizon within each sampling interval. The simulated tether does not have this constraint, so a more detailed model can be used. Since this type of cable is not included in the vehicle models, it is simulated separately and coupled to them.
+The tether couples the two vehicles, so the behaviour of the system depends on how it is represented. To evaluate the controllers as close as possible to real operation, they should be tested against a tether model that is more detailed than the one used in their design. The model used by the controllers, described in Section~\ref{sec:system_modeling}, approximates the tether by a catenary linearised around a constant slack. This simplification keeps the computational cost low, since the controllers evaluate the model at every step of the prediction horizon within each sampling interval. The simulated tether does not have this constraint, so a more detailed model can be used. Since this type of tether is not included in the vehicle models, it is simulated separately and coupled to them.
 
-The tether is simulated with MoorDyn \cite{hall2015moordyn}, a tool that represents a cable as a chain of lumped masses connected by segments that behave as springs and dampers. Each segment resists stretching and bending, while the weight and the drag of the cable are calculated at the nodes between segments. The slack and the tension of the cable result from the motion of these nodes, without assuming a shape for the cable. MoorDyn runs separately from Gazebo, which does not represent the cable itself but receives its effect on the vehicles through the forces that MoorDyn calculates. The cable is therefore displayed in a separate visualisation tool, Foxglove \cite{foxglove}, as shown in Figure~\ref{fig:tether_foxglove}.
+The tether is simulated with MoorDyn \cite{hall2015moordyn}, a tool that represents a tether as a chain of lumped masses connected by segments that behave as springs and dampers. Each segment resists stretching and bending, while the weight and the drag of the tether are calculated at the nodes between segments. The slack and the tension of the tether result from the motion of these nodes, without assuming a shape for the tether. MoorDyn runs separately from Gazebo, which does not represent the tether itself but receives its effect on the vehicles through the forces that MoorDyn calculates. The tether is therefore displayed in a separate visualisation tool, Foxglove \cite{foxglove}, as shown in Figure~\ref{fig:tether_foxglove}.
 
 \begin{figure}[!htbp]
     \centering
@@ -147,16 +147,16 @@ The tether is simulated with MoorDyn \cite{hall2015moordyn}, a tool that represe
         \includegraphics[height=5.5cm]{Implementation/figures/01_simulation_environment/drone_foxglove_top.png}
         \label{fig:tether_foxglove_top}
     }
-    \caption{The tether between the \acrshort{usv} and the \acrshort{uav}, displayed in Foxglove.}
+    \caption{The tether between the \gls{usv} and the \gls{uav}, displayed in Foxglove.}
     \label{fig:tether_foxglove}
 \end{figure}
 
-In this type of model, the mass of the cable is concentrated at the nodes, and the segments between them have no mass, as shown in Figure~\ref{fig:tether_chain}. The motion of each free node $i$ follows from Newton's second law, with the forces shown in Figure~\ref{fig:tether_forces},
+In this type of model, the mass of the tether is concentrated at the nodes, and the segments between them have no mass, as shown in Figure~\ref{fig:tether_chain}. The motion of each free node $i$ follows from Newton's second law, with the forces shown in Figure~\ref{fig:tether_forces},
 \begin{equation}
     m_i\,\ddot{\mathbf{p}}_i = \mathbf{T}_{i-1} + \mathbf{T}_i + \mathbf{F}^{\text{bend}}_i + m_i\mathbf{g} + \mathbf{F}^{\text{drag}}_i,
     \label{eq:tether_node}
 \end{equation}
-where $m_i$ and $\mathbf{p}_i$ are the mass and the position of the node, $\mathbf{T}_{i-1}$ and $\mathbf{T}_i$ are the tensions of the two adjacent segments, $\mathbf{F}^{\text{bend}}_i$ is the force due to the bending of the cable at the node, and $\mathbf{F}^{\text{drag}}_i$ is the drag, which opposes the velocity of the node. The magnitude of the tension of a segment depends on its elongation and on the rate at which it changes,
+where $m_i$ and $\mathbf{p}_i$ are the mass and the position of the node, $\mathbf{T}_{i-1}$ and $\mathbf{T}_i$ are the tensions of the two adjacent segments, $\mathbf{F}^{\text{bend}}_i$ is the force due to the bending of the tether at the node, and $\mathbf{F}^{\text{drag}}_i$ is the drag, which opposes the velocity of the node. The magnitude of the tension of a segment depends on its elongation and on the rate at which it changes,
 \begin{equation}
     T =
     \begin{cases}
@@ -166,11 +166,11 @@ where $m_i$ and $\mathbf{p}_i$ are the mass and the position of the node, $\math
     \qquad \eta = \frac{\ell - \ell_0}{\ell_0},
     \label{eq:tether_tension}
 \end{equation}
-where $\ell$ and $\ell_0$ are the current and the unstretched lengths of the segment, $EA$ is the axial stiffness, and $BA$ is the damping coefficient, which is defined through the damping ratio given in Table~\ref{tab:tether_parameters}. A segment that is shorter than its unstretched length carries no tension, so the cable can go slack. The accelerations are then integrated in time to obtain the new position and velocity of every node. The end nodes are not integrated, since their motion is imposed by the vehicles, and the forces at these nodes are the forces that the cable exerts on them.
+where $\ell$ and $\ell_0$ are the current and the unstretched lengths of the segment, $EA$ is the axial stiffness, and $BA$ is the damping coefficient, which is defined through the damping ratio given in Table~\ref{tab:tether_parameters}. A segment that is shorter than its unstretched length carries no tension, so the tether can go slack. The accelerations are then integrated in time to obtain the new position and velocity of every node. The end nodes are not integrated, since their motion is imposed by the vehicles, and the forces at these nodes are the forces that the tether exerts on them.
 
 \input{Implementation/figures/01_simulation_environment/tether_model.tex}
 
-The parameters of the model are the mass per unit length, which gives the mass $m_i$ of each node in~\eqref{eq:tether_node}, the axial stiffness $EA$ and the damping ratio, which define the tension in~\eqref{eq:tether_tension}, the bending stiffness, and the drag coefficients. Their values are given in Table~\ref{tab:tether_parameters}, together with the number of segments and the time step used to integrate the equations. The mass per unit length and the diameter are based on commercial micro-tethers for drones that provide power and data \cite{elistair_safet2,linden_microtethers}, and the axial stiffness is estimated from the tensile strength of these tethers. The length of the cable is not fixed, and it is changed by the winch described in Section~\ref{sec:tether_winch}.
+The parameters of the model are the mass per unit length, which gives the mass $m_i$ of each node in~\eqref{eq:tether_node}, the axial stiffness $EA$ and the damping ratio, which define the tension in~\eqref{eq:tether_tension}, the bending stiffness, and the drag coefficients. Their values are given in Table~\ref{tab:tether_parameters}, together with the number of segments and the time step used to integrate the equations. The mass per unit length and the diameter are based on commercial micro-tethers for \glspl{uav} that provide power and data \cite{elistair_safet2,linden_microtethers}, and the axial stiffness is estimated from the tensile strength of these tethers. The length of the tether is not fixed, and it is changed by the winch described in Section~\ref{sec:tether_winch}.
 
 \begin{table}[!htbp]
     \centering
@@ -193,7 +193,7 @@ The parameters of the model are the mass per unit length, which gives the mass $
     \end{tabular}
 \end{table}
 
-The tether is coupled to the vehicles by a \gls{ros} node, as shown in Figure~\ref{fig:tether_coupling}. At each step, the node reads the position and the velocity of the two attachment points, which are the tether anchor on the deck of the \gls{usv} and the centre of the body of the \gls{uav}, and gives them to MoorDyn. MoorDyn imposes them as the motion of the ends of the cable, integrates the cable over the step, and returns the force vector at each attachment point, which is applied to the vehicles in Gazebo.
+The tether is coupled to the vehicles by a \gls{ros} node, as shown in Figure~\ref{fig:tether_coupling}. At each step, the node reads the position and the velocity of the two attachment points, which are the tether anchor on the deck of the \gls{usv} and the centre of the body of the \gls{uav}, and gives them to MoorDyn. MoorDyn imposes them as the motion of the ends of the tether, integrates the tether over the step, and returns the force vector at each attachment point, which is applied to the vehicles in Gazebo.
 
 \input{Implementation/figures/01_simulation_environment/tether_coupling.tex}
 
@@ -202,17 +202,17 @@ The tether is coupled to the vehicles by a \gls{ros} node, as shown in Figure~\r
 \subsection{Tether Winch}
 \label{sec:tether_winch}
 
-The model of the tether used by the controllers in Section~\ref{sec:system_modeling} assumes that its slack is kept close to a constant value $\varepsilon_0$, which requires a mechanism that adjusts the length of the cable as the vehicles move. In a real system, this can be achieved by a winch system on the vessel, which spools the cable in and out. In simulation, this mechanism is represented by a virtual winch that varies the length of the cable.
+The model of the tether used by the controllers in Section~\ref{sec:system_modeling} assumes that its slack is kept close to a constant value $\varepsilon_0$, which requires a mechanism that adjusts the length of the tether as the vehicles move. In a real system, this can be achieved by a winch system on the \gls{usv}, which spools the tether in and out. In simulation, this mechanism is represented by a virtual winch that varies the length of the tether.
 
-At each step, the virtual winch reads the distance $d$ between the attachment points and computes the length that gives the desired slack,
+At each step, the virtual winch reads the distance $d$ between the attachment points and computes the tether length $L_{\text{ref}}$ that gives the desired slack,
 \begin{equation}
     L_{\text{ref}} = \frac{d}{1-\varepsilon_0},
     \label{eq:winch_length}
 \end{equation}
-which it then applies as the unstretched length of the cable in MoorDyn. % TODO: confirmar onde o guincho le d e onde escreve L (mesmo no ROS da Sec. 4.1.4?)
-A real system cannot follow the variations of the distance instantly, because of the speed of the winch and the delay in the measurement of the distance. To account for this limitation, the rate of change of the length is limited to $v_{\text{winch}}$, so that the slack deviates from $\varepsilon_0$ when the distance changes faster than the system can follow. The values used are $\varepsilon_0 = 0.05$ and $v_{\text{winch}} = 5\,\text{m/s}$. % TODO: justificar v_winch (valor realista? escolha de simulacao?)
+which it then applies as the length of the tether in MoorDyn.
+A real system cannot follow the variations of the length instantly, because of the speed of the winch and the delay in the measurement of the distance. To account for this limitation, the rate of change of the length is limited to $v_{\text{winch}} = 2\,\text{m/s}$, which makes the slack deviate from $\varepsilon_0$ when the distance changes faster than the system can follow.
 
-To evaluate the effect of the slack ratio, the same trajectory of the \gls{uav} was flown with $\varepsilon_0 = 2\%$, $5\%$, and $10\%$. A larger slack makes the cable sag more between the vehicles (Figure~\ref{fig:winch_shape}), and the length of the cable follows the distance between them, staying above it by a margin that grows with $\varepsilon_0$ (Figure~\ref{fig:winch_geometry}). The tension at the \gls{uav} follows the distance, since the weight of the cable that it supports increases with it, and decreases as the slack increases (Figure~\ref{fig:winch_tension}). Table~\ref{tab:winch_slack} quantifies these results. The maximum distance between the vehicles is about $14\,\text{m}$ in the three runs, differing by $5\,\text{cm}$ at most, which confirms that the trajectory is the same. From $\varepsilon_0 = 2\%$ to $10\%$, the mean tension decreases from $2.07\,\text{N}$ to $1.62\,\text{N}$, a reduction of $22\%$, and the maximum from $3.38\,\text{N}$ to $2.88\,\text{N}$.
+To evaluate the effect of the slack ratio, the same $60\,\text{s}$ trajectory of the \gls{uav} was flown with $\varepsilon_0 = 2\%$, $5\%$, and $10\%$. Figure~\ref{fig:winch_shape} shows the shape of the tether for each value, and a larger slack naturally makes the tether sag more between the vehicles. Figure~\ref{fig:winch_geometry} shows the distance between the attachment points (dashed) and the length of the tether (solid) along the trajectory. The length follows the distance, staying above it by a margin that grows with $\varepsilon_0$. Figure~\ref{fig:winch_tension} shows the tension at the \gls{uav} along the same trajectory. The tension follows the distance, with its peaks coinciding with the largest distances, since the weight of the tether that the \gls{uav} supports increases with it. The tension also decreases as the slack increases. Table~\ref{tab:winch_slack} quantifies these results. From $\varepsilon_0 = 2\%$ to $10\%$, the mean tension decreases from $2.07\,\text{N}$ to $1.62\,\text{N}$, a reduction of $22\%$, and the maximum from $3.38\,\text{N}$ to $2.88\,\text{N}$.
 
 \begin{figure}[!htbp]
     \centering
@@ -230,38 +230,38 @@ To evaluate the effect of the slack ratio, the same trajectory of the \gls{uav} 
         \includegraphics[width=0.32\textwidth]{Implementation/figures/01_simulation_environment/slack_10.png}
         \label{fig:winch_shape_10}
     }
-    \caption{Shape of the tether for different slack ratios, displayed in Foxglove.}
+    \caption{Shape of the tether for different slack ratios.}
     \label{fig:winch_shape}
 \end{figure}
 
 \begin{figure}[!htbp]
     \centering
-    \subfloat[Distance (dashed) and cable length (solid).]{
+    \subfloat[Distance and tether length.]{
         \includegraphics[width=0.48\textwidth]{Implementation/figures/01_simulation_environment/slack_geometry.pdf}
         \label{fig:winch_geometry}
     }
     \hfill
-    \subfloat[Tension at the \acrshort{uav}.]{
+    \subfloat[Tension at the \gls{uav}.]{
         \includegraphics[width=0.48\textwidth]{Implementation/figures/01_simulation_environment/slack_tension.pdf}
         \label{fig:winch_tension}
     }
-    \caption{Distance between the attachment points, length of the cable, and tension at the \acrshort{uav} for the same trajectory and different slack ratios.}
+    \caption{Tether length and tension for different slack ratios.}
     \label{fig:winch_sweep}
 \end{figure}
 
 \begin{table}[!htbp]
     \centering
-    \caption{Tension at the \acrshort{uav} and maximum distance between the vehicles for different slack ratios, over the $60\,\text{s}$ of the trajectory.}
+    \caption{Tension at the \gls{uav} for different slack ratios.}
     \label{tab:winch_slack}
-    \begin{tabular}{ccccc}
+    \begin{tabular}{ccc}
         \toprule
-        \textbf{$\varepsilon_0$} & \textbf{Mean} (N) & \textbf{Maximum} (N) & \textbf{Std. dev.} (N) & \textbf{Max. distance} (m) \\
+        \textbf{$\varepsilon_0$} & \textbf{Mean} (N) & \textbf{Maximum} (N) \\
         \midrule
-        $2\%$  & $2.07$ & $3.38$ & $0.73$ & $13.99$ \\
-        $5\%$  & $1.78$ & $3.08$ & $0.69$ & $14.03$ \\
-        $10\%$ & $1.62$ & $2.88$ & $0.64$ & $13.98$ \\
+        $2\%$  & $2.07$ & $3.38$ \\
+        $5\%$  & $1.78$ & $3.08$ \\
+        $10\%$ & $1.62$ & $2.88$ \\
         \bottomrule
     \end{tabular}
 \end{table}
 
-These tensions are small compared with the weight of the \gls{uav}, which is $20.2\,\text{N}$, so the value of $\varepsilon_0$ is not critical for the system. A value of $5\%$ is therefore adopted, as a compromise between the amount of loose cable, which grows with $\varepsilon_0$, and the tension, which decreases with it.
+These tensions are small compared with the weight of the \gls{uav}, which is $20.2\,\text{N}$, so the tension alone does not determine the choice of $\varepsilon_0$. The choice is instead a compromise on the amount of slack. Some slack is needed to absorb disturbances and avoid sudden tension spikes at the \gls{uav}, but too much makes the tether harder to manage and more likely to tangle. A value of $\varepsilon_0 = 5\%$ is used in the remainder of this work.

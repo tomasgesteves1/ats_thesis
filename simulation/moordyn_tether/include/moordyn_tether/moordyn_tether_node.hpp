@@ -32,6 +32,7 @@ class MoordynTetherNode : public rclcpp::Node
 public:
     explicit MoordynTetherNode(
         const rclcpp::NodeOptions & options = rclcpp::NodeOptions());
+    ~MoordynTetherNode() override;
 
 private:
     // --- Core loop ---

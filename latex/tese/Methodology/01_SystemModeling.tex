@@ -5,7 +5,7 @@
 %                                                                      %
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-\section{System Modeling}
+\section{System Modelling}
 \label{sec:system_modeling}
 \label{chapter:modeling}
 
@@ -20,16 +20,16 @@ The reference frames and notation are fixed first, followed by the kinematic and
 \subsection{Reference Coordinate Frames and Notation}
 \label{sec:mod_coordinates}
 
-Deriving the equations of motion requires specifying the frames against which positions, orientations, and velocities are measured. Since the vessel and the drone move both with respect to the world and with respect to each other, a common frame of reference is required to describe their motion. Figure~\ref{fig:coordinate_frames} illustrates these frames.
+Deriving the equations of motion requires specifying the frames against which positions, orientations, and velocities are measured. Since the \gls{usv} and the \gls{uav} move both with respect to the world and with respect to each other, a common frame of reference is required to describe their motion. Figure~\ref{fig:coordinate_frames} illustrates these frames.
 
 \paragraph{Inertial Reference Frame $\{\mathcal{I}\}$}
-This frame establishes the global coordinate system following the East-North-Up (ENU) convention, aligned with the standard ROS convention. Its origin $\mathcal{O}_I$ is fixed at an arbitrary point on the water surface within the operating area, following the usual flat-Earth convention. The axis $\mathbf{x}^{\mathcal{I}}$ points East, $\mathbf{y}^{\mathcal{I}}$ points North, and $\mathbf{z}^{\mathcal{I}}$ points upward, opposite to gravity.
+This frame establishes the global coordinate system following the East-North-Up (\gls{enu}) convention, aligned with the standard \gls{ros} convention. Its origin $\mathcal{O}_I$ is fixed at an arbitrary point on the water surface within the operating area, following the usual flat-Earth convention. The axis $\mathbf{x}^{\mathcal{I}}$ points East, $\mathbf{y}^{\mathcal{I}}$ points North, and $\mathbf{z}^{\mathcal{I}}$ points upward, opposite to gravity.
 
-\paragraph{USV Body-Fixed Reference Frame $\{\mathcal{B}_v\}$}
-This frame is rigidly attached to the vessel, with origin $\mathcal{O}_v$ at its centre of gravity. This choice decouples the linear and rotational momentum equations. The forward-pointing axis $\mathbf{x}^{\mathcal{B}_v}$ defines surge, $\mathbf{y}^{\mathcal{B}_v}$ points to port (sway), and $\mathbf{z}^{\mathcal{B}_v}$ points upward (heave).
+\paragraph{\gls{usv} Body-Fixed Reference Frame $\{\mathcal{B}_v\}$}
+This frame is rigidly attached to the \gls{usv}, with origin $\mathcal{O}_v$ at its centre of gravity. This choice decouples the linear and rotational momentum equations. The forward-pointing axis $\mathbf{x}^{\mathcal{B}_v}$ defines surge, $\mathbf{y}^{\mathcal{B}_v}$ points to port (sway), and $\mathbf{z}^{\mathcal{B}_v}$ points upward (heave).
 
-\paragraph{UAV Body-Fixed Reference Frame $\{\mathcal{B}_a\}$}
-Similarly, this frame attaches to the UAV, with origin $\mathcal{O}_a$ at its centre of gravity, decoupling the translational and rotational dynamics in the same way. The longitudinal axis $\mathbf{x}^{\mathcal{B}_a}$ points forward, the lateral axis $\mathbf{y}^{\mathcal{B}_a}$ points to the left, and the vertical axis $\mathbf{z}^{\mathcal{B}_a}$ points upward, aligning with the collective thrust direction.
+\paragraph{\gls{uav} Body-Fixed Reference Frame $\{\mathcal{B}_a\}$}
+Similarly, this frame attaches to the \gls{uav}, with origin $\mathcal{O}_a$ at its centre of gravity, decoupling the translational and rotational dynamics in the same way. The longitudinal axis $\mathbf{x}^{\mathcal{B}_a}$ points forward, the lateral axis $\mathbf{y}^{\mathcal{B}_a}$ points to the left, and the vertical axis $\mathbf{z}^{\mathcal{B}_a}$ points upward, aligning with the collective thrust direction.
 
 \begin{figure}[H]
     \centering
@@ -117,14 +117,14 @@ Similarly, this frame attaches to the UAV, with origin $\mathcal{O}_a$ at its ce
 % ==============================================================================
 % SECTION 3.2: WAM-V Surface Vessel Model
 % ==============================================================================
-\subsection{WAM-V Surface Vessel Model}
+\subsection{WAM-V Model}
 \label{sec:mod_usv}
 
-The mathematical model of the WAM-V catamaran, covering its horizontal maneuvering dynamics and thruster allocation, forms a control-oriented state-space model suitable for trajectory tracking and predictive control.
+The mathematical model of the \gls{wamv} catamaran, covering its horizontal manoeuvring dynamics and thruster allocation, forms a control-oriented state-space model suitable for trajectory tracking and predictive control.
 
-Although a rigid body moving freely in the marine environment inherently has six degrees of freedom, the WAM-V is a vessel that moves on the surface, which allows the motion to be simplified to the horizontal plane. Under this assumption, the model is reduced to three degrees of freedom.
+Although a rigid body moving freely in the marine environment inherently has six degrees of freedom, the \gls{wamv} is a \gls{usv} that moves on the surface, which allows the motion to be simplified to the horizontal plane. Under this assumption, the model is reduced to three degrees of freedom.
 
-Predicting the vessel's motion, as needed for trajectory tracking and predictive control, requires knowing how its state changes over time for a given input. This relationship is captured by the nonlinear state-space model
+Predicting the \gls{usv}'s motion, as needed for trajectory tracking and predictive control, requires knowing how its state changes over time for a given input. This relationship is captured by the non-linear state-space model
 \begin{equation}
     \label{eq:usv_state_space_generic}
     \dot{\mathbf{x}}_v = f(\mathbf{x}_v, \mathbf{u}_v),
@@ -156,7 +156,7 @@ The vector field $f(\cdot)$ splits into a kinematic block and a dynamic block, d
 
 \subsubsection{Kinematic Model}
 \label{subsec:mod_usv_kinematics}
-The kinematics describe how the vessel's inertial position and heading evolve as a function of its body-fixed velocities, forming the first half of \eqref{eq:usv_state_space_generic}.
+The kinematics describe how the \gls{usv}'s inertial position and heading evolve as a function of its body-fixed velocities, forming the first half of \eqref{eq:usv_state_space_generic}.
 
 Let $\mathbf{p} = x\,\mathbf{x}^{\mathcal{I}} + y\,\mathbf{y}^{\mathcal{I}}$ denote the inertial position of the origin $\mathcal{O}_v$ of $\{\mathcal{B}_v\}$. Since $\mathbf{x}^{\mathcal{I}}, \mathbf{y}^{\mathcal{I}}$ are constant, differentiating yields
 \begin{equation}
@@ -212,7 +212,7 @@ The heading rate follows directly from the definition of the angular velocity $r
 \subsubsection{Dynamic Model}
 \label{subsec:mod_usv_dynamics}
 
-The dynamics describe how the vessel's body-fixed velocities evolve as a function of the applied forces and moments, forming the second half of \eqref{eq:usv_state_space_generic}.
+The dynamics describe how the \gls{usv}'s body-fixed velocities evolve as a function of the applied forces and moments, forming the second half of \eqref{eq:usv_state_space_generic}.
 
 Unlike $\mathbf{x}^{\mathcal{I}}, \mathbf{y}^{\mathcal{I}}$, the body-fixed unit vectors $\mathbf{x}^{\mathcal{B}}, \mathbf{y}^{\mathcal{B}}$ rotate with the vehicle. Differentiating \eqref{eq:usv_basis_change} and using $\dot\psi = r$ gives
 \begin{equation}
@@ -231,14 +231,14 @@ Let $F_x, F_y$ denote the resultant surge and sway forces applied at $\mathcal{O
     F_x = m(\dot{u} - vr), \qquad F_y = m(\dot{v} + ur).
     \label{eq:usv_newton_linear}
 \end{equation}
-Since the vessel's motion is planar, Euler's rotational equation about $\mathbf{z}^{\mathcal{B}}$ takes the form
+Since the \gls{usv}'s motion is planar, Euler's rotational equation about $\mathbf{z}^{\mathcal{B}}$ takes the form
 \begin{equation}
     M_z = I_z\,\dot{r},
     \label{eq:usv_euler_yaw}
 \end{equation}
 where $M_z$ is the resultant yaw moment about $\mathcal{O}_v$ and $I_z$ the yaw moment of inertia.
 
-The resultant force and moment $F_x, F_y, M_z$ combine two contributions: the thrust generated by the propulsion system, $X, Y, N$, and the hydrodynamic damping opposing the vessel's motion. This damping follows the standard linear-plus-quadratic model for surface vessels~\cite{fossenHandbookMarineCraft2011}. The quadratic surge term is further split into forward and backward coefficients, to capture the asymmetric drag between the two directions:
+The resultant force and moment $F_x, F_y, M_z$ combine two contributions: the thrust generated by the propulsion system, $X, Y, N$, and the hydrodynamic damping opposing the \gls{usv}'s motion. This damping follows the standard linear-plus-quadratic model for \glspl{usv}~\cite{fossenHandbookMarineCraft2011}. The quadratic surge term is further split into forward and backward coefficients, to capture the asymmetric drag between the two directions:
 \begin{equation}
     F_x = X - \big(X_u + X_{uu}^{\pm}|u|\big)u, \qquad
     X_{uu}^{\pm} = \begin{cases} X_{uu}^{+}, & u \geq 0 \\ X_{uu}^{-}, & u < 0 \end{cases}
@@ -383,7 +383,7 @@ The thruster allocation maps the physical actuator commands, the left and right 
             node[below right, font=\small, okiVermillion] {$T_R$};
 
     \end{tikzpicture}
-    \caption{Planar USV schematic and thruster allocation geometry.}
+    \caption{Planar \gls{usv} schematic and thruster allocation geometry.}
     \label{fig:usv_planar_model}
 \end{figure}
 
@@ -414,13 +414,13 @@ Equations~\eqref{eq:usv_thruster_force_sum} and~\eqref{eq:usv_thruster_moment} c
 % ==============================================================================
 % SECTION 3.3: x500 Quadrotor Model
 % ==============================================================================
-\subsection{x500 Quadrotor Model}
+\subsection{\texorpdfstring{x500 \gls{uav} Model}{x500 UAV Model}}
 \label{sec:mod_uav}
 
-The mathematical model of the x500 quadrotor, covering its translational dynamics in three-dimensional space, forms a control-oriented state-space model suitable for trajectory tracking and predictive control.
-The vehicle's attitude is stabilized by an inner-loop attitude controller, to which the attitude used in the translational dynamics is commanded.
+The mathematical model of the x500 \gls{uav}, covering its translational dynamics in three-dimensional space, forms a control-oriented state-space model suitable for trajectory tracking and predictive control.
+The vehicle's attitude is stabilised by an inner-loop attitude controller, to which the attitude used in the translational dynamics is commanded.
 
-Predicting the vehicle's motion, as needed for trajectory tracking and predictive control, requires knowing how its state changes over time for a given input. This relationship is captured by the nonlinear state-space model
+Predicting the vehicle's motion, as needed for trajectory tracking and predictive control, requires knowing how its state changes over time for a given input. This relationship is captured by the non-linear state-space model
 
 \begin{equation}
     \label{eq:uav_state_space_generic}
@@ -463,7 +463,7 @@ i.e.\ $\dot{x}, \dot{y}, \dot{z}$ are, by definition, the components of $\dot{\m
     \label{eq:uav_kinematics}
     \begin{bmatrix} \dot{x} \\ \dot{y} \\ \dot{z} \end{bmatrix} = \begin{bmatrix} \dot{x} \\ \dot{y} \\ \dot{z} \end{bmatrix}.
 \end{equation}
-This is in contrast to a surface vessel such as the WAM-V (Section~\ref{sec:mod_usv}), where the linear velocities are instead expressed in $\{\mathcal{B}_v\}$, requiring an additional change of basis via $\mathbf{R}(\psi)$ to relate them to $\dot{\mathbf p}$. Here, this rotation is required instead to express the thrust force, applied along $\mathbf{z}^{\mathcal{B}_a}$, in $\{\mathcal{I}\}$. It is therefore deferred to the dynamic block, derived next.
+This is in contrast to a \gls{usv} such as the \gls{wamv} (Section~\ref{sec:mod_usv}), where the linear velocities are instead expressed in $\{\mathcal{B}_v\}$, requiring an additional change of basis via $\mathbf{R}(\psi)$ to relate them to $\dot{\mathbf p}$. Here, this rotation is required instead to express the thrust force, applied along $\mathbf{z}^{\mathcal{B}_a}$, in $\{\mathcal{I}\}$. It is therefore deferred to the dynamic block, derived next.
 
 \subsubsection{Dynamic Model}
 \label{subsec:mod_uav_dynamics}
@@ -598,7 +598,7 @@ Figure~\ref{fig:uav_thrust_vectoring} illustrates this projection in the longitu
         \node[right, font=\footnotesize, black!80, xshift=2pt, yshift=-2pt] at ({1.9*cos(-\thetaAngle/2)}, {1.9*sin(-\thetaAngle/2)}) {$\theta$};
 
     \end{tikzpicture}
-    \caption{Quadrotor thrust vectoring in the longitudinal plane.}
+    \caption{\Gls{uav} thrust vectoring in the longitudinal plane.}
     \label{fig:uav_thrust_vectoring}
 \end{figure}
 
@@ -617,7 +617,7 @@ where the small coupling between horizontal and vertical velocities caused by th
 
 In addition to thrust, gravity, and aerodynamic drag, the vehicle is subject to a force transmitted through a tether attached at the origin $\mathcal{O}_a$ of $\{\mathcal{B}_a\}$, denoted $\mathbf{F}_{\mathrm{tether}}^{\mathcal{I}}$ and derived separately in Section~\ref{subsec:mod_uav_tether}.
 
-Since $\{\mathcal{I}\}$ is non-rotating, Newton's second law applies directly to the inertial acceleration, without the transport terms that arise when applying it in a rotating frame, such as $\{\mathcal{B}_v\}$ in the WAM-V model (Section~\ref{subsec:mod_usv_dynamics}):
+Since $\{\mathcal{I}\}$ is non-rotating, Newton's second law applies directly to the inertial acceleration, without the transport terms that arise when applying it in a rotating frame, such as $\{\mathcal{B}_v\}$ in the \gls{wamv} model (Section~\ref{subsec:mod_usv_dynamics}):
 \begin{equation}
     m\,\ddot{\mathbf{p}} = \mathbf{F}_{\mathrm{thr}}^{\mathcal{I}} + \mathbf{F}_{\mathrm{grav}}^{\mathcal{I}} + \mathbf{F}_{\mathrm{drag}}^{\mathcal{I}} + \mathbf{F}_{\mathrm{tether}}^{\mathcal{I}}.
     \label{eq:uav_newton}
@@ -632,14 +632,14 @@ Substituting \eqref{eq:uav_thrust_inertial}, \eqref{eq:uav_gravity}, and \eqref{
 \label{subsec:mod_uav_tether}
 \label{subsec:mod_tether_force_model}
 
-In addition to thrust and gravity, the vehicle is subject to a force transmitted through a tether connecting the origin $\mathcal{O}_a$ of $\{\mathcal{B}_a\}$ to a fixed attachment point on the WAM-V, whose position $\mathbf{p}_v$ is treated here only as a known geometric anchor, without modeling the (negligible) reaction force exerted on the boat.
+In addition to thrust and gravity, the vehicle is subject to a force transmitted through a tether connecting the origin $\mathcal{O}_a$ of $\{\mathcal{B}_a\}$ to a fixed attachment point on the \gls{wamv}, whose position $\mathbf{p}_v$ is treated here only as a known geometric anchor, without modelling the (negligible) reaction force exerted on the \gls{usv}.
 
 The relevant geometric quantity is the straight-line vector between the two attachment points,
 \begin{equation}
     \mathbf{r} = \mathbf{p}_v - \mathbf{p}, \qquad d = \|\mathbf{r}\|, \qquad \hat{\mathbf{d}}_0 = \frac{\mathbf{r}}{d},
     \label{eq:uav_tether_geometry}
 \end{equation}
-where $d$ is the straight-line distance between the vehicle and the boat, and $\hat{\mathbf{d}}_0$ is the direction the tether would have if taut.
+where $d$ is the straight-line distance between the \gls{uav} and the \gls{usv}, and $\hat{\mathbf{d}}_0$ is the direction the tether would have if taut.
 
 Denoting by $L \geq d$ the tether length at a given instant, its slack is conveniently quantified by the dimensionless ratio
 \begin{equation}
@@ -650,7 +650,7 @@ with $\varepsilon = 0$ corresponding to a taut tether, and $\varepsilon$ increas
 
 Under its own weight, a tether of linear mass density $\mu$ suspended between two attachment points takes the shape of a catenary, contained in the vertical plane defined by the two endpoints. Due to the geometric self-similarity of the catenary curve at a given slack ratio $\varepsilon$, the tension magnitude scales proportionally with the straight-line separation distance $d$ (or unstretched length $L$), while the tension direction is governed by the angular deflection $\gamma$ by which the tension vector at $\mathcal{O}_a$ deviates from $\hat{\mathbf{d}}_0$ towards the vertical.
 
-The exact relations governing the deflection angle $\gamma_{\mathrm{exact}}(\varepsilon,\alpha)$ and the normalized tension coefficient $c_d^{\mathrm{exact}}(\varepsilon,\alpha) = T_{\mathrm{tether}}/d$ do not admit a closed-form analytical solution, requiring numerical root-finding algorithms at every control cycle.
+The exact relations governing the deflection angle $\gamma_{\mathrm{exact}}(\varepsilon,\alpha)$ and the normalised tension coefficient $c_d^{\mathrm{exact}}(\varepsilon,\alpha) = T_{\mathrm{tether}}/d$ do not admit a closed-form analytical solution, requiring numerical root-finding algorithms at every control cycle.
 
 The tether control scheme considered in this work maintains $\varepsilon$ close to a constant operating point $\varepsilon_0$. Under this operational regime, the tension magnitude scales linearly with the separation distance $d$:
 \begin{equation}

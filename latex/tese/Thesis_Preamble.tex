@@ -614,3 +614,13 @@
 \showreviewmarkstrue
 \newcommand{\reviewed}{\ifshowreviewmarks\marginnote{\textcolor{green}{\ding{51}}}\fi}
 
+% Float placement parameters to prevent premature float pages and awkward whitespace
+\renewcommand{\topfraction}{0.85}
+\renewcommand{\bottomfraction}{0.85}
+\renewcommand{\textfraction}{0.15}
+\renewcommand{\floatpagefraction}{0.70}
+\setcounter{topnumber}{3}
+\setcounter{bottomnumber}{2}
+\setcounter{totalnumber}{4}
+
+

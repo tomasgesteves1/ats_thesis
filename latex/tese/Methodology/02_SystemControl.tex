@@ -9,7 +9,7 @@
 \label{sec:system_control}
 \label{chapter:control}
 
-Having established, in Chapter~\ref{chapter:modeling}, the kinematic and dynamic models governing the USV and UAV, the natural next step is to determine how these models can be exploited to compute the control inputs that drive each vehicle along a desired trajectory. Because the two vehicles are physically coupled through the tether, their motion cannot be planned independently without accounting for this interaction, motivating a cooperative control strategy.
+Having established, in Chapter~\ref{chapter:modeling}, the kinematic and dynamic models governing the \gls{usv} and \gls{uav}, the natural next step is to determine how these models can be exploited to compute the control inputs that drive each vehicle along a desired trajectory. Because the two vehicles are physically coupled through the tether, their motion cannot be planned independently without accounting for this interaction, motivating a cooperative control strategy.
 
 The overall control approach is therefore established first, followed by the design of the controllers for each vehicle.
 
@@ -22,21 +22,21 @@ Before formulating either controller, the strategies available are weighed again
 
 Keeping the tether within safe operating conditions depends on how the distance between the two vehicles evolves over time. A controller that only reacts to the current state can correct a violation only after it happens. Anticipating where the system is headed allows corrective action before reaching the safety limits.
 
-A predictive controller does this by repeatedly solving, at each control instant, an optimization problem over a finite look-ahead window. Because the optimization runs over the predicted trajectory rather than the current state alone, requirements such as keeping the tether within safe conditions can be stated as explicit constraints in the problem itself, enforcing them explicitly over the prediction horizon.
+A predictive controller does this by repeatedly solving, at each control instant, an optimisation problem over a finite look-ahead window. Because the optimisation runs over the predicted trajectory rather than the current state alone, requirements such as keeping the tether within safe conditions can be stated as explicit constraints in the problem itself, enforcing them explicitly over the prediction horizon.
 
-The predictions rely on the model of the system dynamics, so their accuracy is tied to how well that model represents the real behaviour. The USV and UAV models derived in Chapter~\ref{chapter:modeling} include nonlinear terms. The predictive controller uses these nonlinear models directly, making non-linear model predictive control the method used for both vehicles.
+The predictions rely on the model of the system dynamics, so their accuracy is tied to how well that model represents the real behaviour. The \gls{usv} and \gls{uav} models derived in Chapter~\ref{chapter:modeling} include non-linear terms. The predictive controller uses these non-linear models directly, making \gls{nmpc} the method used for both vehicles.
 
 
 \subsubsection{Cooperative Architecture}
 \label{sec:ctrl_coop_architecture}
 
-The USV and the UAV operate on different timescales. The \gls{usv} moves in the horizontal plane with slow, inertia-dominated motion. The \gls{uav}'s dynamics evolve much faster and demand a finer sampling time. A single \gls{nmpc} built around the combined state of both vehicles would force one prediction horizon and one sampling time onto both, compromising one vehicle's timescale to accommodate the other.
+The \gls{usv} and the \gls{uav} operate on different timescales. The \gls{usv} moves in the horizontal plane with slow, inertia-dominated motion. The \gls{uav}'s dynamics evolve much faster and demand a finer sampling time. A single \gls{nmpc} built around the combined state of both vehicles would force one prediction horizon and one sampling time onto both, compromising one vehicle's timescale to accommodate the other.
 
-Combining both vehicles into one \gls{nmpc} would also enlarge the state, input, and constraint sets a single solver must handle, making a problem that already runs under real-time constraints harder to solve within the available computation time. Keeping the two problems separate matches each optimization's size to its own vehicle and keeps the computation more manageable in real time.
+Combining both vehicles into one \gls{nmpc} would also enlarge the state, input, and constraint sets a single solver must handle, making a problem that already runs under real-time constraints harder to solve within the available computation time. Keeping the two problems separate matches each optimisation's size to its own vehicle and keeps the computation more manageable in real time.
 
 Each vehicle is therefore controlled by its own \gls{nmpc}. This separation isolates the two controllers from each other's failures: if one solver fails to find a feasible solution, the other vehicle's \gls{nmpc} continues operating on its own well-posed problem.
 
-The tether's safety limits depend on the relative position between the USV and the UAV, so each vehicle's \gls{nmpc} accounts for the other vehicle's position. At every control instant, each controller receives the other vehicle's most recently computed predicted trajectory, and uses it to compute the predicted inter-vehicle distance at the nodes of its own horizon covered by that trajectory. Because the two controllers operate at different sampling intervals, the received predicted trajectory is temporally interpolated and resampled at the receiver's own prediction nodes.
+The tether's safety limits depend on the relative position between the \gls{usv} and the \gls{uav}, so each vehicle's \gls{nmpc} accounts for the other vehicle's position. At every control instant, each controller receives the other vehicle's most recently computed predicted trajectory, and uses it to compute the predicted inter-vehicle distance at the nodes of its own horizon covered by that trajectory. Because the two controllers operate at different sampling intervals, the received predicted trajectory is temporally interpolated and resampled at the receiver's own prediction nodes.
 
 Without this exchange, a vehicle would have to treat the other as stationary or extrapolate its motion from the last known state. Either assumption misrepresents the tether coupling and can drive the system into a constraint violation.
 
@@ -60,34 +60,34 @@ Figure~\ref{fig:ctrl_architecture} shows this architecture, with two independent
     ]
 
         % ---------- USV loop (top) ----------
-        \node[boxStyle] (usvnmpc) at (0,5) {USV \gls{nmpc}};
-        \node[boxStyle] (usvplant) at (5.4,5) {USV Dynamics};
+        \node[boxStyle] (usvnmpc) at (0,5) {\Gls{usv} \gls{nmpc}};
+        \node[boxStyle] (usvplant) at (5.4,5) {\Gls{usv} Dynamics};
 
         \draw[->, okiGreen, thick] (usvnmpc) -- (usvplant)
-            node[midway, above, font=\footnotesize] {USV input};
+            node[midway, above, font=\footnotesize] {\Gls{usv} input};
 
         \draw[sigArrow] (5.4,4.45) -- (5.4,3.55) -- (0,3.55) -- (0,4.45);
-        \node[below, font=\footnotesize] at (2.8,3.55) {USV state};
+        \node[below, font=\footnotesize] at (2.8,3.55) {\Gls{usv} state};
 
         % ---------- UAV loop (bottom) ----------
-        \node[boxStyle] (uavnmpc) at (0,0) {UAV \gls{nmpc}};
-        \node[boxStyle] (uavplant) at (5.4,0) {UAV Dynamics};
+        \node[boxStyle] (uavnmpc) at (0,0) {\Gls{uav} \gls{nmpc}};
+        \node[boxStyle] (uavplant) at (5.4,0) {\Gls{uav} Dynamics};
 
         \draw[->, okiGreen, thick] (uavnmpc) -- (uavplant)
-            node[midway, above, font=\footnotesize] {UAV input};
+            node[midway, above, font=\footnotesize] {\Gls{uav} input};
 
         \draw[sigArrow] (5.4,-0.55) -- (5.4,-1.45) -- (0,-1.45) -- (0,-0.55);
-        \node[below, font=\footnotesize] at (2.8,-1.45) {UAV state};
+        \node[below, font=\footnotesize] at (2.8,-1.45) {\Gls{uav} state};
 
         % ---------- Coordination exchange between the two NMPCs ----------
         \draw[exArrow] (-1.3,4.85) -- (-2.6,4.85) -- (-2.6,0.15)
             node[pos=0.25, right, align=left, font=\footnotesize, xshift=0.1cm]
-            {USV predicted\\[-1pt] trajectory}
+            {\Gls{usv} predicted\\[-1pt] trajectory}
             -- (-1.3,0.15);
 
         \draw[exArrow] (-1.3,-0.15) -- (-3.3,-0.15) -- (-3.3,5.15)
             node[pos=0.25, left, align=right, font=\footnotesize]
-            {UAV predicted\\[-1pt] trajectory}
+            {\Gls{uav} predicted\\[-1pt] trajectory}
             -- (-1.3,5.15);
 
         % ---------- Physical tether coupling between plants ----------
@@ -99,7 +99,7 @@ Figure~\ref{fig:ctrl_architecture} shows this architecture, with two independent
     \label{fig:ctrl_architecture}
 \end{figure}
 
-\subsection{Nonlinear Model Predictive Control}
+\subsection{Non-linear Model Predictive Control}
 \label{sec:ctrl_nmpc_principles}
 
 The vehicle models of Chapter~\ref{chapter:modeling} are continuous-time systems of the form
@@ -114,7 +114,7 @@ However, the controller acts at discrete sampling instants $t_k = k T_s$, with t
     \mathbf{x}(t_{k+1}) = \mathbf{x}(t_k) + \int_{t_k}^{t_{k+1}} \mathbf{f}\left( \mathbf{x}(\tau), \mathbf{u}_k \right) d\tau.
     \label{eq:nmpc_dynamics_integral}
 \end{equation}
-Since this integral generally has no closed-form solution for nonlinear dynamics, it is approximated by applying a numerical integration scheme to $\mathbf{f}$ over one sampling interval. This defines a one-step discrete map $\boldsymbol\Phi$,
+Since this integral generally has no closed-form solution for non-linear dynamics, it is approximated by applying a numerical integration scheme to $\mathbf{f}$ over one sampling interval. This defines a one-step discrete map $\boldsymbol\Phi$,
 \begin{equation}
     \mathbf{x}_{k+1} = \boldsymbol\Phi\left( \mathbf{x}_k, \mathbf{u}_k \right),
     \label{eq:nmpc_dynamics_general}
@@ -132,18 +132,18 @@ and evolves according to the system model,
     \label{eq:nmpc_prediction}
 \end{equation}
 
-Each predicted step is then scored against a reference trajectory. A stage cost $\ell(\hat{\mathbf{x}}_{k+i|k}, \hat{\mathbf{u}}_{k+i|k})$, typically quadratic, penalizes the tracking error and the control effort at every step of the horizon, and a terminal cost $\ell_f(\hat{\mathbf{x}}_{k+N|k})$ penalizes the tracking error at its final step. Summing both over the horizon gives the total predicted cost,
+Each predicted step is then scored against a reference trajectory. A stage cost $\ell(\hat{\mathbf{x}}_{k+i|k}, \hat{\mathbf{u}}_{k+i|k})$, typically quadratic, penalises the tracking error and the control effort at every step of the horizon, and a terminal cost $\ell_f(\hat{\mathbf{x}}_{k+N|k})$ penalises the tracking error at its final step. Summing both over the horizon gives the total predicted cost,
 \begin{equation}
     J = \sum_{i=0}^{N-1} \ell\left( \hat{\mathbf{x}}_{k+i|k}, \hat{\mathbf{u}}_{k+i|k} \right) + \ell_f\left( \hat{\mathbf{x}}_{k+N|k} \right).
     \label{eq:nmpc_cost}
 \end{equation}
 
-Minimizing $J$ alone ignores the physical limits of the system, so the prediction is also constrained. The predicted states and inputs must remain within the admissible sets $\mathcal{X}$ and $\mathcal{U}$ at every step of the horizon,
+Minimising $J$ alone ignores the physical limits of the system, so the prediction is also constrained. The predicted states and inputs must remain within the admissible sets $\mathcal{X}$ and $\mathcal{U}$ at every step of the horizon,
 \begin{align}
     \hat{\mathbf{x}}_{k+i|k} &\in \mathcal{X}, \quad i = 0, \dots, N, \label{eq:nmpc_bounds_x} \\
     \hat{\mathbf{u}}_{k+i|k} &\in \mathcal{U}, \quad i = 0, \dots, N-1, \label{eq:nmpc_bounds_u}
 \end{align}
-where $\mathcal{X}$ and $\mathcal{U}$ collect the admissible states and inputs. These sets may be defined by simple bounds or by general nonlinear inequality constraints of the form $h(\hat{\mathbf{x}}_{k+i|k}, \hat{\mathbf{u}}_{k+i|k}) \le 0$.
+where $\mathcal{X}$ and $\mathcal{U}$ collect the admissible states and inputs. These sets may be defined by simple bounds or by general non-linear inequality constraints of the form $h(\hat{\mathbf{x}}_{k+i|k}, \hat{\mathbf{u}}_{k+i|k}) \le 0$.
 
 Enforcing these sets as hard constraints can make the problem infeasible. If a disturbance pushes the true state outside the admissible set, no predicted trajectory satisfies the constraints, and the solver has no solution to return even though one is required at every sampling instant. To avoid this, a constraint $h(\hat{\mathbf{x}}_{k+i|k}, \hat{\mathbf{u}}_{k+i|k}) \le 0$ can be softened by a slack variable $\sigma \ge 0$,
 \begin{equation}
@@ -170,14 +170,14 @@ Assembling the cost, the prediction model, and the constraints defines the optim
 Solving this problem returns a full predicted input sequence, $\hat{\mathbf{u}}_{k|k}, \dots, \hat{\mathbf{u}}_{k+N-1|k}$, but only its first element, $\hat{\mathbf{u}}_{k|k}$, is applied to the system. At the next instant, $k+1$, the state is estimated again and the problem is solved again from $\hat{\mathbf{x}}_{k+1|k+1} = \mathbf{x}_{k+1}$, with the horizon shifted one step forward. This strategy, known as the receding horizon principle, computes every input from the latest state estimate, so the controller can correct for disturbances and model errors that the previous prediction did not anticipate.
 
 
-\subsection{USV NMPC}
+\subsection{\texorpdfstring{\gls{usv} \gls{nmpc}}{USV NMPC}}
 \label{sec:ctrl_usv_mpc}
 
-The USV NMPC computes, at every sampling instant, the thruster commands that best track a reference trajectory over a finite prediction horizon, subject to the vessel's dynamics, the physical limits of its actuators, and the tether workspace. It predicts the vessel's motion with the model derived in Chapter~\ref{chapter:modeling}, and solves a constrained optimization problem at each step to obtain the commands applied to the thrusters.
+The \gls{usv} \gls{nmpc} computes, at every sampling instant, the thruster commands that best track a reference trajectory over a finite prediction horizon, subject to the \gls{usv}'s dynamics, the physical limits of its actuators, and the tether workspace. It predicts the \gls{usv}'s motion with the model derived in Chapter~\ref{chapter:modeling}, and solves a constrained optimisation problem at each step to obtain the commands applied to the thrusters.
 
 \subsubsection*{Predictive Model}
 
-The vessel model of Chapter~\ref{chapter:modeling} is driven by the resultant thrust force and moment $\boldsymbol\tau = [X,Y,N]^\top$, which are obtained from the physical actuator commands $T_L, T_R, \alpha_L, \alpha_R$ through the allocation
+The \gls{usv} model of Chapter~\ref{chapter:modeling} is driven by the resultant thrust force and moment $\boldsymbol\tau = [X,Y,N]^\top$, which are obtained from the physical actuator commands $T_L, T_R, \alpha_L, \alpha_R$ through the allocation
 \begin{equation}
     X = T_L\cos\alpha_L + T_R\cos\alpha_R, \qquad Y = T_L\sin\alpha_L + T_R\sin\alpha_R,
     \label{eq:usv_mpc_alloc_force}
@@ -187,7 +187,7 @@ The vessel model of Chapter~\ref{chapter:modeling} is driven by the resultant th
     \label{eq:usv_mpc_alloc_moment}
 \end{equation}
 
-Since the controller ultimately has to command $T_L, T_R, \alpha_L, \alpha_R$, the \gls{nmpc} is formulated directly in terms of these variables, rather than choosing $\boldsymbol\tau$ and allocating it separately. This way, the limits of the physical actuators can be imposed directly in the optimization problem.
+Since the controller ultimately has to command $T_L, T_R, \alpha_L, \alpha_R$, the \gls{nmpc} is formulated directly in terms of these variables, rather than choosing $\boldsymbol\tau$ and allocating it separately. This way, the limits of the physical actuators can be imposed directly in the optimisation problem.
 
 Each thruster is limited both in the thrust and azimuth it can deliver,
 \begin{equation}
@@ -211,7 +211,7 @@ which in turn makes $T_L, T_R, \alpha_L, \alpha_R$ part of the state vector,
 \end{equation}
 With this choice, the range limits act on the state, and the rate limits act directly on the input.
 
-With $\mathbf{x}_v$ and $\mathbf{u}_v$ defined, the prediction model $\dot{\mathbf{x}}_v = \mathbf{f}_v(\mathbf{x}_v,\mathbf{u}_v)$ is assembled from the vessel kinematics and dynamics.
+With $\mathbf{x}_v$ and $\mathbf{u}_v$ defined, the prediction model $\dot{\mathbf{x}}_v = \mathbf{f}_v(\mathbf{x}_v,\mathbf{u}_v)$ is assembled from the \gls{usv} kinematics and dynamics.
 
 The kinematics are given by \eqref{eq:usv_kinematics_planar} and \eqref{eq:usv_psi_dot},
 \begin{equation}
@@ -239,21 +239,21 @@ Finally, $\dot T_L,\dot T_R,\dot\alpha_L,\dot\alpha_R$ appear directly as the co
     \label{eq:usv_mpc_thruster_rates}
 \end{equation}
 
-Discretization over a sampling interval $T_s$, following Section~\ref{sec:ctrl_nmpc_principles}, gives the one-step map $\boldsymbol\Phi_v$ such that $\hat{\mathbf{x}}_{v,k+i+1|k} = \boldsymbol\Phi_v\big(\hat{\mathbf{x}}_{v,k+i|k}, \hat{\mathbf{u}}_{v,k+i|k}\big)$ approximates the solution of $\dot{\mathbf{x}}_v = \mathbf{f}_v(\mathbf{x}_v,\mathbf{u}_v)$ over one sampling interval.
+Discretisation over a sampling interval $T_s$, following Section~\ref{sec:ctrl_nmpc_principles}, gives the one-step map $\boldsymbol\Phi_v$ such that $\hat{\mathbf{x}}_{v,k+i+1|k} = \boldsymbol\Phi_v\big(\hat{\mathbf{x}}_{v,k+i|k}, \hat{\mathbf{u}}_{v,k+i|k}\big)$ approximates the solution of $\dot{\mathbf{x}}_v = \mathbf{f}_v(\mathbf{x}_v,\mathbf{u}_v)$ over one sampling interval.
 
 
 \subsubsection*{Cost and Constraints}
  
 Let $\mathbf{p} = [x,y]^\top$ denote the position, $\psi$ the heading, and $\boldsymbol{\nu} = [u,v,r]^\top$ the body-fixed velocities, with $\mathbf{p}_{ref}$, $\psi_{ref}$, and $\boldsymbol{\nu}_{ref}$ the corresponding references from a given trajectory.
 
-Tracking the reference position is penalized quadratically as
+Tracking the reference position is penalised quadratically as
 \begin{equation}
     \|\mathbf{p}-\mathbf{p}_{ref}\|^2_{Q_p},
     \label{eq:usv_mpc_cost_pos}
 \end{equation}
 where $\|\boldsymbol\xi\|^2_W \coloneqq \boldsymbol\xi^\top W \boldsymbol\xi$ for a positive semi-definite weighting matrix $W$, which sets the relative importance of each component of $\boldsymbol\xi$ in the cost.
 
-Tracking the heading reference is penalized as
+Tracking the heading reference is penalised as
 \begin{equation}
     q_\psi\big(1-\cos(\psi-\psi_{ref})\big),
     \label{eq:usv_mpc_cost_heading}
@@ -262,20 +262,20 @@ where $q_\psi \ge 0$ is a scalar weight setting the relative importance of headi
 
 Both $\psi$ and $\psi_{ref}$ are angles represented within an interval of width $2\pi$, such as $(-\pi,\pi]$. When they lie near opposite ends of this interval, their raw difference $\psi-\psi_{ref}$ approaches $\pm2\pi$, even though the two headings are then almost identical. As $\cos(\cdot)$ has period $2\pi$, its value approaches one whenever $\psi-\psi_{ref}$ is near zero or $\pm2\pi$, so the cost \eqref{eq:usv_mpc_cost_heading} is near zero in both cases, correctly reflecting that the two headings are almost identical.
 
-Tracking the reference velocity is penalized in the same way as the position,
+Tracking the reference velocity is penalised in the same way as the position,
 \begin{equation}
     \|\boldsymbol{\nu}-\boldsymbol{\nu}_{ref}\|^2_{Q_\nu}.
     \label{eq:usv_mpc_cost_vel}
 \end{equation}
 
-The thruster commands $T_L, T_R, \alpha_L, \alpha_R$ are regularized directly as
+The thruster commands $T_L, T_R, \alpha_L, \alpha_R$ are regularised directly as
 \begin{equation}
     \big\|[T_L,T_R,\alpha_L,\alpha_R]^\top\big\|^2_{Q_\tau},
     \label{eq:usv_mpc_cost_reg}
 \end{equation}
 discouraging thrust and azimuth commands larger than necessary to track the reference.
 
-The last term penalizes $\mathbf{u}_v$, the rate of change of the thruster commands,
+The last term penalises $\mathbf{u}_v$, the rate of change of the thruster commands,
 \begin{equation}
     \big\|[\dot{T}_L, \dot{T}_R, \dot{\alpha}_L, \dot{\alpha}_R]^\top\big\|^2_{R},
     \label{eq:usv_mpc_cost_rate}
@@ -291,13 +291,13 @@ Summing \eqref{eq:usv_mpc_cost_pos}--\eqref{eq:usv_mpc_cost_rate} gives the stag
     \label{eq:usv_mpc_stage_cost}
 \end{equation}
 
-The terminal cost $\ell_f$ penalizes the last predicted state, so that the optimizer does not disregard where the vessel ends up at the end of the horizon. It equals the stage cost \eqref{eq:usv_mpc_stage_cost} without the input rate term, since no control input is chosen at the final node:
+The terminal cost $\ell_f$ penalises the last predicted state, so that the optimiser does not disregard where the \gls{usv} ends up at the end of the horizon. It equals the stage cost \eqref{eq:usv_mpc_stage_cost} without the input rate term, since no control input is chosen at the final node:
 \begin{equation}
     \ell_f(\mathbf{x}_v) = \|\mathbf{p}-\mathbf{p}_{ref}\|^2_{Q_p} + q_\psi\big(1-\cos(\psi-\psi_{ref})\big) + \|\boldsymbol{\nu}-\boldsymbol{\nu}_{ref}\|^2_{Q_\nu} + \big\|[T_L,T_R,\alpha_L,\alpha_R]^\top\big\|^2_{Q_\tau}.
     \label{eq:usv_mpc_terminal_cost}
 \end{equation}
  
-The thruster limits introduced in the predictive model enter the optimization problem as constraints. Since thrust and azimuth are components of the state, their range limits define the admissible state set
+The thruster limits introduced in the predictive model enter the optimisation problem as constraints. Since thrust and azimuth are components of the state, their range limits define the admissible state set
 \begin{equation}
     \mathcal{X} = \left\{ \mathbf{x}_v : \;
     \begin{aligned}
@@ -318,7 +318,7 @@ while the limits on their rates of change, which act on the input, define the ad
     \label{eq:usv_mpc_set_U}
 \end{equation}
 
-The last constraint couples the vessel to the UAV through the tether, and is the only one that depends on the other vehicle. The tether limits the distance between its attachment point on the vessel deck and the UAV to a maximum admissible separation $d_{max}$. The attachment point is vertically aligned with the origin of the vessel's body frame, at a fixed height $z_t$ in the inertial frame, so its position is $(x, y, z_t)$. Along the horizon, the USV controller uses the UAV's most recently computed predicted trajectory $\hat{\mathbf{p}}_a = [\hat x_a, \hat y_a, \hat z_a]^\top$, temporally resampled at the vessel's prediction nodes covered by it, to compute the squared distance between the attachment point and the UAV,
+The last constraint couples the \gls{usv} to the \gls{uav} through the tether, and is the only one that depends on the other vehicle. The tether limits the distance between its attachment point on the \gls{usv} deck and the \gls{uav} to a maximum admissible separation $d_{max}$. The attachment point is vertically aligned with the origin of the \gls{usv}'s body frame, at a fixed height $z_t$ in the inertial frame, so its position is $(x, y, z_t)$. Along the horizon, the \gls{usv} controller uses the \gls{uav}'s most recently computed predicted trajectory $\hat{\mathbf{p}}_a = [\hat x_a, \hat y_a, \hat z_a]^\top$, temporally resampled at the \gls{usv}'s prediction nodes covered by it, to compute the squared distance between the attachment point and the \gls{uav},
 \begin{equation}
     d^2 = (x - \hat x_a)^2 + (y - \hat y_a)^2 + (\hat z_a - z_t)^2.
     \label{eq:usv_mpc_tether_distance}
@@ -328,20 +328,20 @@ The requirement $d^2 \le d_{max}^2$ is enforced as a soft constraint through a s
     \underbrace{d^2 - d_{max}^2}_{h(\mathbf{x}_v)} \le \sigma,
     \label{eq:usv_mpc_tether_constraint}
 \end{equation}
-which is penalized by $\rho(\sigma)$ as in \eqref{eq:nmpc_slack_penalty}, with large weights $\mu_1$ and $\mu_2$ so that violations remain small whenever geometrically feasible.
+which is penalised by $\rho(\sigma)$ as in \eqref{eq:nmpc_slack_penalty}, with large weights $\mu_1$ and $\mu_2$ so that violations remain small whenever geometrically feasible.
 
 \subsubsection*{Optimal Control Problem}
  
-At every sampling instant $k$, the kinematic and dynamic components of the initial state come from the vessel's current estimate, while the thruster components use the last command actually applied:
+At every sampling instant $k$, the kinematic and dynamic components of the initial state come from the \gls{usv}'s current estimate, while the thruster components use the last command actually applied:
 \begin{equation}
     \mathbf{x}_{v,k} = \big[x_k, y_k, \psi_k, u_k, v_k, r_k,\ T_{L,k-1}, T_{R,k-1}, \alpha_{L,k-1}, \alpha_{R,k-1}\big]^\top.
     \label{eq:usv_mpc_initial_condition}
 \end{equation}
 Starting from the last applied command ensures that the rate limits in \eqref{eq:usv_mpc_input_bounds} are enforced relative to the actual thruster values, so the first input chosen is always attainable by the thrusters.
 
-The references and the \gls{uav}'s predicted trajectory are given data at each instant. Since the \gls{uav}'s predicted trajectory can be shorter than the vessel's horizon, let $N_c \le N$ denote the last node of the vessel's horizon covered by it. The tether constraint, and its slack, are enforced only for $i = 0, \dots, N_c$.
+The references and the \gls{uav}'s predicted trajectory are given data at each instant. Since the \gls{uav}'s predicted trajectory can be shorter than the \gls{usv}'s horizon, let $N_c \le N$ denote the last node of the \gls{usv}'s horizon covered by it. The tether constraint, and its slack, are enforced only for $i = 0, \dots, N_c$.
  
-Assembling the cost, the model, and the constraints gives the optimal control problem the USV solves at every sampling instant:
+Assembling the cost, the model, and the constraints gives the optimal control problem the \gls{usv} solves at every sampling instant:
 \begin{align}
     \min_{\hat{\mathbf{x}}_v,\, \hat{\mathbf{u}}_v,\, \hat{\sigma}} \quad & \sum_{i=0}^{N-1} \ell\big(\hat{\mathbf{x}}_{v,k+i|k}, \hat{\mathbf{u}}_{v,k+i|k}\big) + \ell_f\big(\hat{\mathbf{x}}_{v,k+N|k}\big) + \sum_{i=0}^{N_c} \rho\big(\hat\sigma_{k+i|k}\big) \notag \\
     \text{s.t.} \quad & \hat{\mathbf{x}}_{v,k|k} = \mathbf{x}_{v,k}, \notag \\
@@ -350,29 +350,29 @@ Assembling the cost, the model, and the constraints gives the optimal control pr
     & \hat{\mathbf{u}}_{v,k+i|k} \in \mathcal{U}, \quad i = 0, \dots, N-1, \notag \\
     & h\big(\hat{\mathbf{x}}_{v,k+i|k}\big) \le \hat\sigma_{k+i|k}, \quad \hat\sigma_{k+i|k} \ge 0, \quad i = 0, \dots, N_c. \label{eq:usv_mpc_ocp}
 \end{align}
-The vessel's low-level actuators receive the integrated thruster commands $T_{L,k}, T_{R,k}, \alpha_{L,k}, \alpha_{R,k}$, obtained by integrating the first optimal input rate $\hat{\mathbf{u}}_{v,k|k}$ over the sampling interval $T_s$. These become the thruster components of the initial state at the subsequent sampling instant.
+The \gls{usv}'s low-level actuators receive the integrated thruster commands $T_{L,k}, T_{R,k}, \alpha_{L,k}, \alpha_{R,k}$, obtained by integrating the first optimal input rate $\hat{\mathbf{u}}_{v,k|k}$ over the sampling interval $T_s$. These become the thruster components of the initial state at the subsequent sampling instant.
  
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-\subsection{UAV NMPC}
+\subsection{\texorpdfstring{\gls{uav} \gls{nmpc}}{UAV NMPC}}
 \label{sec:ctrl_uav_mpc}
 
-The UAV NMPC computes, at every sampling instant, the thrust and attitude commands that best track a reference trajectory over a finite prediction horizon, subject to the vehicle's dynamics, its actuation limits, and the tether workspace. It predicts the vehicle's motion with the model derived in Chapter~\ref{chapter:modeling}, and solves a constrained optimization problem at each step to obtain the commands applied to the vehicle.
+The \gls{uav} \gls{nmpc} computes, at every sampling instant, the thrust and attitude commands that best track a reference trajectory over a finite prediction horizon, subject to the vehicle's dynamics, its actuation limits, and the tether workspace. It predicts the \gls{uav}'s motion with the model derived in Section~\ref{chapter:modeling}, and solves a constrained optimisation problem at each step to obtain the commands applied to the \gls{uav}.
 
 \subsubsection*{Predictive Model}
 
-The vehicle model defined in Chapter~\ref{chapter:modeling} assumed that the commanded attitude is tracked instantaneously by the low-level flight controller. In reality, the closed-loop attitude response of the autopilot exhibits a first-order lag characterized by a time constant $\tau > 0$:
+The \gls{uav} model defined in Section~\ref{chapter:modeling} assumed that the commanded attitude is tracked instantaneously by the low-level flight controller. In reality, the closed-loop attitude response of the autopilot exhibits a first-order lag characterised by a time constant $\tau > 0$:
 \begin{equation}
     \dot\phi = \frac{1}{\tau}\big(\phi_{\mathrm{cmd}} - \phi\big), \qquad \dot\theta = \frac{1}{\tau}\big(\theta_{\mathrm{cmd}} - \theta\big),
     \label{eq:uav_mpc_attitude_lag}
 \end{equation}
 where $\phi, \theta$ denote the actual Euler angles, $\phi_{\mathrm{cmd}}, \theta_{\mathrm{cmd}}$ are the attitude setpoints commanded to the autopilot, and $\tau$ is the attitude tracking time constant.
 
-Furthermore, similarly to the thrusters of the USV, the attitude commands cannot change arbitrarily fast, and their rates of change are subject to physical slew-rate limits:
+Furthermore, similarly to the thrusters of the \gls{usv}, the attitude commands cannot change arbitrarily fast, and their rates of change are subject to physical slew-rate limits:
 \begin{equation}
     |\dot\phi_{\mathrm{cmd}}| \le \dot\phi_{max}, \quad |\dot\theta_{\mathrm{cmd}}| \le \dot\theta_{max}.
     \label{eq:uav_mpc_rate_bounds}
 \end{equation}
-Imposing these limits directly as bounds in the optimization problem requires the rates of the commanded angles to be part of the control input vector,
+Imposing these limits directly as bounds in the optimisation problem requires the rates of the commanded angles to be part of the control input vector,
 \begin{equation}
     \mathbf{u}_a = [\dot\phi_{\mathrm{cmd}},\dot\theta_{\mathrm{cmd}},T]^\top \in \mathbb{R}^3,
     \label{eq:uav_mpc_input_augmented}
@@ -382,7 +382,7 @@ which in turn incorporates the commanded attitude into the state vector,
     \mathbf{x}_a = [x,y,z,\dot x,\dot y,\dot z,\ \phi,\theta,\ \phi_{\mathrm{cmd}},\theta_{\mathrm{cmd}}]^\top \in \mathbb{R}^{10}.
     \label{eq:uav_mpc_state_augmented}
 \end{equation}
-With this state augmentation, range limits act on the state and rate limits act directly on the input. The vehicle heading $\psi$ is aligned with the bearing to the reference target, as detailed below.
+With this state augmentation, range limits act on the state and rate limits act directly on the input. The \gls{uav} heading $\psi$ is aligned with the bearing to the reference target, as detailed below.
 
 With $\mathbf{x}_a$ and $\mathbf{u}_a$ defined, the prediction model $\dot{\mathbf{x}}_a = \mathbf{f}_a(\mathbf{x}_a,\mathbf{u}_a)$ is assembled from kinematics, translational dynamics, attitude lag, and command integrators.
 
@@ -416,26 +416,26 @@ The attitude dynamics combine the first-order tracking lag with the command rate
     \label{eq:uav_mpc_command_rates}
 \end{equation}
 
-Discretization over a sampling interval $T_s$, following Section~\ref{sec:ctrl_nmpc_principles}, gives the one-step map $\boldsymbol\Phi_a$ such that $\hat{\mathbf{x}}_{a,k+i+1|k} = \boldsymbol\Phi_a\big(\hat{\mathbf{x}}_{a,k+i|k},\hat{\mathbf{u}}_{a,k+i|k}\big)$ approximates the solution of $\dot{\mathbf{x}}_a = \mathbf{f}_a(\mathbf{x}_a,\mathbf{u}_a)$ over one sampling interval.
+Discretisation over a sampling interval $T_s$, following Section~\ref{sec:ctrl_nmpc_principles}, gives the one-step map $\boldsymbol\Phi_a$ such that $\hat{\mathbf{x}}_{a,k+i+1|k} = \boldsymbol\Phi_a\big(\hat{\mathbf{x}}_{a,k+i|k},\hat{\mathbf{u}}_{a,k+i|k}\big)$ approximates the solution of $\dot{\mathbf{x}}_a = \mathbf{f}_a(\mathbf{x}_a,\mathbf{u}_a)$ over one sampling interval.
 
 \subsubsection*{Cost and Constraints}
 
 Let $\mathbf{p} = [x,y,z]^\top$ and $\mathbf{v} = [\dot x,\dot y,\dot z]^\top$ denote the position and velocity, with $\mathbf{p}_{ref}$ and $\mathbf{v}_{ref}$ the corresponding references.
 
-Tracking the reference position and velocity is penalized quadratically as
+Tracking the reference position and velocity is penalised quadratically as
 \begin{equation}
     \|\mathbf{p}-\mathbf{p}_{ref}\|^2_{Q_p} + \|\mathbf{v}-\mathbf{v}_{ref}\|^2_{Q_v}.
     \label{eq:uav_mpc_cost_track}
 \end{equation}
 
-The next term penalizes $\phi,\theta$ directly, rather than comparing them against any reference,
+The next term penalises $\phi,\theta$ directly, rather than comparing them against any reference,
 \begin{equation}
     \big\|[\phi,\theta]^\top\big\|^2_{Q_{tilt}},
     \label{eq:uav_mpc_cost_tilt}
 \end{equation}
 discouraging attitude larger than necessary to track the reference.
 
-The next term penalizes the yaw error, but rather than tracking a fixed yaw angle, $\psi$ is aligned with the direction to a reference point $\mathbf{p}_{b,ref} = [x_{b,ref},y_{b,ref}]^\top$, itself possibly varying along the horizon,
+The next term penalises the yaw error, but rather than tracking a fixed yaw angle, $\psi$ is aligned with the direction to a reference point $\mathbf{p}_{b,ref} = [x_{b,ref},y_{b,ref}]^\top$, itself possibly varying along the horizon,
 \begin{equation}
     \mathbf{b} = \mathbf{p}_{b,ref} - \mathbf{p}_{xy},
     \label{eq:uav_mpc_yaw_direction}
@@ -445,14 +445,14 @@ where $\mathbf{p}_{xy}=[x,y]^\top$. Since $\psi$ is an angle, the periodicity is
     q_\psi\left(1 - \frac{\cos\psi\,b_x + \sin\psi\,b_y}{\sqrt{\|\mathbf{b}\|^2 + \epsilon}}\right),
     \label{eq:uav_mpc_cost_yaw}
 \end{equation}
-where $q_\psi \ge 0$ is a scalar weight setting the relative importance of yaw tracking, and $\epsilon > 0$ is a small constant that keeps the term well defined when the \gls{uav} is above the reference point, where the bearing is undefined. This term is minimized when $\psi$ points along $\mathbf{b}$.
+where $q_\psi \ge 0$ is a scalar weight setting the relative importance of yaw tracking, and $\epsilon > 0$ is a small constant that keeps the term well defined when the \gls{uav} is above the reference point, where the bearing is undefined. This term is minimised when $\psi$ points along $\mathbf{b}$.
 
-The last term penalizes the input $\mathbf{u}_a$ relative to a nominal hover reference $\mathbf{u}_{a,ref} = [0,0,mg]^\top$, since the thrust cannot be penalized toward zero without opposing gravity,
+The last term penalises the input $\mathbf{u}_a$ relative to a nominal hover reference $\mathbf{u}_{a,ref} = [0,0,mg]^\top$, since the thrust cannot be penalised toward zero without opposing gravity,
 \begin{equation}
     \|\mathbf{u}_a - \mathbf{u}_{a,ref}\|^2_{R},
     \label{eq:uav_mpc_cost_input}
 \end{equation}
-so that the attitude command rates are regularized toward zero, while the thrust is penalized only for deviating from the hover value.
+so that the attitude command rates are regularised toward zero, while the thrust is penalised only for deviating from the hover value.
 
 Summing the tracking, tilt, yaw, and input penalties in \eqref{eq:uav_mpc_cost_track}, \eqref{eq:uav_mpc_cost_tilt}, \eqref{eq:uav_mpc_cost_yaw}, and \eqref{eq:uav_mpc_cost_input} gives the stage cost
 \begin{equation}
@@ -463,7 +463,7 @@ Summing the tracking, tilt, yaw, and input penalties in \eqref{eq:uav_mpc_cost_t
     \label{eq:uav_mpc_stage_cost}
 \end{equation}
 
-The terminal cost $\ell_f$ penalizes the last predicted state, so that the optimizer does not disregard where the \gls{uav} ends up at the end of the horizon. It equals the stage cost \eqref{eq:uav_mpc_stage_cost} without the input term, since no input is chosen at the final node:
+The terminal cost $\ell_f$ penalises the last predicted state, so that the optimiser does not disregard where the \gls{uav} ends up at the end of the horizon. It equals the stage cost \eqref{eq:uav_mpc_stage_cost} without the input term, since no input is chosen at the final node:
 \begin{equation}
     \begin{aligned}
         \ell_f(\mathbf{x}_a) = {} & \|\mathbf{p}-\mathbf{p}_{ref}\|^2_{Q_p} + \|\mathbf{v}-\mathbf{v}_{ref}\|^2_{Q_v} + \big\|[\phi,\theta]^\top\big\|^2_{Q_{tilt}} \\
@@ -472,12 +472,12 @@ The terminal cost $\ell_f$ penalizes the last predicted state, so that the optim
     \label{eq:uav_mpc_terminal_cost}
 \end{equation}
 
-The vehicle's operating envelope bounds the altitude, translational velocity, and attitude. To guarantee safe clearance above the water surface and vessel deck, the vehicle is restricted to $z \ge z_{min}$. Furthermore, because horizontal and vertical velocities are limited by distinct physical factors, the vehicle's speed and tilt are bounded separately:
+The \gls{uav}'s operating envelope bounds the altitude, translational velocity, and attitude. To guarantee safe clearance above the water surface and \gls{usv} deck, the \gls{uav} is restricted to $z \ge z_{min}$. Furthermore, because horizontal and vertical velocities are limited by distinct physical factors, the \gls{uav}'s speed and tilt are bounded separately:
 \begin{equation}
     z \ge z_{min}, \quad \big\|[\dot x,\dot y]^\top\big\| \le v_{xy,max}, \quad |\dot z| \le v_{z,max}, \quad |\phi| \le \phi_{max}, \quad |\theta| \le \theta_{max}.
     \label{eq:uav_mpc_state_bounds}
 \end{equation}
-Unlike the thruster commands of the USV, the velocity and attitude are subject to external disturbances such as wind, which can push the true state past these bounds regardless of what the \gls{nmpc} has commanded. The bounds of \eqref{eq:uav_mpc_state_bounds} are therefore softened as in \eqref{eq:nmpc_soft_constraint}, each with its own slack variable $\sigma_j \ge 0$, $j=1,\dots,5$:
+Unlike the thruster commands of the \gls{usv}, the velocity and attitude are subject to external disturbances such as wind, which can push the true state past these bounds regardless of what the \gls{nmpc} has commanded. The bounds of \eqref{eq:uav_mpc_state_bounds} are therefore softened as in \eqref{eq:nmpc_soft_constraint}, each with its own slack variable $\sigma_j \ge 0$, $j=1,\dots,5$:
 \begin{align}
     \underbrace{z_{min} - z}_{h_1(\mathbf{x}_a)} &\le \sigma_1, \label{eq:uav_mpc_slack_z} \\
     \underbrace{\big\|[\dot x,\dot y]^\top\big\| - v_{xy,max}}_{h_2(\mathbf{x}_a)} &\le \sigma_2, \label{eq:uav_mpc_slack_vxy} \\
@@ -485,7 +485,7 @@ Unlike the thruster commands of the USV, the velocity and attitude are subject t
     \underbrace{|\phi| - \phi_{max}}_{h_4(\mathbf{x}_a)} &\le \sigma_4, \label{eq:uav_mpc_slack_phi} \\
     \underbrace{|\theta| - \theta_{max}}_{h_5(\mathbf{x}_a)} &\le \sigma_5. \label{eq:uav_mpc_slack_theta}
 \end{align}
-Each slack is penalized by $\rho_j(\sigma_j)$ as in \eqref{eq:nmpc_slack_penalty}, with weights $\mu_{1,j}$ and $\mu_{2,j}$.
+Each slack is penalised by $\rho_j(\sigma_j)$ as in \eqref{eq:nmpc_slack_penalty}, with weights $\mu_{1,j}$ and $\mu_{2,j}$.
 
 The attitude command rate limits of the predictive model \eqref{eq:uav_mpc_rate_bounds} and the thrust range are the only hard constraints, and they act on the input, defining the admissible input set
 \begin{equation}
@@ -498,7 +498,7 @@ The attitude command rate limits of the predictive model \eqref{eq:uav_mpc_rate_
     \label{eq:uav_mpc_input_set}
 \end{equation}
 
-The remaining constraints couple the \gls{uav} to the vessel through the tether, and are the only ones that depend on the other vehicle. First, as for the vessel, the tether limits the distance between the \gls{uav} and the tether attachment point, described in Section~\ref{sec:ctrl_usv_mpc}, to the maximum admissible separation $d_{max}$. The attachment point on the \gls{usv} is located at $(\hat x_v, \hat y_v, z_t)$, where the horizontal position $\hat{\mathbf{p}}_v = [\hat x_v, \hat y_v]^\top$ at each node is taken from the vessel's most recently computed predicted trajectory, temporally resampled at the \gls{uav}'s prediction nodes, and $z_t$ is the height of the attachment point. Since the vessel's horizon covers that of the \gls{uav}, the constraint is enforced at every node. Denoting by $\mathbf{r} = [x-\hat x_v, y-\hat y_v, z-z_t]^\top$ the relative position vector between the vehicle and the attachment point, the squared separation distance is
+The remaining constraints couple the \gls{uav} to the \gls{usv} through the tether, and are the only ones that depend on the other vehicle. First, as for the \gls{usv}, the tether limits the distance between the \gls{uav} and the tether attachment point, described in Section~\ref{sec:ctrl_usv_mpc}, to the maximum admissible separation $d_{max}$. The attachment point on the \gls{usv} is located at $(\hat x_v, \hat y_v, z_t)$, where the horizontal position $\hat{\mathbf{p}}_v = [\hat x_v, \hat y_v]^\top$ at each node is taken from the \gls{usv}'s most recently computed predicted trajectory, temporally resampled at the \gls{uav}'s prediction nodes, and $z_t$ is the height of the attachment point. Since the \gls{usv}'s horizon covers that of the \gls{uav}, the constraint is enforced at every node. Denoting by $\mathbf{r} = [x-\hat x_v, y-\hat y_v, z-z_t]^\top$ the relative position vector between the \gls{uav} and the attachment point, the squared separation distance is
 \begin{equation}
     d^2 = \|\mathbf{r}\|^2 = (x-\hat x_v)^2 + (y-\hat y_v)^2 + (z-z_t)^2.
     \label{eq:uav_mpc_tether_distance}
@@ -508,19 +508,19 @@ The requirement $d^2 \le d_{max}^2$ is enforced as a soft constraint through a s
     \underbrace{d^2 - d_{max}^2}_{h_6(\mathbf{x}_a)} \le \sigma_6,
     \label{eq:uav_mpc_tether_constraint}
 \end{equation}
-which is penalized by $\rho_6(\sigma_6)$ as in \eqref{eq:nmpc_slack_penalty}, with large weights $\mu_{1,6}$ and $\mu_{2,6}$ so that violations remain small.
+which is penalised by $\rho_6(\sigma_6)$ as in \eqref{eq:nmpc_slack_penalty}, with large weights $\mu_{1,6}$ and $\mu_{2,6}$ so that violations remain small.
 
 Similarly, to prevent tension spikes during tether deployment, the rate at which the inter-vehicle distance increases must not exceed the maximum pay-out rate of the winch mechanism, $\dot d \le \dot d_{max}$. Differentiating $d = \|\mathbf{r}\|$ with respect to time yields the projection of the relative velocity $\dot{\mathbf{r}} = [\dot x-\hat{\dot x}_v,\, \dot y-\hat{\dot y}_v,\, \dot z]^\top$ onto the tether line of sight:
 \begin{equation}
     \dot d = \frac{\mathrm{d}}{\mathrm{d}t}\|\mathbf{r}\| = \frac{\mathbf{r}^\top\dot{\mathbf{r}}}{d}.
     \label{eq:uav_mpc_tether_rate_deriv}
 \end{equation}
-This formulation restricts only radial motion that moves away from the vessel ($\dot d > 0$), leaving tangential and approaching motions unconstrained. Enforcing $\dot d \le \dot d_{max}$ with a small regularization $\epsilon > 0$ to avoid numerical singularity when $d \to 0$ gives the softened constraint:
+This formulation restricts only radial motion that moves away from the \gls{usv} ($\dot d > 0$), leaving tangential and approaching motions unconstrained. Enforcing $\dot d \le \dot d_{max}$ with a small regularisation $\epsilon > 0$ to avoid numerical singularity when $d \to 0$ gives the softened constraint:
 \begin{equation}
     \underbrace{\frac{\mathbf{r}^\top \dot{\mathbf{r}}}{\sqrt{d^2 + \epsilon}} - \dot d_{max}}_{h_7(\mathbf{x}_a)} \le \sigma_7,
     \label{eq:uav_mpc_tether_rate_constraint}
 \end{equation}
-which is penalized by $\rho_7(\sigma_7)$ as in \eqref{eq:nmpc_slack_penalty}.
+which is penalised by $\rho_7(\sigma_7)$ as in \eqref{eq:nmpc_slack_penalty}.
 
 Together, the minimum altitude $z_{min}$ and the maximum tether separation $d_{max}$ delimit the workspace of the \gls{uav}, illustrated in Figure~\ref{fig:uav_operating_region}.
 
@@ -548,7 +548,7 @@ Together, the minimum altitude $z_{min}$ and the maximum tether separation $d_{m
 
         % -- OPERATING REGION (circular segment above z_min) --
         \fill[okiBlue!15] ($(C)+(\aZ:\dmax)$) arc[start angle=\aZ, end angle=\aZL, radius=\dmax] -- cycle;
-        \node[label,okiBlue!80!black,align=center] at (-1.5,3.6) {UAV operating\\region};
+        \node[label,okiBlue!80!black,align=center] at (-1.5,3.6) {\gls{uav} operating\\region};
 
         % -- WATER SURFACE (z = 0) --
         \draw[black, dashed, line width=0.8pt] (-5.6,0) -- (5.6,0) node[right, font=\scriptsize, black!80] {Water Surface ($z^{\mathcal{I}}=0$)};
@@ -605,13 +605,13 @@ All seven state constraints thus have the form $h_j(\mathbf{x}_a) \le \sigma_j$,
 
 \subsubsection*{Optimal Control Problem}
 
-At every sampling instant $k$, the translational and physical attitude components of the initial state come from the vehicle's current state estimate, while the commanded attitude components use the last commands actually applied:
+At every sampling instant $k$, the translational and physical attitude components of the initial state come from the \gls{uav}'s current state estimate, while the commanded attitude components use the last commands actually applied:
 \begin{equation}
     \mathbf{x}_{a,k} = \big[x_k,y_k,z_k,\dot x_k,\dot y_k,\dot z_k,\ \phi_k,\theta_k,\ \phi_{\mathrm{cmd},k-1},\theta_{\mathrm{cmd},k-1}\big]^\top.
     \label{eq:uav_mpc_initial_condition}
 \end{equation}
 
-The references and the vessel's most recently computed predicted trajectory are given data at each instant.
+The references and the \gls{usv}'s most recently computed predicted trajectory are given data at each instant.
 
 Assembling the cost, the model, and the constraints gives the optimal control problem the \gls{uav} solves at every sampling instant, with the slacks $\hat\sigma_{j,k+i|k}$ entering as additional decision variables:
 \begin{align}
@@ -621,4 +621,4 @@ Assembling the cost, the model, and the constraints gives the optimal control pr
     & \hat{\mathbf{u}}_{a,k+i|k} \in \mathcal{U}, \quad i=0,\dots,N-1, \notag \\
     & h_j\big(\hat{\mathbf{x}}_{a,k+i|k}\big) \le \hat\sigma_{j,k+i|k}, \quad \hat\sigma_{j,k+i|k} \ge 0, \quad j=1,\dots,7, \quad i=0,\dots,N. \label{eq:uav_mpc_ocp}
 \end{align}
-The vehicle's low-level autopilot receives the attitude setpoints $\phi_{\mathrm{cmd},k}, \theta_{\mathrm{cmd},k}$, obtained by integrating the first optimal rates $\hat{\dot\phi}_{\mathrm{cmd},k|k}, \hat{\dot\theta}_{\mathrm{cmd},k|k}$ over $T_s$, together with the thrust command $\hat{T}_{k|k}$ of the first optimal input $\hat{\mathbf{u}}_{a,k|k}$. These become the commanded attitude components of the initial state at the subsequent sampling instant.
+The \gls{uav}'s low-level autopilot receives the attitude setpoints $\phi_{\mathrm{cmd},k}, \theta_{\mathrm{cmd},k}$, obtained by integrating the first optimal rates $\hat{\dot\phi}_{\mathrm{cmd},k|k}, \hat{\dot\theta}_{\mathrm{cmd},k|k}$ over $T_s$, together with the thrust command $\hat{T}_{k|k}$ of the first optimal input $\hat{\mathbf{u}}_{a,k|k}$. These become the commanded attitude components of the initial state at the subsequent sampling instant.
