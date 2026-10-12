@@ -13,7 +13,7 @@ UavMpcPipeline::UavMpcPipeline()
       target_yaw_(0.0), target_initialized_(false),
       anchor_x_(0.0), anchor_y_(0.0), anchor_z_(0.0),
       has_boat_horizon_(false),
-      L_tether_(3.0), use_tether_(true), v_max_(2.0), u_max_(15.0),
+      L_tether_(3.0), use_tether_(true), v_max_(2.0), v_winch_max_(2.0), u_max_(15.0),
       hover_throttle_(0.618), tilt_max_(0.5),
       trajectory_type_(TrajectoryType::HOLD),
       last_phi_cmd_(0.0), last_theta_cmd_(0.0), first_run_(true) {
@@ -117,6 +117,10 @@ void UavMpcPipeline::setUseTether(bool use_tether) {
 
 void UavMpcPipeline::setVelocityLimit(double v_max) {
     v_max_ = v_max;
+}
+
+void UavMpcPipeline::setWinchSpeedLimit(double v_winch_max) {
+    v_winch_max_ = v_winch_max;
 }
 
 void UavMpcPipeline::setInputLimit(double u_max) {
@@ -465,25 +469,34 @@ void UavMpcPipeline::setupOcpSolver(double current_time, double roll, double pit
         current_reference_velocity_ = {0.0, 0.0, 0.0};
     }
 
-    // Update path and terminal constraint bounds: 0 <= h(x,u,p) <= L_tether^2
-    double lh_val[1] = {0.0};
-    double uh_val[1] = {use_tether_ ? (L_tether_ * L_tether_) : 1e6};
-    for (int i = 0; i < N; i++) {
+    // Update path and terminal constraint bounds:
+    // h0: distance squared: 0 <= distance^2 <= L_tether^2
+    // h1: radial separation velocity: -20.0 <= v_sep <= v_winch_max (2.0 m/s default)
+    double lh_val[2] = {0.0, -20.0};
+    double uh_val[2] = {
+        use_tether_ ? (L_tether_ * L_tether_) : 1e6,
+        use_tether_ ? v_winch_max_ : 100.0
+    };
+    for (int i = 1; i < N; i++) {
         ocp_nlp_constraints_model_set(capsule->nlp_config, capsule->nlp_dims, capsule->nlp_in, capsule->nlp_out, i, "lh", lh_val);
         ocp_nlp_constraints_model_set(capsule->nlp_config, capsule->nlp_dims, capsule->nlp_in, capsule->nlp_out, i, "uh", uh_val);
     }
     ocp_nlp_constraints_model_set(capsule->nlp_config, capsule->nlp_dims, capsule->nlp_in, capsule->nlp_out, N, "lh", lh_val);
     ocp_nlp_constraints_model_set(capsule->nlp_config, capsule->nlp_dims, capsule->nlp_in, capsule->nlp_out, N, "uh", uh_val);
 
-    // Set parameters in ACADOS: [psi, x_boat, y_boat] for each stage
+    // Set parameters in ACADOS: [psi, x_boat, y_boat, z_boat, vx_boat, vy_boat, vz_boat] for each stage
     for (int i = 0; i <= N; i++) {
-        auto b_pos = tether::getInterpolatedBoatPos(i, Ts_, anchor_x_, anchor_y_, has_boat_horizon_, boat_horizon_);
-        double p_params[3] = {
+        auto b_state = tether::getInterpolatedBoatState(i, Ts_, anchor_x_, anchor_y_, anchor_z_, has_boat_horizon_, boat_horizon_);
+        double p_params[7] = {
             yaw,
-            b_pos.first,
-            b_pos.second
+            b_state.px,
+            b_state.py,
+            b_state.pz,
+            b_state.vx,
+            b_state.vy,
+            b_state.vz
         };
-        uav_tethered_acados_update_params(capsule, i, p_params, 3);
+        uav_tethered_acados_update_params(capsule, i, p_params, 7);
     }
 }
 

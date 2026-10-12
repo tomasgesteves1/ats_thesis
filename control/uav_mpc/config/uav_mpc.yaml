@@ -8,6 +8,9 @@ uav_mpc_node:
 
     # Enable/Disable physical model and constraints of the tether
     use_tether: false
+    tether_max_length: 15.0  # Maximum allowed tether length (m)
+    tether_rate_limit: 1.5   # Slew rate limit for tether adjustments (m/s)
+    winch_speed_limit: 2.0   # Physical winch reeling speed limit (m/s)
 
     # Circular trajectory parameters
     circle_radius: 3.0

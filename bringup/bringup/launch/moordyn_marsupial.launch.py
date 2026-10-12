@@ -136,6 +136,8 @@ def generate_launch_description():
             '/model/wamv/odometry@nav_msgs/msg/Odometry[gz.msgs.Odometry',
             '/model/x500/odometry@nav_msgs/msg/Odometry[gz.msgs.Odometry',
             '/world/wamv_world/wrench@ros_gz_interfaces/msg/EntityWrench]gz.msgs.EntityWrench',
+            '/world/wamv_world/wrench/persistent@ros_gz_interfaces/msg/EntityWrench]gz.msgs.EntityWrench',
+            '/world/wamv_world/wrench/clear@ros_gz_interfaces/msg/Entity]gz.msgs.Entity',
             '/world/wamv_world/stats@ros_gz_interfaces/msg/WorldStatistics[gz.msgs.WorldStatistics',
         ],
         remappings=[

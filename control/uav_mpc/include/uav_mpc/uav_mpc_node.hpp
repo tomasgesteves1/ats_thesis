@@ -63,6 +63,7 @@ private:
     rclcpp::Publisher<std_msgs::msg::Float64>::SharedPtr mpc_tether_force_pub_;
     rclcpp::Publisher<std_msgs::msg::Float64>::SharedPtr virtual_tether_distance_pub_;
     rclcpp::Publisher<std_msgs::msg::Float64>::SharedPtr virtual_tether_limit_pub_;
+    rclcpp::Publisher<std_msgs::msg::Float64>::SharedPtr virtual_tether_separation_speed_pub_;
 
     // MPC debug states and inputs publisher (relative topic)
     rclcpp::Publisher<std_msgs::msg::Float64MultiArray>::SharedPtr mpc_states_inputs_pub_;
@@ -89,6 +90,7 @@ private:
     double px4_hover_thrust_;
     uint8_t current_system_id_;
     rclcpp::Time last_boat_horizon_time_;
+    std::vector<std::vector<double>> latest_boat_horizon_;
     double active_tether_max_length_;
 
     // Open-loop variables

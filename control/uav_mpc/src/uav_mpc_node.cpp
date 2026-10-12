@@ -30,6 +30,7 @@ UavMpcNode::UavMpcNode()
     this->declare_parameter<bool>("open_loop_test", false);
     this->declare_parameter<bool>("use_tether", true);
     this->declare_parameter<double>("tether_rate_limit", 1.5);
+    this->declare_parameter<double>("winch_speed_limit", 2.0);
     rcl_interfaces::msg::ParameterDescriptor tether_desc;
     tether_desc.dynamic_typing = true;
     this->declare_parameter("tether_max_length", rclcpp::ParameterValue(15.0), tether_desc);
@@ -96,6 +97,9 @@ UavMpcNode::UavMpcNode()
 
     virtual_tether_limit_pub_ = this->create_publisher<std_msgs::msg::Float64>(
         "virtual_tether_limit", 10);
+
+    virtual_tether_separation_speed_pub_ = this->create_publisher<std_msgs::msg::Float64>(
+        "virtual_tether_separation_speed", 10);
 
     // MPC debug states and inputs publisher (relative topic)
     mpc_states_inputs_pub_ = this->create_publisher<std_msgs::msg::Float64MultiArray>(
@@ -178,6 +182,7 @@ void UavMpcNode::boatHorizonCallback(const nav_msgs::msg::Path::SharedPtr msg) {
     for (const auto& pose : msg->poses) {
         boat_horizon.push_back({pose.pose.position.x, pose.pose.position.y});
     }
+    latest_boat_horizon_ = boat_horizon;
     pipeline_->updateBoatHorizon(boat_horizon);
 }
 
@@ -285,11 +290,11 @@ void UavMpcNode::controlLoop() {
         drone_qw = transform.transform.rotation.w;
         tf_success = true;
 
-        // Compute and publish virtual tether distance and limit for plotting/monitoring
+        // Compute and publish virtual tether distance, limit, and separation speed for plotting/monitoring
         if (use_tether) {
             double dx = drone_x - anchor_x;
             double dy = drone_y - anchor_y;
-            double dz = drone_z; // Boat Z is assumed 0 in XY projection constraint
+            double dz = drone_z - anchor_z;
             double virtual_dist = std::sqrt(dx * dx + dy * dy + dz * dz);
 
             std_msgs::msg::Float64 dist_msg;
@@ -299,6 +304,22 @@ void UavMpcNode::controlLoop() {
             std_msgs::msg::Float64 limit_msg;
             limit_msg.data = active_tether_max_length_;
             virtual_tether_limit_pub_->publish(limit_msg);
+
+            if (odom_received_ && virtual_dist > 0.05) {
+                double v_body[3] = {latest_odom_.twist.twist.linear.x, latest_odom_.twist.twist.linear.y, latest_odom_.twist.twist.linear.z};
+                double v_world[3] = {0.0, 0.0, 0.0};
+                kinematics::rotateVectorByQuaternion(drone_qx, drone_qy, drone_qz, drone_qw, v_body, v_world);
+
+                double b_vx = 0.0, b_vy = 0.0;
+                if (!latest_boat_horizon_.empty() && latest_boat_horizon_.size() >= 2) {
+                    b_vx = (latest_boat_horizon_[1][0] - latest_boat_horizon_[0][0]) / 0.1;
+                    b_vy = (latest_boat_horizon_[1][1] - latest_boat_horizon_[0][1]) / 0.1;
+                }
+                double v_sep = (dx * (v_world[0] - b_vx) + dy * (v_world[1] - b_vy) + dz * v_world[2]) / virtual_dist;
+                std_msgs::msg::Float64 v_sep_msg;
+                v_sep_msg.data = v_sep;
+                virtual_tether_separation_speed_pub_->publish(v_sep_msg);
+            }
         }
     } catch (const tf2::TransformException & ex) {
         RCLCPP_WARN_THROTTLE(this->get_logger(), *this->get_clock(), 2000,
@@ -329,11 +350,13 @@ void UavMpcNode::controlLoop() {
 
     // Update dynamic limits
     double v_max = this->get_parameter("v_max").as_double();
+    double winch_speed_limit = this->get_parameter("winch_speed_limit").as_double();
     double u_max = this->get_parameter("u_max").as_double();
     double hover_throttle = this->get_parameter("hover_throttle").as_double();
     double tilt_max = this->get_parameter("tilt_max").as_double();
 
     pipeline_->setVelocityLimit(v_max);
+    pipeline_->setWinchSpeedLimit(winch_speed_limit);
     pipeline_->setInputLimit(u_max);
     pipeline_->setHoverThrottle(hover_throttle);
     pipeline_->setTiltMax(tilt_max);

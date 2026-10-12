@@ -69,12 +69,11 @@ std::vector<double> UsvMpcPipeline::computeControl() {
     double current_yaw = current_state_[2];
     double prev_yaw = current_yaw;
 
-    // Hydrodynamic damping coefficients for feedforward drag compensation
-    const double X_U = 165.97;
-    const double X_UU = 140.00;
-    const double X_UU_BWD = 157.68;
-    const double N_R = 400.76;
-    const double N_RR = 1069.15;
+    // Hydrodynamic damping coefficients for feedforward drag compensation (Section 4.2.1)
+    const double X_U = 100.00;
+    const double X_UU = 150.00;
+    const double N_R = 800.00;
+    const double N_RR = 800.00;
 
     if (trajectory_type_ == 1 && !external_reference_path_.empty()) {
         // Track external dynamic trajectory
@@ -92,11 +91,10 @@ std::vector<double> UsvMpcPipeline::computeControl() {
             target_psi = prev_yaw + diff;
             prev_yaw = target_psi;
             
-            // Feedforward drag compensation
+            // Feedforward drag compensation using nominal model
             double u_ref = pt.v;
             double r_ref = pt.w;
-            double x_uu_eff = (u_ref < 0.0) ? X_UU_BWD : X_UU;
-            double X_ff = (X_U + x_uu_eff * std::abs(u_ref)) * u_ref;
+            double X_ff = (X_U + X_UU * std::abs(u_ref)) * u_ref;
             double N_ff = (N_R + N_RR * std::abs(r_ref)) * r_ref;
             
             // intermediate yref (size 9): [x, y, psi, u, v, r, X, Y, N]

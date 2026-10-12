@@ -25,11 +25,15 @@ def create_uav_model() -> AcadosModel:
     a_T = ca.SX.sym('a_T', 1)
     u = ca.vertcat(phi_dot_cmd, theta_dot_cmd, a_T)
 
-    # Parameters (p): [psi, x_boat, y_boat]
+    # Parameters (p): [psi, x_boat, y_boat, z_boat, vx_boat, vy_boat, vz_boat]
     psi = ca.SX.sym('psi', 1)
     x_boat = ca.SX.sym('x_boat', 1)
     y_boat = ca.SX.sym('y_boat', 1)
-    p_param = ca.vertcat(psi, x_boat, y_boat)
+    z_boat = ca.SX.sym('z_boat', 1)
+    vx_boat = ca.SX.sym('vx_boat', 1)
+    vy_boat = ca.SX.sym('vy_boat', 1)
+    vz_boat = ca.SX.sym('vz_boat', 1)
+    p_param = ca.vertcat(psi, x_boat, y_boat, z_boat, vx_boat, vy_boat, vz_boat)
 
     # Thrust acceleration in world frame (ENU) using actual model states phi and theta
     ax_thrust = a_T * (ca.cos(psi) * ca.sin(theta) * ca.cos(phi) + ca.sin(psi) * ca.sin(phi))
@@ -37,8 +41,8 @@ def create_uav_model() -> AcadosModel:
     az_thrust = a_T * (ca.cos(theta) * ca.cos(phi))
     a_thrust = ca.vertcat(ax_thrust, ay_thrust, az_thrust)
 
-    # State derivatives (dynamics with tau = 0.15s and state augmentation)
-    tau = 0.15
+    # State derivatives (dynamics with tau = 0.121s identified from Section 4.2.2 and state augmentation)
+    tau = 0.121
     xdot_expr = ca.vertcat(
         v,
         a_thrust + g_vec,
@@ -48,9 +52,22 @@ def create_uav_model() -> AcadosModel:
         theta_dot_cmd
     )
 
-    # Nonlinear distance constraint h (3D distance squared between drone XYZ and boat projection at XY with Z=0)
-    # Drone position coordinates are states index 0, 1, 2 (p vector)
-    h_expr = (p[0] - x_boat)**2 + (p[1] - y_boat)**2 + p[2]**2
+    # Relative position and velocity vectors to the boat anchor
+    p_b = ca.vertcat(x_boat, y_boat, z_boat)
+    v_b = ca.vertcat(vx_boat, vy_boat, vz_boat)
+    r = p - p_b
+    v_rel = v - v_b
+
+    # 1. Nonlinear distance constraint h0: 3D distance squared between drone and boat anchor
+    d_sq = ca.dot(r, r)
+
+    # 2. Nonlinear rate of radial separation constraint h1: d_dot = (r^T * v_rel) / sqrt(r^T * r + eps) <= v_winch_max
+    # Restricts drone from moving away from the boat faster than winch spooling speed (2.0 m/s),
+    # while allowing full velocity when moving towards boat or in tangential/orbital flight.
+    d_norm = ca.sqrt(d_sq + 0.01)
+    v_sep = ca.dot(r, v_rel) / d_norm
+
+    h_expr = ca.vertcat(d_sq, v_sep)
 
     # ACADOS model formulation
     model = AcadosModel()
@@ -112,8 +129,8 @@ def generate_acados_ocp():
     ocp.cost.yref[12] = 9.81  # Default a_T cancels gravity (index 12 for thrust input in 13-dimensional yref)
     ocp.cost.yref_e = np.zeros((ny_e,))
     
-    # Default parameters: [psi, x_boat, y_boat]
-    ocp.parameter_values = np.array([0.0, 0.0, 0.0])
+    # Default parameters: [psi, x_boat, y_boat, z_boat, vx_boat, vy_boat, vz_boat]
+    ocp.parameter_values = np.zeros(7)
     
     # Control input bounds [phi_dot_cmd, theta_dot_cmd, a_T] from config
     phi_dot_max = config["limits"]["phi_dot_max"]
@@ -133,20 +150,24 @@ def generate_acados_ocp():
     ocp.constraints.ubx = np.array([v_max, v_max, v_max, phi_max, theta_max, phi_max, theta_max])
     ocp.constraints.idxbx = np.array([3, 4, 5, 6, 7, 8, 9])
     
-    # Path nonlinear constraint bounds: lh <= h(x,u,p) <= uh (distance squared: 0 <= distance^2 <= L_max^2)
-    # Default tether length limit is 15.0m (15^2 = 225.0). This will be updated dynamically in C++.
+    # Path nonlinear constraint bounds: lh <= h(x,u,p) <= uh
+    # h0: distance squared: 0 <= distance^2 <= L_max^2 (default 15.0m)
+    # h1: separation velocity: -20.0 <= v_sep <= v_winch_max (default 2.0 m/s)
+    # Both are updated dynamically in C++ at runtime.
     L_tether_max_default = 15.0
-    ocp.constraints.lh = np.array([0.0])
-    ocp.constraints.uh = np.array([L_tether_max_default**2])
+    v_winch_max_default = 2.0
+    ocp.constraints.lh = np.array([0.0, -20.0])
+    ocp.constraints.uh = np.array([L_tether_max_default**2, v_winch_max_default])
     
     # Soft constraints for states: soften all 7 box constraints
     ocp.constraints.idxsbx = np.array([0, 1, 2, 3, 4, 5, 6])
     
-    # Soften upper bound of nonlinear constraint h (index 0 of h constraints)
-    ocp.constraints.idxsh = np.array([0])
+    # Soften upper bound of nonlinear constraints h0 and h1
+    ocp.constraints.idxsh = np.array([0, 1])
     
-    # Slack variables penalty costs (7 state bounds slacks + 1 nonlinear constraint slack = 8 slacks)
-    ns = 8
+    # Slack variables penalty costs:
+    # 7 state bounds slacks + 2 nonlinear constraint slacks = 9 slacks
+    ns = 9
     slack_weights = config.get("slack_weights", {"zl": 100.0, "zu": 100.0, "Zl": 1000.0, "Zu": 1000.0})
     zl_val = slack_weights.get("zl", 100.0)
     zu_val = slack_weights.get("zu", 100.0)
@@ -158,11 +179,16 @@ def generate_acados_ocp():
     Zl_vec = np.ones(ns) * Zl_val
     Zu_vec = np.ones(ns) * Zu_val
     
-    # Give higher penalty to the tether distance constraint violation to keep it tight
+    # Give high penalty to tether distance violation (slack 7) and separation velocity violation (slack 8)
     zl_vec[7] = 500.0
     zu_vec[7] = 500.0
     Zl_vec[7] = 10000.0
     Zu_vec[7] = 10000.0
+    
+    zl_vec[8] = 500.0
+    zu_vec[8] = 500.0
+    Zl_vec[8] = 10000.0
+    Zu_vec[8] = 10000.0
     
     ocp.cost.zl = zl_vec
     ocp.cost.zu = zu_vec
@@ -170,12 +196,12 @@ def generate_acados_ocp():
     ocp.cost.Zu = Zu_vec
 
     # Terminal nonlinear constraint bounds
-    ocp.constraints.lh_e = np.array([0.0])
-    ocp.constraints.uh_e = np.array([L_tether_max_default**2])
+    ocp.constraints.lh_e = np.array([0.0, -20.0])
+    ocp.constraints.uh_e = np.array([L_tether_max_default**2, v_winch_max_default])
     
-    # Soften terminal nonlinear constraint
-    ocp.constraints.idxsh_e = np.array([0])
-    ns_e = 1
+    # Soften terminal nonlinear constraints
+    ocp.constraints.idxsh_e = np.array([0, 1])
+    ns_e = 2
     ocp.cost.zl_e = 500.0 * np.ones((ns_e,))
     ocp.cost.zu_e = 500.0 * np.ones((ns_e,))
     ocp.cost.Zl_e = 10000.0 * np.ones((ns_e,))

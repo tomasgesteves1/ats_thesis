@@ -40,6 +40,7 @@ public:
     void setTrajectoryType(TrajectoryType type);
     void setUseTether(bool use_tether);
     void setVelocityLimit(double v_max);
+    void setWinchSpeedLimit(double v_winch_max);
     void setInputLimit(double u_max);
     void setHoverThrottle(double hover_throttle);
     void setTiltMax(double tilt_max);
@@ -68,6 +69,7 @@ private:
     double L_tether_;
     bool use_tether_;
     double v_max_;
+    double v_winch_max_;
     double u_max_;
     double hover_throttle_;
     double tilt_max_;

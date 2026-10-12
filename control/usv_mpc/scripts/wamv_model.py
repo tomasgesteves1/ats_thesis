@@ -2,19 +2,18 @@ import casadi as ca
 import numpy as np
 
 # ==============================================================================
-# Ground Truth Physical Parameters from model.sdf (VRX WAM-V)
+# Ground Truth Physical Parameters from model.sdf (VRX WAM-V) - Section 4.2.1
 # ==============================================================================
-MASS = 289.83          # Optimized rigid body mass (kg) (Nominal: 227)
-IZZ = 600.00           # Optimized moment of inertia about Z axis (kg*m^2) (Nominal: 495)
+MASS = 259.10          # Nominal rigid body mass (kg) (Catamaran 227 + 2 Thrusters 30 + Sensors 2.1)
+IZZ = 695.90           # Nominal yaw moment of inertia about CG (kg*m^2) (Base 495 + Parallel Axis Theorem)
 
-# Hydrodynamic damping coefficients
-X_U = 165.97           # Linear surge damping (N/(m/s))
-X_UU = 140.00          # Quadratic surge damping (forward) (N/(m/s)^2)
-X_UU_BWD = 157.68      # Quadratic surge damping (backward) (N/(m/s)^2)
-Y_V = 92.85            # Linear sway damping (N/(m/s))
-Y_VV = 102.42          # Quadratic sway damping (N/(m/s)^2)
-N_R = 400.76           # Linear yaw damping (N*m/(rad/s))
-N_RR = 1069.15         # Quadratic yaw damping (N*m/(rad/s)^2)
+# Hydrodynamic damping coefficients from Table 4.1 (VRX SimpleHydrodynamics)
+X_U = 100.00           # Linear surge damping (N/(m/s))
+X_UU = 150.00          # Quadratic surge damping (N/(m/s)^2)
+Y_V = 100.00           # Linear sway damping (N/(m/s))
+Y_VV = 100.00          # Quadratic sway damping (N/(m/s)^2)
+N_R = 800.00           # Linear yaw damping (N*m/(rad/s))
+N_RR = 800.00          # Quadratic yaw damping (N*m/(rad/s)^2)
 
 # Thruster geometric configuration (coordinates relative to CG)
 THRUSTER_X_ARM = -2.373776  # Longitudinal position of thrusters (m)
@@ -42,11 +41,7 @@ def wamv_dynamics_numerical(x, u_virtual):
     psi_dot = r
 
     # Dynamics (Fossen 3-DOF model equations)
-    # Added mass is zero in SDF: X_dot_U = 0, Y_dot_V = 0, N_dot_R = 0
-    # Direction-dependent drag in surge (bow vs stern asymmetry)
-    x_uu_eff = X_UU_BWD if u < 0.0 else X_UU
-    
-    u_dot = (X_force - (X_U + x_uu_eff * np.abs(u)) * u) / MASS + v * r
+    u_dot = (X_force - (X_U + X_UU * np.abs(u)) * u) / MASS + v * r
     v_dot = (Y_force - (Y_V + Y_VV * np.abs(v)) * v) / MASS - u * r
     r_dot = (N_moment - (N_R + N_RR * np.abs(r)) * r) / IZZ
 
@@ -81,15 +76,12 @@ def get_wamv_casadi_model():
     N_moment = ca.SX.sym('N_moment')
     controls = ca.vertcat(X_force, Y_force, N_moment)
 
-    # Direction-dependent drag in surge for CasADi (bow vs stern asymmetry)
-    x_uu_eff = ca.if_else(u < 0.0, X_UU_BWD, X_UU)
-
     # Explicit dynamics equations (f_expl)
     f_expl = ca.vertcat(
         u * ca.cos(psi) - v * ca.sin(psi),
         u * ca.sin(psi) + v * ca.cos(psi),
         r,
-        (X_force - (X_U + x_uu_eff * ca.fabs(u)) * u) / MASS + v * r,
+        (X_force - (X_U + X_UU * ca.fabs(u)) * u) / MASS + v * r,
         (Y_force - (Y_V + Y_VV * ca.fabs(v)) * v) / MASS - u * r,
         (N_moment - (N_R + N_RR * ca.fabs(r)) * r) / IZZ
     )
