@@ -439,6 +439,28 @@ def main():
         )
     plt.close(fig_3d)
 
+    # Individual component plots (side by side in LaTeX)
+    comp_cfg = [
+        ("x", 0, fx_true, [-2.3, 3.6]),
+        ("y", 1, fy_true, [-0.12, 0.20]),
+        ("z", 2, fz_true, [-3.0, 1.0]),
+    ]
+    for name, i, f_gt, ylim in comp_cfg:
+        fig_c, ax_c = plt.subplots(figsize=(3.5, 2.7))
+        ax_c.plot(t_grid, f_gt, color=c_gt, linewidth=SIMULATION_LINEWIDTH, label="MoorDyn")
+        ax_c.plot(t_grid, F_cat[:, i], color=c_cat, linewidth=MODEL_LINEWIDTH, label="Catenary Model")
+        ax_c.plot(t_grid, F_chord[:, i], color=c_chord, linewidth=1.0, linestyle="--", label="Pointing to USV")
+        ax_c.plot(t_grid, F_pure_z[:, i], color=c_z, linewidth=1.0, linestyle="-.", label="Pure Vertical")
+        ax_c.set_xlabel("Time [s]")
+        ax_c.set_ylabel(rf"$F_{name}$ [N]")
+        ax_c.set_ylim(ylim)
+        ax_c.grid(True, linestyle=":", alpha=0.6)
+        ax_c.legend(loc="upper center", ncol=2, fontsize=6.5, framealpha=0.9)
+        plt.tight_layout()
+        for d in out_dirs:
+            save_figure(fig_c, os.path.join(d, f"model_fit_f{name}"), save_png=args.save_png)
+        plt.close(fig_c)
+
     # -------------------------------------------------------------
     # Plot 2: Magnitude Comparison (Time)
     # -------------------------------------------------------------
@@ -466,7 +488,7 @@ def main():
     ax_res.plot(t_grid, chord_err_3d, label="Pointing to USV", color=c_chord, linewidth=1.0, linestyle="--")
     ax_res.plot(t_grid, z_err_3d, label="Pure Vertical", color=c_z, linewidth=1.0, linestyle="-.")
     ax_res.set_xlabel("Time [s]")
-    ax_res.set_ylabel(r"$\|\mathbf{F}_{\mathrm{true}} - \mathbf{F}_{\mathrm{model}}\|$ [N]")
+    ax_res.set_ylabel(r"$\|\mathbf{F}_{\mathrm{sim}} - \mathbf{F}_{\mathrm{model}}\|$ [N]")
     ax_res.set_ylim(bottom=0.0, top=2.6)
     ax_res.legend(loc="upper center", ncol=3, fontsize=8.5)  # Horizontal top center has zero curve overlap
     plt.tight_layout()

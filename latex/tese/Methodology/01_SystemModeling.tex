@@ -634,12 +634,12 @@ Substituting \eqref{eq:uav_thrust_inertial}, \eqref{eq:uav_gravity}, and \eqref{
 
 In addition to thrust and gravity, the vehicle is subject to a force transmitted through a tether connecting the origin $\mathcal{O}_a$ of $\{\mathcal{B}_a\}$ to a fixed attachment point on the \gls{wamv}, whose position $\mathbf{p}_v$ is treated here only as a known geometric anchor, without modelling the (negligible) reaction force exerted on the \gls{usv}.
 
-The relevant geometric quantity is the straight-line vector between the two attachment points,
+The relevant geometric quantity is the chord, the straight-line vector between the two attachment points,
 \begin{equation}
     \mathbf{r} = \mathbf{p}_v - \mathbf{p}, \qquad d = \|\mathbf{r}\|, \qquad \hat{\mathbf{d}}_0 = \frac{\mathbf{r}}{d},
     \label{eq:uav_tether_geometry}
 \end{equation}
-where $d$ is the straight-line distance between the \gls{uav} and the \gls{usv}, and $\hat{\mathbf{d}}_0$ is the direction the tether would have if taut.
+where $d$ is the length of the chord, i.e.\ the straight-line distance between the \gls{uav} and the \gls{usv}, and $\hat{\mathbf{d}}_0$ is its direction, which the tether would have if taut.
 
 Denoting by $L \geq d$ the tether length at a given instant, its slack is conveniently quantified by the dimensionless ratio
 \begin{equation}
@@ -648,21 +648,21 @@ Denoting by $L \geq d$ the tether length at a given instant, its slack is conven
 \end{equation}
 with $\varepsilon = 0$ corresponding to a taut tether, and $\varepsilon$ increasing as more slack is introduced.
 
-Under its own weight, a tether of linear mass density $\mu$ suspended between two attachment points takes the shape of a catenary, contained in the vertical plane defined by the two endpoints. Due to the geometric self-similarity of the catenary curve at a given slack ratio $\varepsilon$, the tension magnitude scales proportionally with the straight-line separation distance $d$ (or unstretched length $L$), while the tension direction is governed by the angular deflection $\gamma$ by which the tension vector at $\mathcal{O}_a$ deviates from $\hat{\mathbf{d}}_0$ towards the vertical.
+Under its own weight, a tether of linear mass density $\mu$ suspended between two attachment points takes the shape of a catenary, contained in the vertical plane defined by the two endpoints. Due to the geometric self-similarity of the catenary curve at a given slack ratio $\varepsilon$ and chord inclination, the tension magnitude scales proportionally with the length $d$ of the chord (or with the unstretched length $L$), while the tension direction is governed by the angular deflection $\gamma$ by which the tension vector at $\mathcal{O}_a$ deviates from $\hat{\mathbf{d}}_0$ towards the vertical.
 
 The exact relations governing the deflection angle $\gamma_{\mathrm{exact}}(\varepsilon,\alpha)$ and the normalised tension coefficient $c_d^{\mathrm{exact}}(\varepsilon,\alpha) = T_{\mathrm{tether}}/d$ do not admit a closed-form analytical solution, requiring numerical root-finding algorithms at every control cycle.
 
-The tether control scheme considered in this work maintains $\varepsilon$ close to a constant operating point $\varepsilon_0$. Under this operational regime, the tension magnitude scales linearly with the separation distance $d$:
+The tether control scheme considered in this work maintains $\varepsilon$ close to a constant operating point $\varepsilon_0$. Under this operational regime, the tension magnitude is approximated as scaling linearly with the length of the chord $d$:
 \begin{equation}
     T_{\mathrm{tether}}(d) = c_d(\varepsilon_0)\,d,
     \label{eq:uav_tether_magnitude}
 \end{equation}
-where the nominal coefficient at $\varepsilon_0$ is evaluated from first principles:
+where the nominal coefficient at $\varepsilon_0$ is obtained by approximating the tension at the \gls{uav} by the weight of the tether, $T_{\mathrm{tether}}(L) \approx \mu\,g\,L$, with $L = d/(1-\varepsilon_0)$:
 \begin{equation}
-    c_d(\varepsilon_0) = \frac{\mu\,g}{1 - \varepsilon_0},
+    c_d(\varepsilon_0) = \frac{\mu\,g}{1 - \varepsilon_0}.
     \label{eq:uav_tether_cd_nominal}
 \end{equation}
-or equivalently in terms of unstretched length, $T_{\mathrm{tether}}(L) = \mu\,g\,L$. The deflection angle also depends on the inclination of the chord, given by the depression angle $\alpha$ of $\hat{\mathbf{d}}_0$ below the local horizontal, defined in \eqref{eq:uav_tether_alpha}. Only the component of the weight of the tether normal to the chord, $\mu\,g\,L\cos\alpha$, bends it away from the straight line, so that, for the small sag of the operating point, the deflection scales with $\cos\alpha$. It is maximal for a horizontal chord and vanishes for a vertical one, where the tether hangs straight. The deflection angle is therefore given by its nominal value at $\varepsilon_0$ for a horizontal chord, $\gamma_0 = \gamma(\varepsilon_0, 0)$, scaled by $\cos\alpha$:
+This neglects the dependence of the tension on the inclination of the chord, which for the operating slack changes it by about $12\%$ at most. The deflection angle also depends on the inclination of the chord, given by the depression angle $\alpha$ of $\hat{\mathbf{d}}_0$ below the local horizontal, defined in \eqref{eq:uav_tether_alpha}. Only the component of the weight of the tether normal to the chord, $\mu\,g\,L\cos\alpha$, bends it away from the straight line, so that, for the small slack of the operating point, the deflection approximately scales with $\cos\alpha$. It is maximal for a horizontal chord and vanishes for a vertical one, where the tether hangs straight. The deflection angle is therefore given by its nominal value at $\varepsilon_0$ for a horizontal chord, $\gamma_0 = \gamma(\varepsilon_0, 0)$, scaled by $\cos\alpha$:
 \begin{equation}
     \gamma(\alpha) = \gamma_0\cos\alpha,
     \label{eq:uav_tether_nominal}
@@ -671,16 +671,16 @@ which replaces the transcendental relation with a closed-form expression evaluat
 
 With $\gamma$ given by \eqref{eq:uav_tether_nominal}, the tension direction $\hat{\mathbf{d}}$ can now be constructed. This requires first introducing the direction $\hat{\mathbf{e}}_h$, orthogonal to $\mathbf{z}^{\mathcal{I}}$ within the catenary plane,
 \begin{equation}
-    \hat{\mathbf{e}}_h = \frac{\hat{\mathbf{d}}_0 - (\hat{\mathbf{d}}_0\cdot\mathbf{z}^{\mathcal{I}})\,\mathbf{z}^{\mathcal{I}}}{\|\hat{\mathbf{d}}_0 - (\hat{\mathbf{d}}_0\cdot\mathbf{z}^{\mathcal{I}})\,\mathbf{z}^{\mathcal{I}}\|},
+    \mathbf{h} = \hat{\mathbf{d}}_0 - (\hat{\mathbf{d}}_0\cdot\mathbf{z}^{\mathcal{I}})\,\mathbf{z}^{\mathcal{I}}, \qquad
+    \hat{\mathbf{e}}_h = \frac{\mathbf{h}}{\sqrt{\|\mathbf{h}\|^2 + \delta^2}},
     \label{eq:uav_tether_horizontal}
 \end{equation}
-and the depression angle $\alpha$ of $\hat{\mathbf{d}}_0$ below $\hat{\mathbf{e}}_h$, which follows from
+where $\delta > 0$ is a small constant that keeps $\hat{\mathbf{e}}_h$ defined and differentiable when the chord is vertical and $\mathbf{h} = \mathbf{0}$, and has a negligible effect otherwise. The depression angle $\alpha$ of $\hat{\mathbf{d}}_0$ below $\hat{\mathbf{e}}_h$ follows from
 \begin{equation}
     \hat{\mathbf{d}}_0 = \cos\alpha\,\hat{\mathbf{e}}_h - \sin\alpha\,\mathbf{z}^{\mathcal{I}}.
     \label{eq:uav_tether_alpha}
 \end{equation}
 Figure~\ref{fig:uav_tether_plane} illustrates this construction within the catenary plane, showing the local horizontal $\hat{\mathbf{e}}_h$, the depression angle $\alpha$, and the resulting tension direction $\hat{\mathbf{d}}$, tilted further from $\hat{\mathbf{d}}_0$ by the angle $\gamma$.
-
 
 \begin{figure}[H]
     \centering
@@ -737,7 +737,6 @@ Figure~\ref{fig:uav_tether_plane} illustrates this construction within the caten
     \label{fig:uav_tether_plane}
 \end{figure}
 
-
 The tension direction at $\mathcal{O}_a$ then follows by tilting $\hat{\mathbf{d}}_0$ further towards the vertical by the angle $\gamma(\alpha)$, within the same plane,
 \begin{equation}
     \hat{\mathbf{d}} = \cos(\alpha+\gamma)\,\hat{\mathbf{e}}_h - \sin(\alpha+\gamma)\,\mathbf{z}^{\mathcal{I}},
@@ -748,4 +747,4 @@ and the resulting tether force, applied at $\mathcal{O}_a$ and expressed in $\{\
     \mathbf{F}_{\mathrm{tether}}^{\mathcal{I}} = T_{\mathrm{tether}}(d)\,\hat{\mathbf{d}} = c_d(\varepsilon_0)\,d\,\hat{\mathbf{d}},
     \label{eq:uav_tether_force}
 \end{equation}
-with $d$ evaluated at each instant from \eqref{eq:uav_tether_geometry}. Equation~\eqref{eq:uav_tether_force} is the term $\mathbf{F}_{\mathrm{tether}}^{\mathcal{I}}$ introduced in \eqref{eq:uav_newton}.
+with $d$ evaluated at each instant from \eqref{eq:uav_tether_geometry}. Equation~\eqref{eq:uav_tether_force} is the term $\mathbf{F}_{\mathrm{tether}}^{\mathcal{I}}$ introduced in \eqref{eq:uav_newton}. For a vertical chord, $\mathbf{h} = \mathbf{0}$ and so $\hat{\mathbf{e}}_h = \mathbf{0}$, and since $\cos(\alpha+\gamma) = 0$ the direction reduces to $-\mathbf{z}^{\mathcal{I}}$.

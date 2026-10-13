@@ -296,7 +296,17 @@ The error of these predictions grows with how far ahead they are made. Figure~\r
 \label{subsec:tether_model_validation}
 
 % o que é validado e com que parâmetros
-The last model to be validated is the tether force model of Section~\ref{subsec:mod_tether_force_model}, which gives the force that the tether applies on the \gls{uav} from the positions of the two vehicles. The tension is proportional to the distance between them, and its direction is the line between them tilted towards the vertical by the weight of the tether. The parameters of the model follow from those of the tether in the simulator and are listed in Table~\ref{tab:tether_model_parameters}.
+The last model to be validated is the tether force model of Section~\ref{subsec:mod_tether_force_model}, which gives the force that the tether applies on the \gls{uav} from the positions of the two vehicles. The force has a tension, proportional to the distance $d$ between the vehicles, and a direction. The chord, the straight line between the vehicles, would be the direction of the force if the tether were weightless, but the weight of the tether bends it and rotates the force from the chord towards the vertical. The tension is approximately the weight of the tether hanging between the two vehicles, $T_{\mathrm{tether}} = \mu g L$, where $\mu$ is the linear mass and $L$ the length of the tether. Since the winch keeps $L = d/(1-\varepsilon_0)$, the tension is proportional to the distance between the vehicles, $T_{\mathrm{tether}} = c_d\, d$, with
+
+The tension is approximately the weight of the tether hanging between the two vehicles, $T = \mu g L$, where $\mu$ is the linear mass and $L$ the length of the tether. Since the winch keeps $L = d/(1-\varepsilon_0)$, the tension is proportional to the distance between the vehicles, $T = c_d\, d$, with
+\begin{equation}
+    c_d = \frac{\mu g}{1-\varepsilon_0} = \frac{0.020 \times 9.81}{1-0.05} = 0.2065\,\text{N/m}.
+\end{equation}
+The deflection of the force is largest when the chord is horizontal and decreases as it approaches the vertical. For a horizontal chord, the weight bends the tether into a catenary~\cite{irvine1981cable}, and the deflection $\gamma_0$ is the angle that the tether makes with the chord at its ends. For a tether of length $L$ between two points at distance $d$, it is given by
+\begin{equation}
+    \gamma_0 = \arctan\left(\sinh u\right), \qquad \frac{\sinh u}{u} = \frac{L}{d} = \frac{1}{1-\varepsilon_0},
+\end{equation}
+where $u$ is the positive solution of the second equation, obtained iteratively. For $\varepsilon_0 = 5\%$, this gives $u = 0.558$ and $\gamma_0 = 30.4^\circ$. The parameters of the model are listed in Table~\ref{tab:tether_model_parameters}.
 
 \begin{table}[htbp]
     \centering
@@ -308,66 +318,66 @@ The last model to be validated is the tether force model of Section~\ref{subsec:
         \midrule
         Linear mass & $\mu$ & $0.020\,\text{kg/m}$ \\
         Slack ratio & $\varepsilon_0$ & $5\%$ \\
-        Tension per unit of distance & $c_d = \mu g/(1-\varepsilon_0)$ & $0.2065\,\text{N/m}$ \\
-        Deflection of the horizontal chord & $\gamma_0$ & $30.4^\circ$ \\
+        Tension per unit of distance & $c_d$ & $0.2065\,\text{N/m}$ \\
+        Deflection for a horizontal chord & $\gamma_0$ & $30.4^\circ$ \\
         \bottomrule
     \end{tabular}
 \end{table}
 
 % como é feita a comparação
-The tether force was recorded in the simulator during a flight of $60.5\,\text{s}$, in which the distance between the two vehicles varied between $4.6\,\text{m}$ and $14.0\,\text{m}$ and the winch kept the slack at $\varepsilon_0$. In the simulator, the tether is a lumped-mass model with $30$ segments, and the force it applies on the \gls{uav} is the reference. At each instant, the model receives the positions of the two vehicles and computes the force, which is compared with the reference in magnitude and in its components in the inertial frame. Since the model gives the force directly from the positions, with no dynamics, there is no initial state and no error accumulates, so the whole flight is compared instant by instant.
+The tether force was recorded in the simulator during a flight of $60.5\,\text{s}$, in which the \gls{uav} moved along $x$, and the distance between the two vehicles varied between $4.6\,\text{m}$ and $14.0\,\text{m}$. The winch regulated the slack to $\varepsilon_0$. The reference is the force computed by MoorDyn and applied on the \gls{uav} in Gazebo, where the tether is a lumped-mass model with $30$ segments, described in Section~\ref{sec:simulation_environment}. At each instant, the model receives the positions of the two vehicles and computes the force, which is compared with the reference in tension and in its components in the inertial frame. The comparison is also made for two simpler descriptions of the force, which differ from the model only in its direction: the tether hangs from the \gls{uav} as a vertical load, or it is taut along the chord. Since the models give the force directly from the positions, there is no initial state and no error accumulates, so the whole flight is compared instant by instant.
 
-The first-principles formulation derived in Section~\ref{subsec:mod_tether_force_model} computes the tether force directly from its nominal physical specifications under steady winch regulation. With the winch maintaining the slack ratio around $\varepsilon_0 = 0.05$, the linear mass density $\mu = 0.020\,\text{kg/m}$ and gravitational acceleration $g = 9.81\,\text{m/s}^2$ yield a nominal tension-distance coefficient of
-\begin{equation}
-    c_d(\varepsilon_0) = \frac{\mu\,g}{1 - \varepsilon_0} = \frac{0.020 \times 9.81}{1 - 0.05} \approx 0.2065\,\text{N/m},
-    \label{eq:tether_val_cd}
-\end{equation}
-giving the scalar tension estimate $T_{\mathrm{theo}}(d) = c_d(\varepsilon_0)\,d$, where $d = \|\mathbf{p}_v - \mathbf{p}\|$ is the Euclidean distance between the \gls{usv} and the \gls{uav}. In terms of the unstretched tether length $L$, this corresponds to $T_{\mathrm{theo}}(L) = \mu\,g\,L = 0.1962\,L$. The three-dimensional direction $\hat{\mathbf{d}}$ is constructed by tilting the line-of-sight chord $\hat{\mathbf{d}}_0$ towards the vertical by the nominal catenary elevation deflection angle $\gamma(\alpha) = \gamma_0\cos\alpha$, where $\alpha$ is the chord depression angle and $\gamma_0 = 30.4^\circ$ is the deflection of a horizontal chord at $\varepsilon_0 = 0.05$. This value is the slope of the catenary at its end, $\gamma_0 = \arctan(\sinh u)$, where $u$ is the root of $\sinh u / u = L/d = 1/(1-\varepsilon_0)$. To assess whether this nominal model adequately captures the coupling dynamics, its predictions are evaluated against telemetry from the 30-segment MoorDyn simulator recorded during a $60.5\,\text{s}$ flight trajectory with separation distances ranging from $4.6\,\text{m}$ to $14.0\,\text{m}$. Furthermore, the formulation is benchmarked against two widespread simplifications from the tethered \gls{uav} literature.
-\begin{enumerate}
-    \item \textbf{Pure Vertical Ballast}, which assumes that the tether hangs directly downward as an equivalent vertical load with $\mathbf{F}_{\mathrm{pure\_z}} = [0,\,0,\,-T_{\mathrm{theo}}]^T$, neglecting horizontal coupling.
-    \item \textbf{Pointing to \gls{usv} (Straight Chord)}, which assumes a taut tether between the attachment points with $\gamma = 0^\circ$, directing the full tension along the direct line of sight with $\mathbf{F}_{\mathrm{chord}} = T_{\mathrm{theo}}\,\hat{\mathbf{d}}_0$.
-\end{enumerate}
-
-Figure~\ref{fig:model_fit_comparison} compares the predicted scalar tension magnitude $T_{\mathrm{theo}}(t)$ with the filtered MoorDyn telemetry over the trajectory. The theoretical linear relation with $c_d = 0.2065\,\text{N/m}$ follows the actual tension closely across the entire operating range, achieving an \gls{rmse} of $0.2031\,\text{N}$ and an \gls{nrmse} of $8.79\%$.
+% quão perto está o modelo do simulador
+Figure~\ref{fig:model_fit_comparison} compares the tension of the model with that of the simulator along the flight, and Figure~\ref{fig:model_fit_3d} compares the components of the force on the \gls{uav} along $x$ and $z$. The model follows the tension and the components, with errors between $4\%$ and $11\%$ of their range, as listed in Table~\ref{tab:tether_model_benchmark}.
 
 \begin{figure}[htbp]
     \centering
-    \subfloat[Tether tension magnitude $T_{\mathrm{tether}}(t)$.\label{fig:model_fit_comparison}]{
-        \includegraphics[width=0.48\textwidth]{Implementation/figures/02_model_validation/model_fit_comparison.pdf}
-    }
-    \hfill
-    \subfloat[Three-dimensional force prediction error norm.\label{fig:model_fit_residuals}]{
-        \includegraphics[width=0.48\textwidth]{Implementation/figures/02_model_validation/model_fit_residuals.pdf}
-    }
-    \caption{Tether tension magnitude and three-dimensional prediction error norm compared against MoorDyn telemetry.}
-    \label{fig:tether_model_fit_metrics}
+    \includegraphics[width=0.55\textwidth]{Implementation/figures/02_model_validation/model_fit_comparison.pdf}
+    \caption{Tether tension of the model and of the simulator.}
+    \label{fig:model_fit_comparison}
 \end{figure}
 
-When resolved into Cartesian components in the inertial frame in Figure~\ref{fig:model_fit_3d}, the importance of accounting for the catenary deflection angle $\gamma_0 = 30.4^\circ$ becomes evident. The proposed formulation accurately tracks both the horizontal restoring force $F_x$ with an \gls{rmse} of $0.1080\,\text{N}$ (\gls{nrmse} of $3.85\%$), as well as the vertical downward pull $F_z$ with an \gls{rmse} of $0.2259\,\text{N}$ (\gls{nrmse} of $10.50\%$). In contrast, the pure vertical simplification fails to capture horizontal interaction forces with an \gls{nrmse} of $33.62\%$, while the straight chord approximation exhibits substantial errors in both axes ($21.85\%$ and $30.55\%$, respectively) because it ignores the natural sag of the tether.
-
 \begin{figure}[htbp]
     \centering
-    \includegraphics[width=0.55\textwidth]{Implementation/figures/02_model_validation/model_fit_3d_components.pdf}
-    \caption{Three-dimensional tether force components at the \gls{uav}.}
+    \subfloat[Force along $x$.]{
+        \includegraphics[width=0.48\textwidth]{Implementation/figures/02_model_validation/model_fit_fx.pdf}
+        \label{fig:model_fit_fx}
+    }
+    \subfloat[Force along $z$.]{
+        \includegraphics[width=0.48\textwidth]{Implementation/figures/02_model_validation/model_fit_fz.pdf}
+        \label{fig:model_fit_fz}
+    }
+    \caption{Tether force components at the \gls{uav}.}
     \label{fig:model_fit_3d}
 \end{figure}
 
-The temporal evolution of the three-dimensional prediction error norm $\|\mathbf{F}_{\mathrm{true}} - \mathbf{F}_{\mathrm{model}}\|$, presented in Figure~\ref{fig:model_fit_residuals}, reveals the stability of each approach during dynamic manoeuvres. While the baseline simplifications experience large transient error surges during vehicle reversals, reaching $1.63\,\text{N}$ for the pure vertical model and $1.29\,\text{N}$ for the straight chord, the proposed catenary model maintains a bounded residual below $0.93\,\text{N}$ throughout the entire flight profile.
+% o erro é aceitável?
+Figure~\ref{fig:model_fit_residuals} shows, for each model, the error of the force vector along the flight, combining its components, and Table~\ref{tab:tether_model_benchmark} lists the corresponding errors. Since the three models use the same tension, their errors differ only through the direction of the force. The model reduces the error of the force by $72\%$ relative to the taut tether and by $76\%$ relative to the vertical load, and its error of $0.25\,\text{N}$ represents $1.2\%$ of the weight of the \gls{uav}, which is $20.2\,\text{N}$.
 
-Table~\ref{tab:tether_model_benchmark} summarises the quantitative performance across the complete benchmark trajectory. The proposed first-principles model achieves an overall three-dimensional \gls{rmse} of $0.2505\,\text{N}$, reducing the spatial force error by more than $70\%$ compared to both the straight chord model with $0.8991\,\text{N}$ ($+258.8\%$ error) and the pure vertical model with $1.0332\,\text{N}$ ($+312.4\%$ error). These results confirm that the closed-form catenary approximation captures the dominant coupling forces with sufficient fidelity for real-time feedforward compensation, while avoiding the prohibitive computational cost of numerical catenary solvers or multi-segment models.
+\begin{figure}[htbp]
+    \centering
+    \includegraphics[width=0.55\textwidth]{Implementation/figures/02_model_validation/model_fit_residuals.pdf}
+    \caption{Error of the force vector of the tether models.}
+    \label{fig:model_fit_residuals}
+\end{figure}
 
 \begin{table}[htbp]
     \centering
-    \caption{Tether force model benchmark.}
+    \caption{Tether force model errors.}
     \label{tab:tether_model_benchmark}
-    \begin{tabular}{lcccccc}
+    \begin{tabular}{lccc}
         \toprule
-        \textbf{Model} & \textbf{$F_x$ RMSE} & \textbf{$F_x$ NRMSE} & \textbf{$F_z$ RMSE} & \textbf{$F_z$ NRMSE} & \textbf{3D RMSE} & \textbf{Error Increase} \\
-        & (N) & (\%) & (N) & (\%) & (N) & \\
+        \textbf{Quantity} & \textbf{Unit} & \textbf{RMSE} & \textbf{NRMSE (\%)} \\
         \midrule
-        \textbf{Proposed Catenary} & $\mathbf{0.1080}$ & $\mathbf{3.85}$ & $\mathbf{0.2259}$ & $\mathbf{10.50}$ & $\mathbf{0.2505}$ & \textbf{Baseline} \\
-        Pointing to \gls{usv} ($\gamma = 0^\circ$) & $0.6135$ & $21.85$ & $0.6572$ & $30.55$ & $0.8991$ & $+258.8\%$ \\
-        Pure Vertical ($F_z = -T$) & $0.9438$ & $33.62$ & $0.4200$ & $19.52$ & $1.0332$ & $+312.4\%$ \\
+        \multicolumn{4}{l}{\textit{Model}} \\
+        Tension $T_{\mathrm{tether}}$ & N & $0.2031$ & $8.79$ \\
+        Force $F_x$ & N & $0.1080$ & $3.85$ \\
+        Force $F_z$ & N & $0.2259$ & $10.50$ \\
+        \midrule
+        \multicolumn{4}{l}{\textit{Error of the force vector}} \\
+        Model & N & $0.2505$ & $10.84$ \\
+        Taut tether ($\gamma_0 = 0^\circ$) & N & $0.8991$ & $38.91$ \\
+        Vertical load & N & $1.0332$ & $44.72$ \\
         \bottomrule
     \end{tabular}
 \end{table}
