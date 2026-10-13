@@ -22,32 +22,17 @@ def generate_launch_description():
         ],
         remappings=[
             ('odom', '/boat/ground_truth/odometry'),
-            ('cmd_wrench', '/boat/cmd_wrench'),
+            ('thrusters/left/thrust', '/boat/thrusters/left/thrust'),
+            ('thrusters/right/thrust', '/boat/thrusters/right/thrust'),
+            ('thrusters/left/pos', '/boat/thrusters/left/pos'),
+            ('thrusters/right/pos', '/boat/thrusters/right/pos'),
+            ('uav_horizon', '/mpc_predicted_path'),
             ('reference_path', '/usv/reference_path'),
             ('target_position', '/usv/target_position'),
             ('mpc_horizon', '/usv/mpc_horizon')
         ]
     )
 
-    # 2. Thruster Mapper Node (Inverse Thrust Allocation)
-    thruster_mapper_node = Node(
-        package='usv_mpc',
-        executable='thruster_mapper_node',
-        name='thruster_mapper_node',
-        output='screen',
-        parameters=[
-            {'use_sim_time': True}
-        ],
-        remappings=[
-            ('cmd_wrench', '/boat/cmd_wrench'),
-            ('thrusters/left/thrust', '/boat/thrusters/left/thrust'),
-            ('thrusters/right/thrust', '/boat/thrusters/right/thrust'),
-            ('thrusters/left/pos', '/boat/thrusters/left/pos'),
-            ('thrusters/right/pos', '/boat/thrusters/right/pos'),
-        ]
-    )
-
     return LaunchDescription([
-        usv_mpc_node,
-        thruster_mapper_node
+        usv_mpc_node
     ])

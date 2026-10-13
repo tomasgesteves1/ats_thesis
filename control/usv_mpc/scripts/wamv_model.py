@@ -1,13 +1,12 @@
 import casadi as ca
-import numpy as np
 
 # ==============================================================================
-# Ground Truth Physical Parameters from model.sdf (VRX WAM-V) - Section 4.2.1
+# Nominal parameters of the WAM-V model (Section 4.2.1, Table 4.1)
 # ==============================================================================
-MASS = 259.10          # Nominal rigid body mass (kg) (Catamaran 227 + 2 Thrusters 30 + Sensors 2.1)
-IZZ = 683.22           # Yaw moment of inertia about CG = base_link origin (kg*m^2), from model.sdf
+MASS = 259.10          # Rigid body mass (kg)
+IZZ = 683.22           # Yaw moment of inertia about the CG = base_link origin (kg*m^2)
 
-# Hydrodynamic damping coefficients from Table 4.1 (VRX SimpleHydrodynamics)
+# Hydrodynamic damping (VRX SimpleHydrodynamics)
 X_U = 100.00           # Linear surge damping (N/(m/s))
 X_UU = 150.00          # Quadratic surge damping (N/(m/s)^2)
 Y_V = 100.00           # Linear sway damping (N/(m/s))
@@ -15,104 +14,63 @@ Y_VV = 100.00          # Quadratic sway damping (N/(m/s)^2)
 N_R = 800.00           # Linear yaw damping (N*m/(rad/s))
 N_RR = 800.00          # Quadratic yaw damping (N*m/(rad/s)^2)
 
-# Thruster geometric configuration (coordinates relative to CG)
-THRUSTER_X_ARM = -2.085527  # Longitudinal position of thrusters rel. to CG = base_link origin (m)
-THRUSTER_Y_ARM = 1.027135   # Lateral distance from centerline to thrusters (m)
+# Thruster geometry relative to the CG (m), as in Eq. usv_mpc_alloc_moment
+X_ARM = 2.085527       # Longitudinal distance (thrusters are aft of the CG)
+Y_ARM = 1.027135       # Lateral distance from the centreline
 
-def wamv_dynamics_numerical(x, u_virtual):
-    """
-    Numerical evaluation of WAM-V dynamics (Fossen 3-DOF model) for simulation.
-    x: State vector numpy array [x, y, psi, u, v, r]
-    u_virtual: Control input vector numpy array [X, Y, N] (Surge force, Sway force, Yaw moment)
-    Returns: State derivative dx/dt [x_dot, y_dot, psi_dot, u_dot, v_dot, r_dot]
-    """
-    psi = x[2]
-    u = x[3]
-    v = x[4]
-    r = x[5]
+NX = 10                # [x, y, psi, u, v, r, T_L, T_R, alpha_L, alpha_R]
+NU = 4                 # [dT_L, dT_R, dalpha_L, dalpha_R]
+NP = 5                 # [psi_ref, x_a, y_a, z_a, z_t]
 
-    X_force = u_virtual[0]
-    Y_force = u_virtual[1]
-    N_moment = u_virtual[2]
-
-    # Kinematics (Body-to-Global translation)
-    x_dot = u * np.cos(psi) - v * np.sin(psi)
-    y_dot = u * np.sin(psi) + v * np.cos(psi)
-    psi_dot = r
-
-    # Dynamics (Fossen 3-DOF model equations)
-    u_dot = (X_force - (X_U + X_UU * np.abs(u)) * u) / MASS + v * r
-    v_dot = (Y_force - (Y_V + Y_VV * np.abs(v)) * v) / MASS - u * r
-    r_dot = (N_moment - (N_R + N_RR * np.abs(r)) * r) / IZZ
-
-    return np.array([x_dot, y_dot, psi_dot, u_dot, v_dot, r_dot])
 
 def get_wamv_casadi_model():
     """
-    Generates the CasADi symbolic variables and dynamics expressions.
-    This function is designed to be imported by the Acados generator script.
+    CasADi model of the USV used by the NMPC (Section 3.3): the thruster thrusts
+    and azimuths are states, and their rates of change are the control inputs.
+    Returns x, xdot, u, p, f_expl, f_impl.
     """
-    # Define CasADi states
     x_pos = ca.SX.sym('x_pos')
     y_pos = ca.SX.sym('y_pos')
     psi = ca.SX.sym('psi')
     u = ca.SX.sym('u')
     v = ca.SX.sym('v')
     r = ca.SX.sym('r')
-    states = ca.vertcat(x_pos, y_pos, psi, u, v, r)
+    T_L = ca.SX.sym('T_L')
+    T_R = ca.SX.sym('T_R')
+    a_L = ca.SX.sym('alpha_L')
+    a_R = ca.SX.sym('alpha_R')
+    states = ca.vertcat(x_pos, y_pos, psi, u, v, r, T_L, T_R, a_L, a_R)
+    states_dot = ca.SX.sym('xdot', NX)
 
-    # Define CasADi derivatives
-    x_pos_dot = ca.SX.sym('x_pos_dot')
-    y_pos_dot = ca.SX.sym('y_pos_dot')
-    psi_dot = ca.SX.sym('psi_dot')
-    u_dot = ca.SX.sym('u_dot')
-    v_dot = ca.SX.sym('v_dot')
-    r_dot = ca.SX.sym('r_dot')
-    states_dot = ca.vertcat(x_pos_dot, y_pos_dot, psi_dot, u_dot, v_dot, r_dot)
+    dT_L = ca.SX.sym('dT_L')
+    dT_R = ca.SX.sym('dT_R')
+    da_L = ca.SX.sym('dalpha_L')
+    da_R = ca.SX.sym('dalpha_R')
+    controls = ca.vertcat(dT_L, dT_R, da_L, da_R)
 
-    # Define CasADi control inputs (Virtual force/moment level: [X, Y, N])
-    X_force = ca.SX.sym('X_force')
-    Y_force = ca.SX.sym('Y_force')
-    N_moment = ca.SX.sym('N_moment')
-    controls = ca.vertcat(X_force, Y_force, N_moment)
+    # Parameters per node: heading reference and UAV predicted position / attachment height
+    psi_ref = ca.SX.sym('psi_ref')
+    x_a = ca.SX.sym('x_a')
+    y_a = ca.SX.sym('y_a')
+    z_a = ca.SX.sym('z_a')
+    z_t = ca.SX.sym('z_t')
+    params = ca.vertcat(psi_ref, x_a, y_a, z_a, z_t)
 
-    # Explicit dynamics equations (f_expl)
+    # Thrust allocation (Eqs. usv_mpc_alloc_force / usv_mpc_alloc_moment)
+    X_force = T_L * ca.cos(a_L) + T_R * ca.cos(a_R)
+    Y_force = T_L * ca.sin(a_L) + T_R * ca.sin(a_R)
+    N_moment = -X_ARM * (T_L * ca.sin(a_L) + T_R * ca.sin(a_R)) \
+               - Y_ARM * (T_L * ca.cos(a_L) - T_R * ca.cos(a_R))
+
     f_expl = ca.vertcat(
         u * ca.cos(psi) - v * ca.sin(psi),
         u * ca.sin(psi) + v * ca.cos(psi),
         r,
         (X_force - (X_U + X_UU * ca.fabs(u)) * u) / MASS + v * r,
         (Y_force - (Y_V + Y_VV * ca.fabs(v)) * v) / MASS - u * r,
-        (N_moment - (N_R + N_RR * ca.fabs(r)) * r) / IZZ
+        (N_moment - (N_R + N_RR * ca.fabs(r)) * r) / IZZ,
+        dT_L, dT_R, da_L, da_R
     )
-
-    # Implicit dynamics equations (f_impl = states_dot - f_expl)
     f_impl = states_dot - f_expl
 
-    return states, states_dot, controls, f_expl, f_impl
-
-def thrust_allocation_map(thrust_left, thrust_right, angle_left, angle_right):
-    """
-    Maps physical thruster forces and angles to virtual forces on the CG (Thrust Allocation).
-    T_L, T_R, alpha_L, alpha_R -> [X, Y, N]^T
-    Accounts for reverse thrust propeller inefficiency (0.746 multiplier).
-    """
-    # Apply reverse thrust efficiency factor if thrust command is negative
-    tl_eff = thrust_left * 0.746 if thrust_left < 0.0 else thrust_left
-    tr_eff = thrust_right * 0.746 if thrust_right < 0.0 else thrust_right
-    
-    # Force components per motor in body frame
-    f_x_L = tl_eff * np.cos(angle_left)
-    f_y_L = tl_eff * np.sin(angle_left)
-    
-    f_x_R = tr_eff * np.cos(angle_right)
-    f_y_R = tr_eff * np.sin(angle_right)
-    
-    # Sum of forces in body frame
-    X_force = f_x_L + f_x_R
-    Y_force = f_y_L + f_y_R
-    
-    # Resulting moment: N = x * F_y - y * F_x
-    N_moment = THRUSTER_X_ARM * (f_y_L + f_y_R) - THRUSTER_Y_ARM * (f_x_L - f_x_R)
-    
-    return np.array([X_force, Y_force, N_moment])
+    return states, states_dot, controls, params, f_expl, f_impl

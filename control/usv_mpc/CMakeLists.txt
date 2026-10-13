@@ -28,12 +28,13 @@ link_directories(
 )
 
 # Build ACADOS generated code as a static library
-add_library(usv_acados_solver STATIC
-  acados_solver/acados_solver_usv_dynamic.c
-  acados_solver/usv_dynamic_model/usv_dynamic_expl_ode_fun.c
-  acados_solver/usv_dynamic_model/usv_dynamic_expl_vde_forw.c
-  acados_solver/usv_dynamic_model/usv_dynamic_expl_vde_adj.c
+file(GLOB_RECURSE ACADOS_USV_SOURCES
+  ${CMAKE_CURRENT_SOURCE_DIR}/acados_solver/acados_solver_usv_dynamic.c
+  ${CMAKE_CURRENT_SOURCE_DIR}/acados_solver/usv_dynamic_model/*.c
+  ${CMAKE_CURRENT_SOURCE_DIR}/acados_solver/usv_dynamic_cost/*.c
+  ${CMAKE_CURRENT_SOURCE_DIR}/acados_solver/usv_dynamic_constraints/*.c
 )
+add_library(usv_acados_solver STATIC ${ACADOS_USV_SOURCES})
 target_link_libraries(usv_acados_solver acados hpipm blasfeo)
 
 # ROS 2 Node
@@ -56,7 +57,8 @@ ament_target_dependencies(usv_mpc_node
 )
 target_link_libraries(usv_mpc_node usv_acados_solver)
 
-# Thruster Mapper Node
+# Thruster Mapper Node (wrench -> thrusters). Only used by the open-loop identification tests;
+# the NMPC publishes the thruster commands directly.
 add_executable(thruster_mapper_node
   src/thruster_mapper_node.cpp
 )

@@ -1,21 +1,35 @@
 #include "usv_mpc/usv_mpc_pipeline.hpp"
 #include "acados_solver_usv_dynamic.h"
+#include <algorithm>
 #include <iostream>
 #include <cmath>
 
 namespace usv_mpc {
 
+namespace {
+constexpr int NX = 10;       // [x, y, psi, u, v, r, T_L, T_R, alpha_L, alpha_R]
+constexpr int NU = 4;        // [dT_L, dT_R, dalpha_L, dalpha_R]
+constexpr int NY = 14;       // stage residuals
+constexpr int NY_E = 10;     // terminal residuals
+constexpr int NP = 5;        // [psi_ref, x_a, y_a, z_a, z_t]
+constexpr double TS = 0.1;   // Sampling time (must match the generator config)
+constexpr double NO_TETHER = 1.0e6;
+}
+
 UsvMpcPipeline::UsvMpcPipeline() {
     current_state_.resize(6, 0.0);
     current_reference_.resize(6, 0.0);
     trajectory_type_ = 0; // Default: HOLD
-    last_control_ = {0.0, 0.0, 0.0};
+    last_command_ = {0.0, 0.0, 0.0, 0.0};
+    d_max_ = 15.0;
+    z_t_ = 0.0;
     has_valid_solution_ = false;
-    
+    first_run_ = true;
+
     acados_ocp_capsule_ = usv_dynamic_acados_create_capsule();
     int status = usv_dynamic_acados_create((usv_dynamic_solver_capsule*)acados_ocp_capsule_);
     if (status) {
-        std::cerr << "UsvMpcPipeline: Falha a criar o solver ACADOS!" << std::endl;
+        std::cerr << "UsvMpcPipeline: Failed to create the ACADOS solver!" << std::endl;
     }
 }
 
@@ -55,118 +69,96 @@ void UsvMpcPipeline::setTrajectoryType(int type) {
     trajectory_type_ = type;
 }
 
-std::vector<double> UsvMpcPipeline::computeControl() {
+void UsvMpcPipeline::setUavHorizon(const std::vector<std::array<double, 3>>& uav_horizon) {
+    uav_horizon_ = uav_horizon;
+}
+
+void UsvMpcPipeline::setTetherParameters(double d_max, double z_t) {
+    d_max_ = d_max;
+    z_t_ = z_t;
+}
+
+ThrusterCommand UsvMpcPipeline::computeControl() {
     auto capsule = (usv_dynamic_solver_capsule*)acados_ocp_capsule_;
-    
-    // 1. Set initial state bounds (x0)
-    double x0[6];
+    const int N = USV_DYNAMIC_N;
+
+    // 1. Initial state: measured motion + last applied thruster commands
+    double x0[NX];
     for (int i = 0; i < 6; i++) x0[i] = current_state_[i];
+    for (int i = 0; i < 4; i++) x0[6 + i] = last_command_[i];
     ocp_nlp_constraints_model_set(capsule->nlp_config, capsule->nlp_dims, capsule->nlp_in, capsule->nlp_out, 0, "lbx", x0);
     ocp_nlp_constraints_model_set(capsule->nlp_config, capsule->nlp_dims, capsule->nlp_in, capsule->nlp_out, 0, "ubx", x0);
 
-    // 2. Inject reference trajectory over horizon
-    int N = USV_DYNAMIC_N;
-    double current_yaw = current_state_[2];
-    double prev_yaw = current_yaw;
-
-    // Hydrodynamic damping coefficients for feedforward drag compensation (Section 4.2.1)
-    const double X_U = 100.00;
-    const double X_UU = 150.00;
-    const double N_R = 800.00;
-    const double N_RR = 800.00;
-
-    if (trajectory_type_ == 1 && !external_reference_path_.empty()) {
-        // Track external dynamic trajectory
-        int path_size = external_reference_path_.size();
-        for (int i = 0; i < N; i++) {
-            // Get corresponding point, pad with last point if horizon extends past path
-            int idx = std::min(i, path_size - 1);
-            const auto& pt = external_reference_path_[idx];
-            
-            // Continuous angle unwrapping to prevent 180-degree jumps on -pi/pi boundary
-            double target_psi = pt.psi;
-            double diff = target_psi - prev_yaw;
-            while (diff > M_PI) diff -= 2.0 * M_PI;
-            while (diff < -M_PI) diff += 2.0 * M_PI;
-            target_psi = prev_yaw + diff;
-            prev_yaw = target_psi;
-            
-            // Feedforward drag compensation using nominal model
-            double u_ref = pt.v;
-            double r_ref = pt.w;
-            double X_ff = (X_U + X_UU * std::abs(u_ref)) * u_ref;
-            double N_ff = (N_R + N_RR * std::abs(r_ref)) * r_ref;
-            
-            // intermediate yref (size 9): [x, y, psi, u, v, r, X, Y, N]
-            double yref[9] = {pt.x, pt.y, target_psi, u_ref, 0.0, r_ref, X_ff, 0.0, N_ff};
-            ocp_nlp_cost_model_set(capsule->nlp_config, capsule->nlp_dims, capsule->nlp_in, i, "yref", yref);
+    if (first_run_) {
+        for (int i = 0; i <= N; i++) {
+            ocp_nlp_out_set(capsule->nlp_config, capsule->nlp_dims, capsule->nlp_out, capsule->nlp_in, i, "x", x0);
         }
-        // Terminal stage yref_e (size 6): [x, y, psi, u, v, r]
-        const auto& pt_e = external_reference_path_[std::min(N, path_size - 1)];
-        double target_psi_e = pt_e.psi;
-        double diff_e = target_psi_e - prev_yaw;
-        while (diff_e > M_PI) diff_e -= 2.0 * M_PI;
-        while (diff_e < -M_PI) diff_e += 2.0 * M_PI;
-        target_psi_e = prev_yaw + diff_e;
-
-        double yref_e[6] = {pt_e.x, pt_e.y, target_psi_e, pt_e.v, 0.0, pt_e.w};
-        ocp_nlp_cost_model_set(capsule->nlp_config, capsule->nlp_dims, capsule->nlp_in, N, "yref", yref_e);
-
-    } else {
-        // Hold static reference pose with angle unwrapping
-        double target_psi = current_reference_[2];
-        double diff = target_psi - current_yaw;
-        while (diff > M_PI) diff -= 2.0 * M_PI;
-        while (diff < -M_PI) diff += 2.0 * M_PI;
-        target_psi = current_yaw + diff;
-
-        double yref[9] = {current_reference_[0], current_reference_[1], target_psi, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0};
-        double yref_e[6] = {current_reference_[0], current_reference_[1], target_psi, 0.0, 0.0, 0.0};
-        
-        for (int i = 0; i < N; i++) {
-            ocp_nlp_cost_model_set(capsule->nlp_config, capsule->nlp_dims, capsule->nlp_in, i, "yref", yref);
-        }
-        ocp_nlp_cost_model_set(capsule->nlp_config, capsule->nlp_dims, capsule->nlp_in, N, "yref", yref_e);
+        first_run_ = false;
     }
 
-    // 3. Solve OCP
+    // 2. Reference over the horizon: yref = [x, y, 0 (heading residual), u, v, r, 0 (T, alpha), 0 (rates)]
+    const bool external = (trajectory_type_ == 1 && !external_reference_path_.empty());
+    const int path_size = static_cast<int>(external_reference_path_.size());
+    for (int i = 0; i <= N; i++) {
+        double px, py, psi_ref, u_ref = 0.0, r_ref = 0.0;
+        if (external) {
+            const auto& pt = external_reference_path_[std::min(i, path_size - 1)];
+            px = pt.x; py = pt.y; psi_ref = pt.psi; u_ref = pt.v; r_ref = pt.w;
+        } else {
+            px = current_reference_[0]; py = current_reference_[1]; psi_ref = current_reference_[2];
+        }
+
+        double yref[NY] = {px, py, 0.0, u_ref, 0.0, r_ref, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0};
+        ocp_nlp_cost_model_set(capsule->nlp_config, capsule->nlp_dims, capsule->nlp_in, i, "yref", yref);
+
+        // 3. Parameters: heading reference, UAV predicted position and attachment height
+        const bool tether_active = i < static_cast<int>(uav_horizon_.size());
+        const auto& pa = tether_active ? uav_horizon_[i] : std::array<double, 3>{0.0, 0.0, z_t_};
+        double p[NP] = {psi_ref, pa[0], pa[1], pa[2], z_t_};
+        usv_dynamic_acados_update_params(capsule, i, p, NP);
+
+        // Tether bound d^2 <= d_max^2 on the nodes covered by the UAV horizon (nodes 1..N_c); inactive elsewhere
+        if (i >= 1) {
+            double uh = tether_active ? d_max_ * d_max_ : NO_TETHER;
+            ocp_nlp_constraints_model_set(capsule->nlp_config, capsule->nlp_dims, capsule->nlp_in, capsule->nlp_out, i, "uh", &uh);
+        }
+    }
+
+    // 4. Solve OCP
     int status = usv_dynamic_acados_solve(capsule);
-    
+
     if (status == 0 || status == 2) {
-        double u_opt[3] = {0.0, 0.0, 0.0};
-        ocp_nlp_out_get(capsule->nlp_config, capsule->nlp_dims, capsule->nlp_out, 0, "u", &u_opt);
-        last_control_ = {u_opt[0], u_opt[1], u_opt[2]};
+        // Integrate the first optimal rate over one sampling interval (Euler, rates held constant)
+        double u_opt[NU] = {0.0, 0.0, 0.0, 0.0};
+        ocp_nlp_out_get(capsule->nlp_config, capsule->nlp_dims, capsule->nlp_out, 0, "u", u_opt);
+        for (int i = 0; i < 4; i++) last_command_[i] += u_opt[i] * TS;
         has_valid_solution_ = true;
     } else {
-        std::cerr << "UsvMpcPipeline: ACADOS solver falhou criticamente com status: " << status << std::endl;
-        last_control_[0] *= 0.8;
-        last_control_[1] *= 0.8;
-        last_control_[2] *= 0.8;
-        has_valid_solution_ = false;
+        std::cerr << "UsvMpcPipeline: ACADOS solver failed with status: " << status << std::endl;
+        has_valid_solution_ = false; // keep the last applied command
     }
 
-    return last_control_;
+    return last_command_;
 }
 
 std::vector<std::vector<double>> UsvMpcPipeline::getPredictedStates() {
     auto capsule = (usv_dynamic_solver_capsule*)acados_ocp_capsule_;
-    int N = USV_DYNAMIC_N;
-    
+    const int N = USV_DYNAMIC_N;
+
     if (has_valid_solution_) {
         std::vector<std::vector<double>> trajectory;
         trajectory.reserve(N + 1);
         for (int i = 0; i <= N; i++) {
-            double x_pred[6] = {0.0};
-            ocp_nlp_out_get(capsule->nlp_config, capsule->nlp_dims, capsule->nlp_out, i, "x", &x_pred);
-            trajectory.push_back({x_pred[0], x_pred[1], x_pred[2], x_pred[3], x_pred[4], x_pred[5]});
+            double x_pred[NX] = {0.0};
+            ocp_nlp_out_get(capsule->nlp_config, capsule->nlp_dims, capsule->nlp_out, i, "x", x_pred);
+            trajectory.emplace_back(x_pred, x_pred + NX);
         }
         last_trajectory_ = trajectory;
         has_valid_solution_ = false;
     } else if (last_trajectory_.empty()) {
-        std::vector<std::vector<double>> trajectory(N + 1, current_state_);
-        return trajectory;
+        return std::vector<std::vector<double>>(N + 1, std::vector<double>(NX, 0.0));
     }
-    
+
     return last_trajectory_;
 }
 

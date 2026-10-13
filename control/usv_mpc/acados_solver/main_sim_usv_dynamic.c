@@ -69,6 +69,10 @@ int main()
     x_current[3] = 0.0;
     x_current[4] = 0.0;
     x_current[5] = 0.0;
+    x_current[6] = 0.0;
+    x_current[7] = 0.0;
+    x_current[8] = 0.0;
+    x_current[9] = 0.0;
 
   
     x_current[0] = 0;
@@ -77,6 +81,10 @@ int main()
     x_current[3] = 0;
     x_current[4] = 0;
     x_current[5] = 0;
+    x_current[6] = 0;
+    x_current[7] = 0;
+    x_current[8] = 0;
+    x_current[9] = 0;
     
   
 
@@ -86,6 +94,17 @@ int main()
     u0[0] = 0.0;
     u0[1] = 0.0;
     u0[2] = 0.0;
+    u0[3] = 0.0;
+    // set parameters
+    double p[NP];
+    p[0] = 0;
+    p[1] = 0;
+    p[2] = 0;
+    p[3] = 0;
+    p[4] = 0;
+
+    usv_dynamic_acados_sim_update_params(capsule, p, NP);
+  
 
   
 

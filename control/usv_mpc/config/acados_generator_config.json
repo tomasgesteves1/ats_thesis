@@ -1,0 +1,27 @@
+{
+  "prediction_horizon": {
+    "N": 20,
+    "Ts": 0.1
+  },
+  "weights": {
+    "Qp": [150.0, 150.0],
+    "q_psi": 150.0,
+    "Qnu": [2.0, 40.0, 1.0],
+    "Qtau": [1e-5, 1e-5, 0.1, 0.1],
+    "R": [1e-5, 1e-5, 10.0, 10.0]
+  },
+  "limits": {
+    "T_max": 510.0,
+    "T_min": -380.0,
+    "alpha_max_deg": 30.0,
+    "T_dot_max": 500.0,
+    "alpha_dot_max_deg": 10.0
+  },
+  "slack_weights": {
+    "mu1": 500.0,
+    "mu2": 5000.0
+  },
+  "tether": {
+    "d_max_default": 15.0
+  }
+}

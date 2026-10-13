@@ -34,10 +34,10 @@
 #include "acados_c/sim_interface.h"
 #include "acados_c/external_function_interface.h"
 
-#define USV_DYNAMIC_NX     6
+#define USV_DYNAMIC_NX     10
 #define USV_DYNAMIC_NZ     0
-#define USV_DYNAMIC_NU     3
-#define USV_DYNAMIC_NP     0
+#define USV_DYNAMIC_NU     4
+#define USV_DYNAMIC_NP     5
 
 #ifdef __cplusplus
 extern "C" {

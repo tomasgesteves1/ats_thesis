@@ -1,3 +1,4 @@
+from launch.conditions import IfCondition
 import os
 from ament_index_python.packages import get_package_share_directory
 from launch import LaunchDescription
@@ -70,19 +71,24 @@ def generate_launch_description():
         ],
         remappings=[
             ('odom', '/boat/ground_truth/odometry'),
-            ('cmd_wrench', '/boat/cmd_wrench'),
+            ('thrusters/left/thrust', '/boat/thrusters/left/thrust'),
+            ('thrusters/right/thrust', '/boat/thrusters/right/thrust'),
+            ('thrusters/left/pos', '/boat/thrusters/left/pos'),
+            ('thrusters/right/pos', '/boat/thrusters/right/pos'),
             ('reference_path', '/usv/reference_path'),
             ('target_position', '/usv/target_position'),
             ('mpc_horizon', '/usv/mpc_horizon')
         ]
     )
 
-    # 3. Thruster Mapper Node (Inverse Thrust Allocation)
+    # 3. Thruster Mapper Node (wrench -> thrusters), only for the open-loop identification mode:
+    #    in closed loop the NMPC publishes the thruster commands directly
     thruster_mapper_node = Node(
         package='usv_mpc',
         executable='thruster_mapper_node',
         name='thruster_mapper_node',
         output='screen',
+        condition=IfCondition(LaunchConfiguration('mode_open_loop')),
         parameters=[
             {'use_sim_time': True}
         ],

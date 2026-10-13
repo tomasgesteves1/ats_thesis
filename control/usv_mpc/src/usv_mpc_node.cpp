@@ -2,12 +2,15 @@
 #include <tf2/LinearMath/Quaternion.h>
 #include <tf2/LinearMath/Matrix3x3.h>
 #include <cmath>
+#include <algorithm>
+#include <array>
 
 namespace usv_mpc {
 
 UsvMpcNode::UsvMpcNode() 
     : Node("usv_mpc_node"),
-      target_initialized_(false) 
+      target_initialized_(false),
+      last_uav_horizon_time_(0, 0, RCL_ROS_TIME)
 {
     pipeline_ = std::make_unique<UsvMpcPipeline>();
 
@@ -15,6 +18,11 @@ UsvMpcNode::UsvMpcNode()
     this->declare_parameter<std::string>("trajectory_type", "hold");
     this->declare_parameter<double>("control_period", 0.1);
     this->declare_parameter<bool>("mode_open_loop", false);
+    this->declare_parameter<bool>("use_tether", true);
+    this->declare_parameter<double>("tether_max_length", 15.0);   // d_max (m)
+    this->declare_parameter<double>("tether_anchor_height", 1.25); // z_t (m): deck height above the inertial zero (water surface)
+    this->declare_parameter<double>("uav_horizon_period", 0.02);  // UAV prediction step (s)
+    this->declare_parameter<double>("uav_horizon_timeout", 0.5);  // Staleness limit of the UAV horizon (s)
 
     // Relative subscriptions & publishers (Rule 4 of CODE_STANDARDS.md)
     odom_sub_ = this->create_subscription<nav_msgs::msg::Odometry>(
@@ -26,8 +34,14 @@ UsvMpcNode::UsvMpcNode()
     trajectory_path_sub_ = this->create_subscription<nav_msgs::msg::Path>(
         "reference_path", 10, std::bind(&UsvMpcNode::trajectoryPathCallback, this, std::placeholders::_1));
 
-    // Output is virtual forces and moment at CG
-    wrench_pub_ = this->create_publisher<geometry_msgs::msg::WrenchStamped>("cmd_wrench", 10);
+    uav_horizon_sub_ = this->create_subscription<nav_msgs::msg::Path>(
+        "uav_horizon", 10, std::bind(&UsvMpcNode::uavHorizonCallback, this, std::placeholders::_1));
+
+    // Output: thrust (N) and azimuth (rad) commands of each thruster
+    left_thrust_pub_ = this->create_publisher<std_msgs::msg::Float64>("thrusters/left/thrust", 10);
+    right_thrust_pub_ = this->create_publisher<std_msgs::msg::Float64>("thrusters/right/thrust", 10);
+    left_pos_pub_ = this->create_publisher<std_msgs::msg::Float64>("thrusters/left/pos", 10);
+    right_pos_pub_ = this->create_publisher<std_msgs::msg::Float64>("thrusters/right/pos", 10);
 
     // Publisher for visualization of MPC prediction horizon
     mpc_horizon_pub_ = this->create_publisher<nav_msgs::msg::Path>("mpc_horizon", 10);
@@ -127,6 +141,22 @@ void UsvMpcNode::trajectoryPathCallback(const nav_msgs::msg::Path::SharedPtr msg
     pipeline_->setExternalReferencePath(path_points);
 }
 
+void UsvMpcNode::uavHorizonCallback(const nav_msgs::msg::Path::SharedPtr msg) {
+    last_uav_horizon_time_ = this->now();
+    const double dt_uav = this->get_parameter("uav_horizon_period").as_double();
+    const double Ts = this->get_parameter("control_period").as_double();
+    const int stride = std::max(1, static_cast<int>(std::round(Ts / dt_uav)));
+
+    // Resample the UAV horizon (step dt_uav) at the USV prediction nodes (step Ts); the nodes
+    // beyond the end of the UAV horizon are left out, so the tether constraint is enforced up to N_c.
+    std::vector<std::array<double, 3>> horizon;
+    for (size_t k = 0; k < msg->poses.size(); k += stride) {
+        const auto& p = msg->poses[k].pose.position;
+        horizon.push_back({p.x, p.y, p.z});
+    }
+    pipeline_->setUavHorizon(horizon);
+}
+
 void UsvMpcNode::controlLoop() {
     bool mode_open_loop = false;
     this->get_parameter("mode_open_loop", mode_open_loop);
@@ -142,44 +172,53 @@ void UsvMpcNode::controlLoop() {
         pipeline_->setTrajectoryType(0);
     }
 
-    std::vector<double> control_cmd = pipeline_->computeControl();
-
-    geometry_msgs::msg::WrenchStamped wrench_msg;
-    wrench_msg.header.stamp = this->now();
-    wrench_msg.header.frame_id = "boat/base_link";
-
-    if (control_cmd.size() == 3) {
-        wrench_msg.wrench.force.x = control_cmd[0];  // X force (Surge)
-        wrench_msg.wrench.force.y = control_cmd[1];  // Y force (Sway)
-        wrench_msg.wrench.torque.z = control_cmd[2]; // N moment (Yaw)
-        wrench_pub_->publish(wrench_msg);
-
-        // Publish predicted horizon trajectory
-        auto pred_states = pipeline_->getPredictedStates();
-        auto horizon_path = nav_msgs::msg::Path();
-        horizon_path.header.stamp = wrench_msg.header.stamp;
-        horizon_path.header.frame_id = "world"; // Global simulation frame
-
-        for (const auto& state : pred_states) {
-            geometry_msgs::msg::PoseStamped pose;
-            pose.header.stamp = horizon_path.header.stamp;
-            pose.header.frame_id = horizon_path.header.frame_id;
-            pose.pose.position.x = state[0];
-            pose.pose.position.y = state[1];
-            pose.pose.position.z = 0.0;
-            
-            // Convert heading (yaw) to quaternion analytically
-            double yaw = state[2];
-            double half_yaw = yaw * 0.5;
-            pose.pose.orientation.x = 0.0;
-            pose.pose.orientation.y = 0.0;
-            pose.pose.orientation.z = std::sin(half_yaw);
-            pose.pose.orientation.w = std::cos(half_yaw);
-            
-            horizon_path.poses.push_back(pose);
+    // Tether coupling: used only while a fresh UAV horizon is available
+    bool use_tether = this->get_parameter("use_tether").as_bool();
+    if (use_tether && last_uav_horizon_time_.nanoseconds() > 0) {
+        const double age = (this->now() - last_uav_horizon_time_).seconds();
+        if (age > this->get_parameter("uav_horizon_timeout").as_double()) {
+            pipeline_->setUavHorizon({});
+            RCLCPP_WARN_THROTTLE(this->get_logger(), *this->get_clock(), 5000,
+                "UAV horizon timeout (%.2f s). Tether constraint disabled.", age);
         }
-        mpc_horizon_pub_->publish(horizon_path);
+    } else {
+        pipeline_->setUavHorizon({});
     }
+    pipeline_->setTetherParameters(this->get_parameter("tether_max_length").as_double(),
+                                   this->get_parameter("tether_anchor_height").as_double());
+
+    ThrusterCommand cmd = pipeline_->computeControl();
+
+    std_msgs::msg::Float64 msg;
+    msg.data = cmd[0]; left_thrust_pub_->publish(msg);
+    msg.data = cmd[1]; right_thrust_pub_->publish(msg);
+    msg.data = cmd[2]; left_pos_pub_->publish(msg);
+    msg.data = cmd[3]; right_pos_pub_->publish(msg);
+
+    // Publish predicted horizon trajectory
+    auto pred_states = pipeline_->getPredictedStates();
+    auto horizon_path = nav_msgs::msg::Path();
+    horizon_path.header.stamp = this->now();
+    horizon_path.header.frame_id = "world"; // Global simulation frame
+
+    for (const auto& state : pred_states) {
+        geometry_msgs::msg::PoseStamped pose;
+        pose.header.stamp = horizon_path.header.stamp;
+        pose.header.frame_id = horizon_path.header.frame_id;
+        pose.pose.position.x = state[0];
+        pose.pose.position.y = state[1];
+        pose.pose.position.z = 0.0;
+
+        // Convert heading (yaw) to quaternion analytically
+        double half_yaw = state[2] * 0.5;
+        pose.pose.orientation.x = 0.0;
+        pose.pose.orientation.y = 0.0;
+        pose.pose.orientation.z = std::sin(half_yaw);
+        pose.pose.orientation.w = std::cos(half_yaw);
+
+        horizon_path.poses.push_back(pose);
+    }
+    mpc_horizon_pub_->publish(horizon_path);
 }
 
 } // namespace usv_mpc

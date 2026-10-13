@@ -35,17 +35,16 @@
         Position weight & $Q_p$ & $\mathrm{diag}(150,\,150)$ \\
         Heading weight & $q_\psi$ & $150$ \\
         Velocity weight & $Q_\nu$ & $\mathrm{diag}(2,\,40,\,1)$ \\
-        Thruster command weight & $Q_\tau$ & \tbd \\
-        Thruster rate weight & $R$ & \tbd \\
+        Thruster command weight & $Q_\tau$ & $\mathrm{diag}(10^{-5},\,10^{-5},\,0.1,\,0.1)$ \\
+        Thruster rate weight & $R$ & $\mathrm{diag}(10^{-5},\,10^{-5},\,10,\,10)$ \\
         Thrust limits & $T_{L,max}=T_{R,max}$ & $510.0\,\text{N}$ \\
          & $T_{L,min}=T_{R,min}$ & $-380.0\,\text{N}$ \\
         Azimuth limits & $\alpha_{L,max}=\alpha_{R,max}$ & $30^\circ$ \\
          & $\alpha_{L,min}=\alpha_{R,min}$ & $-30^\circ$ \\
-        Thrust rate limit & $\dot T_{L,max}=\dot T_{R,max}$ & \tbd \\
+        Thrust rate limit & $\dot T_{L,max}=\dot T_{R,max}$ & $500\,\text{N/s}$ \\
         Azimuth rate limit & $\dot\alpha_{L,max}=\dot\alpha_{R,max}$ & $10^\circ/\text{s}$ \\
         Maximum tether separation & $d_{max}$ & $15.0\,\text{m}$ \\
-        Attachment point height & $z_t$ & \tbd \\
-        Tether slack penalty & $\mu_1,\ \mu_2$ & \tbd \\
+        Tether slack penalty & $\mu_1,\ \mu_2$ & $500,\ 5000$ \\
         \bottomrule
     \end{tabular}
 \end{table}
@@ -78,9 +77,8 @@
         Thrust limits & $T_{min},\ T_{max}$ & $2.02\,\text{N},\ 32.96\,\text{N}$ \\
         Maximum tether separation & $d_{max}$ & $15.0\,\text{m}$ \\
         Maximum tether pay-out rate & $\dot d_{max}$ & $2.0\,\text{m/s}$ \\
-        Attachment point height & $z_t$ & \tbd \\
-        Slack penalty, bounds $h_1$--$h_5$ & $\mu_{1,j},\ \mu_{2,j}$ & $100,\ 1000$ \\
-        Slack penalty, tether $h_6$, $h_7$ & $\mu_{1,j},\ \mu_{2,j}$ & $500,\ 10\,000$ \\
+        Slack penalty, bounds $h_1$--$h_5$ & $\mu_{1,j},\ \mu_{2,j}$ & $100,\ 500$ \\
+        Slack penalty, tether $h_6$, $h_7$ & $\mu_{1,j},\ \mu_{2,j}$ & $500,\ 5000$ \\
         \bottomrule
     \end{tabular}
 \end{table}

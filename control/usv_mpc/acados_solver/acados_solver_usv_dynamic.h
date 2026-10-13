@@ -36,37 +36,37 @@
 #include "acados_c/ocp_nlp_interface.h"
 #include "acados_c/external_function_interface.h"
 
-#define USV_DYNAMIC_NX     6
+#define USV_DYNAMIC_NX     10
 #define USV_DYNAMIC_NZ     0
-#define USV_DYNAMIC_NU     3
-#define USV_DYNAMIC_NP     0
+#define USV_DYNAMIC_NU     4
+#define USV_DYNAMIC_NP     5
 #define USV_DYNAMIC_NP_GLOBAL     0
-#define USV_DYNAMIC_NBX    0
-#define USV_DYNAMIC_NBX0   6
-#define USV_DYNAMIC_NBU    3
+#define USV_DYNAMIC_NBX    4
+#define USV_DYNAMIC_NBX0   10
+#define USV_DYNAMIC_NBU    4
 #define USV_DYNAMIC_NSBX   0
 #define USV_DYNAMIC_NSBU   0
-#define USV_DYNAMIC_NSH    0
+#define USV_DYNAMIC_NSH    1
 #define USV_DYNAMIC_NSH0   0
 #define USV_DYNAMIC_NSG    0
 #define USV_DYNAMIC_NSPHI  0
-#define USV_DYNAMIC_NSHN   0
+#define USV_DYNAMIC_NSHN   1
 #define USV_DYNAMIC_NSGN   0
 #define USV_DYNAMIC_NSPHIN 0
 #define USV_DYNAMIC_NSPHI0 0
 #define USV_DYNAMIC_NSBXN  0
-#define USV_DYNAMIC_NS     0
+#define USV_DYNAMIC_NS     1
 #define USV_DYNAMIC_NS0    0
-#define USV_DYNAMIC_NSN    0
+#define USV_DYNAMIC_NSN    1
 #define USV_DYNAMIC_NG     0
 #define USV_DYNAMIC_NBXN   0
 #define USV_DYNAMIC_NGN    0
-#define USV_DYNAMIC_NY0    9
-#define USV_DYNAMIC_NY     9
-#define USV_DYNAMIC_NYN    6
+#define USV_DYNAMIC_NY0    14
+#define USV_DYNAMIC_NY     14
+#define USV_DYNAMIC_NYN    10
 #define USV_DYNAMIC_N      20
-#define USV_DYNAMIC_NH     0
-#define USV_DYNAMIC_NHN    0
+#define USV_DYNAMIC_NH     1
+#define USV_DYNAMIC_NHN    1
 #define USV_DYNAMIC_NH0    0
 #define USV_DYNAMIC_NPHI0  0
 #define USV_DYNAMIC_NPHI   0
@@ -108,16 +108,33 @@ typedef struct usv_dynamic_solver_capsule
 
     // cost
 
+    external_function_external_param_casadi *cost_y_fun;
+    external_function_external_param_casadi *cost_y_fun_jac_ut_xt;
 
 
 
+    external_function_external_param_casadi cost_y_0_fun;
+    external_function_external_param_casadi cost_y_0_fun_jac_ut_xt;
+
+
+
+    external_function_external_param_casadi cost_y_e_fun;
+    external_function_external_param_casadi cost_y_e_fun_jac_ut_xt;
 
 
     // constraints
+    external_function_external_param_casadi *nl_constr_h_fun_jac;
+    external_function_external_param_casadi *nl_constr_h_fun;
 
 
 
 
+
+
+
+
+    external_function_external_param_casadi nl_constr_h_e_fun_jac;
+    external_function_external_param_casadi nl_constr_h_e_fun;
 
 
 

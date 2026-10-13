@@ -180,11 +180,17 @@ int usv_dynamic_acados_sim_create(usv_dynamic_sim_solver_capsule * capsule)
     capsule->acados_sim_mem = usv_dynamic_sim_solver->mem;
 
 
+    /* initialize parameter values */
+    
+    double* p = calloc(np, sizeof(double));
+    usv_dynamic_acados_sim_update_params(capsule, p, np);
+    free(p);
+
 
     /* initialize input */
     // x
-    double x0[6];
-    for (int ii = 0; ii < 6; ii++)
+    double x0[10];
+    for (int ii = 0; ii < 10; ii++)
         x0[ii] = 0.0;
 
     sim_in_set(usv_dynamic_sim_config, usv_dynamic_sim_dims,
@@ -192,19 +198,19 @@ int usv_dynamic_acados_sim_create(usv_dynamic_sim_solver_capsule * capsule)
 
 
     // u
-    double u0[3];
-    for (int ii = 0; ii < 3; ii++)
+    double u0[4];
+    for (int ii = 0; ii < 4; ii++)
         u0[ii] = 0.0;
 
     sim_in_set(usv_dynamic_sim_config, usv_dynamic_sim_dims,
                usv_dynamic_sim_in, "u", u0);
 
     // S_forw
-    double S_forw[54];
-    for (int ii = 0; ii < 54; ii++)
+    double S_forw[140];
+    for (int ii = 0; ii < 140; ii++)
         S_forw[ii] = 0.0;
-    for (int ii = 0; ii < 6; ii++)
-        S_forw[ii + ii * 6 ] = 1.0;
+    for (int ii = 0; ii < 10; ii++)
+        S_forw[ii + ii * 10 ] = 1.0;
 
 
     sim_in_set(usv_dynamic_sim_config, usv_dynamic_sim_dims,
