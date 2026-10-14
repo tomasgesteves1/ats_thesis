@@ -23,5 +23,13 @@ void rotateVectorByQuaternion(double qx, double qy, double qz, double qw, const 
  */
 void computeDesiredQuaternion(double phi_cmd, double theta_cmd, double yaw, double q_d[4]);
 
+/**
+ * Normalised throttle that produces the thrust T (N). The throttle sets the rotor speed linearly between
+ * omega_min and omega_max, and the thrust grows with the square of the rotor speed, so the speed that produces T is
+ * omega_0 sqrt(T / (m g)), where omega_0 is the hover speed given by the hover throttle.
+ */
+double thrustToThrottle(double thrust, double mass, double gravity, double hover_throttle,
+                        double omega_min, double omega_max);
+
 } // namespace kinematics
 } // namespace uav_mpc

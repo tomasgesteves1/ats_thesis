@@ -17,11 +17,30 @@ enum class TrajectoryType {
 struct UavControlOutput {
     double q_d[4]; // w, x, y, z desired orientation
     double thrust_normalized;
-    double u_opt[3]; // raw optimal control command from MPC: [phi_cmd, theta_cmd, a_T]
+    double u_opt[3]; // optimal command applied: [phi_cmd, theta_cmd, T] (rad, rad, N)
+    double psi_cmd;  // commanded yaw (rad)
+    double predicted_attitude[3]{0.0, 0.0, 0.0}; // [roll, pitch, yaw] predicted at node PREDICTED_ATTITUDE_NODE (rad)
     std::vector<std::vector<double>> predicted_positions; // N+1 points of [x, y, z]
     std::vector<double> current_reference; // [x, y, z]
     std::vector<double> current_reference_velocity; // [vx, vy, vz]
     std::vector<std::vector<double>> reference_path; // Reference trajectory points for visualization
+};
+
+/// Run-time parameters of the controller (Section 3.3, Table 4.12); read from uav_mpc.yaml by the node
+struct UavMpcParams {
+    double mass{2.06};            // m (kg)
+    double gravity{9.81};         // g (m/s^2)
+    double z_min{2.0};            // minimum altitude (m)
+    double v_xy_max{10.0};        // horizontal speed limit (m/s)
+    double v_z_max{10.0};         // vertical speed limit (m/s)
+    double phi_max{0.5};          // roll limit (rad)
+    double theta_max{0.5};        // pitch limit (rad)
+    double d_dot_max{2.0};        // maximum tether pay-out rate (m/s)
+    double thrust_min{2.02};      // minimum thrust (N)
+    double thrust_max{32.96};     // maximum thrust (N)
+    double hover_throttle{0.618}; // normalised hover throttle
+    double rotor_speed_min{150.0};   // rotor speed at zero throttle (rad/s)
+    double rotor_speed_max{1000.0};  // rotor speed at full throttle (rad/s)
 };
 
 class UavMpcPipeline {
@@ -36,21 +55,18 @@ public:
     void updateTetherLength(double length);
     void setReference(const std::vector<double>& ref);
     void setExternalReferencePath(const std::vector<TrajectoryPoint>& path);
-    void setCostWeights(double w_pos, double w_vel);
     void setTrajectoryType(TrajectoryType type);
     void setUseTether(bool use_tether);
-    void setVelocityLimit(double v_max);
-    void setWinchSpeedLimit(double v_winch_max);
-    void setInputLimit(double u_max);
-    void setHoverThrottle(double hover_throttle);
-    void setTiltMax(double tilt_max);
+    void setParameters(const UavMpcParams& params);
     UavControlOutput computeControl(double current_time);
 
     // Open-loop test support: returns the full planned control horizon
     std::vector<UavControlOutput> getOpenLoopHorizon(double current_time);
 
 private:
-    void setupOcpSolver(double current_time, double roll, double pitch, double yaw, const double x0[10]);
+    void setupOcpSolver(const double x0[13]);
+    void buildInitialState(double x0[13]);
+    void warmStartOnce(const double x0[13]);
 
     std::vector<double> current_state_;
     void* acados_ocp_capsule_;
@@ -68,20 +84,19 @@ private:
     bool has_boat_horizon_;
     double L_tether_;
     bool use_tether_;
-    double v_max_;
-    double v_winch_max_;
-    double u_max_;
-    double hover_throttle_;
-    double tilt_max_;
+    UavMpcParams params_;
 
     // Trajectory generator and time
     TrajectoryType trajectory_type_;
     std::vector<TrajectoryPoint> external_reference_path_;
     static constexpr double Ts_ = 0.02;  // Control period (s)
 
-    // Variables for augmented state feedback (Option B with rate constraints)
+    // Last applied attitude commands (state feedback of the augmented model); yaw is kept continuous (unwrapped)
     double last_phi_cmd_;
     double last_theta_cmd_;
+    double last_psi_cmd_;
+    double last_thrust_cmd_;
+    double yaw_cont_;
     bool first_run_;
 };
 

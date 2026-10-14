@@ -73,6 +73,9 @@ int main()
     x_current[7] = 0.0;
     x_current[8] = 0.0;
     x_current[9] = 0.0;
+    x_current[10] = 0.0;
+    x_current[11] = 0.0;
+    x_current[12] = 0.0;
 
   
     x_current[0] = 0;
@@ -85,6 +88,9 @@ int main()
     x_current[7] = 0;
     x_current[8] = 0;
     x_current[9] = 0;
+    x_current[10] = 0;
+    x_current[11] = 0;
+    x_current[12] = 0;
     
   
 
@@ -94,6 +100,7 @@ int main()
     u0[0] = 0.0;
     u0[1] = 0.0;
     u0[2] = 0.0;
+    u0[3] = 0.0;
     // set parameters
     double p[NP];
     p[0] = 0;
@@ -103,6 +110,8 @@ int main()
     p[4] = 0;
     p[5] = 0;
     p[6] = 0;
+    p[7] = 0;
+    p[8] = 0;
 
     uav_tethered_acados_sim_update_params(capsule, p, NP);
   

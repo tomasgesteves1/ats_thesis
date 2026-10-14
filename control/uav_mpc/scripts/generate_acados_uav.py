@@ -1,228 +1,181 @@
+import os
 import numpy as np
+import yaml
 import casadi as ca
 from acados_template import AcadosOcp, AcadosOcpSolver, AcadosModel
-import json
-import os
 
-def create_uav_model() -> AcadosModel:
-    model_name = 'uav_tethered'
+NX = 13   # [x, y, z, vx, vy, vz, phi, theta, psi, phi_cmd, theta_cmd, psi_cmd, T]
+NU = 4    # [phi_dot_cmd, theta_dot_cmd, psi_dot_cmd, T_dot]
+NP = 9    # [x_v, y_v, z_v, vx_v, vy_v, vz_v, bx, by, tether_on]
 
-    # Gravitational acceleration
-    g_vec = ca.vertcat(0.0, 0.0, -9.81)
-    
-    # States (x): [p_x, p_y, p_z, v_x, v_y, v_z, phi, theta, phi_cmd, theta_cmd]
+
+def load_parameters():
+    """Single source of the controller parameters: config/uav_mpc.yaml"""
+    script_dir = os.path.dirname(os.path.abspath(__file__))
+    with open(os.path.join(script_dir, '../config/uav_mpc.yaml'), 'r') as f:
+        return yaml.safe_load(f)['uav_mpc_node']['ros__parameters']
+
+
+def tether_force(p, anchor, tether_on, prm):
+    """Closed-form tether force at the UAV (Eqs. uav_tether_geometry -- uav_tether_force)."""
+    ez = ca.vertcat(0.0, 0.0, 1.0)
+    r = anchor - p
+    d = ca.sqrt(ca.dot(r, r) + 1e-6)
+    d0 = r / d
+    h = d0 - d0[2] * ez
+    nh = ca.sqrt(ca.dot(h, h) + prm['tether_delta'] ** 2)
+    eh = h / nh
+    alpha = ca.atan2(-d0[2], nh)                       # depression angle of the chord
+    gamma = np.deg2rad(prm['tether_deflection_deg']) * ca.cos(alpha)
+    direction = ca.cos(alpha + gamma) * eh - ca.sin(alpha + gamma) * ez
+    c_d = prm['tether_density'] * prm['gravity'] / (1.0 - prm['tether_slack_ratio'])
+    return tether_on * c_d * d * direction
+
+
+def create_uav_model(prm) -> AcadosModel:
+    m, g, d_r = prm['mass'], prm['gravity'], prm['rotor_drag']
+    tau, tau_psi = prm['tau_roll_pitch'], prm['tau_yaw']
+
     p = ca.SX.sym('p', 3)
     v = ca.SX.sym('v', 3)
-    phi = ca.SX.sym('phi', 1)
-    theta = ca.SX.sym('theta', 1)
-    phi_cmd = ca.SX.sym('phi_cmd', 1)
-    theta_cmd = ca.SX.sym('theta_cmd', 1)
-    x = ca.vertcat(p, v, phi, theta, phi_cmd, theta_cmd)
+    phi, theta, psi = ca.SX.sym('phi'), ca.SX.sym('theta'), ca.SX.sym('psi')
+    phi_c, theta_c, psi_c = ca.SX.sym('phi_cmd'), ca.SX.sym('theta_cmd'), ca.SX.sym('psi_cmd')
+    T = ca.SX.sym('T')
+    x = ca.vertcat(p, v, phi, theta, psi, phi_c, theta_c, psi_c, T)
 
-    # Controls (u): [phi_dot_cmd, theta_dot_cmd, a_T]
-    phi_dot_cmd = ca.SX.sym('phi_dot_cmd', 1)
-    theta_dot_cmd = ca.SX.sym('theta_dot_cmd', 1)
-    a_T = ca.SX.sym('a_T', 1)
-    u = ca.vertcat(phi_dot_cmd, theta_dot_cmd, a_T)
+    dphi_c, dtheta_c, dpsi_c, dT = ca.SX.sym('dphi_cmd'), ca.SX.sym('dtheta_cmd'), ca.SX.sym('dpsi_cmd'), ca.SX.sym('T_dot')
+    u = ca.vertcat(dphi_c, dtheta_c, dpsi_c, dT)
 
-    # Parameters (p): [psi, x_boat, y_boat, z_boat, vx_boat, vy_boat, vz_boat]
-    psi = ca.SX.sym('psi', 1)
-    x_boat = ca.SX.sym('x_boat', 1)
-    y_boat = ca.SX.sym('y_boat', 1)
-    z_boat = ca.SX.sym('z_boat', 1)
-    vx_boat = ca.SX.sym('vx_boat', 1)
-    vy_boat = ca.SX.sym('vy_boat', 1)
-    vz_boat = ca.SX.sym('vz_boat', 1)
-    p_param = ca.vertcat(psi, x_boat, y_boat, z_boat, vx_boat, vy_boat, vz_boat)
+    # Parameters per node: tether attachment point (position, velocity), yaw reference point, tether switch
+    anchor = ca.SX.sym('anchor', 3)
+    anchor_v = ca.SX.sym('anchor_v', 3)
+    b_ref = ca.SX.sym('b_ref', 2)
+    tether_on = ca.SX.sym('tether_on')
+    params = ca.vertcat(anchor, anchor_v, b_ref, tether_on)
 
-    # Thrust acceleration in world frame (ENU) using actual model states phi and theta
-    ax_thrust = a_T * (ca.cos(psi) * ca.sin(theta) * ca.cos(phi) + ca.sin(psi) * ca.sin(phi))
-    ay_thrust = a_T * (ca.sin(psi) * ca.sin(theta) * ca.cos(phi) - ca.cos(psi) * ca.sin(phi))
-    az_thrust = a_T * (ca.cos(theta) * ca.cos(phi))
-    a_thrust = ca.vertcat(ax_thrust, ay_thrust, az_thrust)
+    # Translational dynamics (Eqs. uav_mpc_xddot -- uav_mpc_zddot)
+    # The tilt (phi, theta) is the thrust axis expressed in the frame rotated by the commanded yaw psi_c, which is the
+    # frame in which the attitude setpoint is built: the thrust axis is rotated by psi_c about the vertical
+    tilt = lambda a, b: ca.vertcat(ca.sin(b) * ca.cos(a), -ca.sin(a), ca.cos(b) * ca.cos(a))
+    n = tilt(phi, theta)
+    thrust_dir = ca.vertcat(ca.cos(psi_c) * n[0] - ca.sin(psi_c) * n[1],
+                            ca.sin(psi_c) * n[0] + ca.cos(psi_c) * n[1], n[2])
+    drag = ca.vertcat(d_r * v[0], d_r * v[1], 0.0)
+    acc = T / m * thrust_dir - drag / m + ca.vertcat(0.0, 0.0, -g) \
+          + tether_force(p, anchor, tether_on, prm) / m
 
-    # State derivatives (dynamics with tau = 0.121s identified from Section 4.2.2 and state augmentation)
-    tau = 0.121
-    xdot_expr = ca.vertcat(
-        v,
-        a_thrust + g_vec,
-        (phi_cmd - phi) / tau,
-        (theta_cmd - theta) / tau,
-        phi_dot_cmd,
-        theta_dot_cmd
-    )
+    # The thrust axis of the platform converges to the commanded axis with time constant tau in the inertial frame;
+    # expressed in the rotating frame (rate dpsi_c) its derivative has the extra term -dpsi_c * e_z x n
+    # The tilt command reaches the platform after the transport delay T_t: x_c(t - T_t) ~ x_c - T_t * dx_c, and the
+    # frame in which it was built has rotated by T_t * dpsi_c since then
+    T_t = prm['tilt_transport_delay']
+    n_cd = tilt(phi_c - T_t * dphi_c, theta_c - T_t * dtheta_c)
+    rot = -T_t * dpsi_c
+    n_c = ca.vertcat(ca.cos(rot) * n_cd[0] - ca.sin(rot) * n_cd[1], ca.sin(rot) * n_cd[0] + ca.cos(rot) * n_cd[1], n_cd[2])
+    n_dot = (n_c - n) / tau - dpsi_c * ca.vertcat(-n[1], n[0], 0.0)
+    J = ca.jacobian(n, ca.vertcat(phi, theta))
+    phi_dot = ca.dot(J[:, 0], n_dot)
+    theta_dot = ca.dot(J[:, 1], n_dot) / ca.cos(phi) ** 2
+    # The yaw command reaches the platform after the transport delay: psi_c(t - T_d) ~ psi_c - T_d * dpsi_c
+    psi_cmd_delayed = psi_c - prm['yaw_transport_delay'] * dpsi_c
 
-    # Relative position and velocity vectors to the boat anchor
-    p_b = ca.vertcat(x_boat, y_boat, z_boat)
-    v_b = ca.vertcat(vx_boat, vy_boat, vz_boat)
-    r = p - p_b
-    v_rel = v - v_b
+    xdot = ca.vertcat(v, acc, phi_dot, theta_dot, (psi_cmd_delayed - psi) / tau_psi,
+                      dphi_c, dtheta_c, dpsi_c, dT)
 
-    # 1. Nonlinear distance constraint h0: 3D distance squared between drone and boat anchor
-    d_sq = ca.dot(r, r)
-
-    # 2. Nonlinear rate of radial separation constraint h1: d_dot = (r^T * v_rel) / sqrt(r^T * r + eps) <= v_winch_max
-    # Restricts drone from moving away from the boat faster than winch spooling speed (2.0 m/s),
-    # while allowing full velocity when moving towards boat or in tangential/orbital flight.
-    d_norm = ca.sqrt(d_sq + 0.01)
-    v_sep = ca.dot(r, v_rel) / d_norm
-
-    h_expr = ca.vertcat(d_sq, v_sep)
-
-    # ACADOS model formulation
     model = AcadosModel()
-    model.f_expl_expr = xdot_expr
-    model.x = x
-    model.u = u
-    model.p = p_param
-    model.con_h_expr = h_expr
-    model.con_h_expr_e = h_expr
-    model.name = model_name
+    model.name = 'uav_tethered'
+    model.f_expl_expr = xdot
+    model.x, model.u, model.p = x, u, params
+
+    # Cost residuals (Eq. uav_mpc_stage_cost). The yaw term q_psi*(1 - e_psi.b/|b|_eps), with e_psi=[cos psi, sin psi],
+    # equals (q_psi/2)*||e_psi - b/|b|_eps||^2 up to a constant independent of psi, so it enters as a squared residual.
+    b = b_ref - p[0:2]
+    b_unit = b / ca.sqrt(ca.dot(b, b) + prm['yaw_epsilon'])
+    # The yaw term is active only while the tether (hence the USV) is present: the UAV then looks at the attachment point
+    yaw_res = tether_on * ca.vertcat(ca.cos(psi) - b_unit[0], ca.sin(psi) - b_unit[1])
+    thrust_res = T - prm['mass'] * prm['gravity']          # deviation from the hover thrust
+    model.cost_y_expr = ca.vertcat(p, v, phi, theta, yaw_res, thrust_res, u)
+    model.cost_y_expr_e = ca.vertcat(p, v, phi, theta, yaw_res, thrust_res)
+
+    # Nonlinear constraints: h = [d^2, d_dot, |v_xy|]
+    r = p - anchor
+    v_rel = v - anchor_v
+    d_sq = ca.dot(r, r)
+    d_dot = ca.dot(r, v_rel) / ca.sqrt(d_sq + 0.01)
+    v_xy = ca.sqrt(v[0] ** 2 + v[1] ** 2 + 1e-4)
+    model.con_h_expr = ca.vertcat(d_sq, d_dot, v_xy)
+    model.con_h_expr_e = ca.vertcat(d_sq, d_dot, v_xy)
 
     return model
 
-def generate_acados_ocp():
-    # Load config file relative to the script directory
-    script_dir = os.path.dirname(os.path.abspath(__file__))
-    config_path = os.path.join(script_dir, '../config/acados_generator_config.json')
-    with open(config_path, 'r') as f:
-        config = json.load(f)
 
-    # Load model
-    model = create_uav_model()
-    
-    # Configure Optimal Control Problem (OCP)
+def generate_acados_ocp():
+    prm = load_parameters()
+    model = create_uav_model(prm)
+
     ocp = AcadosOcp()
     ocp.model = model
-    
-    # Horizon dimensions from config
-    ocp.dims.N = config["prediction_horizon"]["N"]
-    Ts = config["prediction_horizon"]["Ts"]
-    ocp.solver_options.tf = Ts * ocp.dims.N
-    
-    # Configure Costs (LINEAR_LS)
-    nx = model.x.size()[0]
-    nu = model.u.size()[0]
-    ny = nx + nu
-    ny_e = nx
+    ocp.dims.N = int(prm['horizon_steps'])
+    ocp.solver_options.tf = prm['sampling_time'] * ocp.dims.N
 
-    ocp.cost.cost_type = 'LINEAR_LS'
-    ocp.cost.cost_type_e = 'LINEAR_LS'
-    
-    # Weight matrices from config
-    Qp = config["weights"]["Qp"]
-    Qv = config["weights"]["Qv"]
-    R = config["weights"]["R"]
-    Q_tilt = config["weights"].get("Qtilt", [0.0, 0.0])  # Penalization on attitude states (phi, theta)
-    Q_tilt_cmd = [0.0, 0.0]  # Penalization on attitude commands (phi_cmd, theta_cmd)
-    ocp.cost.W = np.diag(Qp + Qv + Q_tilt + Q_tilt_cmd + R)
-    ocp.cost.W_e = np.diag(Qp + Qv + Q_tilt + Q_tilt_cmd)
-    
-    ocp.cost.Vx = np.zeros((ny, nx))
-    ocp.cost.Vx[:nx, :nx] = np.eye(nx)
-    ocp.cost.Vu = np.zeros((ny, nu))
-    ocp.cost.Vu[nx:, :nu] = np.eye(nu)
-    ocp.cost.Vx_e = np.eye(nx)
-    
-    # Default references
-    ocp.cost.yref = np.zeros((ny,))
-    ocp.cost.yref[12] = 9.81  # Default a_T cancels gravity (index 12 for thrust input in 13-dimensional yref)
-    ocp.cost.yref_e = np.zeros((ny_e,))
-    
-    # Default parameters: [psi, x_boat, y_boat, z_boat, vx_boat, vy_boat, vz_boat]
-    ocp.parameter_values = np.zeros(7)
-    
-    # Control input bounds [phi_dot_cmd, theta_dot_cmd, a_T] from config
-    phi_dot_max = config["limits"]["phi_dot_max"]
-    theta_dot_max = config["limits"]["theta_dot_max"]
-    a_T_min = config["limits"]["a_T_min_scale"] * 9.81
-    a_T_max = config["limits"]["a_T_max_scale"] * 9.81
-    
-    ocp.constraints.lbu = np.array([-phi_dot_max, -theta_dot_max, a_T_min])
-    ocp.constraints.ubu = np.array([phi_dot_max, theta_dot_max, a_T_max])
-    ocp.constraints.idxbu = np.array([0, 1, 2])
-    
-    # State bounds [v_x, v_y, v_z, phi, theta, phi_cmd, theta_cmd] from config
-    v_max = config["limits"]["v_max"]
-    phi_max = config["limits"]["phi_max"]
-    theta_max = config["limits"]["theta_max"]
-    ocp.constraints.lbx = np.array([-v_max, -v_max, -v_max, -phi_max, -theta_max, -phi_max, -theta_max])
-    ocp.constraints.ubx = np.array([v_max, v_max, v_max, phi_max, theta_max, phi_max, theta_max])
-    ocp.constraints.idxbx = np.array([3, 4, 5, 6, 7, 8, 9])
-    
-    # Path nonlinear constraint bounds: lh <= h(x,u,p) <= uh
-    # h0: distance squared: 0 <= distance^2 <= L_max^2 (default 15.0m)
-    # h1: separation velocity: -20.0 <= v_sep <= v_winch_max (default 2.0 m/s)
-    # Both are updated dynamically in C++ at runtime.
-    L_tether_max_default = 15.0
-    v_winch_max_default = 2.0
-    ocp.constraints.lh = np.array([0.0, -20.0])
-    ocp.constraints.uh = np.array([L_tether_max_default**2, v_winch_max_default])
-    
-    # Soft constraints for states: soften all 7 box constraints
-    ocp.constraints.idxsbx = np.array([0, 1, 2, 3, 4, 5, 6])
-    
-    # Soften upper bound of nonlinear constraints h0 and h1
-    ocp.constraints.idxsh = np.array([0, 1])
-    
-    # Slack variables penalty costs:
-    # 7 state bounds slacks + 2 nonlinear constraint slacks = 9 slacks
-    ns = 9
-    slack_weights = config.get("slack_weights", {"zl": 100.0, "zu": 100.0, "Zl": 1000.0, "Zu": 1000.0})
-    zl_val = slack_weights.get("zl", 100.0)
-    zu_val = slack_weights.get("zu", 100.0)
-    Zl_val = slack_weights.get("Zl", 1000.0)
-    Zu_val = slack_weights.get("Zu", 1000.0)
-    
-    zl_vec = np.ones(ns) * zl_val
-    zu_vec = np.ones(ns) * zu_val
-    Zl_vec = np.ones(ns) * Zl_val
-    Zu_vec = np.ones(ns) * Zu_val
-    
-    # Give high penalty to tether distance violation (slack 7) and separation velocity violation (slack 8)
-    zl_vec[7] = 500.0
-    zu_vec[7] = 500.0
-    Zl_vec[7] = 10000.0
-    Zu_vec[7] = 10000.0
-    
-    zl_vec[8] = 500.0
-    zu_vec[8] = 500.0
-    Zl_vec[8] = 10000.0
-    Zu_vec[8] = 10000.0
-    
-    ocp.cost.zl = zl_vec
-    ocp.cost.zu = zu_vec
-    ocp.cost.Zl = Zl_vec
-    ocp.cost.Zu = Zu_vec
+    # Cost
+    Qp, Qv, Qtilt = prm['weight_Qp'], prm['weight_Qv'], prm['weight_Qtilt']
+    q_psi = prm['weight_q_psi']
+    W_state = Qp + Qv + Qtilt + [q_psi / 2.0, q_psi / 2.0] + [prm['weight_Q_thrust']]
+    W_input = prm['weight_R']
+    ocp.cost.cost_type = 'NONLINEAR_LS'
+    ocp.cost.cost_type_e = 'NONLINEAR_LS'
+    ocp.cost.W = np.diag(W_state + W_input)
+    ocp.cost.W_e = np.diag(W_state)
+    ocp.cost.yref = np.zeros((len(W_state) + len(W_input),))
+    ocp.cost.yref_e = np.zeros((len(W_state),))
 
-    # Terminal nonlinear constraint bounds
-    ocp.constraints.lh_e = np.array([0.0, -20.0])
-    ocp.constraints.uh_e = np.array([L_tether_max_default**2, v_winch_max_default])
-    
-    # Soften terminal nonlinear constraints
-    ocp.constraints.idxsh_e = np.array([0, 1])
-    ns_e = 2
-    ocp.cost.zl_e = 500.0 * np.ones((ns_e,))
-    ocp.cost.zu_e = 500.0 * np.ones((ns_e,))
-    ocp.cost.Zl_e = 10000.0 * np.ones((ns_e,))
-    ocp.cost.Zu_e = 10000.0 * np.ones((ns_e,))
-    
-    # Default initial state
-    ocp.constraints.x0 = np.zeros(nx)
-    
-    # ACADOS Solver Options
+    ocp.parameter_values = np.zeros(NP)
+
+    # Hard input constraints
+    ocp.constraints.lbu = np.array([-prm['phi_dot_max'], -prm['theta_dot_max'], -prm['psi_dot_max'], -prm['thrust_rate_max']])
+    ocp.constraints.ubu = np.array([prm['phi_dot_max'], prm['theta_dot_max'], prm['psi_dot_max'], prm['thrust_rate_max']])
+    ocp.constraints.idxbu = np.arange(4)
+
+    # State bounds: soft z >= z_min, |vz| <= v_z_max, |phi| <= phi_max, |theta| <= theta_max; hard T in [T_min, T_max]
+    lbx = np.array([prm['z_min'], -prm['v_z_max'], -prm['phi_max'], -prm['theta_max'], prm['thrust_min']])
+    ubx = np.array([1.0e3, prm['v_z_max'], prm['phi_max'], prm['theta_max'], prm['thrust_max']])
+    idxbx = np.array([2, 5, 6, 7, 12])
+    ocp.constraints.lbx, ocp.constraints.ubx, ocp.constraints.idxbx = lbx, ubx, idxbx
+    ocp.constraints.lbx_e, ocp.constraints.ubx_e, ocp.constraints.idxbx_e = lbx, ubx, idxbx
+    ocp.constraints.idxsbx = np.arange(4)
+    ocp.constraints.idxsbx_e = np.arange(4)
+
+    # Soft nonlinear constraints: d^2 <= d_max^2, d_dot <= d_dot_max, |v_xy| <= v_xy_max (bounds updated at run time)
+    lh = np.array([0.0, prm['d_dot_min'], 0.0])
+    uh = np.array([prm['tether_max_length'] ** 2, prm['winch_speed_limit'], prm['v_xy_max']])
+    ocp.constraints.lh, ocp.constraints.uh = lh, uh
+    ocp.constraints.lh_e, ocp.constraints.uh_e = lh, uh
+    ocp.constraints.idxsh = np.arange(3)
+    ocp.constraints.idxsh_e = np.arange(3)
+
+    # Slack penalties rho(sigma) = mu1*sigma + mu2*sigma^2 (acados: z*s + 0.5*Z*s^2, so Z = 2*mu2).
+    # Slack order: bounds (z, vz, phi, theta), then h (d^2, d_dot, |v_xy|)
+    mu1 = np.array([prm['slack_mu1_bounds']] * 4 + [prm['slack_mu1_tether']] * 2 + [prm['slack_mu1_bounds']])
+    mu2 = np.array([prm['slack_mu2_bounds']] * 4 + [prm['slack_mu2_tether']] * 2 + [prm['slack_mu2_bounds']])
+    for suffix in ('', '_e'):
+        setattr(ocp.cost, 'zl' + suffix, mu1.copy())
+        setattr(ocp.cost, 'zu' + suffix, mu1.copy())
+        setattr(ocp.cost, 'Zl' + suffix, 2.0 * mu2)
+        setattr(ocp.cost, 'Zu' + suffix, 2.0 * mu2)
+
+    ocp.constraints.x0 = np.zeros(NX)
+
     ocp.solver_options.qp_solver = 'PARTIAL_CONDENSING_HPIPM'
     ocp.solver_options.hessian_approx = 'GAUSS_NEWTON'
-    ocp.solver_options.integrator_type = 'ERK'  # Runge-Kutta
-    ocp.solver_options.nlp_solver_type = 'SQP_RTI'  # Real-Time Iteration
-    
-    # Export directory
+    ocp.solver_options.integrator_type = 'ERK'
+    ocp.solver_options.nlp_solver_type = 'SQP_RTI'
+
     ocp.code_export_directory = '../acados_solver'
-    
     return ocp
+
 
 if __name__ == '__main__':
     ocp = generate_acados_ocp()
-    # Generate native C code
     solver = AcadosOcpSolver(ocp, json_file='acados_ocp.json')
-    print("Success! C code generated in 'acados_solver' folder.")
+    print("Success! UAV solver C code generated in 'acados_solver'.")

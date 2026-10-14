@@ -36,37 +36,37 @@
 #include "acados_c/ocp_nlp_interface.h"
 #include "acados_c/external_function_interface.h"
 
-#define UAV_TETHERED_NX     10
+#define UAV_TETHERED_NX     13
 #define UAV_TETHERED_NZ     0
-#define UAV_TETHERED_NU     3
-#define UAV_TETHERED_NP     7
+#define UAV_TETHERED_NU     4
+#define UAV_TETHERED_NP     9
 #define UAV_TETHERED_NP_GLOBAL     0
-#define UAV_TETHERED_NBX    7
-#define UAV_TETHERED_NBX0   10
-#define UAV_TETHERED_NBU    3
-#define UAV_TETHERED_NSBX   7
+#define UAV_TETHERED_NBX    5
+#define UAV_TETHERED_NBX0   13
+#define UAV_TETHERED_NBU    4
+#define UAV_TETHERED_NSBX   4
 #define UAV_TETHERED_NSBU   0
-#define UAV_TETHERED_NSH    2
+#define UAV_TETHERED_NSH    3
 #define UAV_TETHERED_NSH0   0
 #define UAV_TETHERED_NSG    0
 #define UAV_TETHERED_NSPHI  0
-#define UAV_TETHERED_NSHN   2
+#define UAV_TETHERED_NSHN   3
 #define UAV_TETHERED_NSGN   0
 #define UAV_TETHERED_NSPHIN 0
 #define UAV_TETHERED_NSPHI0 0
-#define UAV_TETHERED_NSBXN  0
-#define UAV_TETHERED_NS     9
+#define UAV_TETHERED_NSBXN  4
+#define UAV_TETHERED_NS     7
 #define UAV_TETHERED_NS0    0
-#define UAV_TETHERED_NSN    2
+#define UAV_TETHERED_NSN    7
 #define UAV_TETHERED_NG     0
-#define UAV_TETHERED_NBXN   0
+#define UAV_TETHERED_NBXN   5
 #define UAV_TETHERED_NGN    0
-#define UAV_TETHERED_NY0    13
-#define UAV_TETHERED_NY     13
-#define UAV_TETHERED_NYN    10
+#define UAV_TETHERED_NY0    15
+#define UAV_TETHERED_NY     15
+#define UAV_TETHERED_NYN    11
 #define UAV_TETHERED_N      50
-#define UAV_TETHERED_NH     2
-#define UAV_TETHERED_NHN    2
+#define UAV_TETHERED_NH     3
+#define UAV_TETHERED_NHN    3
 #define UAV_TETHERED_NH0    0
 #define UAV_TETHERED_NPHI0  0
 #define UAV_TETHERED_NPHI   0
@@ -108,9 +108,18 @@ typedef struct uav_tethered_solver_capsule
 
     // cost
 
+    external_function_external_param_casadi *cost_y_fun;
+    external_function_external_param_casadi *cost_y_fun_jac_ut_xt;
 
 
 
+    external_function_external_param_casadi cost_y_0_fun;
+    external_function_external_param_casadi cost_y_0_fun_jac_ut_xt;
+
+
+
+    external_function_external_param_casadi cost_y_e_fun;
+    external_function_external_param_casadi cost_y_e_fun_jac_ut_xt;
 
 
     // constraints

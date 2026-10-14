@@ -50,6 +50,15 @@ OCP_SRC+= uav_tethered_constraints/uav_tethered_constr_h_fun_jac_uxt_zt.c
 OCP_SRC+= uav_tethered_constraints/uav_tethered_constr_h_fun.c
 OCP_SRC+= uav_tethered_constraints/uav_tethered_constr_h_e_fun_jac_uxt_zt.c
 OCP_SRC+= uav_tethered_constraints/uav_tethered_constr_h_e_fun.c
+OCP_SRC+= uav_tethered_cost/uav_tethered_cost_y_0_fun.c
+OCP_SRC+= uav_tethered_cost/uav_tethered_cost_y_0_fun_jac_ut_xt.c
+OCP_SRC+= uav_tethered_cost/uav_tethered_cost_y_0_hess.c
+OCP_SRC+= uav_tethered_cost/uav_tethered_cost_y_fun.c
+OCP_SRC+= uav_tethered_cost/uav_tethered_cost_y_fun_jac_ut_xt.c
+OCP_SRC+= uav_tethered_cost/uav_tethered_cost_y_hess.c
+OCP_SRC+= uav_tethered_cost/uav_tethered_cost_y_e_fun.c
+OCP_SRC+= uav_tethered_cost/uav_tethered_cost_y_e_fun_jac_ut_xt.c
+OCP_SRC+= uav_tethered_cost/uav_tethered_cost_y_e_hess.c
 
 OCP_SRC+= acados_solver_uav_tethered.c
 

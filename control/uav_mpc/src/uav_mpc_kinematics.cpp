@@ -45,6 +45,13 @@ void rotateVectorByQuaternion(double qx, double qy, double qz, double qw, const 
     v_out[2] = v_rot.z();
 }
 
+double thrustToThrottle(double thrust, double mass, double gravity, double hover_throttle,
+                        double omega_min, double omega_max) {
+    const double omega_0 = omega_min + hover_throttle * (omega_max - omega_min);
+    const double omega = omega_0 * std::sqrt(std::max(thrust, 0.0) / (mass * gravity));
+    return std::max(0.0, std::min((omega - omega_min) / (omega_max - omega_min), 1.0));
+}
+
 void computeDesiredQuaternion(double phi_cmd, double theta_cmd, double yaw, double q_d[4]) {
     // Desired rotation matrix in ENU frame: R_enu = R_z(yaw) * R_y(theta_cmd) * R_x(phi_cmd)
     Eigen::Matrix3d R_enu = (Eigen::AngleAxisd(yaw, Eigen::Vector3d::UnitZ()) *

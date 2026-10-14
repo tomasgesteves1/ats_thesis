@@ -2,6 +2,7 @@
 #include "uav_mpc/uav_mpc_kinematics.hpp"
 #include "uav_mpc/uav_mpc_telemetry.hpp"
 #include <limits>
+#include <chrono>
 #include <cmath>
 
 #ifndef M_PI
@@ -35,14 +36,24 @@ UavMpcNode::UavMpcNode()
     tether_desc.dynamic_typing = true;
     this->declare_parameter("tether_max_length", rclcpp::ParameterValue(15.0), tether_desc);
     this->declare_parameter<std::string>("trajectory_type", "hold");
-    this->declare_parameter<double>("v_max", 10.0);
-    this->declare_parameter<double>("u_max", 19.62);
+    this->declare_parameter<double>("mass", 2.06);
+    this->declare_parameter<double>("gravity", 9.81);
+    this->declare_parameter<double>("z_min", 2.0);
+    this->declare_parameter<double>("v_xy_max", 10.0);
+    this->declare_parameter<double>("v_z_max", 10.0);
+    this->declare_parameter<double>("phi_max", 0.5);
+    this->declare_parameter<double>("theta_max", 0.5);
+    this->declare_parameter<double>("thrust_min", 2.02);
+    this->declare_parameter<double>("thrust_max", 32.96);
     this->declare_parameter<double>("hover_throttle", 0.618);
-    this->declare_parameter<double>("tilt_max", 0.5);
+    this->declare_parameter<double>("max_pose_age", 0.05);   // s, cap of the pose age compensation
+    this->declare_parameter<double>("rotor_speed_min", 150.0);
+    this->declare_parameter<double>("rotor_speed_max", 1000.0);
+    // The hover thrust estimated by PX4 adapts to the load carried (here including the tether pull), which the
+    // NMPC model already accounts for; using it would count the tether twice, so the nominal value is used by default.
+    this->declare_parameter<bool>("use_px4_hover_estimate", false);
     this->declare_parameter<double>("hold_height", 2.0);
     this->declare_parameter<double>("takeoff_height", 4.0);
-    this->declare_parameter<double>("weight_position", 20.0);
-    this->declare_parameter<double>("weight_velocity", 5.0);
 
     // Relative namespaces for topics (Rule 4 of CODE_STANDARDS.md)
     odom_sub_ = this->create_subscription<nav_msgs::msg::Odometry>(
@@ -94,6 +105,8 @@ UavMpcNode::UavMpcNode()
 
     virtual_tether_distance_pub_ = this->create_publisher<std_msgs::msg::Float64>(
         "virtual_tether_distance", 10);
+
+    solve_time_pub_ = this->create_publisher<std_msgs::msg::Float64>("uav_solve_time_ms", 10);
 
     virtual_tether_limit_pub_ = this->create_publisher<std_msgs::msg::Float64>(
         "virtual_tether_limit", 10);
@@ -277,6 +290,7 @@ void UavMpcNode::controlLoop() {
     // Look up the drone COM pose (world -> drone/base_link)
     double drone_x = 0.0, drone_y = 0.0, drone_z = 0.0;
     double drone_qx = 0.0, drone_qy = 0.0, drone_qz = 0.0, drone_qw = 1.0;
+    double pose_age = 0.0;  // age of the pose sample at the time of the control step (s)
     bool tf_success = false;
     
     try {
@@ -288,6 +302,7 @@ void UavMpcNode::controlLoop() {
         drone_qy = transform.transform.rotation.y;
         drone_qz = transform.transform.rotation.z;
         drone_qw = transform.transform.rotation.w;
+        pose_age = (this->get_clock()->now() - rclcpp::Time(transform.header.stamp, this->get_clock()->get_clock_type())).seconds();
         tf_success = true;
 
         // Compute and publish virtual tether distance, limit, and separation speed for plotting/monitoring
@@ -348,23 +363,34 @@ void UavMpcNode::controlLoop() {
         pipeline_->setTrajectoryType(TrajectoryType::HOLD);
     }
 
-    // Update dynamic limits
-    double v_max = this->get_parameter("v_max").as_double();
-    double winch_speed_limit = this->get_parameter("winch_speed_limit").as_double();
-    double u_max = this->get_parameter("u_max").as_double();
-    double hover_throttle = this->get_parameter("hover_throttle").as_double();
-    double tilt_max = this->get_parameter("tilt_max").as_double();
+    // Update the run-time parameters of the controller (Table 4.12)
+    UavMpcParams params;
+    params.mass = this->get_parameter("mass").as_double();
+    params.gravity = this->get_parameter("gravity").as_double();
+    params.z_min = this->get_parameter("z_min").as_double();
+    params.v_xy_max = this->get_parameter("v_xy_max").as_double();
+    params.v_z_max = this->get_parameter("v_z_max").as_double();
+    params.phi_max = this->get_parameter("phi_max").as_double();
+    params.theta_max = this->get_parameter("theta_max").as_double();
+    params.thrust_min = this->get_parameter("thrust_min").as_double();
+    params.thrust_max = this->get_parameter("thrust_max").as_double();
+    params.d_dot_max = this->get_parameter("winch_speed_limit").as_double();
+    params.hover_throttle = this->get_parameter("hover_throttle").as_double();
+    params.rotor_speed_min = this->get_parameter("rotor_speed_min").as_double();
+    params.rotor_speed_max = this->get_parameter("rotor_speed_max").as_double();
+    pipeline_->setParameters(params);
 
-    pipeline_->setVelocityLimit(v_max);
-    pipeline_->setWinchSpeedLimit(winch_speed_limit);
-    pipeline_->setInputLimit(u_max);
-    pipeline_->setHoverThrottle(hover_throttle);
-    pipeline_->setTiltMax(tilt_max);
-
-    // Update cost weights dynamically
-    double w_pos = this->get_parameter("weight_position").as_double();
-    double w_vel = this->get_parameter("weight_velocity").as_double();
-    pipeline_->setCostWeights(w_pos, w_vel);
+    // The pose and the control loop run at the same rate without synchronisation, so the latest sample is up to one
+    // period old (or repeated): the position is propagated to the current time with the measured velocity
+    {
+        double v_body[3] = {latest_odom_.twist.twist.linear.x, latest_odom_.twist.twist.linear.y, latest_odom_.twist.twist.linear.z};
+        double v_world[3] = {0.0, 0.0, 0.0};
+        kinematics::rotateVectorByQuaternion(drone_qx, drone_qy, drone_qz, drone_qw, v_body, v_world);
+        const double age = std::max(0.0, std::min(pose_age, this->get_parameter("max_pose_age").as_double()));
+        drone_x += v_world[0] * age;
+        drone_y += v_world[1] * age;
+        drone_z += v_world[2] * age;
+    }
 
     // Inject TF pose and latest velocity into the pipeline
     std::vector<double> state = {
@@ -430,12 +456,13 @@ void UavMpcNode::controlLoop() {
             open_loop_step_++;
         }
     } else {
+        const auto t_start = std::chrono::steady_clock::now();
         output = pipeline_->computeControl(sim_time_s);
+        std_msgs::msg::Float64 solve_msg;
+        solve_msg.data = std::chrono::duration<double, std::milli>(std::chrono::steady_clock::now() - t_start).count();
+        solve_time_pub_->publish(solve_msg);
     }
 
-    // Calculate dynamically normalized thrust using the real-time PX4 hover thrust estimate (throttled to 1Hz)
-    double thrust_normalized = (output.u_opt[2] / 9.81) * px4_hover_thrust_;
-    thrust_normalized = std::max(0.0, std::min(thrust_normalized, 1.0));
 
     // Calculate current Euler angles
     double drone_roll = 0.0, drone_pitch = 0.0, drone_yaw = 0.0;
@@ -443,10 +470,10 @@ void UavMpcNode::controlLoop() {
 
     // Print MPC optimal commands and current attitude throttled to 1Hz
     RCLCPP_INFO_THROTTLE(this->get_logger(), *this->get_clock(), 1000,
-        "[MPC Output] Cmd - Roll: %.2f°, Pitch: %.2f°, Yaw: %.2f° | Thrust Accel: %.2f m/s^2",
+        "[MPC Output] Cmd - Roll: %.2f°, Pitch: %.2f°, Yaw: %.2f° | Thrust: %.2f N",
         output.u_opt[0] * 180.0 / M_PI,
         output.u_opt[1] * 180.0 / M_PI,
-        drone_yaw * 180.0 / M_PI,
+        output.psi_cmd * 180.0 / M_PI,
         output.u_opt[2]);
 
     // Always publish OffboardControlMode to feed PX4 watchdog and allow offboard transition
@@ -492,7 +519,7 @@ void UavMpcNode::controlLoop() {
         latest_odom_.twist.twist.linear.z, // 5: State vz (m/s) [body]
         output.u_opt[0],                   // 6: Input roll cmd (rad)
         output.u_opt[1],                   // 7: Input pitch cmd (rad)
-        output.u_opt[2],                   // 8: Input thrust accel cmd (m/s^2)
+        output.u_opt[2],                   // 8: Input thrust cmd (N)
         drone_roll,                        // 9: Current roll (rad)
         drone_pitch,                       // 10: Current pitch (rad)
         drone_yaw,                         // 11: Current yaw (rad)
@@ -504,12 +531,16 @@ void UavMpcNode::controlLoop() {
         v_world[2],                        // 17: State vz world (m/s)
         output.current_reference_velocity[0], // 18: Reference vx world (m/s)
         output.current_reference_velocity[1], // 19: Reference vy world (m/s)
-        output.current_reference_velocity[2]  // 20: Reference vz world (m/s)
+        output.current_reference_velocity[2], // 20: Reference vz world (m/s)
+        output.psi_cmd,                       // 21: Input yaw cmd (rad)
+        output.predicted_attitude[0],         // 22: Roll predicted 0.2 s ahead (rad)
+        output.predicted_attitude[1],         // 23: Pitch predicted 0.2 s ahead (rad)
+        output.predicted_attitude[2]          // 24: Yaw predicted 0.2 s ahead (rad)
     };
     
     // Add layout descriptors for readability
     std_msgs::msg::MultiArrayDimension dim;
-    dim.label = "x,y,z,vx,vy,vz,roll_cmd,pitch_cmd,thrust_cmd,roll,pitch,yaw,ref_x,ref_y,ref_z,vx_world,vy_world,vz_world,ref_vx,ref_vy,ref_vz";
+    dim.label = "x,y,z,vx,vy,vz,roll_cmd,pitch_cmd,thrust_cmd,roll,pitch,yaw,ref_x,ref_y,ref_z,vx_world,vy_world,vz_world,ref_vx,ref_vy,ref_vz,yaw_cmd,roll_pred,pitch_pred,yaw_pred";
     dim.size = telemetry_msg.data.size();
     dim.stride = telemetry_msg.data.size();
     telemetry_msg.layout.dim.push_back(dim);
@@ -577,6 +608,11 @@ void UavMpcNode::controlLoop() {
     }
 }
 
+double UavMpcNode::hoverThrottle() {
+    return this->get_parameter("use_px4_hover_estimate").as_bool() ? px4_hover_thrust_
+                                                                    : this->get_parameter("hover_throttle").as_double();
+}
+
 void UavMpcNode::publishOffboardControlMode() {
     px4_msgs::msg::OffboardControlMode msg{};
     msg.timestamp = this->get_clock()->now().nanoseconds() / 1000;
@@ -595,7 +631,7 @@ void UavMpcNode::publishAttitudeSetpoint(const UavControlOutput& output) {
     att_msg.timestamp = this->get_clock()->now().nanoseconds() / 1000;
     
     double q_d[4];
-    uav_mpc::kinematics::computeDesiredQuaternion(output.u_opt[0], output.u_opt[1], yaw_ref_, q_d);
+    uav_mpc::kinematics::computeDesiredQuaternion(output.u_opt[0], output.u_opt[1], output.psi_cmd, q_d);
     att_msg.q_d[0] = static_cast<float>(q_d[0]);
     att_msg.q_d[1] = static_cast<float>(q_d[1]);
     att_msg.q_d[2] = static_cast<float>(q_d[2]);
@@ -604,9 +640,9 @@ void UavMpcNode::publishAttitudeSetpoint(const UavControlOutput& output) {
     att_msg.thrust_body[0] = 0.0f;
     att_msg.thrust_body[1] = 0.0f;
     
-    // Normalize thrust using the real-time PX4 hover thrust estimate
-    double thrust_normalized = (output.u_opt[2] / 9.81) * px4_hover_thrust_;
-    thrust_normalized = std::max(0.0, std::min(thrust_normalized, 1.0));
+    double thrust_normalized = kinematics::thrustToThrottle(
+        output.u_opt[2], this->get_parameter("mass").as_double(), this->get_parameter("gravity").as_double(), hoverThrottle(),
+        this->get_parameter("rotor_speed_min").as_double(), this->get_parameter("rotor_speed_max").as_double());
     att_msg.thrust_body[2] = -static_cast<float>(thrust_normalized); // -Z in FRD frame is upward force
 
     attitude_setpoint_pub_->publish(att_msg);

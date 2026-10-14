@@ -189,8 +189,8 @@ int uav_tethered_acados_sim_create(uav_tethered_sim_solver_capsule * capsule)
 
     /* initialize input */
     // x
-    double x0[10];
-    for (int ii = 0; ii < 10; ii++)
+    double x0[13];
+    for (int ii = 0; ii < 13; ii++)
         x0[ii] = 0.0;
 
     sim_in_set(uav_tethered_sim_config, uav_tethered_sim_dims,
@@ -198,19 +198,19 @@ int uav_tethered_acados_sim_create(uav_tethered_sim_solver_capsule * capsule)
 
 
     // u
-    double u0[3];
-    for (int ii = 0; ii < 3; ii++)
+    double u0[4];
+    for (int ii = 0; ii < 4; ii++)
         u0[ii] = 0.0;
 
     sim_in_set(uav_tethered_sim_config, uav_tethered_sim_dims,
                uav_tethered_sim_in, "u", u0);
 
     // S_forw
-    double S_forw[130];
-    for (int ii = 0; ii < 130; ii++)
+    double S_forw[221];
+    for (int ii = 0; ii < 221; ii++)
         S_forw[ii] = 0.0;
-    for (int ii = 0; ii < 10; ii++)
-        S_forw[ii + ii * 10 ] = 1.0;
+    for (int ii = 0; ii < 13; ii++)
+        S_forw[ii + ii * 13 ] = 1.0;
 
 
     sim_in_set(uav_tethered_sim_config, uav_tethered_sim_dims,

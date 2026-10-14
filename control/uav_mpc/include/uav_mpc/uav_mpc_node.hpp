@@ -35,6 +35,7 @@ private:
     void boatHorizonCallback(const nav_msgs::msg::Path::SharedPtr msg);
     void controlLoop();
     void publishOffboardControlMode();
+    double hoverThrottle();
     void publishAttitudeSetpoint(const UavControlOutput& output);
     void publishVisualizationMarkers(const UavControlOutput& output);
 
@@ -62,6 +63,7 @@ private:
     // MPC tether force publisher (relative topic)
     rclcpp::Publisher<std_msgs::msg::Float64>::SharedPtr mpc_tether_force_pub_;
     rclcpp::Publisher<std_msgs::msg::Float64>::SharedPtr virtual_tether_distance_pub_;
+    rclcpp::Publisher<std_msgs::msg::Float64>::SharedPtr solve_time_pub_;
     rclcpp::Publisher<std_msgs::msg::Float64>::SharedPtr virtual_tether_limit_pub_;
     rclcpp::Publisher<std_msgs::msg::Float64>::SharedPtr virtual_tether_separation_speed_pub_;
 

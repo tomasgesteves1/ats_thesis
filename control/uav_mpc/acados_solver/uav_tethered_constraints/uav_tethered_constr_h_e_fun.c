@@ -53,41 +53,41 @@ extern "C" {
 
 casadi_real casadi_sq(casadi_real x) { return x*x;}
 
-static const casadi_int casadi_s0[3] = {10, 1, 1};
+static const casadi_int casadi_s0[3] = {13, 1, 1};
 static const casadi_int casadi_s1[3] = {0, 1, 1};
-static const casadi_int casadi_s2[3] = {7, 1, 1};
-static const casadi_int casadi_s3[3] = {2, 1, 1};
+static const casadi_int casadi_s2[3] = {9, 1, 1};
+static const casadi_int casadi_s3[3] = {3, 1, 1};
 
-/* uav_tethered_constr_h_e_fun:(i0[10],i1[0],i2[0],i3[7])->(o0[2]) */
+/* uav_tethered_constr_h_e_fun:(i0[13],i1[0],i2[0],i3[9])->(o0[3]) */
 static int casadi_f0(const casadi_real** arg, casadi_real** res, casadi_int* iw, casadi_real* w, int mem) {
-  casadi_real a0, a1, a2, a3, a4, a5;
+  casadi_real a0, a1, a2, a3, a4, a5, a6;
   a0=arg[0]? arg[0][0] : 0;
-  a1=arg[3]? arg[3][1] : 0;
+  a1=arg[3]? arg[3][0] : 0;
   a0=(a0-a1);
   a1=casadi_sq(a0);
   a2=arg[0]? arg[0][1] : 0;
-  a3=arg[3]? arg[3][2] : 0;
+  a3=arg[3]? arg[3][1] : 0;
   a2=(a2-a3);
   a3=casadi_sq(a2);
   a1=(a1+a3);
   a3=arg[0]? arg[0][2] : 0;
-  a4=arg[3]? arg[3][3] : 0;
+  a4=arg[3]? arg[3][2] : 0;
   a3=(a3-a4);
   a4=casadi_sq(a3);
   a1=(a1+a4);
   if (res[0]!=0) res[0][0]=a1;
   a4=arg[0]? arg[0][3] : 0;
-  a5=arg[3]? arg[3][4] : 0;
-  a4=(a4-a5);
-  a0=(a0*a4);
-  a4=arg[0]? arg[0][4] : 0;
-  a5=arg[3]? arg[3][5] : 0;
-  a4=(a4-a5);
-  a2=(a2*a4);
+  a5=arg[3]? arg[3][3] : 0;
+  a5=(a4-a5);
+  a0=(a0*a5);
+  a5=arg[0]? arg[0][4] : 0;
+  a6=arg[3]? arg[3][4] : 0;
+  a6=(a5-a6);
+  a2=(a2*a6);
   a0=(a0+a2);
   a2=arg[0]? arg[0][5] : 0;
-  a4=arg[3]? arg[3][6] : 0;
-  a2=(a2-a4);
+  a6=arg[3]? arg[3][5] : 0;
+  a2=(a2-a6);
   a3=(a3*a2);
   a0=(a0+a3);
   a3=1.0000000000000000e-02;
@@ -95,6 +95,13 @@ static int casadi_f0(const casadi_real** arg, casadi_real** res, casadi_int* iw,
   a1=sqrt(a1);
   a0=(a0/a1);
   if (res[0]!=0) res[0][1]=a0;
+  a4=casadi_sq(a4);
+  a5=casadi_sq(a5);
+  a4=(a4+a5);
+  a5=1.0000000000000000e-04;
+  a4=(a4+a5);
+  a4=sqrt(a4);
+  if (res[0]!=0) res[0][2]=a4;
   return 0;
 }
 

@@ -3,19 +3,8 @@ uav_mpc_node:
     # Open-loop test (captures first horizon in offboard and replays it)
     open_loop_test: false
 
-    # Type of trajectory to follow: "hold" or "circle"
+    # Type of trajectory to follow: "hold" or "external"
     trajectory_type: "circle"
-
-    # Enable/Disable physical model and constraints of the tether
-    use_tether: false
-    tether_max_length: 15.0  # Maximum allowed tether length (m)
-    tether_rate_limit: 1.5   # Slew rate limit for tether adjustments (m/s)
-    winch_speed_limit: 2.0   # Physical winch reeling speed limit (m/s)
-
-    # Circular trajectory parameters
-    circle_radius: 3.0
-    circle_omega: 0.2
-    circle_height: 10.0
 
     # Hold mode height
     hold_height: 7.0     # Target hovering altitude in hold mode (m)
@@ -23,13 +12,64 @@ uav_mpc_node:
     # Takeoff height (used by PX4 takeoff command and state machine checks)
     takeoff_height: 4.0
 
+    # ------------------------------------------------------------------
+    # Predictive model (Section 3.3, Table 4.7). Read by generate_acados_uav.py
+    # ------------------------------------------------------------------
+    mass: 2.06                   # m (kg)
+    gravity: 9.81                # g (m/s^2)
+    rotor_drag: 0.218            # d_r (N*s/m)
+    tau_roll_pitch: 0.1538       # tau (s) = 1/MC_ROLL_P
+    tau_yaw: 0.3571              # tau_psi (s) = 1/MC_YAW_P
+    yaw_transport_delay: 0.06    # T_d (s), transport delay of the yaw command (identified from the bags)
+    tilt_transport_delay: 0.04   # T_t (s), transport delay of the roll and pitch commands (identified from the bags)
+    tether_density: 0.020        # mu (kg/m)
+    tether_slack_ratio: 0.05     # epsilon_0
+    tether_deflection_deg: 30.4  # gamma_0 (deg)
+    tether_delta: 0.05           # delta, regularisation of e_h
 
-    # Dynamic physical limits of the drone (less aggressive settings)
-    v_max: 10.0          # Maximum velocity (m/s)
-    u_max: 16.0          # Maximum thrust acceleration (m/s^2)
-    hover_throttle: 0.618 # Normalized hover throttle command
-    tilt_max: 0.5        # Maximum tilt angle (rad, ~28.6 deg)
+    # Prediction horizon (Table 4.12)
+    horizon_steps: 50            # N
+    sampling_time: 0.02          # T_s (s)
 
-    # Cost weights (adjustable dynamically)
-    weight_position: 20.0  # Weight for X, Y, Z position error
-    weight_velocity: 5.0   # Weight for Vx, Vy, Vz velocity error
+    # Cost weights (Table 4.12)
+    weight_Qp: [60.0, 60.0, 150.0]
+    weight_Qv: [5.0, 5.0, 7.5]
+    weight_Qtilt: [5.0, 5.0]
+    weight_q_psi: 20.0
+    yaw_epsilon: 1.0             # m^2, regularisation of the bearing: the yaw weight fades within ~1 m of the anchor
+    weight_Q_thrust: 0.118                # weight of (T - m g)^2
+    weight_R: [30.0, 30.0, 5.0, 0.0005]  # [phi_dot, theta_dot, psi_dot, T_dot]
+
+    # Input limits
+    phi_dot_max: 0.8             # rad/s
+    theta_dot_max: 0.8           # rad/s
+    psi_dot_max: 1.0             # rad/s
+    thrust_rate_max: 30.0        # T_dot_max (N/s)
+    thrust_min: 2.02             # T_min (N) = 0.1 m g
+    thrust_max: 32.96            # T_max (N) = 16 m
+
+    # State limits (soft)
+    z_min: 2.0                   # m
+    v_xy_max: 10.0               # m/s
+    v_z_max: 10.0                # m/s
+    phi_max: 0.5                 # rad
+    theta_max: 0.5               # rad
+
+    # Tether
+    use_tether: false            # Enable/Disable the coupling to the USV
+    tether_max_length: 15.0      # d_max (m)
+    tether_rate_limit: 1.5       # Slew rate limit for d_max adjustments (m/s)
+    winch_speed_limit: 2.0       # d_dot_max (m/s)
+    d_dot_min: -20.0             # m/s, lower bound of the separation rate
+
+    # Slack penalties rho(sigma) = mu1*sigma + mu2*sigma^2
+    slack_mu1_bounds: 100.0
+    slack_mu2_bounds: 500.0
+    slack_mu1_tether: 500.0
+    slack_mu2_tether: 2000.0
+
+    # Normalised hover throttle (nominal; the PX4 estimate is used only if use_px4_hover_estimate is true)
+    hover_throttle: 0.618
+    # Rotor speed at zero and full throttle (SIM_GZ_EC_MIN / SIM_GZ_EC_MAX): the throttle sets the rotor speed linearly
+    rotor_speed_min: 150.0       # rad/s
+    rotor_speed_max: 1000.0      # rad/s
