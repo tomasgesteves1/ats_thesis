@@ -2,6 +2,7 @@
 #include <tf2/LinearMath/Quaternion.h>
 #include <tf2/LinearMath/Matrix3x3.h>
 #include <cmath>
+#include <chrono>
 #include <algorithm>
 #include <array>
 
@@ -42,6 +43,7 @@ UsvMpcNode::UsvMpcNode()
     right_thrust_pub_ = this->create_publisher<std_msgs::msg::Float64>("thrusters/right/thrust", 10);
     left_pos_pub_ = this->create_publisher<std_msgs::msg::Float64>("thrusters/left/pos", 10);
     right_pos_pub_ = this->create_publisher<std_msgs::msg::Float64>("thrusters/right/pos", 10);
+    solve_time_pub_ = this->create_publisher<std_msgs::msg::Float64>("usv_solve_time_ms", 10);
 
     // Publisher for visualization of MPC prediction horizon
     mpc_horizon_pub_ = this->create_publisher<nav_msgs::msg::Path>("mpc_horizon", 10);
@@ -187,7 +189,12 @@ void UsvMpcNode::controlLoop() {
     pipeline_->setTetherParameters(this->get_parameter("tether_max_length").as_double(),
                                    this->get_parameter("tether_anchor_height").as_double());
 
+    const auto t_start = std::chrono::steady_clock::now();
     ThrusterCommand cmd = pipeline_->computeControl();
+    const double solve_ms = std::chrono::duration<double, std::milli>(std::chrono::steady_clock::now() - t_start).count();
+    std_msgs::msg::Float64 solve_msg;
+    solve_msg.data = solve_ms;
+    solve_time_pub_->publish(solve_msg);
 
     std_msgs::msg::Float64 msg;
     msg.data = cmd[0]; left_thrust_pub_->publish(msg);

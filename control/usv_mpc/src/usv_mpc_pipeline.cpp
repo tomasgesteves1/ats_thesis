@@ -124,8 +124,19 @@ ThrusterCommand UsvMpcPipeline::computeControl() {
         }
     }
 
-    // 4. Solve OCP
+    // 4. Solve OCP. A failed QP leaves the iterate unusable for the next warm start, so on failure the solver
+    // memory is reset, the guess is re-initialised at the current state and the problem is solved once more
     int status = usv_dynamic_acados_solve(capsule);
+    if (status != 0 && status != 2) {
+        usv_dynamic_acados_reset(capsule, 1);
+        double u0[NU] = {0.0, 0.0, 0.0, 0.0};
+        for (int i = 0; i <= N; i++) {
+            ocp_nlp_out_set(capsule->nlp_config, capsule->nlp_dims, capsule->nlp_out, capsule->nlp_in, i, "x", x0);
+            if (i < N) ocp_nlp_out_set(capsule->nlp_config, capsule->nlp_dims, capsule->nlp_out, capsule->nlp_in, i, "u", u0);
+        }
+        std::cerr << "UsvMpcPipeline: ACADOS solver failed with status " << status << ", solver reset" << std::endl;
+        status = usv_dynamic_acados_solve(capsule);
+    }
 
     if (status == 0 || status == 2) {
         // Integrate the first optimal rate over one sampling interval (Euler, rates held constant)

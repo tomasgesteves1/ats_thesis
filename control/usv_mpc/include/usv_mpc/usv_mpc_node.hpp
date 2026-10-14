@@ -30,6 +30,7 @@ private:
     rclcpp::Publisher<std_msgs::msg::Float64>::SharedPtr right_thrust_pub_;
     rclcpp::Publisher<std_msgs::msg::Float64>::SharedPtr left_pos_pub_;
     rclcpp::Publisher<std_msgs::msg::Float64>::SharedPtr right_pos_pub_;
+    rclcpp::Publisher<std_msgs::msg::Float64>::SharedPtr solve_time_pub_;
     rclcpp::Publisher<nav_msgs::msg::Path>::SharedPtr mpc_horizon_pub_;
     rclcpp::TimerBase::SharedPtr timer_;
 
