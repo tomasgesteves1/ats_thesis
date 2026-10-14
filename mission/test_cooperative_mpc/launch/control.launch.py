@@ -1,7 +1,10 @@
 import os
 from ament_index_python.packages import get_package_share_directory
 from launch import LaunchDescription
+from launch.actions import DeclareLaunchArgument
+from launch.substitutions import LaunchConfiguration
 from launch_ros.actions import Node
+from launch_ros.parameter_descriptions import ParameterValue
 
 def generate_launch_description():
     pkg_uav_mpc = get_package_share_directory('uav_mpc')
@@ -43,7 +46,7 @@ def generate_launch_description():
         parameters=[
             {
                 'use_sim_time': True,
-                'circle_radius': 15.0,
+                'circle_radius': ParameterValue(LaunchConfiguration('usv_circle_radius'), value_type=float),
                 'circle_omega': 0.05,
                 'circle_center_x': 0.0,
                 'circle_center_y': 0.0,
@@ -90,10 +93,10 @@ def generate_launch_description():
         parameters=[
             {
                 'use_sim_time': True,
-                'circle_radius': 5.0,
-                'circle_omega': 0.05,
-                'circle_height': 8.0,
-                'circle_center_x': 0.0,
+                'circle_radius': ParameterValue(LaunchConfiguration('uav_circle_radius'), value_type=float),
+                'circle_omega': ParameterValue(LaunchConfiguration('uav_circle_omega'), value_type=float),
+                'circle_height': ParameterValue(LaunchConfiguration('uav_circle_height'), value_type=float),
+                'circle_center_x': ParameterValue(LaunchConfiguration('uav_circle_center_x'), value_type=float),
                 'circle_center_y': 0.0,
                 'horizon_stages': 50,
                 'control_period': 0.02,
@@ -117,6 +120,12 @@ def generate_launch_description():
     )
 
     return LaunchDescription([
+        DeclareLaunchArgument('uav_circle_height', default_value='8.0', description='Height of the UAV reference circle (m)'),
+        DeclareLaunchArgument('uav_circle_center_x', default_value='0.0', description='x of the centre of the UAV reference circle (m)'),
+        DeclareLaunchArgument('uav_circle_omega', default_value='0.05', description='Angular speed of the UAV reference circle (rad/s)'),
+        DeclareLaunchArgument('uav_circle_radius', default_value='5.0', description='Radius of the UAV reference circle (m)'),
+        DeclareLaunchArgument('usv_circle_radius', default_value='15.0',
+                              description='Radius of the USV reference circle (m)'),
         usv_mpc_node,
         usv_circle_node,
         uav_mpc_node,
