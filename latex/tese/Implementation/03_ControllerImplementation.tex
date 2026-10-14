@@ -65,20 +65,22 @@
         \midrule
         Sampling time & $T_s$ & $0.02\,\text{s}$ \\
         Prediction horizon & $N$ & $50$ \\
-        Position weight & $Q_p$ & $\mathrm{diag}(20,\,20,\,60)$ \\
+        Position weight & $Q_p$ & $\mathrm{diag}(60,\,60,\,150)$ \\
         Velocity weight & $Q_v$ & $\mathrm{diag}(5,\,5,\,7.5)$ \\
         Tilt weight & $Q_{tilt}$ & $\mathrm{diag}(5,\,5)$ \\
-        Yaw weight & $q_\psi$ & \tbd \\
-        Input weight & $R$ & $\mathrm{diag}(15,\,15,\,0.5)$ \\
-        Minimum altitude & $z_{min}$ & \tbd \\
+        Yaw weight & $q_\psi$ & $20$ \\
+        Thrust weight & $Q_T$ & $0.118$ \\
+        Input weight & $R$ & $\mathrm{diag}(30,\,30,\,5,\,5\times10^{-4})$ \\
+        Minimum altitude & $z_{min}$ & $2.0\,\text{m}$ \\
         Horizontal and vertical speed limits & $v_{xy,max},\ v_{z,max}$ & $10.0\,\text{m/s}$ \\
         Tilt limits & $\phi_{max},\ \theta_{max}$ & $0.5\,\text{rad}$ \\
-        Attitude command rate limits & $\dot\phi_{max},\ \dot\theta_{max}$ & $0.8\,\text{rad/s}$ \\
+        Attitude command rate limits & $\dot\phi_{max},\ \dot\theta_{max},\ \dot\psi_{max}$ & $0.8,\ 0.8,\ 1.0\,\text{rad/s}$ \\
+        Thrust rate limit & $\dot T_{max}$ & $30\,\text{N/s}$ \\
         Thrust limits & $T_{min},\ T_{max}$ & $2.02\,\text{N},\ 32.96\,\text{N}$ \\
         Maximum tether separation & $d_{max}$ & $15.0\,\text{m}$ \\
         Maximum tether pay-out rate & $\dot d_{max}$ & $2.0\,\text{m/s}$ \\
         Slack penalty, bounds $h_1$--$h_5$ & $\mu_{1,j},\ \mu_{2,j}$ & $100,\ 500$ \\
-        Slack penalty, tether $h_6$, $h_7$ & $\mu_{1,j},\ \mu_{2,j}$ & $500,\ 5000$ \\
+        Slack penalty, tether $h_6$, $h_7$ & $\mu_{1,j},\ \mu_{2,j}$ & $500,\ 2000$ \\
         \bottomrule
     \end{tabular}
 \end{table}

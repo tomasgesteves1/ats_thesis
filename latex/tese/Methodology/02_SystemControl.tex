@@ -362,27 +362,27 @@ The \gls{uav} \gls{nmpc} computes, at every sampling instant, the thrust and att
 
 The \gls{uav} model defined in Section~\ref{chapter:modeling} assumed that the commanded attitude is tracked instantaneously by the low-level flight controller. In reality, the closed-loop attitude response of the autopilot exhibits a first-order lag characterised by a time constant $\tau > 0$:
 \begin{equation}
-    \dot\phi = \frac{1}{\tau}\big(\phi_{\mathrm{cmd}} - \phi\big), \qquad \dot\theta = \frac{1}{\tau}\big(\theta_{\mathrm{cmd}} - \theta\big),
+    \dot\phi = \frac{1}{\tau}\big(\phi_{\mathrm{cmd}} - \phi\big), \qquad \dot\theta = \frac{1}{\tau}\big(\theta_{\mathrm{cmd}} - \theta\big), \qquad \dot\psi = \frac{1}{\tau_\psi}\big(\psi_{\mathrm{cmd}} - \psi\big),
     \label{eq:uav_mpc_attitude_lag}
 \end{equation}
-where $\phi, \theta$ denote the actual Euler angles, $\phi_{\mathrm{cmd}}, \theta_{\mathrm{cmd}}$ are the attitude setpoints commanded to the autopilot, and $\tau$ is the attitude tracking time constant.
+where $\phi, \theta, \psi$ denote the actual Euler angles, $\phi_{\mathrm{cmd}}, \theta_{\mathrm{cmd}}, \psi_{\mathrm{cmd}}$ are the attitude setpoints commanded to the autopilot, and $\tau$ and $\tau_\psi$ are the tracking time constants of roll and pitch, and of yaw, respectively.
 
-Furthermore, similarly to the thrusters of the \gls{usv}, the attitude commands cannot change arbitrarily fast, and their rates of change are subject to physical slew-rate limits:
+Furthermore, similarly to the thrusters of the \gls{usv}, the attitude commands and the thrust cannot change arbitrarily fast, and their rates of change are subject to physical slew-rate limits:
 \begin{equation}
-    |\dot\phi_{\mathrm{cmd}}| \le \dot\phi_{max}, \quad |\dot\theta_{\mathrm{cmd}}| \le \dot\theta_{max}.
+    |\dot\phi_{\mathrm{cmd}}| \le \dot\phi_{max}, \quad |\dot\theta_{\mathrm{cmd}}| \le \dot\theta_{max}, \quad |\dot\psi_{\mathrm{cmd}}| \le \dot\psi_{max}, \quad |\dot T| \le \dot T_{max}.
     \label{eq:uav_mpc_rate_bounds}
 \end{equation}
-Imposing these limits directly as bounds in the optimisation problem requires the rates of the commanded angles to be part of the control input vector,
+Imposing these limits directly as bounds in the optimisation problem requires the rates of the commanded angles and of the thrust to be part of the control input vector,
 \begin{equation}
-    \mathbf{u}_a = [\dot\phi_{\mathrm{cmd}},\dot\theta_{\mathrm{cmd}},T]^\top \in \mathbb{R}^3,
+    \mathbf{u}_a = [\dot\phi_{\mathrm{cmd}},\dot\theta_{\mathrm{cmd}},\dot\psi_{\mathrm{cmd}},\dot T]^\top \in \mathbb{R}^4,
     \label{eq:uav_mpc_input_augmented}
 \end{equation}
-which in turn incorporates the commanded attitude into the state vector,
+which in turn incorporates the commanded attitude and the thrust into the state vector,
 \begin{equation}
-    \mathbf{x}_a = [x,y,z,\dot x,\dot y,\dot z,\ \phi,\theta,\ \phi_{\mathrm{cmd}},\theta_{\mathrm{cmd}}]^\top \in \mathbb{R}^{10}.
+    \mathbf{x}_a = [x,y,z,\dot x,\dot y,\dot z,\ \phi,\theta,\psi,\ \phi_{\mathrm{cmd}},\theta_{\mathrm{cmd}},\psi_{\mathrm{cmd}},\ T]^\top \in \mathbb{R}^{13}.
     \label{eq:uav_mpc_state_augmented}
 \end{equation}
-With this state augmentation, range limits act on the state and rate limits act directly on the input. The \gls{uav} heading $\psi$ is aligned with the bearing to the reference target, as detailed below.
+With this state augmentation, range limits act on the state and rate limits act directly on the input.
 
 With $\mathbf{x}_a$ and $\mathbf{u}_a$ defined, the prediction model $\dot{\mathbf{x}}_a = \mathbf{f}_a(\mathbf{x}_a,\mathbf{u}_a)$ is assembled from kinematics, translational dynamics, attitude lag, and command integrators.
 
@@ -408,11 +408,11 @@ The translational dynamics follow \eqref{eq:uav_dynamics}, with the thrust term 
 
 The attitude dynamics combine the first-order tracking lag with the command rate integrators:
 \begin{equation}
-    \dot\phi = \frac{1}{\tau}\big(\phi_{\mathrm{cmd}} - \phi\big), \qquad \dot\theta = \frac{1}{\tau}\big(\theta_{\mathrm{cmd}} - \theta\big),
+    \dot\phi = \frac{1}{\tau}\big(\phi_{\mathrm{cmd}} - \phi\big), \qquad \dot\theta = \frac{1}{\tau}\big(\theta_{\mathrm{cmd}} - \theta\big), \qquad \dot\psi = \frac{1}{\tau_\psi}\big(\psi_{\mathrm{cmd}} - \psi\big),
     \label{eq:uav_mpc_attitude_dynamics}
 \end{equation}
 \begin{equation}
-    \dot\phi_{\mathrm{cmd}} = \dot\phi_{\mathrm{cmd}}, \qquad \dot\theta_{\mathrm{cmd}} = \dot\theta_{\mathrm{cmd}}.
+    \dot\phi_{\mathrm{cmd}} = \dot\phi_{\mathrm{cmd}}, \qquad \dot\theta_{\mathrm{cmd}} = \dot\theta_{\mathrm{cmd}}, \qquad \dot\psi_{\mathrm{cmd}} = \dot\psi_{\mathrm{cmd}}, \qquad \dot T = \dot T.
     \label{eq:uav_mpc_command_rates}
 \end{equation}
 
@@ -447,18 +447,25 @@ where $\mathbf{p}_{xy}=[x,y]^\top$. Since $\psi$ is an angle, the periodicity is
 \end{equation}
 where $q_\psi \ge 0$ is a scalar weight setting the relative importance of yaw tracking, and $\epsilon > 0$ is a small constant that keeps the term well defined when the \gls{uav} is above the reference point, where the bearing is undefined. This term is minimised when $\psi$ points along $\mathbf{b}$.
 
-The last term penalises the input $\mathbf{u}_a$ relative to a nominal hover reference $\mathbf{u}_{a,ref} = [0,0,mg]^\top$, since the thrust cannot be penalised toward zero without opposing gravity,
+The thrust is penalised relative to the hover thrust, since it cannot be penalised toward zero without opposing gravity,
 \begin{equation}
-    \|\mathbf{u}_a - \mathbf{u}_{a,ref}\|^2_{R},
+    Q_T\,(T - mg)^2,
+    \label{eq:uav_mpc_cost_thrust}
+\end{equation}
+where $Q_T \ge 0$ is a scalar weight.
+
+The last term penalises the input $\mathbf{u}_a$, the rates of change of the attitude and thrust commands,
+\begin{equation}
+    \|\mathbf{u}_a\|^2_{R},
     \label{eq:uav_mpc_cost_input}
 \end{equation}
-so that the attitude command rates are regularised toward zero, while the thrust is penalised only for deviating from the hover value.
+discouraging abrupt changes of the commands between consecutive instants.
 
-Summing the tracking, tilt, yaw, and input penalties in \eqref{eq:uav_mpc_cost_track}, \eqref{eq:uav_mpc_cost_tilt}, \eqref{eq:uav_mpc_cost_yaw}, and \eqref{eq:uav_mpc_cost_input} gives the stage cost
+Summing the tracking, tilt, yaw, thrust, and input penalties in \eqref{eq:uav_mpc_cost_track}, \eqref{eq:uav_mpc_cost_tilt}, \eqref{eq:uav_mpc_cost_yaw}, \eqref{eq:uav_mpc_cost_thrust}, and \eqref{eq:uav_mpc_cost_input} gives the stage cost
 \begin{equation}
     \begin{aligned}
         \ell(\mathbf{x}_a,\mathbf{u}_a) = {} & \|\mathbf{p}-\mathbf{p}_{ref}\|^2_{Q_p} + \|\mathbf{v}-\mathbf{v}_{ref}\|^2_{Q_v} + \big\|[\phi,\theta]^\top\big\|^2_{Q_{tilt}} \\
-        & + q_\psi\left(1 - \frac{\cos\psi\,b_x + \sin\psi\,b_y}{\|\mathbf{b}\|}\right) + \|\mathbf{u}_a-\mathbf{u}_{a,ref}\|^2_R.
+        & + q_\psi\left(1 - \frac{\cos\psi\,b_x + \sin\psi\,b_y}{\|\mathbf{b}\|}\right) + Q_T\,(T-mg)^2 + \|\mathbf{u}_a\|^2_R.
     \end{aligned}
     \label{eq:uav_mpc_stage_cost}
 \end{equation}
@@ -467,7 +474,7 @@ The terminal cost $\ell_f$ penalises the last predicted state, so that the optim
 \begin{equation}
     \begin{aligned}
         \ell_f(\mathbf{x}_a) = {} & \|\mathbf{p}-\mathbf{p}_{ref}\|^2_{Q_p} + \|\mathbf{v}-\mathbf{v}_{ref}\|^2_{Q_v} + \big\|[\phi,\theta]^\top\big\|^2_{Q_{tilt}} \\
-        & + q_\psi\left(1 - \frac{\cos\psi\,b_x + \sin\psi\,b_y}{\|\mathbf{b}\|}\right).
+        & + q_\psi\left(1 - \frac{\cos\psi\,b_x + \sin\psi\,b_y}{\|\mathbf{b}\|}\right) + Q_T\,(T-mg)^2.
     \end{aligned}
     \label{eq:uav_mpc_terminal_cost}
 \end{equation}
@@ -487,12 +494,17 @@ Unlike the thruster commands of the \gls{usv}, the velocity and attitude are sub
 \end{align}
 Each slack is penalised by $\rho_j(\sigma_j)$ as in \eqref{eq:nmpc_slack_penalty}, with weights $\mu_{1,j}$ and $\mu_{2,j}$.
 
-The attitude command rate limits of the predictive model \eqref{eq:uav_mpc_rate_bounds} and the thrust range are the only hard constraints, and they act on the input, defining the admissible input set
+The thrust range acts on the state, since the thrust is a component of $\mathbf{x}_a$, defining the admissible state set
+\begin{equation}
+    \mathcal{X} = \left\{ \mathbf{x}_a : \; T_{min} \le T \le T_{max} \right\},
+    \label{eq:uav_mpc_set_X}
+\end{equation}
+while the command rate limits of the predictive model \eqref{eq:uav_mpc_rate_bounds} act on the input, defining the admissible input set
 \begin{equation}
     \mathcal{U} = \left\{ \mathbf{u}_a : \;
     \begin{aligned}
         & |\dot\phi_{\mathrm{cmd}}| \le \dot\phi_{max}, \quad |\dot\theta_{\mathrm{cmd}}| \le \dot\theta_{max}, \\
-        & T_{min} \le T \le T_{max}
+        & |\dot\psi_{\mathrm{cmd}}| \le \dot\psi_{max}, \quad |\dot T| \le \dot T_{max}
     \end{aligned}
     \right\}.
     \label{eq:uav_mpc_input_set}
@@ -597,7 +609,7 @@ Together, the minimum altitude $z_{min}$ and the maximum tether separation $d_{m
     \label{fig:uav_operating_region}
 \end{figure}
 
-All seven state constraints thus have the form $h_j(\mathbf{x}_a) \le \sigma_j$, and since every one of them is softened, there are no hard constraints on the state. With the slacks stacked as $\boldsymbol\sigma=[\sigma_1,\dots,\sigma_7]^\top$, the combined penalty is
+All seven of these state constraints have the form $h_j(\mathbf{x}_a) \le \sigma_j$ and are softened, so that the only hard constraint on the state is the thrust range \eqref{eq:uav_mpc_set_X}. With the slacks stacked as $\boldsymbol\sigma=[\sigma_1,\dots,\sigma_7]^\top$, the combined penalty is
 \begin{equation}
     P(\boldsymbol\sigma) = \sum_{j=1}^{7} \rho_j(\sigma_j).
     \label{eq:uav_mpc_aggregate_penalty}
@@ -605,9 +617,9 @@ All seven state constraints thus have the form $h_j(\mathbf{x}_a) \le \sigma_j$,
 
 \subsubsection*{Optimal Control Problem}
 
-At every sampling instant $k$, the translational and physical attitude components of the initial state come from the \gls{uav}'s current state estimate, while the commanded attitude components use the last commands actually applied:
+At every sampling instant $k$, the translational and physical attitude components of the initial state come from the \gls{uav}'s current state estimate, while the commanded attitude and thrust components use the last commands actually applied:
 \begin{equation}
-    \mathbf{x}_{a,k} = \big[x_k,y_k,z_k,\dot x_k,\dot y_k,\dot z_k,\ \phi_k,\theta_k,\ \phi_{\mathrm{cmd},k-1},\theta_{\mathrm{cmd},k-1}\big]^\top.
+    \mathbf{x}_{a,k} = \big[x_k,y_k,z_k,\dot x_k,\dot y_k,\dot z_k,\ \phi_k,\theta_k,\psi_k,\ \phi_{\mathrm{cmd},k-1},\theta_{\mathrm{cmd},k-1},\psi_{\mathrm{cmd},k-1},\ T_{k-1}\big]^\top.
     \label{eq:uav_mpc_initial_condition}
 \end{equation}
 
@@ -618,7 +630,8 @@ Assembling the cost, the model, and the constraints gives the optimal control pr
     \min_{\hat{\mathbf{x}}_a,\,\hat{\mathbf{u}}_a,\,\hat{\boldsymbol\sigma}} \quad & \sum_{i=0}^{N-1} \ell\big(\hat{\mathbf{x}}_{a,k+i|k},\hat{\mathbf{u}}_{a,k+i|k}\big) + \ell_f\big(\hat{\mathbf{x}}_{a,k+N|k}\big) + \sum_{i=0}^{N} P\big(\hat{\boldsymbol\sigma}_{k+i|k}\big) \notag \\
     \text{s.t.} \quad & \hat{\mathbf{x}}_{a,k|k} = \mathbf{x}_{a,k}, \notag \\
     & \hat{\mathbf{x}}_{a,k+i+1|k} = \boldsymbol\Phi_a\big(\hat{\mathbf{x}}_{a,k+i|k},\hat{\mathbf{u}}_{a,k+i|k}\big), \quad i=0,\dots,N-1, \notag \\
+    & \hat{\mathbf{x}}_{a,k+i|k} \in \mathcal{X}, \quad i=0,\dots,N, \notag \\
     & \hat{\mathbf{u}}_{a,k+i|k} \in \mathcal{U}, \quad i=0,\dots,N-1, \notag \\
     & h_j\big(\hat{\mathbf{x}}_{a,k+i|k}\big) \le \hat\sigma_{j,k+i|k}, \quad \hat\sigma_{j,k+i|k} \ge 0, \quad j=1,\dots,7, \quad i=0,\dots,N. \label{eq:uav_mpc_ocp}
 \end{align}
-The \gls{uav}'s low-level autopilot receives the attitude setpoints $\phi_{\mathrm{cmd},k}, \theta_{\mathrm{cmd},k}$, obtained by integrating the first optimal rates $\hat{\dot\phi}_{\mathrm{cmd},k|k}, \hat{\dot\theta}_{\mathrm{cmd},k|k}$ over $T_s$, together with the thrust command $\hat{T}_{k|k}$ of the first optimal input $\hat{\mathbf{u}}_{a,k|k}$. These become the commanded attitude components of the initial state at the subsequent sampling instant.
+The \gls{uav}'s low-level autopilot receives the attitude setpoints $\phi_{\mathrm{cmd},k}, \theta_{\mathrm{cmd},k}, \psi_{\mathrm{cmd},k}$, and the thrust command $T_k$, obtained by integrating the first optimal rates $\hat{\dot\phi}_{\mathrm{cmd},k|k}, \hat{\dot\theta}_{\mathrm{cmd},k|k}, \hat{\dot\psi}_{\mathrm{cmd},k|k}, \hat{\dot T}_{k|k}$ of the first optimal input $\hat{\mathbf{u}}_{a,k|k}$ over $T_s$. These become the commanded attitude and thrust components of the initial state at the subsequent sampling instant.
