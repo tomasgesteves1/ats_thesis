@@ -49,7 +49,7 @@ moordyn_tether_node:
     winch_mode: "geometric"    # "geometric" (slack_factor) or "tension" (target_tension)
     
     # Geometric Mode:
-    winch_slack_factor: 1.10   # 1.10 = 10 % extra cable beyond straight-line span
+    winch_slack_factor: 1.0526 # L = d/(1-eps_0) with eps_0 = 0.05 (slack ratio of the model); 1.0526 = 5.26 % extra cable beyond the span
     
     # Tension Mode:
     winch_target_tension: -0.1 # Target tension [N] on Z-axis (e.g., -0.5N pulling down)
@@ -64,3 +64,17 @@ moordyn_tether_node:
     # Force filter
     # Reduces high-frequency noise from the physics solver
     force_filter_alpha: 0.05    # EMA smoothing factor (0.0 = max smoothing, 1.0 = raw signal)
+
+    # Limits on the force applied in Gazebo (protect the vehicles from numerical excursions of the cable solver).
+    # The raw MoorDyn force is still published on the force magnitude topics.
+    wrench_max_force_n: 10.0        # maximum magnitude of the applied force [N] (nominal tension is about 2 N)
+    wrench_max_rate_n_per_s: 100.0  # maximum rate of change of the applied force [N/s]
+
+    # Odometry samples with larger velocities are discarded (corrupted samples, see odometryIsSane)
+    max_linear_velocity: 50.0       # [m/s]
+    max_angular_velocity: 50.0      # [rad/s]
+
+    # Persistent wrench handling in Gazebo (see publishWrench): the list of entries is emptied every rebase period and
+    # the force is only updated when it differs from the applied one by more than the dead band.
+    wrench_rebase_period_s: 10.0
+    wrench_deadband_n: 0.02

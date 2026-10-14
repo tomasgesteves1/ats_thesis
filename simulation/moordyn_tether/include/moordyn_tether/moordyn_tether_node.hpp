@@ -2,6 +2,7 @@
 #define MOORDYN_TETHER__MOORDYN_TETHER_NODE_HPP_
 
 #include <array>
+#include <map>
 #include <memory>
 #include <string>
 #include <vector>
@@ -10,6 +11,7 @@
 #include <nav_msgs/msg/odometry.hpp>
 #include <tf2_ros/buffer.h>
 #include <tf2_ros/transform_listener.h>
+#include <ros_gz_interfaces/msg/entity.hpp>
 #include <ros_gz_interfaces/msg/entity_wrench.hpp>
 #include <visualization_msgs/msg/marker.hpp>
 #include <visualization_msgs/msg/marker_array.hpp>
@@ -116,6 +118,28 @@ private:
     rclcpp::Subscription<nav_msgs::msg::Odometry>::SharedPtr boat_odom_sub_;
     rclcpp::Subscription<nav_msgs::msg::Odometry>::SharedPtr drone_odom_sub_;
     rclcpp::Publisher<ros_gz_interfaces::msg::EntityWrench>::SharedPtr wrench_pub_;
+    rclcpp::Publisher<ros_gz_interfaces::msg::Entity>::SharedPtr wrench_clear_pub_;
+
+    /// Persistent wrench bookkeeping per Gazebo entity (see publishWrench)
+    struct WrenchState {
+        std::array<double, 3> sent{0.0, 0.0, 0.0};  ///< sum of the persistent wrenches currently applied by Gazebo
+        bool cleared{false};                        ///< a clear was sent and the absolute value is still pending
+        bool initialised{false};
+        rclcpp::Time last_rebase{0, 0, RCL_ROS_TIME};
+    };
+    std::map<std::string, WrenchState> wrench_states_;
+    double wrench_rebase_period_s_{10.0};
+    double wrench_deadband_n_{0.02};
+    // Limits on the force sent to Gazebo (the raw MoorDyn force is still published for diagnosis)
+    // Sanity limits of the odometry velocities (a corrupted sample would be fed to the cable as an endpoint velocity)
+    double max_linear_velocity_{50.0};   ///< m/s
+    double max_angular_velocity_{50.0};  ///< rad/s
+    bool odometryIsSane(const nav_msgs::msg::Odometry & msg, const char * who);
+    double wrench_max_force_n_{10.0};            ///< maximum magnitude of the applied force (N)
+    double wrench_max_rate_n_per_s_{100.0};      ///< maximum rate of change of the applied force (N/s)
+    std::map<std::string, std::array<double, 3>> limited_force_;  ///< last limited force per entity
+    std::array<double, 3> limitForce(const std::string & entity_name, const std::array<double, 3> & raw, double dt);
+    void clearWrench(const std::string & entity_name);
     rclcpp::Publisher<visualization_msgs::msg::Marker>::SharedPtr      geometry_pub_;
     rclcpp::Publisher<visualization_msgs::msg::MarkerArray>::SharedPtr force_marker_pub_;
     rclcpp::Publisher<std_msgs::msg::Float64>::SharedPtr               force_mag_boat_pub_;

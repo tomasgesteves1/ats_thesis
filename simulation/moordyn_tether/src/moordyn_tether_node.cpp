@@ -46,6 +46,14 @@ MoordynTetherNode::MoordynTetherNode(const rclcpp::NodeOptions & options)
                                 std::string("drone/ground_truth/odometry"));
     auto wrench_topic     = this->declare_parameter("wrench_topic",
                                 std::string("/world/wamv_world/wrench/persistent"));
+    wrench_rebase_period_s_ = this->declare_parameter("wrench_rebase_period_s", 10.0);
+    wrench_deadband_n_ = this->declare_parameter("wrench_deadband_n", 0.02);
+    max_linear_velocity_ = this->declare_parameter("max_linear_velocity", 50.0);
+    max_angular_velocity_ = this->declare_parameter("max_angular_velocity", 50.0);
+    wrench_max_force_n_ = this->declare_parameter("wrench_max_force_n", 10.0);
+    wrench_max_rate_n_per_s_ = this->declare_parameter("wrench_max_rate_n_per_s", 100.0);
+    auto wrench_clear_topic = this->declare_parameter("wrench_clear_topic",
+                                std::string("/world/wamv_world/wrench/clear"));
     auto marker_topic     = this->declare_parameter("marker_topic",
                                 std::string("tether_geometry_marker"));
 
@@ -122,6 +130,8 @@ MoordynTetherNode::MoordynTetherNode(const rclcpp::NodeOptions & options)
     // ---- Publishers ----
     wrench_pub_ = this->create_publisher<ros_gz_interfaces::msg::EntityWrench>(
         wrench_topic, 10);
+    wrench_clear_pub_ = this->create_publisher<ros_gz_interfaces::msg::Entity>(
+        wrench_clear_topic, 10);
     geometry_pub_ = this->create_publisher<visualization_msgs::msg::Marker>(
         marker_topic, 10);
     force_marker_pub_ = this->create_publisher<visualization_msgs::msg::MarkerArray>(
@@ -153,17 +163,38 @@ MoordynTetherNode::MoordynTetherNode(const rclcpp::NodeOptions & options)
 MoordynTetherNode::~MoordynTetherNode()
 {
     // Clear / zero out persistent wrenches in Gazebo upon node destruction
-    publishWrench(boat_link_name_, 0.0, 0.0, 0.0);
-    publishWrench(drone_link_name_, 0.0, 0.0, 0.0);
+    clearWrench(boat_link_name_);
+    clearWrench(drone_link_name_);
 }
 
 // ===========================================================================
 // Odometry callbacks — store velocity + orientation only, no position math
 // ===========================================================================
 
+// A single corrupted odometry sample (e.g. an angular velocity of hundreds of rad/s) becomes, through the lever
+// arm, an absurd velocity of the cable end and a tension wave of tens of newtons. Such samples are discarded and
+// the previous velocity is kept.
+bool MoordynTetherNode::odometryIsSane(const nav_msgs::msg::Odometry & msg, const char * who)
+{
+    const auto & l = msg.twist.twist.linear;
+    const auto & w = msg.twist.twist.angular;
+    const auto & q = msg.pose.pose.orientation;
+    const double lin = std::sqrt(l.x * l.x + l.y * l.y + l.z * l.z);
+    const double ang = std::sqrt(w.x * w.x + w.y * w.y + w.z * w.z);
+    const double qn = std::sqrt(q.x * q.x + q.y * q.y + q.z * q.z + q.w * q.w);
+    const bool ok = std::isfinite(lin) && std::isfinite(ang) && lin <= max_linear_velocity_ &&
+                    ang <= max_angular_velocity_ && qn > 0.9 && qn < 1.1;
+    if (!ok) {
+        RCLCPP_WARN_THROTTLE(this->get_logger(), *this->get_clock(), 2000,
+            "Discarding corrupted %s odometry sample: |v|=%.1f m/s, |w|=%.1f rad/s, |q|=%.2f", who, lin, ang, qn);
+    }
+    return ok;
+}
+
 void MoordynTetherNode::boatOdomCallback(
     const nav_msgs::msg::Odometry::SharedPtr msg)
 {
+    if (!odometryIsSane(*msg, "boat")) { return; }
     auto & s = body_states_[0];
 
     // Orientation quaternion [qx, qy, qz, qw]
@@ -188,6 +219,7 @@ void MoordynTetherNode::boatOdomCallback(
 void MoordynTetherNode::droneOdomCallback(
     const nav_msgs::msg::Odometry::SharedPtr msg)
 {
+    if (!odometryIsSane(*msg, "drone")) { return; }
     auto & s = body_states_[1];
 
     s.quat[0] = msg->pose.pose.orientation.x;
@@ -317,10 +349,12 @@ void MoordynTetherNode::physicsLoop()
     const double dt = 1.0 / physics_rate_hz_;
 
     if (pipeline_->step(body_states_, dt, out_forces, cable_nodes)) {
-        publishWrench(boat_link_name_,
-                      out_forces[0], out_forces[1], out_forces[2]);
-        publishWrench(drone_link_name_,
-                      out_forces[3], out_forces[4], out_forces[5]);
+        // The force sent to Gazebo is limited in magnitude and in rate of change, so that a numerical excursion
+        // of the cable solver cannot push the vehicles; the raw force is still published for diagnosis.
+        const auto fb = limitForce(boat_link_name_, {out_forces[0], out_forces[1], out_forces[2]}, dt);
+        const auto fd = limitForce(drone_link_name_, {out_forces[3], out_forces[4], out_forces[5]}, dt);
+        publishWrench(boat_link_name_, fb[0], fb[1], fb[2]);
+        publishWrench(drone_link_name_, fd[0], fd[1], fd[2]);
         publishGeometry(cable_nodes);
         publishForceMarkers(out_forces);
         publishForceMagnitudes(out_forces);
@@ -346,16 +380,104 @@ void MoordynTetherNode::physicsLoop()
 // Publishing helpers
 // ===========================================================================
 
+std::array<double, 3> MoordynTetherNode::limitForce(const std::string & entity_name,
+                                                    const std::array<double, 3> & raw, double dt)
+{
+    auto & last = limited_force_[entity_name];   // starts at zero
+    std::array<double, 3> f = raw;
+    bool limited = false;
+
+    // 1) magnitude
+    const double mag = std::sqrt(f[0] * f[0] + f[1] * f[1] + f[2] * f[2]);
+    if (mag > wrench_max_force_n_) {
+        const double k = wrench_max_force_n_ / mag;
+        for (auto & v : f) { v *= k; }
+        limited = true;
+    }
+
+    // 2) rate of change with respect to the force applied in the previous cycle
+    const double max_step = wrench_max_rate_n_per_s_ * dt;
+    const std::array<double, 3> d{f[0] - last[0], f[1] - last[1], f[2] - last[2]};
+    const double dn = std::sqrt(d[0] * d[0] + d[1] * d[1] + d[2] * d[2]);
+    if (dn > max_step) {
+        const double k = max_step / dn;
+        for (int i = 0; i < 3; ++i) { f[i] = last[i] + d[i] * k; }
+        limited = true;
+    }
+
+    if (limited) {
+        RCLCPP_WARN_THROTTLE(this->get_logger(), *this->get_clock(), 2000,
+            "Tether force on %s limited: raw %.1f N -> applied %.1f N", entity_name.c_str(), mag,
+            std::sqrt(f[0] * f[0] + f[1] * f[1] + f[2] * f[2]));
+    }
+    last = f;
+    return f;
+}
+
+void MoordynTetherNode::clearWrench(const std::string & entity_name)
+{
+    ros_gz_interfaces::msg::Entity clear_msg;
+    clear_msg.name = entity_name;
+    clear_msg.type = 3;  // LINK
+    wrench_clear_pub_->publish(clear_msg);
+}
+
+// Gazebo keeps every persistent wrench it receives, applies all of them at every simulation step, and only
+// forgets them when the entity is cleared. The applied force is therefore the sum of the messages, which has
+// two consequences handled here:
+//  - the force is updated by publishing the DIFFERENCE to the force already applied, so the sum is always the
+//    current force and the result does not depend on the order in which messages reach Gazebo;
+//  - the list grows with every message and slows the simulation down, so it is periodically emptied with a
+//    clear, and the absolute force is set again one cycle later (the clear and the set travel on different
+//    topics, so sending them together does not guarantee the order and the set could be erased).
+// The force is missing for one cycle after every clear; the next cycle applies twice the force to keep the impulse.
 void MoordynTetherNode::publishWrench(const std::string & entity_name,
                                       double fx, double fy, double fz)
 {
-    ros_gz_interfaces::msg::EntityWrench msg;
-    msg.entity.name = entity_name;
-    msg.entity.type = 3;  // LINK
-    msg.wrench.force.x = fx;
-    msg.wrench.force.y = fy;
-    msg.wrench.force.z = fz;
-    wrench_pub_->publish(msg);
+    auto & st = wrench_states_[entity_name];
+    const auto now = this->get_clock()->now();
+    const std::array<double, 3> f{fx, fy, fz};
+
+    auto publish_set = [&](const std::array<double, 3> & value) {
+        ros_gz_interfaces::msg::EntityWrench msg;
+        msg.entity.name = entity_name;
+        msg.entity.type = 3;  // LINK
+        msg.wrench.force.x = value[0];
+        msg.wrench.force.y = value[1];
+        msg.wrench.force.z = value[2];
+        wrench_pub_->publish(msg);
+    };
+
+    if (!st.initialised || (now - st.last_rebase).seconds() >= wrench_rebase_period_s_)
+    {
+        clearWrench(entity_name);
+        st.sent = {0.0, 0.0, 0.0};
+        st.cleared = true;
+        st.initialised = true;
+        st.last_rebase = now;
+        return;
+    }
+
+    if (st.cleared)
+    {
+        // The force was missing during the cycle that followed the clear: apply twice the force for one cycle to
+        // restore the impulse; the difference to the actual force is sent in the next cycle (delta below).
+        const std::array<double, 3> boosted{2.0 * f[0], 2.0 * f[1], 2.0 * f[2]};
+        publish_set(boosted);
+        st.sent = boosted;
+        st.cleared = false;
+        return;
+    }
+
+    const std::array<double, 3> delta{f[0] - st.sent[0], f[1] - st.sent[1], f[2] - st.sent[2]};
+    // Dead band: the applied force stays within wrench_deadband_n of the requested one, and the number of entries
+    // that Gazebo has to apply at every step is kept small
+    if (std::abs(delta[0]) > wrench_deadband_n_ || std::abs(delta[1]) > wrench_deadband_n_ ||
+        std::abs(delta[2]) > wrench_deadband_n_)
+    {
+        publish_set(delta);
+        st.sent = f;
+    }
 }
 
 void MoordynTetherNode::publishGeometry(
