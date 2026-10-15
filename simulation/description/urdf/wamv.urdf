@@ -7,6 +7,23 @@
         <mesh filename="package://description/models/wamv/meshes/WAM-V-Base.dae"/>
       </geometry>
     </visual>
+    <!-- Thrusters (as in models/wamv/model.sdf), drawn at zero azimuth -->
+    <visual name="left_engine">
+      <origin xyz="-2.0855 1.0271 0.3182" rpy="0 0 0"/>
+      <geometry><mesh filename="package://description/models/wamv/meshes/engine.dae"/></geometry>
+    </visual>
+    <visual name="left_propeller">
+      <origin xyz="-2.3637 1.0271 -0.1911" rpy="0 0 0"/>
+      <geometry><mesh filename="package://description/models/wamv/meshes/propeller.dae"/></geometry>
+    </visual>
+    <visual name="right_engine">
+      <origin xyz="-2.0855 -1.0271 0.3182" rpy="0 0 0"/>
+      <geometry><mesh filename="package://description/models/wamv/meshes/engine.dae"/></geometry>
+    </visual>
+    <visual name="right_propeller">
+      <origin xyz="-2.3637 -1.0271 -0.1911" rpy="0 0 0"/>
+      <geometry><mesh filename="package://description/models/wamv/meshes/propeller.dae"/></geometry>
+    </visual>
     <!-- Landing pad above the tether winch (as in models/wamv/model.sdf) -->
     <visual name="landing_pad_plate">
       <origin xyz="0.0000 0.0000 1.3050" rpy="0.0000 0.0000 0.0000"/>

@@ -7,5 +7,54 @@
         <mesh filename="package://description/models/x500_base/meshes/NXP-HGD-CF.dae"/>
       </geometry>
     </visual>
+    <!-- Motors and propellers (as in models/x500_base/model.sdf; propellers as COLLADA in the rotor frame), static -->
+    <visual name="motor_base_0">
+      <origin xyz="0.174 -0.174 0.0070" rpy="0 0 -0.45"/>
+      <geometry><mesh filename="package://description/models/x500_base/meshes/5010Base.dae"/></geometry>
+    </visual>
+    <visual name="motor_bell_0">
+      <origin xyz="0.174 -0.174 0.0030" rpy="0 0 0"/>
+      <geometry><mesh filename="package://description/models/x500_base/meshes/5010Bell.dae"/></geometry>
+    </visual>
+    <visual name="propeller_0">
+      <origin xyz="0.174 -0.174 0.0350" rpy="0 0 0"/>
+      <geometry><mesh filename="package://description/models/x500_base/meshes/1345_prop_ccw_rotor_frame.dae"/></geometry>
+    </visual>
+    <visual name="motor_base_1">
+      <origin xyz="-0.174 0.174 0.0070" rpy="0 0 -0.45"/>
+      <geometry><mesh filename="package://description/models/x500_base/meshes/5010Base.dae"/></geometry>
+    </visual>
+    <visual name="motor_bell_1">
+      <origin xyz="-0.174 0.174 0.0030" rpy="0 0 0"/>
+      <geometry><mesh filename="package://description/models/x500_base/meshes/5010Bell.dae"/></geometry>
+    </visual>
+    <visual name="propeller_1">
+      <origin xyz="-0.174 0.174 0.0350" rpy="0 0 0"/>
+      <geometry><mesh filename="package://description/models/x500_base/meshes/1345_prop_ccw_rotor_frame.dae"/></geometry>
+    </visual>
+    <visual name="motor_base_2">
+      <origin xyz="0.174 0.174 0.0070" rpy="0 0 -0.45"/>
+      <geometry><mesh filename="package://description/models/x500_base/meshes/5010Base.dae"/></geometry>
+    </visual>
+    <visual name="motor_bell_2">
+      <origin xyz="0.174 0.174 0.0030" rpy="0 0 0"/>
+      <geometry><mesh filename="package://description/models/x500_base/meshes/5010Bell.dae"/></geometry>
+    </visual>
+    <visual name="propeller_2">
+      <origin xyz="0.174 0.174 0.0350" rpy="0 0 0"/>
+      <geometry><mesh filename="package://description/models/x500_base/meshes/1345_prop_cw_rotor_frame.dae"/></geometry>
+    </visual>
+    <visual name="motor_base_3">
+      <origin xyz="-0.174 -0.174 0.0070" rpy="0 0 -0.45"/>
+      <geometry><mesh filename="package://description/models/x500_base/meshes/5010Base.dae"/></geometry>
+    </visual>
+    <visual name="motor_bell_3">
+      <origin xyz="-0.174 -0.174 0.0030" rpy="0 0 0"/>
+      <geometry><mesh filename="package://description/models/x500_base/meshes/5010Bell.dae"/></geometry>
+    </visual>
+    <visual name="propeller_3">
+      <origin xyz="-0.174 -0.174 0.0350" rpy="0 0 0"/>
+      <geometry><mesh filename="package://description/models/x500_base/meshes/1345_prop_cw_rotor_frame.dae"/></geometry>
+    </visual>
   </link>
 </robot>

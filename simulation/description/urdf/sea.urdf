@@ -1,0 +1,11 @@
+<?xml version="1.0"?>
+<!-- Mean sea level (z = 0 of the world frame) for visualisation only; the Gazebo wave field is not represented -->
+<robot name="sea">
+  <link name="world">
+    <visual>
+      <origin xyz="0 0 -0.005" rpy="0 0 0"/>
+      <geometry><box size="400 400 0.01"/></geometry>
+      <material name="sea"><color rgba="0.1 0.35 0.6 0.35"/></material>
+    </visual>
+  </link>
+</robot>
