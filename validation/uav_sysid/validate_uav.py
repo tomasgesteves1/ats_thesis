@@ -11,7 +11,7 @@ STRICT FIRST-PRINCIPLES FORMULATION:
 - First-principles thrust equilibrium: PX4 hover throttle u_hover maintains equilibrium
   against both gravity and vertical tether load (T_hover = mg + |F_tether,z|), ensuring
   physical consistency and eliminating double counting.
-- Zero parameter fitting, zero identified time constants (tau), zero artificial delays (t_d).
+- Zero parameter fitting; nominal time constants (tau = 1/P) and the transport delays of the commands.
 - All physical parameters (m, g, mu, eps_0, gamma_0, anchor offset) are nominal.
 - Integration via 4th-order Runge-Kutta (RK4) over the NMPC horizon (N=50, Ts=0.02s -> 1.0s).
 """
@@ -67,7 +67,8 @@ D_ROTOR = 0.218         # N*s/m, planar rotor drag: 4 * c_drag * omega_hover (c_
 # Nominal PX4 Attitude Inner-Loop Dynamic Parameters (from PX4: MC_ROLL_P=6.5, MC_PITCH_P=6.5, MC_YAW_P=2.8)
 TAU_ATT_RP = 1.0 / 6.5  # ~0.154 s, roll and pitch time constant (tau = 1/P)
 TAU_ATT_YAW = 1.0 / 2.8 # ~0.357 s, yaw time constant (tau = 1/P)
-DELAY_OFFBOARD = 0.02   # s, 50 Hz offboard transport delay
+DELAY_TILT = 0.04       # s, transport delay of the roll and pitch commands (tau_d)
+DELAY_YAW = 0.06        # s, transport delay of the yaw command (tau_d,psi)
 
 # Nominal Tether Anchor on USV (from frame_manager_params.yaml: z_offset = 1.3 - 0.265 = 1.035 m)
 NOMINAL_ANCHOR_OFFSET = np.array([0.0, 0.0, 1.035])
@@ -100,7 +101,7 @@ def parse_args():
         description="Validate Thesis Section 3.2 UAV Model with first-principles tether coupling."
     )
     default_bag = os.path.abspath(
-        os.path.join(CURRENT_DIR, "../../../bags/uav_px4_offboard_20261008_095455")
+        os.path.join(CURRENT_DIR, "../../../bags/model_validation/uav/uav_px4_offboard_20261008_095455")
     )
     parser.add_argument("--bag", type=str, default=default_bag, help="Path to ROS 2 bag folder")
     parser.add_argument("--skip", type=float, default=14.0,
@@ -224,20 +225,33 @@ def build_dataset(raw, skip=0.0, include_tether=False):
     theta_dot_cmd = np.gradient(cmd[:, 1], TS)
     psi_dot_cmd = np.gradient(cmd[:, 2], TS)
 
-    # Model Attitude: Nominal PX4 Inner-Loop Response (tau = 1/P from MC_ROLL_P, MC_YAW_P)
+    # Model Attitude: the autopilot makes the thrust axis follow the commanded axis R(phi_c, theta_c, psi_c) e_z with
+    # time constant tau in the inertial frame, and the yaw follow its command with tau_psi; both commands arrive after
+    # a transport delay. Roll and pitch are then the tilt of the axis relative to the yaw of the model.
+    def thrust_axis(ph, th, ps):
+        return np.array([np.cos(ps) * np.sin(th) * np.cos(ph) + np.sin(ps) * np.sin(ph),
+                         np.sin(ps) * np.sin(th) * np.cos(ph) - np.cos(ps) * np.sin(ph),
+                         np.cos(th) * np.cos(ph)])
     N_pts = len(t_grid)
     roll_mod = np.zeros(N_pts)
     pitch_mod = np.zeros(N_pts)
     yaw_mod = np.zeros(N_pts)
-    roll_mod[0], pitch_mod[0], yaw_mod[0] = cmd[0, 0], cmd[0, 1], cmd[0, 2]
-    delay_steps = int(round(DELAY_OFFBOARD / TS))
+    d_tilt = int(round(DELAY_TILT / TS))
+    d_yaw = int(round(DELAY_YAW / TS))
     alpha_rp = TS / TAU_ATT_RP
     alpha_yaw = TS / TAU_ATT_YAW
-    for k in range(1, N_pts):
-        idx = max(0, k - delay_steps)
-        roll_mod[k] = roll_mod[k-1] + alpha_rp * (cmd[idx, 0] - roll_mod[k-1])
-        pitch_mod[k] = pitch_mod[k-1] + alpha_rp * (cmd[idx, 1] - pitch_mod[k-1])
-        yaw_mod[k] = yaw_mod[k-1] + alpha_yaw * (cmd[idx, 2] - yaw_mod[k-1])
+    z_mod = thrust_axis(cmd[0, 0], cmd[0, 1], cmd[0, 2])
+    yaw_mod[0] = cmd[0, 2]
+    for k in range(N_pts):
+        if k > 0:
+            i_t, i_y = max(0, k - d_tilt), max(0, k - d_yaw)
+            z_mod = z_mod + alpha_rp * (thrust_axis(cmd[i_t, 0], cmd[i_t, 1], cmd[i_t, 2]) - z_mod)
+            z_mod /= np.linalg.norm(z_mod)
+            yaw_mod[k] = yaw_mod[k-1] + alpha_yaw * (cmd[i_y, 2] - yaw_mod[k-1])
+        c, sn = np.cos(yaw_mod[k]), np.sin(yaw_mod[k])
+        loc = np.array([c * z_mod[0] + sn * z_mod[1], -sn * z_mod[0] + c * z_mod[1], z_mod[2]])
+        roll_mod[k] = np.arcsin(-loc[1])
+        pitch_mod[k] = np.arctan2(loc[0], loc[2])
 
     phi_dot_mod = np.gradient(roll_mod, TS)
     theta_dot_mod = np.gradient(pitch_mod, TS)

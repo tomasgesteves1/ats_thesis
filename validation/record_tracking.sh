@@ -6,7 +6,7 @@
 #   aggressive - USV circle of 3 m; UAV circle of 8 m radius at 0.8 rad/s (6.4 m/s, 5.1 m/s^2, ~27 deg of tilt) centred on the
 #                boat, so the distance to the boat is constant and the attitude/thrust limits are approached
 #   tether_edge- as aggressive but with the UAV circle centred 6 m away (0.7 rad/s): the tether range and pay-out rate bind
-# The bag is written to <workspace>/bags/tracking_<scenario>_<timestamp>.
+# The bag is written to <workspace>/bags/tracking/tracking_<scenario>_<timestamp>.
 SCENARIO=${1:-reachable}; DUR=${2:-240}
 UAV_ARGS=""
 case $SCENARIO in reachable) RADIUS=3.0;; infeasible) RADIUS=15.0;;
@@ -16,7 +16,7 @@ case $SCENARIO in reachable) RADIUS=3.0;; infeasible) RADIUS=15.0;;
 WS=$(cd "$(dirname "$0")/../.." && pwd)
 source /opt/ros/*/setup.bash; source "$WS/install/setup.bash"
 export ACADOS_SOURCE_DIR=${ACADOS_SOURCE_DIR:-$HOME/acados}; export LD_LIBRARY_PATH=$ACADOS_SOURCE_DIR/lib:$LD_LIBRARY_PATH
-BAG="$WS/bags/tracking_${SCENARIO}_$(date +%Y%m%d_%H%M%S)"
+mkdir -p "$WS/bags/tracking"; BAG="$WS/bags/tracking/tracking_${SCENARIO}_$(date +%Y%m%d_%H%M%S)"
 
 stop_all() {  # stops every simulation/control process by PID (no pkill -f, the launch files kill px4 themselves)
   for p in $(ps aux | grep -E "install/|[p]x4_sitl|[g]z sim|[M]icroXRCE|parameter_bridge|foxglove_bridge|[r]uby /opt|ros2 launch|ros2 bag" | grep -v "grep\|claude\|record_tracking" | awk '{print $2}'); do kill -9 $p 2>/dev/null; done

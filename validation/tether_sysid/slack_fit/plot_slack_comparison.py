@@ -203,7 +203,7 @@ def main():
     parser.add_argument(
         "--bag_dir",
         type=str,
-        default="bags/slack_fit",
+        default="bags/model_validation/tether/slack_fit",
         help="Directory containing bag folders",
     )
     parser.add_argument(

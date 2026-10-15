@@ -196,7 +196,7 @@ def main():
     parser.add_argument(
         "--bag_path",
         type=str,
-        default="bags/slack_fit/bag_slack_105",
+        default="bags/model_validation/tether/slack_fit/bag_slack_105",
         help="Path to the bag containing 5% slack experiment data",
     )
     parser.add_argument(

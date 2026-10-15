@@ -61,7 +61,7 @@ N_HORIZON = 100
 
 def parse_args():
     parser = argparse.ArgumentParser(description="Validate USV planar model against rosbag telemetry.")
-    default_bag = os.path.abspath(os.path.join(CURRENT_DIR, "../../../bags/mission_sysid_20261005_194359"))
+    default_bag = os.path.abspath(os.path.join(CURRENT_DIR, "../../../bags/model_validation/usv/mission_sysid_20261005_194359"))
     parser.add_argument("--bag", type=str, default=default_bag, help="Path to ROS 2 bag folder")
     parser.add_argument("--xg", type=float, default=0.0, help="CG offset x_g w.r.t. the odometry origin [m] (0 = decoupled model)")
     parser.add_argument("--export", action="store_true", default=True, help="Export figures to thesis directory")

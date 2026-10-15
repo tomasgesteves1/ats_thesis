@@ -29,10 +29,10 @@ UAV_TELEMETRY = {"x": 0, "y": 1, "z": 2, "roll_cmd": 6, "pitch_cmd": 7, "thrust"
 
 
 def latest_bag(pattern):
-    """Most recent bag in <workspace>/bags matching the glob pattern (e.g. 'tracking_reachable_*')."""
-    bags = sorted(glob.glob(os.path.join(WORKSPACE_DIR, "bags", pattern)))
+    """Most recent bag in <workspace>/bags/tracking matching the glob pattern (e.g. 'tracking_reachable_*')."""
+    bags = sorted(glob.glob(os.path.join(WORKSPACE_DIR, "bags", "tracking", pattern)))
     if not bags:
-        raise FileNotFoundError(f"no bag matching {pattern} in {WORKSPACE_DIR}/bags")
+        raise FileNotFoundError(f"no bag matching {pattern} in {WORKSPACE_DIR}/bags/tracking")
     return bags[-1]
 
 
