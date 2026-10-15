@@ -85,9 +85,14 @@ Status Takeoff::update(const Context & ctx, UavCommand & cmd)
     }
     cmd.path = boatRelativePath(ctx, [this](double t) { return relAt(t); });
     const double total = params_.get("clearance_duration", 4.0) + params_.get("duration", 8.0);
-    if (climbing_ && ctx.t - t0_ >= total &&
-        norm(sub(uavRelative(ctx), params_.getVec3("offset", {0.0, 0.0, 3.0}))) < params_.get("tolerance", 0.3)) {
-        return Status::kDone;
+    if (climbing_ && ctx.t - t0_ >= total) {
+        if (norm(sub(uavRelative(ctx), params_.getVec3("offset", {0.0, 0.0, 3.0}))) < params_.get("tolerance", 0.3)) {
+            return Status::kDone;
+        }
+        if (ctx.t - t0_ > total + params_.get("timeout", 20.0)) {
+            cmd.message = "tolerance not reached within the timeout, continuing";
+            return Status::kDone;
+        }
     }
     return Status::kRunning;
 }

@@ -83,7 +83,10 @@ void MissionExecutorPipeline::startAbort(const Measurements & m, Output & out)
     hold.id = "hold";
     hold.type = "hold";
     usv_abort_->add(hold, mission_maneuvers::createUsvManeuver("hold", Params()));
-    if (m.uav.armed) {
+    if (!m.uav.armed) {
+        abort_reported_ = true;
+        out.events.push_back("abort sequence complete (UAV disarmed, nothing to run)");
+    } else {
         out.events.push_back("UAV armed: running the abort sequence");
         uav_abort_ = std::make_unique<Sequence<mission_maneuvers::UavManeuver, mission_maneuvers::UavCommand>>(
             "uav_abort");

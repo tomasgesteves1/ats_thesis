@@ -40,7 +40,8 @@ def generate_launch_description():
                     ('reference_path', '/uav/reference_path'),
                     ('boat_mpc_horizon', '/usv/mpc_horizon'),
                     ('yaw_from_reference', '/uav/yaw_from_reference'),
-                    ('low_altitude', '/uav/low_altitude')])
+                    ('low_altitude', '/uav/low_altitude'),
+                    ('tether_pull', '/moordyn_tether_node/tether_pull')])
 
     executor = Node(
         package='mission_executor', executable='mission_executor_node', name='mission_executor_node',

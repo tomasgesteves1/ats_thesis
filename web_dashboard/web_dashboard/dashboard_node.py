@@ -183,7 +183,7 @@ class DashboardNode(Node):
                 self.mission_state = 'complete'
             elif text.startswith('mission aborted'):
                 self.mission_state = 'aborted'
-            elif text == 'abort sequence complete':
+            elif text.startswith('abort sequence complete'):
                 self.mission_state = 'aborted (UAV landed)'
 
     # ------------------------------------------------------------------------------------------------- missions

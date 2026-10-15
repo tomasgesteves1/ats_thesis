@@ -21,9 +21,10 @@ private:
 /// Arms the UAV in offboard mode on the pad and climbs: first vertically off the pad, keeping its horizontal
 /// position on it, then with a minimum-jerk transfer to a point given relative to the winch. The winch pulls the
 /// UAV towards the pad until it is pull_release_height above the winch (it should be released within the vertical
-/// leg). The yaw follows the boat heading. Done when the transfer is over and the UAV is within tolerance.
+/// leg). The yaw follows the boat heading. Done when the transfer is over and the UAV is within tolerance, or timeout
+/// seconds after the transfer.
 /// Params: vertical_clearance [m], clearance_duration [s], pull_release_height [m], offset [m] (relative to the
-/// winch), duration [s] (of the transfer), tolerance [m], arm_timeout [s].
+/// winch), duration [s] (of the transfer), tolerance [m], timeout [s], arm_timeout [s].
 class Takeoff : public UavManeuver
 {
 public:
