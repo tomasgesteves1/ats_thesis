@@ -30,6 +30,6 @@ TOPICS="/mpc_states_and_inputs /drone/ground_truth/odometry /boat/ground_truth/o
  /boat/thrusters/left/thrust /boat/thrusters/right/thrust /boat/thrusters/left/pos /boat/thrusters/right/pos \
  /moordyn_tether_node/tether_distance /moordyn_tether_node/tether_length /tether_force_drone_mag /tether_force_boat_mag \
  /px4_1/fmu/out/vehicle_attitude /px4_1/fmu/out/vehicle_attitude_setpoint /virtual_tether_distance /virtual_tether_limit /virtual_tether_separation_speed /uav_solve_time_ms /usv_solve_time_ms /simulation/stats /clock"
-timeout $DUR ros2 bag record -o "$BAG" $TOPICS > /tmp/tracking_bag.log 2>&1
+timeout $DUR ros2 bag record --use-sim-time -o "$BAG" $TOPICS > /tmp/tracking_bag.log 2>&1
 stop_all
 echo "bag: $BAG"
