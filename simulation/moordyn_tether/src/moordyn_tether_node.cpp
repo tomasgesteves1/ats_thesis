@@ -5,6 +5,7 @@
 #include <tf2_ros/buffer.h>
 #include <tf2_ros/transform_listener.h>
 
+#include <algorithm>
 #include <chrono>
 #include <functional>
 #include <cmath>
@@ -80,6 +81,12 @@ MoordynTetherNode::MoordynTetherNode(const rclcpp::NodeOptions & options)
     winch_min_length_   = this->declare_parameter("winch_min_length", 3.0);
     winch_max_length_   = this->declare_parameter("winch_max_length", 100.0);
 
+    // ---- Straight tether model for short lines and winch pull ----
+    straight_switch_distance_ = this->declare_parameter("straight_switch_distance", 1.4);
+    straight_exit_distance_   = this->declare_parameter("straight_exit_distance", 1.6);
+    pull_tension_             = this->declare_parameter("pull_tension", 4.0);
+    pull_rate_                = this->declare_parameter("pull_rate", 4.0);
+
     // ---- Filter parameters ----
     force_filter_alpha_ = this->declare_parameter("force_filter_alpha", 0.2);
 
@@ -88,35 +95,7 @@ MoordynTetherNode::MoordynTetherNode(const rclcpp::NodeOptions & options)
     tf_listener_ = std::make_shared<tf2_ros::TransformListener>(*tf_buffer_);
 
     // ---- Create pipeline (pure C++ core) ----
-    std::string pkg_share =
-        ament_index_cpp::get_package_share_directory("moordyn_tether");
-    std::string config_path = pkg_share + "/config/lines.txt";
-
-    pipeline_ = std::make_unique<MoordynTetherPipeline>(
-        config_path,
-        [this](LogLevel level, const std::string & msg) {
-            pipelineLogBridge(level, msg);
-        });
-
-    // Forward winch configuration to the pipeline.
-    WinchConfig wcfg;
-    wcfg.enabled      = winch_enabled_;
-    if (winch_mode_ == "tension") {
-        wcfg.mode = WinchMode::TENSION;
-    } else {
-        wcfg.mode = WinchMode::GEOMETRIC;
-    }
-    wcfg.slack_factor  = winch_slack_factor_;
-    wcfg.target_tension = winch_target_tension_;
-    wcfg.kp_tension    = winch_kp_tension_;
-    wcfg.kd_tension    = winch_kd_tension_;
-    wcfg.winch_speed_limit = winch_speed_limit_;
-    wcfg.min_length    = winch_min_length_;
-    wcfg.max_length    = winch_max_length_;
-    pipeline_->setWinchConfig(wcfg);
-
-    // Set up filter
-    pipeline_->setFilterAlpha(force_filter_alpha_);
+    createPipeline();
 
     // ---- Odometry subscriptions (velocity and orientation only) ----
     using std::placeholders::_1;
@@ -126,6 +105,10 @@ MoordynTetherNode::MoordynTetherNode(const rclcpp::NodeOptions & options)
     drone_odom_sub_ = this->create_subscription<nav_msgs::msg::Odometry>(
         drone_odom_topic, 10,
         std::bind(&MoordynTetherNode::droneOdomCallback, this, _1));
+
+    pull_sub_ = this->create_subscription<std_msgs::msg::Bool>(
+        "~/tether_pull", 10,
+        std::bind(&MoordynTetherNode::pullCallback, this, _1));
 
     // ---- Publishers ----
     wrench_pub_ = this->create_publisher<ros_gz_interfaces::msg::EntityWrench>(
@@ -165,6 +148,43 @@ MoordynTetherNode::~MoordynTetherNode()
     // Clear / zero out persistent wrenches in Gazebo upon node destruction
     clearWrench(boat_link_name_);
     clearWrench(drone_link_name_);
+}
+
+// ===========================================================================
+// Pipeline creation (also used to initialise MoorDyn again after the straight model)
+// ===========================================================================
+
+void MoordynTetherNode::createPipeline()
+{
+    std::string pkg_share =
+        ament_index_cpp::get_package_share_directory("moordyn_tether");
+    std::string config_path = pkg_share + "/config/lines.txt";
+
+    pipeline_ = std::make_unique<MoordynTetherPipeline>(
+        config_path,
+        [this](LogLevel level, const std::string & msg) {
+            pipelineLogBridge(level, msg);
+        });
+
+    // Forward winch configuration to the pipeline.
+    WinchConfig wcfg;
+    wcfg.enabled      = winch_enabled_;
+    if (winch_mode_ == "tension") {
+        wcfg.mode = WinchMode::TENSION;
+    } else {
+        wcfg.mode = WinchMode::GEOMETRIC;
+    }
+    wcfg.slack_factor  = winch_slack_factor_;
+    wcfg.target_tension = winch_target_tension_;
+    wcfg.kp_tension    = winch_kp_tension_;
+    wcfg.kd_tension    = winch_kd_tension_;
+    wcfg.winch_speed_limit = winch_speed_limit_;
+    wcfg.min_length    = winch_min_length_;
+    wcfg.max_length    = winch_max_length_;
+    pipeline_->setWinchConfig(wcfg);
+
+    // Set up filter
+    pipeline_->setFilterAlpha(force_filter_alpha_);
 }
 
 // ===========================================================================
@@ -334,11 +354,6 @@ void MoordynTetherNode::checkInitialization()
 
 void MoordynTetherNode::physicsLoop()
 {
-    if (!initialized_) {
-        checkInitialization();
-        return;
-    }
-
     // Refresh positions from TF; velocities are already up-to-date from callbacks
     if (!lookupBodyPositions()) {
         return;
@@ -348,7 +363,57 @@ void MoordynTetherNode::physicsLoop()
     std::vector<std::vector<double>> cable_nodes;
     const double dt = 1.0 / physics_rate_hz_;
 
-    if (pipeline_->step(body_states_, dt, out_forces, cable_nodes)) {
+    // Vector from the drone hook to the boat anchor
+    const double dx = body_states_[0].anchor_pos[0] - body_states_[1].anchor_pos[0];
+    const double dy = body_states_[0].anchor_pos[1] - body_states_[1].anchor_pos[1];
+    const double dz = body_states_[0].anchor_pos[2] - body_states_[1].anchor_pos[2];
+    const double dist = std::sqrt(dx * dx + dy * dy + dz * dz);
+
+    // Short lines use the straight model: from the start while the UAV rests near the winch, and in flight when
+    // the pull is requested (landing) and the span falls below the switch distance
+    if (!straight_mode_ && dist <= straight_switch_distance_ && (pull_requested_ || !initialized_)) {
+        straight_mode_ = true;
+        const auto & f = limited_force_[drone_link_name_];
+        straight_tension_ = std::sqrt(f[0] * f[0] + f[1] * f[1] + f[2] * f[2]);  // continuity of the magnitude
+        RCLCPP_INFO(this->get_logger(),
+            "Span %.2f m <= %.2f m: straight tether model (initial tension %.2f N)",
+            dist, straight_switch_distance_, straight_tension_);
+    }
+    // Back to MoorDyn once the pull is released and ramped to zero and the span exceeds the exit distance (takeoff):
+    // MoorDyn is created again and initialised with the current geometry, with the line already off the deck
+    if (straight_mode_ && !pull_requested_ && straight_tension_ <= 0.0 && dist > straight_exit_distance_) {
+        RCLCPP_INFO(this->get_logger(), "Span %.2f m > %.2f m with the pull released: initialising MoorDyn",
+                    dist, straight_exit_distance_);
+        straight_mode_ = false;
+        if (initialized_) {
+            initialized_ = false;
+            createPipeline();
+        }
+        last_init_attempt_ = rclcpp::Time(0, 0, this->get_clock()->get_clock_type());
+    }
+    if (!straight_mode_ && !initialized_) {
+        checkInitialization();
+        return;
+    }
+
+    bool stepped = false;
+    if (straight_mode_) {
+        // Straight massless line: tension ramped towards the pull (zero when not requested), from the drone to the
+        // winch; no force on the boat
+        const double target = pull_requested_ ? pull_tension_ : 0.0;
+        const double step = pull_rate_ * dt;
+        straight_tension_ += std::clamp(target - straight_tension_, -step, step);
+        const double k = dist > 1e-3 ? straight_tension_ / dist : 0.0;
+        out_forces = {0.0, 0.0, 0.0, k * dx, k * dy, k * dz};
+        cable_nodes = {
+            {body_states_[0].anchor_pos[0], body_states_[0].anchor_pos[1], body_states_[0].anchor_pos[2]},
+            {body_states_[1].anchor_pos[0], body_states_[1].anchor_pos[1], body_states_[1].anchor_pos[2]}};
+        stepped = true;
+    } else {
+        stepped = pipeline_->step(body_states_, dt, out_forces, cable_nodes);
+    }
+
+    if (stepped) {
         // The force sent to Gazebo is limited in magnitude and in rate of change, so that a numerical excursion
         // of the cable solver cannot push the vehicles; the raw force is still published for diagnosis.
         const auto fb = limitForce(boat_link_name_, {out_forces[0], out_forces[1], out_forces[2]}, dt);
@@ -360,20 +425,23 @@ void MoordynTetherNode::physicsLoop()
         publishForceMagnitudes(out_forces);
 
         // Publish distance between anchors
-        const double dx = body_states_[0].anchor_pos[0] - body_states_[1].anchor_pos[0];
-        const double dy = body_states_[0].anchor_pos[1] - body_states_[1].anchor_pos[1];
-        const double dz = body_states_[0].anchor_pos[2] - body_states_[1].anchor_pos[2];
-        const double dist = std::sqrt(dx * dx + dy * dy + dz * dz);
-        
         std_msgs::msg::Float64 dist_msg;
         dist_msg.data = dist;
         distance_pub_->publish(dist_msg);
 
-        // Publish exact tether unstretched length
+        // Publish exact tether unstretched length (the span in the straight model)
         std_msgs::msg::Float64 len_msg;
-        len_msg.data = pipeline_->getTetherLength();
+        len_msg.data = straight_mode_ ? dist : pipeline_->getTetherLength();
         tether_length_pub_->publish(len_msg);
     }
+}
+
+void MoordynTetherNode::pullCallback(const std_msgs::msg::Bool::SharedPtr msg)
+{
+    if (msg->data != pull_requested_) {
+        RCLCPP_INFO(this->get_logger(), "Tether pull %s", msg->data ? "requested" : "released");
+    }
+    pull_requested_ = msg->data;
 }
 
 // ===========================================================================

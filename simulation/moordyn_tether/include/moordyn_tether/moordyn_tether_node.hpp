@@ -16,6 +16,7 @@
 #include <visualization_msgs/msg/marker.hpp>
 #include <visualization_msgs/msg/marker_array.hpp>
 #include <std_msgs/msg/float64.hpp>
+#include <std_msgs/msg/bool.hpp>
 
 #include "moordyn_tether/moordyn_tether_pipeline.hpp"
 
@@ -40,6 +41,7 @@ private:
     // --- Core loop ---
     void physicsLoop();
     void checkInitialization();
+    void createPipeline();
 
     // --- Odometry callbacks (velocity + orientation only, no position) ---
     void boatOdomCallback(const nav_msgs::msg::Odometry::SharedPtr msg);
@@ -147,6 +149,22 @@ private:
     rclcpp::Publisher<std_msgs::msg::Float64>::SharedPtr               distance_pub_;
     rclcpp::Publisher<std_msgs::msg::Float64>::SharedPtr               tether_length_pub_;
     rclcpp::TimerBase::SharedPtr                                       physics_timer_;
+
+    // --- Straight tether model for short lines and winch pull ---
+    // MoorDyn is unstable for short lines and its line crosses the deck when the UAV rests on the pad, so below
+    // straight_switch_distance_ the cable is a straight massless line from the drone to the winch, with a tension
+    // ramped to pull_tension_ while the pull is requested (~/tether_pull: takeoff and landing) and to zero
+    // otherwise. No force is applied to the boat in this mode. MoorDyn is (re)initialised once the pull is
+    // released, the tension is zero and the span exceeds straight_exit_distance_.
+    void pullCallback(const std_msgs::msg::Bool::SharedPtr msg);
+    rclcpp::Subscription<std_msgs::msg::Bool>::SharedPtr pull_sub_;
+    bool   pull_requested_{false};
+    bool   straight_mode_{false};
+    double straight_tension_{0.0};          ///< tension currently applied by the straight model (N)
+    double straight_switch_distance_{1.4};  ///< m
+    double straight_exit_distance_{1.6};    ///< m
+    double pull_tension_{4.0};              ///< N
+    double pull_rate_{4.0};                 ///< N/s
 };
 
 }  // namespace moordyn_tether

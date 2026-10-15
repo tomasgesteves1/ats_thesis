@@ -78,3 +78,13 @@ moordyn_tether_node:
     # the force is only updated when it differs from the applied one by more than the dead band.
     wrench_rebase_period_s: 10.0
     wrench_deadband_n: 0.02
+
+    # Straight tether model: MoorDyn is unstable for short lines and its line crosses the deck when the UAV rests on
+    # the pad, so below straight_switch_distance the cable is a straight massless line from the drone to the winch
+    # (no force on the boat). Its tension is ramped to pull_tension while the pull is requested (~/tether_pull, during
+    # takeoff and landing) and to zero otherwise. MoorDyn is initialised again once the pull is released, the tension
+    # is zero and the span exceeds straight_exit_distance.
+    straight_switch_distance: 1.4  # [m] slightly below winch_min_length / (1 - eps_0)
+    straight_exit_distance: 1.6    # [m] hysteresis above the switch distance
+    pull_tension: 4.0              # [N]
+    pull_rate: 4.0                 # [N/s] ramp of the tension
