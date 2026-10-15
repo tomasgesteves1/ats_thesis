@@ -1,634 +1,345 @@
-import os
-import sys
-import time
+"""Web dashboard of the tethered UAV-USV system.
+
+Serves a single page (static/) and a small JSON API on port 8080:
+  GET  /api/state            telemetry, mission progress, processes and simulation statistics
+  GET  /api/missions         missions available to the mission executor (YAML files)
+  GET  /api/logs?name=<p>    last lines of the output of a launched process (sim, mission, bag)
+  POST /api/sim/start        {"gui": bool}       launch the simulation
+  POST /api/sim/stop
+  POST /api/mission/start    {"id": str, "record": bool}   launch the controllers and the mission executor
+  POST /api/mission/stop                        stop the mission (and the recording)
+  POST /api/mission/abort                       the executor aborts: the boat holds and the UAV lands
+The processes are launched in their own session and stopped as a group.
+"""
+import glob
 import json
-import threading
-import subprocess
+import math
+import os
 import signal
-import http.server
-import socketserver
-from ament_index_python.packages import get_package_share_directory
+import subprocess
+import threading
+import time
+from collections import deque
+from datetime import datetime
+from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
+from urllib.parse import parse_qs, urlparse
+
 import rclpy
-from rclpy.node import Node
-from rclpy.qos import QoSProfile, ReliabilityPolicy, HistoryPolicy
-
-# ROS message types
-from nav_msgs.msg import Odometry
-from std_msgs.msg import Float64
+import rclpy.executors
+import yaml
+from ament_index_python.packages import get_package_share_directory
+from nav_msgs.msg import Odometry, Path
 from px4_msgs.msg import BatteryStatus, VehicleStatus
+from rclpy.node import Node
+from rclpy.qos import qos_profile_sensor_data
+from ros_gz_interfaces.msg import WorldStatistics
+from std_msgs.msg import Bool, Empty, Float64, String
 
-# Mission manager interfaces
-from mission_manager_interfaces.srv import ListMissions, StartMission, StopMission, GetMissionStatus, StartSimulation, StopSimulation
+LOG_DIR = '/tmp/ats_dashboard'
+BAG_TOPICS = [
+    '/tf', '/tf_static', '/clock', '/tether_geometry_marker', '/tether_force_markers', '/tether_force_drone_mag',
+    '/tether_force_boat_mag', '/moordyn_tether_node/tether_distance', '/moordyn_tether_node/tether_length',
+    '/moordyn_tether_node/tether_pull', '/uav/yaw_from_reference', '/uav/low_altitude', '/drone/ground_truth/odometry',
+    '/boat/ground_truth/odometry', '/uav/reference_path', '/usv/reference_path', '/usv/mpc_horizon',
+    '/mpc_predicted_path', '/mpc_states_and_inputs', '/px4_1/fmu/out/vehicle_attitude',
+    '/px4_1/fmu/out/vehicle_status_v1', '/mission/events', '/intruder/odometry', '/simulation/stats']
+NAV_STATES = {0: 'MANUAL', 1: 'ALTCTL', 2: 'POSCTL', 3: 'MISSION', 4: 'LOITER', 5: 'RTL', 14: 'OFFBOARD',
+              17: 'TAKEOFF', 18: 'LAND'}
 
-# Thread-safe telemetry storage
-class TelemetryData:
-    def __init__(self):
-        self.lock = threading.Lock()
-        self.data = {
-            'uav': {
-                'x': 0.0, 'y': 0.0, 'z': 0.0,
-                'vx': 0.0, 'vy': 0.0, 'vz': 0.0,
-                'yaw': 0.0,
-                'armed': False,
-                'nav_state': 'STANDBY',
-                'battery_percent': 100.0,
-                'battery_voltage': 16.8
-            },
-            'usv': {
-                'x': 0.0, 'y': 0.0, 'z': 0.0,
-                'vx': 0.0, 'vy': 0.0, 'vz': 0.0,
-                'yaw': 0.0
-            },
-            'tether': {
-                'length': 0.0,
-                'distance': 0.0,
-                'tension_boat': 0.0,
-                'tension_drone': 0.0
-            }
-        }
 
-    def update_uav_odom(self, msg: Odometry):
-        with self.lock:
-            p = msg.pose.pose.position
-            v = msg.twist.twist.linear
-            self.data['uav']['x'] = p.x
-            self.data['uav']['y'] = p.y
-            self.data['uav']['z'] = p.z
-            self.data['uav']['vx'] = v.x
-            self.data['uav']['vy'] = v.y
-            self.data['uav']['vz'] = v.z
-            # Basic Euler yaw extraction
-            q = msg.pose.pose.orientation
-            siny_cosp = 2 * (q.w * q.z + q.x * q.y)
-            cosy_cosp = 1 - 2 * (q.y * q.y + q.z * q.z)
-            import math
-            self.data['uav']['yaw'] = math.atan2(siny_cosp, cosy_cosp) * 180.0 / math.pi
+def yaw_deg(q):
+    return math.degrees(math.atan2(2.0 * (q.w * q.z + q.x * q.y), 1.0 - 2.0 * (q.y * q.y + q.z * q.z)))
 
-    def update_usv_odom(self, msg: Odometry):
-        with self.lock:
-            p = msg.pose.pose.position
-            v = msg.twist.twist.linear
-            self.data['usv']['x'] = p.x
-            self.data['usv']['y'] = p.y
-            self.data['usv']['z'] = p.z
-            self.data['usv']['vx'] = v.x
-            self.data['usv']['vy'] = v.y
-            self.data['usv']['vz'] = v.z
-            # Basic Euler yaw extraction
-            q = msg.pose.pose.orientation
-            siny_cosp = 2 * (q.w * q.z + q.x * q.y)
-            cosy_cosp = 1 - 2 * (q.y * q.y + q.z * q.z)
-            import math
-            self.data['usv']['yaw'] = math.atan2(siny_cosp, cosy_cosp) * 180.0 / math.pi
 
-    def update_tether_length(self, msg: Float64):
-        with self.lock:
-            self.data['tether']['length'] = msg.data
+def world_velocity(o):
+    """Odometry twist (body frame) in the world frame."""
+    q, v = o.pose.pose.orientation, o.twist.twist.linear
+    x, y, z, w = q.x, q.y, q.z, q.w
+    return (v.x * (1 - 2 * (y * y + z * z)) + v.y * 2 * (x * y - z * w) + v.z * 2 * (x * z + y * w),
+            v.x * 2 * (x * y + z * w) + v.y * (1 - 2 * (x * x + z * z)) + v.z * 2 * (y * z - x * w),
+            v.x * 2 * (x * z - y * w) + v.y * 2 * (y * z + x * w) + v.z * (1 - 2 * (x * x + y * y)))
 
-    def update_tether_distance(self, msg: Float64):
-        with self.lock:
-            self.data['tether']['distance'] = msg.data
 
-    def update_tether_force_boat(self, msg: Float64):
-        with self.lock:
-            self.data['tether']['tension_boat'] = msg.data
+class Process:
+    """A launched command with its output in a log file; stopped by signalling its whole process group."""
 
-    def update_tether_force_drone(self, msg: Float64):
-        with self.lock:
-            self.data['tether']['tension_drone'] = msg.data
+    def __init__(self, name):
+        self.name, self.proc, self.started, self.cmd = name, None, None, []
+        self.log = os.path.join(LOG_DIR, f'{name}.log')
 
-    def update_battery(self, msg: BatteryStatus):
-        with self.lock:
-            self.data['uav']['battery_percent'] = float(msg.remaining * 100.0) if msg.remaining >= 0 else 0.0
-            self.data['uav']['battery_voltage'] = float(msg.voltage_v)
+    def running(self):
+        return self.proc is not None and self.proc.poll() is None
 
-    def update_uav_status(self, msg: VehicleStatus):
-        with self.lock:
-            # arming_state: 1 is INIT/DISARMED, 2 is ARMED
-            self.data['uav']['armed'] = (msg.arming_state == 2)
-            
-            # Map navigation states to names
-            nav_states = {
-                0: 'MANUAL',
-                1: 'ALTCTL',
-                2: 'POSCTL',
-                3: 'AUTO_MISSION',
-                4: 'AUTO_LOITER',
-                5: 'AUTO_RTL',
-                10: 'ACRO',
-                14: 'OFFBOARD',
-                17: 'TAKEOFF',
-                18: 'LAND',
-            }
-            self.data['uav']['nav_state'] = nav_states.get(msg.nav_state, f'MODE_{msg.nav_state}')
+    def start(self, cmd):
+        self.stop()
+        os.makedirs(LOG_DIR, exist_ok=True)
+        out = open(self.log, 'w')
+        self.proc = subprocess.Popen(cmd, stdout=out, stderr=subprocess.STDOUT, start_new_session=True)
+        self.started, self.cmd = time.time(), cmd
 
-    def get_json(self):
-        with self.lock:
-            return json.dumps(self.data)
-
-class DashboardHTTPRequestHandler(http.server.BaseHTTPRequestHandler):
-    # Suppress request logging to avoid console noise
-    def log_message(self, format, *args):
-        pass
-
-    def do_GET(self):
-        node = self.server.node
-        static_dir = self.server.static_dir
-
-        if self.path == '/api/status':
-            self.send_response(200)
-            self.send_header('Content-Type', 'application/json')
-            self.send_header('Access-Control-Allow-Origin', '*')
-            self.end_headers()
-            
-            sim_running = False
-            mission_running = False
-            active_mission = 'None'
-            
-            req = GetMissionStatus.Request()
-            res = node.call_service_sync(node.status_client, req)
-            if res is not None:
-                sim_running = (res.sim_state in ['STARTING', 'RUNNING'])
-                mission_running = (res.control_state in ['STARTING', 'RUNNING', 'STOPPING'])
-                active_mission = res.active_mission_id if (mission_running or sim_running) else 'None'
-            
-            status = {
-                'simulation_running': sim_running,
-                'mission_running': mission_running,
-                'active_mission': active_mission
-            }
-            self.wfile.write(json.dumps(status).encode('utf-8'))
+    def stop(self, timeout=10.0):
+        if not self.running():
             return
-
-        elif self.path == '/api/missions':
-            self.send_response(200)
-            self.send_header('Content-Type', 'application/json')
-            self.send_header('Access-Control-Allow-Origin', '*')
-            self.end_headers()
-
-            req = ListMissions.Request()
-            res = node.call_service_sync(node.list_client, req)
-            
-            missions_list = []
-            if res is not None:
-                for mission in res.missions:
-                    user_params = []
-                    for param in mission.user_params:
-                        user_params.append({
-                            'key': param.key,
-                            'label': param.label,
-                            'type': param.type,
-                            'default': param.default_value,
-                            'min': param.min_value,
-                            'max': param.max_value,
-                            'unit': param.unit,
-                            'options': list(param.options),
-                            'ros_mapping': {
-                                'node': param.ros_node,
-                                'param': param.ros_param,
-                                'launch_arg': param.ros_launch_arg
-                            }
-                        })
-                    missions_list.append({
-                        'id': mission.id,
-                        'name': mission.name,
-                        'description': mission.description,
-                        'category': mission.category,
-                        'icon': mission.icon,
-                        'user_params': user_params
-                    })
-            self.wfile.write(json.dumps(missions_list).encode('utf-8'))
-            return
-
-        elif self.path.startswith('/api/logs'):
-            import urllib.parse
-            query = urllib.parse.urlparse(self.path).query
-            query_params = urllib.parse.parse_qs(query)
-            log_type = query_params.get('type', ['control'])[0]
-
-            self.send_response(200)
-            self.send_header('Content-Type', 'text/plain; charset=utf-8')
-            self.send_header('Access-Control-Allow-Origin', '*')
-            self.end_headers()
-
-            log_path = f"log/{log_type}.log"
-            if os.path.exists(log_path):
-                try:
-                    with open(log_path, 'r') as f:
-                        lines = f.readlines()
-                        # Return last 100 lines
-                        self.wfile.write(''.join(lines[-100:]).encode('utf-8'))
-                except Exception as e:
-                    self.wfile.write(f"Error reading logs: {str(e)}".encode('utf-8'))
-            else:
-                self.wfile.write(b"No logs available.")
-            return
-
-        elif self.path == '/api/telemetry':
-            self.send_response(200)
-            self.send_header('Content-Type', 'text/event-stream')
-            self.send_header('Cache-Control', 'no-cache')
-            self.send_header('Connection', 'keep-alive')
-            self.send_header('Access-Control-Allow-Origin', '*')
-            self.end_headers()
-
-            node.get_logger().info("Dashboard: Telemetry SSE client connected.")
+        for sig in (signal.SIGINT, signal.SIGTERM, signal.SIGKILL):
             try:
-                while not self.server.stop_requested:
-                    telemetry_str = node.telemetry.get_json()
-                    self.wfile.write(f"data: {telemetry_str}\n\n".encode('utf-8'))
-                    self.wfile.flush()
-                    time.sleep(0.1) # 10 Hz updates
-            except (ConnectionResetError, BrokenPipeError):
-                node.get_logger().info("Dashboard: Telemetry SSE client disconnected.")
-            return
+                os.killpg(self.proc.pid, sig)
+            except ProcessLookupError:
+                return
+            try:
+                self.proc.wait(timeout)
+                return
+            except subprocess.TimeoutExpired:
+                continue
 
-        # Serve static files
-        clean_path = self.path.split('?')[0]
-        if clean_path == '/':
-            filepath = os.path.join(static_dir, 'index.html')
-        else:
-            # Strip leading slash
-            filepath = os.path.join(static_dir, clean_path.lstrip('/'))
-
-        if os.path.exists(filepath) and os.path.isfile(filepath):
-            # Check content type
-            if filepath.endswith('.html'):
-                content_type = 'text/html'
-            elif filepath.endswith('.css'):
-                content_type = 'text/css'
-            elif filepath.endswith('.js'):
-                content_type = 'application/javascript'
-            elif filepath.endswith('.png'):
-                content_type = 'image/png'
-            elif filepath.endswith('.svg'):
-                content_type = 'image/svg+xml'
-            else:
-                content_type = 'text/plain'
-
-            self.send_response(200)
-            self.send_header('Content-Type', content_type)
-            self.send_header('Access-Control-Allow-Origin', '*')
-            self.end_headers()
-            
-            with open(filepath, 'rb') as f:
-                self.wfile.write(f.read())
-        else:
-            self.send_error(404, 'File Not Found')
-
-    def do_POST(self):
-        node = self.server.node
-        content_length = int(self.headers.get('Content-Length', 0))
-        body = self.rfile.read(content_length)
-        
+    def tail(self, n=60):
         try:
-            params = json.loads(body.decode('utf-8'))
-        except Exception:
-            params = {}
+            with open(self.log, errors='replace') as f:
+                return ''.join(deque(f, maxlen=n))
+        except OSError:
+            return ''
 
-        self.send_response(200)
-        self.send_header('Content-Type', 'application/json')
-        self.send_header('Access-Control-Allow-Origin', '*')
-        self.end_headers()
+    def info(self):
+        return {'running': self.running(), 'since': self.started if self.running() else None}
 
-        response = {'success': False, 'message': 'Unknown endpoint'}
-
-        if self.path == '/api/launch':
-            proc_type = params.get('type')
-            if proc_type == 'simulation':
-                mission_id = params.get('mission_id')
-                user_param_inputs = params.get('params', {})
-                if not mission_id:
-                    response = {'success': False, 'message': 'No mission selected to launch its simulation.'}
-                else:
-                    node.get_logger().info(f"Requesting simulation start for mission {mission_id} with parameters: {user_param_inputs}")
-                    req = StartSimulation.Request()
-                    req.mission_id = mission_id
-                    
-                    keys = []
-                    values = []
-                    for k, v in user_param_inputs.items():
-                        keys.append(str(k))
-                        values.append(str(v))
-                    
-                    req.param_keys = keys
-                    req.param_values = values
-                    
-                    res = node.call_service_sync(node.start_sim_client, req)
-                    if res is not None:
-                        response = {'success': res.success, 'message': res.message}
-                    else:
-                        response = {'success': False, 'message': 'Failed to communicate with mission manager simulation service.'}
-                    
-            elif proc_type == 'mission':
-                mission_id = params.get('name')
-                user_param_inputs = params.get('params', {})
-                
-                req = StartMission.Request()
-                req.mission_id = mission_id
-                
-                keys = []
-                values = []
-                for k, v in user_param_inputs.items():
-                    keys.append(str(k))
-                    values.append(str(v))
-                
-                req.param_keys = keys
-                req.param_values = values
-                
-                node.get_logger().info(f"Requesting mission start for {mission_id} with parameters: {user_param_inputs}")
-                res = node.call_service_sync(node.start_client, req)
-                if res is not None:
-                    response = {'success': res.success, 'message': res.message}
-                else:
-                    response = {'success': False, 'message': 'Failed to communicate with mission manager service.'}
-
-        elif self.path == '/api/stop':
-            proc_type = params.get('type')
-            if proc_type == 'simulation':
-                node.get_logger().info("Requesting simulation stop...")
-                req = StopSimulation.Request()
-                res = node.call_service_sync(node.stop_sim_client, req)
-                if res is not None:
-                    response = {'success': res.success, 'message': res.message}
-                else:
-                    response = {'success': False, 'message': 'Failed to communicate with mission manager simulation service.'}
-            elif proc_type == 'mission':
-                req = StopMission.Request()
-                node.get_logger().info("Requesting mission stop...")
-                res = node.call_service_sync(node.stop_client, req)
-                if res is not None:
-                    response = {'success': res.success, 'message': res.message}
-                else:
-                    response = {'success': False, 'message': 'Failed to communicate with mission manager service.'}
-
-        elif self.path == '/api/emergency_stop':
-            node.get_logger().warn("EMERGENCY STOP REQUESTED!")
-            stopped = []
-            
-            # Stop mission
-            req_mission = StopMission.Request()
-            res_mission = node.call_service_sync(node.stop_client, req_mission)
-            if res_mission is not None and res_mission.success:
-                stopped.append('mission')
-            
-            # Stop simulation
-            req_sim = StopSimulation.Request()
-            res_sim = node.call_service_sync(node.stop_sim_client, req_sim)
-            if res_sim is not None and res_sim.success:
-                stopped.append('simulation')
-            
-            # Force kill leftovers on host as fallback
-            subprocess.run("pkill -9 -f 'gz sim' || true", shell=True)
-            subprocess.run("pkill -9 -f 'ruby' || true", shell=True)
-            subprocess.run("pkill -9 -f 'px4' || true", shell=True)
-            subprocess.run("pkill -9 -f 'micro-xrce-dds' || true", shell=True)
-            
-            response = {'success': True, 'message': f"Emergency stop executed. Stopped: {', '.join(stopped) if stopped else 'None'}"}
-
-        elif self.path == '/api/clear_logs':
-            log_type = params.get('type', 'control')
-            log_path = f"log/{log_type}.log"
-            response = {'success': False, 'message': 'Unknown log type'}
-
-            if log_type in ['control', 'simulation']:
-                try:
-                    if os.path.exists(log_path):
-                        with open(log_path, 'w') as f:
-                            f.truncate(0)
-                    response = {'success': True, 'message': f"Logs for {log_type} cleared successfully."}
-                except Exception as e:
-                    response = {'success': False, 'message': f"Failed to clear logs: {str(e)}"}
-
-        elif self.path == '/api/update_param':
-            node_name = params.get('node')
-            param_name = params.get('param')
-            value = params.get('value')
-            node.get_logger().info(f"Requesting parameter update: {node_name}::{param_name} = {value}")
-            success, msg = node.set_node_parameter(node_name, param_name, value)
-            response = {'success': success, 'message': msg}
-
-        self.wfile.write(json.dumps(response).encode('utf-8'))
-
-class ThreadingHTTPServer(socketserver.ThreadingMixIn, http.server.HTTPServer):
-    daemon_threads = True
 
 class DashboardNode(Node):
     def __init__(self):
         super().__init__('web_dashboard_node')
-        
-        # Telemetry Data
-        self.telemetry = TelemetryData()
-        
-        # Track subprocesses
-        self.processes = {}
+        self.workspace = self.declare_parameter('workspace', os.path.expanduser('~/ats_ws')).value
+        self.lock = threading.Lock()
+        self.procs = {n: Process(n) for n in ('sim', 'mission', 'bag')}
+        self.mission = None          # id of the launched mission
+        self.bag_path = None
+        self.t = {'uav': {}, 'usv': {}, 'tether': {}, 'intruder': None, 'sim': {}, 'paths': {}}
+        self.events = deque(maxlen=200)
+        self.steps = {'uav': '', 'usv': ''}
+        self.mission_state = 'idle'
 
-        # Service clients for mission manager
-        self.list_client = self.create_client(ListMissions, '/mission_manager_node/list_missions')
-        self.start_client = self.create_client(StartMission, '/mission_manager_node/start_mission')
-        self.stop_client = self.create_client(StopMission, '/mission_manager_node/stop_mission')
-        self.status_client = self.create_client(GetMissionStatus, '/mission_manager_node/get_mission_status')
-        self.start_sim_client = self.create_client(StartSimulation, '/mission_manager_node/start_simulation')
-        self.stop_sim_client = self.create_client(StopSimulation, '/mission_manager_node/stop_simulation')
+        sub = self.create_subscription
+        sub(Odometry, '/drone/ground_truth/odometry', lambda m: self._odom('uav', m), 10)
+        sub(Odometry, '/boat/ground_truth/odometry', lambda m: self._odom('usv', m), 10)
+        sub(Odometry, '/intruder/odometry', self._intruder, 10)
+        sub(Float64, '/moordyn_tether_node/tether_length', lambda m: self._set('tether', 'length', m.data), 10)
+        sub(Float64, '/moordyn_tether_node/tether_distance', lambda m: self._set('tether', 'distance', m.data), 10)
+        sub(Float64, '/tether_force_drone_mag', lambda m: self._set('tether', 'force_uav', m.data), 10)
+        sub(Bool, '/moordyn_tether_node/tether_pull', lambda m: self._set('tether', 'pull', m.data), 10)
+        sub(VehicleStatus, '/px4_1/fmu/out/vehicle_status_v1', self._status, qos_profile_sensor_data)
+        sub(BatteryStatus, '/px4_1/fmu/out/battery_status', self._battery, qos_profile_sensor_data)
+        sub(WorldStatistics, '/simulation/stats', self._stats, 10)
+        sub(String, '/mission/events', self._event, 50)
+        sub(Path, '/uav/reference_path', lambda m: self._path('uav', m), 10)
+        sub(Path, '/usv/reference_path', lambda m: self._path('usv', m), 10)
+        self.abort_pub = self.create_publisher(Empty, '/mission/abort', 10)
 
-        # Subscriptions
-        qos_best_effort = QoSProfile(
-            reliability=ReliabilityPolicy.BEST_EFFORT,
-            history=HistoryPolicy.KEEP_LAST,
-            depth=5
-        )
-        
-        self.uav_odom_sub = self.create_subscription(
-            Odometry,
-            '/drone/ground_truth/odometry',
-            self.telemetry.update_uav_odom,
-            10
-        )
-        
-        self.usv_odom_sub = self.create_subscription(
-            Odometry,
-            '/boat/ground_truth/odometry',
-            self.telemetry.update_usv_odom,
-            10
-        )
-        
-        self.tether_length_sub = self.create_subscription(
-            Float64,
-            '/moordyn_tether_node/tether_length',
-            self.telemetry.update_tether_length,
-            10
-        )
+    # ------------------------------------------------------------------------------------------------- telemetry
+    def _set(self, group, key, value):
+        with self.lock:
+            self.t[group][key] = value
+            self.t[group]['stamp'] = time.time()
 
-        self.tether_distance_sub = self.create_subscription(
-            Float64,
-            '/moordyn_tether_node/tether_distance',
-            self.telemetry.update_tether_distance,
-            10
-        )
-        
-        self.tether_force_boat_sub = self.create_subscription(
-            Float64,
-            '/moordyn_tether_node/tether_force_boat_mag',
-            self.telemetry.update_tether_force_boat,
-            10
-        )
-        
-        self.tether_force_drone_sub = self.create_subscription(
-            Float64,
-            '/moordyn_tether_node/tether_force_drone_mag',
-            self.telemetry.update_tether_force_drone,
-            10
-        )
+    def _odom(self, who, m):
+        p = m.pose.pose.position
+        v = world_velocity(m)
+        with self.lock:
+            self.t[who].update({'x': p.x, 'y': p.y, 'z': p.z + (0.265 if who == 'uav' else 0.0),
+                                'speed': math.hypot(v[0], v[1]), 'vz': v[2], 'surge': m.twist.twist.linear.x,
+                                'yaw': yaw_deg(m.pose.pose.orientation), 'stamp': time.time()})
 
-        # PX4 telemetry
-        self.battery_sub = self.create_subscription(
-            BatteryStatus,
-            '/px4_1/fmu/out/battery_status',
-            self.telemetry.update_battery,
-            qos_best_effort
-        )
+    def _intruder(self, m):
+        p = m.pose.pose.position
+        with self.lock:
+            self.t['intruder'] = {'x': p.x, 'y': p.y, 'yaw': yaw_deg(m.pose.pose.orientation),
+                                  'speed': m.twist.twist.linear.x, 'stamp': time.time()}
 
-        self.uav_status_sub = self.create_subscription(
-            VehicleStatus,
-            '/px4_1/fmu/out/vehicle_status_v1',
-            self.telemetry.update_uav_status,
-            qos_best_effort
-        )
+    def _status(self, m):
+        with self.lock:
+            self.t['uav'].update({'armed': m.arming_state == VehicleStatus.ARMING_STATE_ARMED,
+                                  'mode': NAV_STATES.get(m.nav_state, f'MODE_{m.nav_state}')})
 
-        self.get_logger().info("Web Dashboard Node Initialized.")
+    def _battery(self, m):
+        with self.lock:
+            self.t['uav']['battery'] = max(0.0, m.remaining * 100.0)
 
-    def call_service_sync(self, client, request, timeout_sec=2.0):
-        if not client.service_is_ready():
-            ready = client.wait_for_service(timeout_sec)
-            if not ready:
-                return None
-        
-        future = client.call_async(request)
-        start_time = time.time()
-        while time.time() - start_time < timeout_sec:
-            if future.done():
-                try:
-                    return future.result()
-                except Exception as e:
-                    self.get_logger().error(f"Service call failed: {e}")
-                    return None
-            time.sleep(0.05)
-        return None
+    def _stats(self, m):
+        with self.lock:
+            self.t['sim'] = {'time': m.sim_time.sec + m.sim_time.nanosec * 1e-9, 'rtf': m.real_time_factor,
+                             'paused': m.paused, 'stamp': time.time()}
 
-    def set_node_parameter(self, node_name, param_name, value):
-        from rcl_interfaces.srv import SetParameters
-        from rcl_interfaces.msg import Parameter, ParameterType
-        
-        service_name = f'/{node_name}/set_parameters'
-        client = self.create_client(SetParameters, service_name)
-        
-        if not client.service_is_ready():
-            ready = client.wait_for_service(1.0)
-            if not ready:
-                return False, f"Service {service_name} not available (is the node running?)."
-                
-        req = SetParameters.Request()
-        param_msg = Parameter()
-        param_msg.name = param_name
-        
-        val_str = str(value)
-        if val_str.lower() == 'true':
-            param_msg.value.type = ParameterType.PARAMETER_BOOL
-            param_msg.value.bool_value = True
-        elif val_str.lower() == 'false':
-            param_msg.value.type = ParameterType.PARAMETER_BOOL
-            param_msg.value.bool_value = False
-        else:
+    def _path(self, who, m):
+        pts = [(p.pose.position.x, p.pose.position.y) for p in m.poses[::5]]
+        with self.lock:
+            self.t['paths'][who] = pts
+
+    def _event(self, m):
+        text = m.data
+        with self.lock:
+            sim_t = self.t['sim'].get('time')
+            self.events.appendleft({'t': sim_t, 'text': text})
+            for v in ('uav', 'usv', 'uav_abort', 'usv_abort'):
+                if text.startswith(v + '.') and ': started' in text:
+                    self.steps[v.split('_')[0]] = text.split(':')[0].split('.', 1)[1] + \
+                        (' (abort)' if v.endswith('abort') else '')
+            if text == 'mission complete':
+                self.mission_state = 'complete'
+            elif text.startswith('mission aborted'):
+                self.mission_state = 'aborted'
+            elif text == 'abort sequence complete':
+                self.mission_state = 'aborted (UAV landed)'
+
+    # ------------------------------------------------------------------------------------------------- missions
+    def missions_dir(self):
+        return os.path.join(get_package_share_directory('mission_executor'), 'missions')
+
+    def list_missions(self):
+        out = []
+        for f in sorted(glob.glob(os.path.join(self.missions_dir(), '*.yaml'))):
             try:
-                # Try integer
-                val_int = int(val_str)
-                if '.' in val_str:
-                    raise ValueError()
-                param_msg.value.type = ParameterType.PARAMETER_INTEGER
-                param_msg.value.integer_value = val_int
-            except ValueError:
-                try:
-                    # Try float
-                    val_float = float(val_str)
-                    param_msg.value.type = ParameterType.PARAMETER_DOUBLE
-                    param_msg.value.double_value = val_float
-                except ValueError:
-                    # Fallback to string
-                    param_msg.value.type = ParameterType.PARAMETER_STRING
-                    param_msg.value.string_value = val_str
-                    
-        req.parameters.append(param_msg)
-        
-        future = client.call_async(req)
-        start_time = time.time()
-        while time.time() - start_time < 2.0:
-            if future.done():
-                try:
-                    res = future.result()
-                    if res.results and res.results[0].successful:
-                        return True, f"Parameter {param_name} set to {value}."
-                    else:
-                        reason = res.results[0].reason if res.results else "Rejected by node."
-                        return False, f"Rejected: {reason}"
-                except Exception as e:
-                    return False, f"Service call exception: {str(e)}"
-            time.sleep(0.05)
-            
-        return False, "Service call timeout."
+                d = yaml.safe_load(open(f)) or {}
+            except yaml.YAMLError:
+                continue
+            steps = lambda key: [s.get('type', '?') for s in d.get(key) or []]
+            out.append({'id': os.path.splitext(os.path.basename(f))[0], 'name': d.get('name', ''),
+                        'description': d.get('description', ''), 'uav': steps('uav'), 'usv': steps('usv'),
+                        'launch': d.get('launch') or {}, 'timeout': d.get('timeout')})
+        return out
 
-    def cleanup_processes(self):
-        # Kill any remaining subprocesses upon shutdown
-        for name, proc in self.processes.items():
-            if proc is not None and proc.poll() is None:
-                self.get_logger().warn(f"Cleaning up zombie process: {name}")
-                try:
-                    os.killpg(os.getpgid(proc.pid), signal.SIGKILL)
-                except Exception:
-                    pass
-        # Global force kill of any leftover simulation components
-        subprocess.run("pkill -9 -f 'gz sim' || true", shell=True)
-        subprocess.run("pkill -9 -f 'ruby' || true", shell=True)
-        subprocess.run("pkill -9 -f 'px4' || true", shell=True)
-        subprocess.run("pkill -9 -f 'micro-xrce-dds' || true", shell=True)
+    def start_sim(self, gui):
+        self.stop_mission()
+        self.procs['sim'].start(['ros2', 'launch', 'bringup', 'moordyn_marsupial.launch.py',
+                                 f'headless:={"false" if gui else "true"}', 'use_tether:=true'])
+
+    def stop_sim(self):
+        self.stop_mission()
+        self.procs['sim'].stop()
+        # PX4 and the Gazebo server may outlive the launch: stop the leftovers
+        for pattern in ('px4_sitl_default/bin/px4', 'gz sim -s', 'gz sim -r', 'MicroXRCEAgent'):
+            subprocess.run(['pkill', '-9', '-f', pattern], check=False)
+        with self.lock:
+            self.t = {'uav': {}, 'usv': {}, 'tether': {}, 'intruder': None, 'sim': {}, 'paths': {}}
+
+    def start_mission(self, mission_id, record):
+        missions = {m['id']: m for m in self.list_missions()}
+        if mission_id not in missions:
+            raise ValueError(f'unknown mission {mission_id}')
+        if not self.procs['sim'].running():
+            raise ValueError('the simulation is not running')
+        self.stop_mission()
+        args = [f'{k}:={str(v).lower() if isinstance(v, bool) else v}' for k, v in missions[mission_id]['launch'].items()]
+        with self.lock:
+            self.events.clear()
+            self.steps = {'uav': '', 'usv': ''}
+            self.mission_state = 'running'
+        self.mission = mission_id
+        if record:
+            self.bag_path = os.path.join(self.workspace, 'bags', 'missions',
+                                         f'{mission_id}_{datetime.now():%Y%m%d_%H%M%S}')
+            os.makedirs(os.path.dirname(self.bag_path), exist_ok=True)
+            self.procs['bag'].start(['ros2', 'bag', 'record', '--use-sim-time', '-o', self.bag_path] + BAG_TOPICS)
+        else:
+            self.bag_path = None
+        self.procs['mission'].start(['ros2', 'launch', 'mission_executor', 'mission.launch.py',
+                                     f'mission:={mission_id}'] + args)
+
+    def stop_mission(self):
+        self.procs['mission'].stop()
+        self.procs['bag'].stop(timeout=20.0)   # the recorder needs a moment to write the bag metadata
+        with self.lock:
+            if self.mission_state == 'running':
+                self.mission_state = 'stopped'
+
+    def state(self):
+        with self.lock:
+            return {'telemetry': self.t, 'events': list(self.events)[:40], 'steps': self.steps,
+                    'mission': self.mission, 'mission_state': self.mission_state, 'bag': self.bag_path,
+                    'processes': {n: p.info() for n, p in self.procs.items()}, 'now': time.time()}
+
+
+class Handler(BaseHTTPRequestHandler):
+    def log_message(self, *args):
+        pass
+
+    def _json(self, obj, code=200):
+        body = json.dumps(obj).encode()
+        self.send_response(code)
+        self.send_header('Content-Type', 'application/json')
+        self.send_header('Content-Length', str(len(body)))
+        self.end_headers()
+        self.wfile.write(body)
+
+    def do_GET(self):
+        node, url = self.server.node, urlparse(self.path)
+        if url.path == '/api/state':
+            return self._json(node.state())
+        if url.path == '/api/missions':
+            return self._json(node.list_missions())
+        if url.path == '/api/logs':
+            name = parse_qs(url.query).get('name', ['sim'])[0]
+            proc = node.procs.get(name)
+            return self._json({'name': name, 'text': proc.tail() if proc else ''})
+        # static files
+        rel = 'index.html' if url.path in ('/', '') else url.path.lstrip('/')
+        path = os.path.realpath(os.path.join(self.server.static_dir, rel))
+        if not path.startswith(os.path.realpath(self.server.static_dir)) or not os.path.isfile(path):
+            self.send_error(404)
+            return
+        ctype = {'.html': 'text/html', '.js': 'application/javascript', '.css': 'text/css'}.get(
+            os.path.splitext(path)[1], 'application/octet-stream')
+        with open(path, 'rb') as f:
+            body = f.read()
+        self.send_response(200)
+        self.send_header('Content-Type', ctype)
+        self.send_header('Content-Length', str(len(body)))
+        self.end_headers()
+        self.wfile.write(body)
+
+    def do_POST(self):
+        node = self.server.node
+        length = int(self.headers.get('Content-Length', 0))
+        try:
+            data = json.loads(self.rfile.read(length) or b'{}')
+        except json.JSONDecodeError:
+            data = {}
+        try:
+            if self.path == '/api/sim/start':
+                node.start_sim(bool(data.get('gui', False)))
+            elif self.path == '/api/sim/stop':
+                node.stop_sim()
+            elif self.path == '/api/mission/start':
+                node.start_mission(data.get('id', ''), bool(data.get('record', False)))
+            elif self.path == '/api/mission/stop':
+                node.stop_mission()
+            elif self.path == '/api/mission/abort':
+                node.abort_pub.publish(Empty())
+            else:
+                return self._json({'ok': False, 'error': 'unknown endpoint'}, 404)
+        except ValueError as e:
+            return self._json({'ok': False, 'error': str(e)}, 400)
+        return self._json({'ok': True})
+
 
 def main(args=None):
     rclpy.init(args=args)
     node = DashboardNode()
-
-    # Get the share directory to locate the static files
     try:
-        share_dir = get_package_share_directory('web_dashboard')
-        static_dir = os.path.join(share_dir, 'static')
+        static_dir = os.path.join(get_package_share_directory('web_dashboard'), 'static')
     except Exception:
-        # Fallback to local source path in workspace during direct testing
         static_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', 'static'))
-
-    node.get_logger().info(f"Serving static files from: {static_dir}")
-
-    # Set up HTTP Server
-    port = 8080
-    server = ThreadingHTTPServer(('0.0.0.0', port), DashboardHTTPRequestHandler)
-    server.node = node
-    server.static_dir = static_dir
-    server.stop_requested = False
-
-    node.get_logger().info(f"Dashboard GCS Web Server running at http://localhost:{port}/")
-
-    # Spin ROS 2 in a background thread
-    ros_thread = threading.Thread(target=rclpy.spin, args=(node,), daemon=True)
-    ros_thread.start()
-
-    # Serve requests in the main thread (blocking)
+    port = node.declare_parameter('port', 8080).value
+    server = ThreadingHTTPServer(('0.0.0.0', port), Handler)
+    server.node, server.static_dir = node, static_dir
+    threading.Thread(target=server.serve_forever, daemon=True).start()
+    node.get_logger().info(f'Dashboard on http://localhost:{port}')
     try:
-        server.serve_forever()
-    except KeyboardInterrupt:
-        node.get_logger().info("KeyboardInterrupt received. Shutting down...")
+        rclpy.spin(node)
+    except (KeyboardInterrupt, rclpy.executors.ExternalShutdownException):
+        pass
     finally:
-        server.stop_requested = True
+        for p in node.procs.values():
+            p.stop()
         server.shutdown()
-        server.server_close()
-        node.cleanup_processes()
-        rclpy.shutdown()
+        if rclpy.ok():
+            rclpy.shutdown()
+
 
 if __name__ == '__main__':
     main()
