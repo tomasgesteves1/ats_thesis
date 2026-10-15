@@ -50,6 +50,7 @@ uav_mpc_node:
 
     # State limits (soft)
     z_min: 2.0                   # m
+    z_min_low_altitude: 0.0      # m, lower bound while low altitude is requested (takeoff from and landing on the pad)
     v_xy_max: 10.0               # m/s
     v_z_max: 10.0                # m/s
     phi_max: 0.5                 # rad

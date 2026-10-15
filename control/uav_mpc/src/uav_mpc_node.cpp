@@ -43,6 +43,9 @@ UavMpcNode::UavMpcNode()
     this->declare_parameter<double>("mass", 2.06);
     this->declare_parameter<double>("gravity", 9.81);
     this->declare_parameter<double>("z_min", 2.0);
+    // Lower bound on the height while the low-altitude mode is requested on the low_altitude topic (takeoff from
+    // and landing on the pad, which are below z_min)
+    this->declare_parameter<double>("z_min_low_altitude", 0.0);
     this->declare_parameter<double>("v_xy_max", 10.0);
     this->declare_parameter<double>("v_z_max", 10.0);
     this->declare_parameter<double>("phi_max", 0.5);
@@ -77,6 +80,9 @@ UavMpcNode::UavMpcNode()
 
     yaw_mode_sub_ = this->create_subscription<std_msgs::msg::Bool>(
         "yaw_from_reference", 10, [this](std_msgs::msg::Bool::SharedPtr msg) { yaw_from_reference_ = msg->data; });
+
+    low_altitude_sub_ = this->create_subscription<std_msgs::msg::Bool>(
+        "low_altitude", 10, [this](std_msgs::msg::Bool::SharedPtr msg) { low_altitude_ = msg->data; });
 
     // Configure QoS identical to drone_tracker for PX4 (SensorDataQoS)
     auto qos = rclcpp::SensorDataQoS();
@@ -375,7 +381,7 @@ void UavMpcNode::controlLoop() {
     UavMpcParams params;
     params.mass = this->get_parameter("mass").as_double();
     params.gravity = this->get_parameter("gravity").as_double();
-    params.z_min = this->get_parameter("z_min").as_double();
+    params.z_min = this->get_parameter(low_altitude_ ? "z_min_low_altitude" : "z_min").as_double();
     params.v_xy_max = this->get_parameter("v_xy_max").as_double();
     params.v_z_max = this->get_parameter("v_z_max").as_double();
     params.phi_max = this->get_parameter("phi_max").as_double();

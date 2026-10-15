@@ -28,6 +28,7 @@ public:
 private:
     double yaw_ref_{0.0};  ///< Reference yaw from the external path orientation [rad]
     bool yaw_from_reference_{false};  ///< yaw aligned with yaw_ref_ instead of looking at the attachment point
+    bool low_altitude_{false};        ///< the lower bound on the height is z_min_low_altitude (takeoff and landing)
     void odomCallback(const nav_msgs::msg::Odometry::SharedPtr msg);
     void targetCallback(const geometry_msgs::msg::Point::SharedPtr msg);
     void trajectoryPathCallback(const nav_msgs::msg::Path::SharedPtr msg);
@@ -49,6 +50,7 @@ private:
     rclcpp::Subscription<px4_msgs::msg::VehicleStatus>::SharedPtr vehicle_status_sub_;
     rclcpp::Subscription<nav_msgs::msg::Path>::SharedPtr boat_horizon_sub_;
     rclcpp::Subscription<std_msgs::msg::Bool>::SharedPtr yaw_mode_sub_;
+    rclcpp::Subscription<std_msgs::msg::Bool>::SharedPtr low_altitude_sub_;
     
     // TF Listener
     std::shared_ptr<tf2_ros::Buffer> tf_buffer_;
