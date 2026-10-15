@@ -41,7 +41,8 @@ protected:
     Params params_;
 };
 
-/// Creates the maneuver of the given type ("takeoff", "goto", "hold", "orbit", "land"); nullptr if unknown.
+/// Creates the maneuver of the given type ("takeoff", "goto", "hold", "goto_world", "orbit",
+/// "inspect", "climb", "land"); nullptr if unknown.
 std::unique_ptr<UavManeuver> createUavManeuver(const std::string & type, const Params & params);
 
 /// Creates the maneuver of the given type ("hold", "waypoints"); nullptr if unknown.

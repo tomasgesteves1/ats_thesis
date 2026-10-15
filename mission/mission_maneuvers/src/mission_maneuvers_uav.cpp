@@ -190,6 +190,120 @@ Status Orbit::update(const Context & ctx, UavCommand & cmd)
 }
 
 // ---------------------------------------------------------------------------------------------------------------
+// GotoWorld
+// ---------------------------------------------------------------------------------------------------------------
+
+void GotoWorld::start(const Context & ctx)
+{
+    t0_ = ctx.t;
+    p0_ = ctx.uav.p;
+    settle_.reset();
+}
+
+Status GotoWorld::update(const Context & ctx, UavCommand & cmd)
+{
+    const Vec3 target = params_.getVec3("position", ctx.uav.p);
+    const double duration = params_.get("duration", 8.0);
+    const auto look_at = params_.getVector("look_at", {});
+    cmd.yaw_from_reference = look_at.size() == 2;
+    cmd.path = worldPath(ctx, [&](double t) { return lerp(p0_, target, minJerk((t - t0_) / duration)); }, look_at);
+    if (ctx.t - t0_ < duration) {
+        return Status::kRunning;
+    }
+    const bool ok = norm(sub(ctx.uav.p, target)) < params_.get("tolerance", 0.3) &&
+                    norm(ctx.uav.v) < params_.get("velocity_tolerance", 0.3);
+    if (settle_.update(ok, ctx.t, params_.get("settle", 2.0))) {
+        return Status::kDone;
+    }
+    if (ctx.t - t0_ > duration + params_.get("timeout", 30.0)) {
+        cmd.message = "tolerance not reached within the timeout";
+        return params_.get("fail_on_timeout", 0.0) > 0.5 ? Status::kFailed : Status::kDone;
+    }
+    return Status::kRunning;
+}
+
+// ---------------------------------------------------------------------------------------------------------------
+// Inspect
+// ---------------------------------------------------------------------------------------------------------------
+
+void Inspect::start(const Context & ctx)
+{
+    t0_ = ctx.t;
+    p0_ = ctx.uav.p;
+    const double sweep = (params_.get("angle_end", 90.0) - params_.get("angle_start", -90.0)) * M_PI / 180.0;
+    arc_ = TravelProfile(std::abs(sweep), params_.get("angular_speed", 0.1), params_.get("ramp_time", 5.0));
+}
+
+Vec3 Inspect::worldAt(double t) const
+{
+    const auto c = params_.getVector("center", {0.0, 0.0});
+    const double r = params_.get("radius", 10.0);
+    const double a0 = params_.get("angle_start", -90.0) * M_PI / 180.0;
+    const double a1 = params_.get("angle_end", 90.0) * M_PI / 180.0;
+    const double h0 = params_.get("height_start", 4.0);
+    const double h1 = params_.get("height_end", 10.0);
+    const double entry = params_.get("entry_duration", 8.0);
+    const double tau = t - t0_;
+    if (tau < entry) {
+        return lerp(p0_, {c[0] + r * std::cos(a0), c[1] + r * std::sin(a0), h0}, minJerk(tau / entry));
+    }
+    const double total = std::abs(a1 - a0);
+    const double f = total > 0.0 ? arc_.distanceAt(tau - entry) / total : 1.0;   // fraction of the arc travelled
+    const double a = a0 + f * (a1 - a0);
+    return {c[0] + r * std::cos(a), c[1] + r * std::sin(a), h0 + f * (h1 - h0)};
+}
+
+Status Inspect::update(const Context & ctx, UavCommand & cmd)
+{
+    cmd.yaw_from_reference = true;
+    cmd.path = worldPath(ctx, [this](double t) { return worldAt(t); }, params_.getVector("center", {0.0, 0.0}));
+    return ctx.t - t0_ >= params_.get("entry_duration", 8.0) + arc_.duration() ? Status::kDone : Status::kRunning;
+}
+
+// ---------------------------------------------------------------------------------------------------------------
+// Climb
+// ---------------------------------------------------------------------------------------------------------------
+
+void Climb::start(const Context & ctx)
+{
+    t0_ = ctx.t;
+    const auto xy = params_.getVector("position", {ctx.uav.p[0], ctx.uav.p[1]});
+    x_ = xy[0];
+    y_ = xy[1];
+    z0_ = ctx.uav.p[2];
+    z_max_ = z0_;
+    stalled_ = false;
+    stall_.reset();
+    rise_ = TravelProfile(params_.get("height", 20.0) - z0_, params_.get("speed", 0.5), params_.get("ramp_time", 3.0));
+}
+
+Status Climb::update(const Context & ctx, UavCommand & cmd)
+{
+    const auto look_at = params_.getVector("look_at", {});
+    cmd.yaw_from_reference = look_at.size() == 2;
+    z_max_ = std::max(z_max_, ctx.uav.p[2]);
+    const double z_ref = z0_ + rise_.distanceAt(ctx.t - t0_);
+    if (!stalled_ && stall_.update(z_ref - ctx.uav.p[2] > params_.get("stall_error", 0.5), ctx.t,
+                                   params_.get("stall_time", 3.0))) {
+        stalled_ = true;
+        z_hold_ = ctx.uav.p[2];
+        cmd.message = fmt("cannot follow the climb any more; maximum height reached [m]: ", z_max_);
+    }
+    if (stalled_) {
+        cmd.path = worldPath(ctx, [this](double) { return Vec3{x_, y_, z_hold_}; }, look_at);
+        return Status::kDone;
+    }
+    cmd.path = worldPath(ctx, [this](double t) { return Vec3{x_, y_, z0_ + rise_.distanceAt(t - t0_)}; }, look_at);
+    const double after = ctx.t - t0_ - rise_.duration();
+    if (after >= 0.0 && (std::abs(params_.get("height", 20.0) - ctx.uav.p[2]) < params_.get("tolerance", 0.3) ||
+                         after > params_.get("settle_timeout", 10.0))) {
+        cmd.message = fmt("climb over, height reached [m]: ", ctx.uav.p[2]);
+        return Status::kDone;
+    }
+    return Status::kRunning;
+}
+
+// ---------------------------------------------------------------------------------------------------------------
 // Land
 // ---------------------------------------------------------------------------------------------------------------
 
@@ -217,7 +331,7 @@ Vec3 Land::relAt(double t) const
             // depth below it (the deck heave then sets the worst touchdown speed, not the descent)
             const double t_descent = params_.get("descent_duration", 12.0);
             const double z_final = rest_height_ + params_.get("final_height", 0.5);
-            const double tau = t - t_phase_;
+            const double tau = t - t_descent_start_;
             if (tau < t_descent) {
                 return {0.0, 0.0, above[2] + (z_final - above[2]) * minJerk(tau / t_descent)};
             }
@@ -251,6 +365,7 @@ Status Land::update(const Context & ctx, UavCommand & cmd)
                                       : "centring tolerance not reached within the timeout, descending anyway";
                 phase_ = Phase::kDescend;
                 t_phase_ = ctx.t;
+                t_descent_start_ = ctx.t;
                 settle_.reset();
             }
             break;

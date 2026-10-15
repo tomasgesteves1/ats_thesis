@@ -6,6 +6,7 @@ from launch import LaunchDescription
 from launch.actions import DeclareLaunchArgument
 from launch.substitutions import LaunchConfiguration
 from launch_ros.actions import Node
+from launch_ros.parameter_descriptions import ParameterValue
 
 
 def generate_launch_description():
@@ -15,7 +16,9 @@ def generate_launch_description():
 
     usv_mpc = Node(
         package='usv_mpc', executable='usv_mpc_node', name='usv_mpc_node', output='screen',
-        parameters=[usv_cfg, {'use_sim_time': True, 'trajectory_type': 'external'}],
+        parameters=[usv_cfg, {'use_sim_time': True, 'trajectory_type': 'external',
+                              'tether_max_length': ParameterValue(LaunchConfiguration('tether_max_length'),
+                                                                  value_type=float)}],
         remappings=[('odom', '/boat/ground_truth/odometry'),
                     ('thrusters/left/thrust', '/boat/thrusters/left/thrust'),
                     ('thrusters/right/thrust', '/boat/thrusters/right/thrust'),
@@ -27,7 +30,9 @@ def generate_launch_description():
 
     uav_mpc = Node(
         package='uav_mpc', executable='uav_mpc_node', name='uav_mpc_node', output='screen',
-        parameters=[uav_cfg, {'use_sim_time': True, 'trajectory_type': 'external', 'use_tether': True}],
+        parameters=[uav_cfg, {'use_sim_time': True, 'trajectory_type': 'external', 'use_tether': True,
+                              'tether_max_length': ParameterValue(LaunchConfiguration('tether_max_length'),
+                                                                  value_type=float)}],
         remappings=[('odom', '/drone/ground_truth/odometry'),
                     ('tether_length', '/moordyn_tether_node/tether_length'),
                     ('reference_path', '/uav/reference_path'),
@@ -53,4 +58,6 @@ def generate_launch_description():
     return LaunchDescription([
         DeclareLaunchArgument('mission', default_value='landing_demo',
                               description='Mission file in share/mission_executor/missions (or absolute path)'),
+        DeclareLaunchArgument('tether_max_length', default_value='15.0',
+                              description='Maximum tether length d_max of both NMPCs (m)'),
         usv_mpc, uav_mpc, executor])

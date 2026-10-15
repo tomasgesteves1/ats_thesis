@@ -1,0 +1,28 @@
+# Inspection of a tower in the water (radio tower at (-25, 0), 44 m high): the boat takes the UAV to a station
+# beside the tower and holds there; the UAV climbs vertically along the tower face to probe the height it can reach
+# with the tether, comes down and inspects the face of the tower seen from the boat along a rising arc (the far
+# side is not inspected: the tether would cross the structure), and lands back on the pad.
+# Run with a long tether: ros2 launch mission_executor mission.launch.py mission:=inspection tether_max_length:=100.0
+name: "Tower inspection and height test"
+
+uav:
+  - {id: takeoff, type: takeoff, vertical_clearance: 1.5, clearance_duration: 5.0, pull_release_height: 1.6,
+     offset: [0.0, 0.0, 3.0], duration: 6.0, tolerance: 0.3, arm_timeout: 30.0}
+  - {id: transit, type: hold, until: usv.transit}
+  - {id: standoff, type: goto_world, position: [-16.0, 0.0, 6.0], look_at: [-25.0, 0.0], duration: 8.0,
+     tolerance: 0.3, velocity_tolerance: 0.3, settle: 2.0, timeout: 20.0}
+  - {id: climb, type: climb, position: [-16.0, 0.0], height: 100.0, speed: 1.5, ramp_time: 3.0, stall_error: 1.0,
+     stall_time: 3.0, look_at: [-25.0, 0.0]}
+  - {id: descend, type: goto_world, position: [-16.0, 0.0, 6.0], look_at: [-25.0, 0.0], duration: 30.0,
+     tolerance: 0.3, velocity_tolerance: 0.3, settle: 2.0, timeout: 20.0}
+  - {id: inspect, type: inspect, center: [-25.0, 0.0], radius: 12.0, angle_start: -60.0, angle_end: 60.0,
+     height_start: 4.0, height_end: 14.0, angular_speed: 0.08, ramp_time: 5.0, entry_duration: 10.0}
+  - {id: land, type: land, height: 3.0, approach_duration: 10.0, tolerance: 0.15, velocity_tolerance: 0.15,
+     settle: 3.0, track_timeout: 40.0, descent_duration: 12.0, final_height: 0.5, final_speed: 0.15,
+     final_ramp: 1.0, depth: 0.2, touch_margin: 0.05, touch_velocity: 0.1, touch_time: 0.5, disarm_timeout: 5.0}
+
+usv:
+  - {id: wait, type: hold, duration: 0.0}
+  - {id: transit, type: waypoints, after: uav.takeoff, points: [[-11.0, 0.0]], speed: 1.0, ramp_time: 5.0,
+     lookahead: 6.0, tolerance: 1.5}
+  - {id: station, type: hold, duration: 0.0}

@@ -62,6 +62,11 @@ Vec3 anchorReference(const Context & ctx);
 std::vector<UavPose> boatRelativePath(const Context & ctx, const std::function<Vec3(double)> & rel,
                                       bool boat_frame = false);
 
+/// Reference horizon of the UAV fixed in the world: point k is world(t + k*dt). The heading points from the
+/// reference position to look_at when given, otherwise it is the boat heading.
+std::vector<UavPose> worldPath(const Context & ctx, const std::function<Vec3(double)> & world,
+                               const std::vector<double> & look_at = {});
+
 /// UAV position relative to the winch reference (anchorReference).
 Vec3 uavRelative(const Context & ctx);
 

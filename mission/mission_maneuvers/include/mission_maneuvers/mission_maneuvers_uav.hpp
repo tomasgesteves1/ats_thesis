@@ -97,6 +97,71 @@ private:
     TravelProfile angle_;   ///< travelled angle (rad) after the entry
 };
 
+/// Minimum-jerk transfer to a point fixed in the world, then waits until the UAV is settled there. With look_at the
+/// heading points to that point (e.g. a structure).
+/// Params: position [m], duration [s], tolerance [m], velocity_tolerance [m/s], settle [s], timeout [s],
+/// fail_on_timeout (0/1), look_at [x, y] (m).
+class GotoWorld : public UavManeuver
+{
+public:
+    using UavManeuver::UavManeuver;
+    std::string type() const override { return "goto_world"; }
+    void start(const Context & ctx) override;
+    Status update(const Context & ctx, UavCommand & cmd) override;
+
+private:
+    double t0_{0.0};
+    Vec3 p0_{};
+    SettleTimer settle_;
+};
+
+/// Inspection arc around a structure: minimum-jerk entry to the start of the arc, then the UAV travels along the arc
+/// (centre fixed in the world) from angle_start to angle_end while its height goes from height_start to height_end
+/// (a helix), with the angular speed ramped up and down; the heading points to the centre.
+/// Params: center [x, y] (m), radius [m], angle_start, angle_end [deg] (world), height_start, height_end [m]
+/// (world), angular_speed [rad/s], ramp_time [s], entry_duration [s].
+class Inspect : public UavManeuver
+{
+public:
+    using UavManeuver::UavManeuver;
+    std::string type() const override { return "inspect"; }
+    void start(const Context & ctx) override;
+    Status update(const Context & ctx, UavCommand & cmd) override;
+
+private:
+    Vec3 worldAt(double t) const;
+    double t0_{0.0};
+    Vec3 p0_{};
+    TravelProfile arc_;   ///< travelled angle (rad)
+};
+
+/// Vertical climb at a given speed up to a target height (world), to probe the height the UAV can reach with the
+/// tether. When the UAV falls behind the reference by more than stall_error for stall_time (thrust saturated by the
+/// weight of the tether, or tether range exhausted) the climb stops there and the maximum height is reported.
+/// The climb is over when the height is within tolerance of the target, or settle_timeout after the reference
+/// reached it.
+/// Params: position [x, y] (m, the current one if not given), height [m], speed [m/s], ramp_time [s],
+/// stall_error [m], stall_time [s], tolerance [m], settle_timeout [s], look_at [x, y] (m).
+class Climb : public UavManeuver
+{
+public:
+    using UavManeuver::UavManeuver;
+    std::string type() const override { return "climb"; }
+    void start(const Context & ctx) override;
+    Status update(const Context & ctx, UavCommand & cmd) override;
+
+private:
+    double t0_{0.0};
+    double x_{0.0};
+    double y_{0.0};
+    double z0_{0.0};
+    double z_max_{0.0};
+    bool stalled_{false};
+    double z_hold_{0.0};
+    TravelProfile rise_;
+    SettleTimer stall_;
+};
+
 /// Tether-pulled landing on the pad above the winch: approach above the winch, stay centred (horizontal
 /// tolerance) until settled, minimum-jerk descent to final_height above the pad with the landing pull requested,
 /// slow final approach at final_speed down to depth below the pad, touchdown detection relative to the current
@@ -119,6 +184,7 @@ private:
     Phase phase_{Phase::kApproach};
     double t_phase_{0.0};
     double rest_height_{0.0};
+    double t_descent_start_{0.0};    ///< the descent profile is kept through touchdown and after it
     TravelProfile final_approach_;   ///< slow final approach to the pad
     Vec3 rel0_{};
     SettleTimer settle_;

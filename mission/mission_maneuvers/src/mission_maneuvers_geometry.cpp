@@ -142,6 +142,18 @@ std::vector<UavPose> boatRelativePath(const Context & ctx, const std::function<V
     return path;
 }
 
+std::vector<UavPose> worldPath(const Context & ctx, const std::function<Vec3(double)> & world,
+                               const std::vector<double> & look_at)
+{
+    std::vector<UavPose> path(static_cast<size_t>(ctx.uav_horizon.steps));
+    for (size_t k = 0; k < path.size(); ++k) {
+        path[k].p = world(ctx.t + static_cast<double>(k) * ctx.uav_horizon.dt);
+        path[k].yaw = look_at.size() == 2 ? std::atan2(look_at[1] - path[k].p[1], look_at[0] - path[k].p[0])
+                                          : ctx.boat.yaw;
+    }
+    return path;
+}
+
 Vec3 uavRelative(const Context & ctx)
 {
     return sub(ctx.uav.p, anchorReference(ctx));
