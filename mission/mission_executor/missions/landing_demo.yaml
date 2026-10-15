@@ -1,0 +1,18 @@
+# Takeoff from the pad, move away from the boat, and land back on the pad with the tether pull while the boat
+# follows a route. Offsets are relative to the winch (world axes), heights above its mean height.
+name: "Landing on the moving boat"
+
+uav:
+  - {id: takeoff, type: takeoff, vertical_clearance: 1.5, clearance_duration: 5.0, pull_release_height: 1.6,
+     offset: [0.0, 0.0, 3.0], duration: 6.0, tolerance: 0.3, arm_timeout: 30.0}
+  - {id: away, type: goto, offset: [-4.0, 3.0, 4.0], duration: 10.0, tolerance: 0.3, velocity_tolerance: 0.3,
+     settle: 2.0, timeout: 20.0}
+  - {id: land, type: land, height: 3.0, approach_duration: 8.0, tolerance: 0.15, velocity_tolerance: 0.15,
+     settle: 3.0, track_timeout: 40.0, descent_duration: 12.0, final_height: 0.5, final_speed: 0.15,
+     final_ramp: 1.0, depth: 0.2, touch_margin: 0.05,
+     touch_velocity: 0.1, touch_time: 0.5, disarm_timeout: 5.0}
+
+usv:
+  - {id: wait, type: hold, duration: 0.0}
+  - {id: route, type: waypoints, after: uav.takeoff, points: [[20.0, 0.0], [20.0, 20.0], [0.0, 20.0], [0.0, 0.0]],
+     speed: 0.75, ramp_time: 5.0, lookahead: 6.0, tolerance: 1.5}

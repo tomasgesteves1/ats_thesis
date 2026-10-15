@@ -1,0 +1,24 @@
+mission_executor_node:
+  ros__parameters:
+    # Mission file: name of a file in share/mission_executor/missions (without .yaml) or an absolute path
+    mission: "landing_demo"
+    rate_hz: 50.0
+
+    # Sampling of the references expected by the controllers: N + 1 points at the sampling time of each NMPC
+    # (the UAV NMPC ignores an external reference with fewer than N + 1 points)
+    uav_horizon_steps: 51
+    uav_horizon_dt: 0.02
+    usv_horizon_steps: 21
+    usv_horizon_dt: 0.1
+    horizon_timeout: 0.5          # [s] an older USV horizon is not used to propagate the boat-relative references
+
+    # Height of the UAV base_link above the winch when resting on the pad, used only if the mission starts with
+    # the UAV already armed (otherwise it is measured before the first takeoff)
+    default_rest_height: 0.26     # [m]
+
+    world_frame: "world"
+    anchor_frame: "boat/tether_anchor"
+    uav_frame: "drone/base_link"
+
+    px4_target_system: 2
+    px4_command_period: 1.0       # [s] period of the repeated arm / offboard / disarm requests
