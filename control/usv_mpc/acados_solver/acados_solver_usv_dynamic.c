@@ -599,10 +599,14 @@ void usv_dynamic_acados_setup_nlp_in(usv_dynamic_solver_capsule* capsule, const 
     double* zl = zlumem+NS*2;
     double* zu = zlumem+NS*3;
     // change only the non-zero elements:
-    Zl[0] = 10000;
-    Zu[0] = 10000;
-    zl[0] = 500;
-    zu[0] = 500;
+    Zl[0] = 4000;
+    Zl[1] = 10000;
+    Zu[0] = 4000;
+    Zu[1] = 10000;
+    zl[0] = 200;
+    zl[1] = 500;
+    zu[0] = 200;
+    zu[1] = 500;
 
     for (int i = 1; i < N; i++)
     {
@@ -722,21 +726,24 @@ void usv_dynamic_acados_setup_nlp_in(usv_dynamic_solver_capsule* capsule, const 
 
     // x
     int* idxbx = malloc(NBX * sizeof(int));
-    idxbx[0] = 6;
-    idxbx[1] = 7;
-    idxbx[2] = 8;
-    idxbx[3] = 9;
+    idxbx[0] = 3;
+    idxbx[1] = 6;
+    idxbx[2] = 7;
+    idxbx[3] = 8;
+    idxbx[4] = 9;
     double* lubx = calloc(2*NBX, sizeof(double));
     double* lbx = lubx;
     double* ubx = lubx + NBX;
-    lbx[0] = -380;
-    ubx[0] = 510;
+    lbx[0] = -0.3;
+    ubx[0] = 10;
     lbx[1] = -380;
     ubx[1] = 510;
-    lbx[2] = -0.5235987755982988;
-    ubx[2] = 0.5235987755982988;
+    lbx[2] = -380;
+    ubx[2] = 510;
     lbx[3] = -0.5235987755982988;
     ubx[3] = 0.5235987755982988;
+    lbx[4] = -0.5235987755982988;
+    ubx[4] = 0.5235987755982988;
 
     for (int i = 1; i < N; i++)
     {
@@ -773,6 +780,27 @@ void usv_dynamic_acados_setup_nlp_in(usv_dynamic_solver_capsule* capsule, const 
 
 
 
+
+    // ocp_nlp_constraints_model_set(nlp_config, nlp_dims, nlp_in, nlp_out, 0, "idxsbx", idxsbx);
+    // ocp_nlp_constraints_model_set(nlp_config, nlp_dims, nlp_in, nlp_out, 0, "lsbx", lsbx);
+    // ocp_nlp_constraints_model_set(nlp_config, nlp_dims, nlp_in, nlp_out, 0, "usbx", usbx);
+
+    // soft bounds on x
+    int* idxsbx = malloc(NSBX * sizeof(int));
+    idxsbx[0] = 0;
+
+    double* lusbx = calloc(2*NSBX, sizeof(double));
+    double* lsbx = lusbx;
+    double* usbx = lusbx + NSBX;
+
+    for (int i = 1; i < N; i++)
+    {
+        ocp_nlp_constraints_model_set(nlp_config, nlp_dims, nlp_in, nlp_out, i, "idxsbx", idxsbx);
+        ocp_nlp_constraints_model_set(nlp_config, nlp_dims, nlp_in, nlp_out, i, "lsbx", lsbx);
+        ocp_nlp_constraints_model_set(nlp_config, nlp_dims, nlp_in, nlp_out, i, "usbx", usbx);
+    }
+    free(idxsbx);
+    free(lusbx);
 
 
     // set up soft bounds for nonlinear constraints

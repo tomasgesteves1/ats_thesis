@@ -71,9 +71,12 @@ def generate_acados_ocp():
     # Thruster range limits (state) and rate limits (input)
     lim = config["limits"]
     a_max = np.deg2rad(lim["alpha_max_deg"])
-    ocp.constraints.lbx = np.array([lim["T_min"], lim["T_min"], -a_max, -a_max])
-    ocp.constraints.ubx = np.array([lim["T_max"], lim["T_max"], a_max, a_max])
-    ocp.constraints.idxbx = np.array([6, 7, 8, 9])
+    # Surge speed bound u >= u_min (soft): the boat may back off slowly to hold or brake, but not sail astern fast
+    # (without it, a sudden change of the reference makes it turn the stern and back towards the target)
+    ocp.constraints.lbx = np.array([lim["u_min"], lim["T_min"], lim["T_min"], -a_max, -a_max])
+    ocp.constraints.ubx = np.array([lim["u_max"], lim["T_max"], lim["T_max"], a_max, a_max])
+    ocp.constraints.idxbx = np.array([3, 6, 7, 8, 9])
+    ocp.constraints.idxsbx = np.array([0])
 
     ad_max = np.deg2rad(lim["alpha_dot_max_deg"])
     ocp.constraints.lbu = np.array([-lim["T_dot_max"], -lim["T_dot_max"], -ad_max, -ad_max])
@@ -91,14 +94,20 @@ def generate_acados_ocp():
     ocp.constraints.idxsh = np.array([0])
     ocp.constraints.idxsh_e = np.array([0])
 
-    # Slack penalty rho(sigma) = mu1*sigma + mu2*sigma^2 (acados: z*s + 0.5*Z*s^2, so Z = 2*mu2)
+    # Slack penalties rho(sigma) = mu1*sigma + mu2*sigma^2 (acados: z*s + 0.5*Z*s^2, so Z = 2*mu2). The slacks of
+    # the stages are ordered [surge bound, tether]; the terminal stage has only the tether
     mu1 = config["slack_weights"]["mu1"]
     mu2 = config["slack_weights"]["mu2"]
-    for suffix in ('', '_e'):
-        setattr(ocp.cost, 'zl' + suffix, mu1 * np.ones(1))
-        setattr(ocp.cost, 'zu' + suffix, mu1 * np.ones(1))
-        setattr(ocp.cost, 'Zl' + suffix, 2.0 * mu2 * np.ones(1))
-        setattr(ocp.cost, 'Zu' + suffix, 2.0 * mu2 * np.ones(1))
+    mu1_u = config["slack_weights_surge"]["mu1"]
+    mu2_u = config["slack_weights_surge"]["mu2"]
+    ocp.cost.zl = np.array([mu1_u, mu1])
+    ocp.cost.zu = np.array([mu1_u, mu1])
+    ocp.cost.Zl = 2.0 * np.array([mu2_u, mu2])
+    ocp.cost.Zu = 2.0 * np.array([mu2_u, mu2])
+    ocp.cost.zl_e = mu1 * np.ones(1)
+    ocp.cost.zu_e = mu1 * np.ones(1)
+    ocp.cost.Zl_e = 2.0 * mu2 * np.ones(1)
+    ocp.cost.Zu_e = 2.0 * mu2 * np.ones(1)
 
     # Solver options
     ocp.solver_options.qp_solver = 'PARTIAL_CONDENSING_HPIPM'

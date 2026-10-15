@@ -41,10 +41,10 @@
 #define USV_DYNAMIC_NU     4
 #define USV_DYNAMIC_NP     5
 #define USV_DYNAMIC_NP_GLOBAL     0
-#define USV_DYNAMIC_NBX    4
+#define USV_DYNAMIC_NBX    5
 #define USV_DYNAMIC_NBX0   10
 #define USV_DYNAMIC_NBU    4
-#define USV_DYNAMIC_NSBX   0
+#define USV_DYNAMIC_NSBX   1
 #define USV_DYNAMIC_NSBU   0
 #define USV_DYNAMIC_NSH    1
 #define USV_DYNAMIC_NSH0   0
@@ -55,7 +55,7 @@
 #define USV_DYNAMIC_NSPHIN 0
 #define USV_DYNAMIC_NSPHI0 0
 #define USV_DYNAMIC_NSBXN  0
-#define USV_DYNAMIC_NS     1
+#define USV_DYNAMIC_NS     2
 #define USV_DYNAMIC_NS0    0
 #define USV_DYNAMIC_NSN    1
 #define USV_DYNAMIC_NG     0
