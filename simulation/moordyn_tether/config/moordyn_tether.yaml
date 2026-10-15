@@ -59,7 +59,7 @@ moordyn_tether_node:
     
     # Common Constraints:
     winch_min_length: 1.5      # CFL-safe minimum [m] (CFL≈0.023 with N=30, EA=100, dtM=0.0002)
-    winch_max_length: 50.0     # maximum unstretched length [m]
+    winch_max_length: 100.0    # maximum unstretched length [m]
 
     # Force filter
     # Reduces high-frequency noise from the physics solver
@@ -67,7 +67,7 @@ moordyn_tether_node:
 
     # Limits on the force applied in Gazebo (protect the vehicles from numerical excursions of the cable solver).
     # The raw MoorDyn force is still published on the force magnitude topics.
-    wrench_max_force_n: 10.0        # maximum magnitude of the applied force [N] (nominal tension is about 2 N)
+    wrench_max_force_n: 40.0        # maximum magnitude of the applied force [N] (weight of 100 m of tether: ~20 N)
     wrench_max_rate_n_per_s: 100.0  # maximum rate of change of the applied force [N/s]
 
     # Odometry samples with larger velocities are discarded (corrupted samples, see odometryIsSane)

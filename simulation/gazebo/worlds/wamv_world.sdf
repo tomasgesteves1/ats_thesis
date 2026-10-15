@@ -3,6 +3,12 @@
   <world name="wamv_world">
     <include> <uri>coast_waves</uri> </include>
     <include> <uri>seabed</uri> </include>
+    <!-- Structure for the inspection missions (static, legs in the water); Gazebo Fuel model -->
+    <include>
+      <name>radio_tower</name>
+      <uri>https://fuel.gazebosim.org/1.0/OpenRobotics/models/Radio tower</uri>
+      <pose>-25 0 -1 0 0 0</pose>
+    </include>
 
     <physics name="1ms" type="ode">
       <max_step_size>0.001</max_step_size>
