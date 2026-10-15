@@ -17,6 +17,7 @@
 #include <visualization_msgs/msg/marker_array.hpp>
 #include <std_msgs/msg/float64.hpp>
 #include <std_msgs/msg/bool.hpp>
+#include <geometry_msgs/msg/vector3.hpp>
 
 #include "moordyn_tether/moordyn_tether_pipeline.hpp"
 
@@ -165,6 +166,11 @@ private:
     double straight_exit_distance_{1.6};    ///< m
     double pull_tension_{4.0};              ///< N
     double pull_rate_{4.0};                 ///< N/s
+
+    // --- External force on the UAV (world frame, N), added to the tether force (e.g. wind in tests); it is applied
+    // here because this node owns the persistent wrench of the UAV in Gazebo ---
+    rclcpp::Subscription<geometry_msgs::msg::Vector3>::SharedPtr external_force_sub_;
+    std::array<double, 3> external_force_drone_{0.0, 0.0, 0.0};
 };
 
 }  // namespace moordyn_tether

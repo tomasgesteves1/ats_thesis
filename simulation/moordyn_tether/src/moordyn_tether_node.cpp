@@ -106,6 +106,11 @@ MoordynTetherNode::MoordynTetherNode(const rclcpp::NodeOptions & options)
         drone_odom_topic, 10,
         std::bind(&MoordynTetherNode::droneOdomCallback, this, _1));
 
+    external_force_sub_ = this->create_subscription<geometry_msgs::msg::Vector3>(
+        "~/external_force_drone", 10, [this](geometry_msgs::msg::Vector3::SharedPtr msg) {
+            external_force_drone_ = {msg->x, msg->y, msg->z};
+        });
+
     pull_sub_ = this->create_subscription<std_msgs::msg::Bool>(
         "~/tether_pull", 10,
         std::bind(&MoordynTetherNode::pullCallback, this, _1));
@@ -417,7 +422,9 @@ void MoordynTetherNode::physicsLoop()
         // The force sent to Gazebo is limited in magnitude and in rate of change, so that a numerical excursion
         // of the cable solver cannot push the vehicles; the raw force is still published for diagnosis.
         const auto fb = limitForce(boat_link_name_, {out_forces[0], out_forces[1], out_forces[2]}, dt);
-        const auto fd = limitForce(drone_link_name_, {out_forces[3], out_forces[4], out_forces[5]}, dt);
+        const auto fd = limitForce(drone_link_name_, {out_forces[3] + external_force_drone_[0],
+                                                      out_forces[4] + external_force_drone_[1],
+                                                      out_forces[5] + external_force_drone_[2]}, dt);
         publishWrench(boat_link_name_, fb[0], fb[1], fb[2]);
         publishWrench(drone_link_name_, fd[0], fd[1], fd[2]);
         publishGeometry(cable_nodes);
