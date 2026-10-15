@@ -16,7 +16,7 @@ def generate_launch_description():
     # Barco
     boat_x, boat_y, boat_z = -0.288249, 0.0, 0.2  # base_link origin = system CG (0.288 m aft of the old hull origin)
     # Drone (Pousado no Convés)
-    drone_world_x, drone_world_z = 0.3, 1.65
+    drone_world_x, drone_world_z = boat_x, 1.65  # centre of the landing pad, above the tether winch
 
     # Caminhos PX4
     px4_dir = os.environ.get('PX4_DIR', os.path.expanduser('~/PX4-Autopilot'))

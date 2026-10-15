@@ -2,9 +2,36 @@
 <robot name="wamv">
   <link name="boat/base_link">
     <visual>
+      <origin xyz="0.288249 0 0" rpy="0 0 0"/>
       <geometry>
         <mesh filename="package://description/models/wamv/meshes/WAM-V-Base.dae"/>
       </geometry>
+    </visual>
+    <!-- Landing pad above the tether winch (as in models/wamv/model.sdf) -->
+    <visual name="landing_pad_plate">
+      <origin xyz="0.0000 0.0000 1.3050" rpy="0.0000 0.0000 0.0000"/>
+      <geometry><box size="0.4000 0.4000 0.0100"/></geometry>
+      <material name="pad_plate"><color rgba="0.15 0.15 0.15 1"/></material>
+    </visual>
+    <visual name="landing_pad_wall_front">
+      <origin xyz="0.2500 0.0000 1.3550" rpy="0.0000 -0.7854 0.0000"/>
+      <geometry><box size="0.1414 0.6000 0.0100"/></geometry>
+      <material name="pad_wall_front"><color rgba="0.9 0.75 0.1 1"/></material>
+    </visual>
+    <visual name="landing_pad_wall_back">
+      <origin xyz="-0.2500 0.0000 1.3550" rpy="0.0000 0.7854 0.0000"/>
+      <geometry><box size="0.1414 0.6000 0.0100"/></geometry>
+      <material name="pad_wall_back"><color rgba="0.9 0.75 0.1 1"/></material>
+    </visual>
+    <visual name="landing_pad_wall_left">
+      <origin xyz="0.0000 0.2500 1.3550" rpy="0.7854 0.0000 0.0000"/>
+      <geometry><box size="0.6000 0.1414 0.0100"/></geometry>
+      <material name="pad_wall_left"><color rgba="0.9 0.75 0.1 1"/></material>
+    </visual>
+    <visual name="landing_pad_wall_right">
+      <origin xyz="0.0000 -0.2500 1.3550" rpy="-0.7854 0.0000 0.0000"/>
+      <geometry><box size="0.6000 0.1414 0.0100"/></geometry>
+      <material name="pad_wall_right"><color rgba="0.9 0.75 0.1 1"/></material>
     </visual>
   </link>
 </robot>
