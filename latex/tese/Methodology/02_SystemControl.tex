@@ -360,12 +360,25 @@ The \gls{uav} \gls{nmpc} computes, at every sampling instant, the thrust and att
 
 \subsubsection*{Predictive Model}
 
-The \gls{uav} model defined in Section~\ref{chapter:modeling} assumed that the commanded attitude is tracked instantaneously by the low-level flight controller. In reality, the closed-loop attitude response of the autopilot exhibits a first-order lag characterised by a time constant $\tau > 0$:
+The \gls{uav} model defined in Section~\ref{chapter:modeling} assumed that the commanded attitude is tracked instantaneously by the low-level flight controller. In reality, the autopilot tracks the commanded attitude with a delay, and it does so by rotating the vehicle so that the direction of the thrust approaches the commanded one, while the yaw is controlled separately. The commanded attitude is given by the setpoints $\phi_{\mathrm{cmd}}, \theta_{\mathrm{cmd}}, \psi_{\mathrm{cmd}}$, and, following \eqref{eq:uav_thrust_inertial}, the commanded direction of the thrust is $\mathbf{R}(\phi_{\mathrm{cmd}},\theta_{\mathrm{cmd}},\psi_{\mathrm{cmd}})[0,0,1]^\top$. The setpoints reach the autopilot after a transport delay, $\tau_d$ for roll and pitch and $\tau_{d,\psi}$ for yaw, and the closed-loop response of the autopilot exhibits a first-order lag characterised by a time constant $\tau > 0$ for the direction of the thrust and $\tau_\psi > 0$ for the yaw:
 \begin{equation}
-    \dot\phi = \frac{1}{\tau}\big(\phi_{\mathrm{cmd}} - \phi\big), \qquad \dot\theta = \frac{1}{\tau}\big(\theta_{\mathrm{cmd}} - \theta\big), \qquad \dot\psi = \frac{1}{\tau_\psi}\big(\psi_{\mathrm{cmd}} - \psi\big),
+    \begin{gathered}
+        \dot{\mathbf{z}}^{\mathcal{B}_a} = \frac{1}{\tau}\Big(\mathbf{R}\big(\phi_{\mathrm{cmd}}(t-\tau_d),\theta_{\mathrm{cmd}}(t-\tau_d),\psi_{\mathrm{cmd}}(t-\tau_d)\big)[0,0,1]^\top - \mathbf{z}^{\mathcal{B}_a}\Big), \\
+        \dot\psi = \frac{1}{\tau_\psi}\big(\psi_{\mathrm{cmd}}(t-\tau_{d,\psi}) - \psi\big),
+    \end{gathered}
     \label{eq:uav_mpc_attitude_lag}
 \end{equation}
-where $\phi, \theta, \psi$ denote the actual Euler angles, $\phi_{\mathrm{cmd}}, \theta_{\mathrm{cmd}}, \psi_{\mathrm{cmd}}$ are the attitude setpoints commanded to the autopilot, and $\tau$ and $\tau_\psi$ are the tracking time constants of roll and pitch, and of yaw, respectively.
+where $\mathbf{z}^{\mathcal{B}_a}$, the direction of the thrust, is expressed in $\{\mathcal{I}\}$, and $\psi$ is the actual yaw of the \gls{uav}.
+
+Since the yaw only rotates the direction of the thrust about the vertical, this direction is described by two tilt angles $\phi, \theta$, measured relative to the commanded yaw,
+\begin{equation}
+    \begin{gathered}
+        \mathbf{z}^{\mathcal{B}_a} = \mathbf{R}(\phi,\theta,\psi_{\mathrm{cmd}})[0,0,1]^\top = \mathbf{R}(0,0,\psi_{\mathrm{cmd}})\,\mathbf{n}(\phi,\theta), \\
+        \mathbf{n}(\phi,\theta) = \mathbf{R}(\phi,\theta,0)[0,0,1]^\top = [\sin\theta\cos\phi,\ -\sin\phi,\ \cos\theta\cos\phi]^\top,
+    \end{gathered}
+    \label{eq:uav_mpc_tilt}
+\end{equation}
+which coincide with the roll and pitch angles of the \gls{uav} when its yaw equals the commanded yaw. The setpoints $\phi_{\mathrm{cmd}}, \theta_{\mathrm{cmd}}$ are, in the same way, the tilt angles of the commanded direction of the thrust.
 
 Furthermore, similarly to the thrusters of the \gls{usv}, the attitude commands and the thrust cannot change arbitrarily fast, and their rates of change are subject to physical slew-rate limits:
 \begin{equation}
@@ -392,13 +405,13 @@ The kinematics are the trivial identity already used in \eqref{eq:uav_kinematics
     \label{eq:uav_mpc_kinematics}
 \end{equation}
 
-The translational dynamics follow \eqref{eq:uav_dynamics}, with the thrust term expanded, including the linear horizontal rotor drag opposing translational motion, and the tether force $\mathbf{F}_{\mathrm{tether}}^{\mathcal{I}} = [F_{\mathrm{tether},x}^{\mathcal{I}}, F_{\mathrm{tether},y}^{\mathcal{I}}, F_{\mathrm{tether},z}^{\mathcal{I}}]^\top$ given by \eqref{eq:uav_tether_geometry}--\eqref{eq:uav_tether_force}:
+The translational dynamics follow \eqref{eq:uav_dynamics}, with the thrust term expanded using the direction of the thrust \eqref{eq:uav_mpc_tilt}, including the linear horizontal rotor drag opposing translational motion, and the tether force $\mathbf{F}_{\mathrm{tether}}^{\mathcal{I}} = [F_{\mathrm{tether},x}^{\mathcal{I}}, F_{\mathrm{tether},y}^{\mathcal{I}}, F_{\mathrm{tether},z}^{\mathcal{I}}]^\top$ given by \eqref{eq:uav_tether_geometry}--\eqref{eq:uav_tether_force}:
 \begin{equation}
-    \ddot x = \frac{T}{m}\big(\cos\psi\sin\theta\cos\phi+\sin\psi\sin\phi\big) - \frac{d_r}{m}\dot{x} + \frac{1}{m}F_{\mathrm{tether},x}^{\mathcal{I}},
+    \ddot x = \frac{T}{m}\big(\cos\psi_{\mathrm{cmd}}\sin\theta\cos\phi+\sin\psi_{\mathrm{cmd}}\sin\phi\big) - \frac{d_r}{m}\dot{x} + \frac{1}{m}F_{\mathrm{tether},x}^{\mathcal{I}},
     \label{eq:uav_mpc_xddot}
 \end{equation}
 \begin{equation}
-    \ddot y = \frac{T}{m}\big(\sin\psi\sin\theta\cos\phi-\cos\psi\sin\phi\big) - \frac{d_r}{m}\dot{y} + \frac{1}{m}F_{\mathrm{tether},y}^{\mathcal{I}},
+    \ddot y = \frac{T}{m}\big(\sin\psi_{\mathrm{cmd}}\sin\theta\cos\phi-\cos\psi_{\mathrm{cmd}}\sin\phi\big) - \frac{d_r}{m}\dot{y} + \frac{1}{m}F_{\mathrm{tether},y}^{\mathcal{I}},
     \label{eq:uav_mpc_yddot}
 \end{equation}
 \begin{equation}
@@ -406,11 +419,17 @@ The translational dynamics follow \eqref{eq:uav_dynamics}, with the thrust term 
     \label{eq:uav_mpc_zddot}
 \end{equation}
 
-The attitude dynamics combine the first-order tracking lag with the command rate integrators:
+The attitude dynamics follow from the response \eqref{eq:uav_mpc_attitude_lag}. Since the delayed setpoints are not part of the state, they are approximated to first order with their rates, which are inputs of the model, $\phi_{\mathrm{cmd}}(t-\tau_d) \approx \phi_{\mathrm{cmd}} - \tau_d\,\dot\phi_{\mathrm{cmd}}$, and likewise for $\theta_{\mathrm{cmd}}$ and $\psi_{\mathrm{cmd}}$. Expressing the response of the direction of the thrust in the frame rotated by $\psi_{\mathrm{cmd}}$, in which this direction is $\mathbf{n}(\phi,\theta)$, gives
 \begin{equation}
-    \dot\phi = \frac{1}{\tau}\big(\phi_{\mathrm{cmd}} - \phi\big), \qquad \dot\theta = \frac{1}{\tau}\big(\theta_{\mathrm{cmd}} - \theta\big), \qquad \dot\psi = \frac{1}{\tau_\psi}\big(\psi_{\mathrm{cmd}} - \psi\big),
+    \dot{\mathbf{n}} = \frac{1}{\tau}\Big(\mathbf{R}\big(0,0,-\tau_d\dot\psi_{\mathrm{cmd}}\big)\,\mathbf{n}\big(\phi_{\mathrm{cmd}}-\tau_d\dot\phi_{\mathrm{cmd}},\ \theta_{\mathrm{cmd}}-\tau_d\dot\theta_{\mathrm{cmd}}\big) - \mathbf{n}\Big) - \dot\psi_{\mathrm{cmd}}\,[0,0,1]^\top \times \mathbf{n},
+    \label{eq:uav_mpc_tilt_rate}
+\end{equation}
+where the rotation inside the brackets accounts for the change of the commanded yaw during the delay, and the last term for the rotation of the frame itself. The partial derivatives of $\mathbf{n}$ with respect to $\phi$ and $\theta$ are orthogonal, with norms $1$ and $\cos\phi$, so the rates of the tilt angles are the projections of $\dot{\mathbf{n}}$ onto them. Together with the response of the yaw, the attitude dynamics are
+\begin{equation}
+    \dot\phi = \Big(\frac{\partial\mathbf{n}}{\partial\phi}\Big)^{\!\top}\dot{\mathbf{n}}, \qquad \dot\theta = \frac{1}{\cos^2\phi}\Big(\frac{\partial\mathbf{n}}{\partial\theta}\Big)^{\!\top}\dot{\mathbf{n}}, \qquad \dot\psi = \frac{1}{\tau_\psi}\big(\psi_{\mathrm{cmd}} - \tau_{d,\psi}\dot\psi_{\mathrm{cmd}} - \psi\big),
     \label{eq:uav_mpc_attitude_dynamics}
 \end{equation}
+and they are completed by the command rate integrators:
 \begin{equation}
     \dot\phi_{\mathrm{cmd}} = \dot\phi_{\mathrm{cmd}}, \qquad \dot\theta_{\mathrm{cmd}} = \dot\theta_{\mathrm{cmd}}, \qquad \dot\psi_{\mathrm{cmd}} = \dot\psi_{\mathrm{cmd}}, \qquad \dot T = \dot T.
     \label{eq:uav_mpc_command_rates}
@@ -445,7 +464,7 @@ where $\mathbf{p}_{xy}=[x,y]^\top$. Since $\psi$ is an angle, the periodicity is
     q_\psi\left(1 - \frac{\cos\psi\,b_x + \sin\psi\,b_y}{\sqrt{\|\mathbf{b}\|^2 + \epsilon}}\right),
     \label{eq:uav_mpc_cost_yaw}
 \end{equation}
-where $q_\psi \ge 0$ is a scalar weight setting the relative importance of yaw tracking, and $\epsilon > 0$ is a small constant that keeps the term well defined when the \gls{uav} is above the reference point, where the bearing is undefined. This term is minimised when $\psi$ points along $\mathbf{b}$.
+where $q_\psi \ge 0$ is a scalar weight setting the relative importance of yaw tracking, and $\epsilon > 0$ is a regularisation constant. This term is minimised when $\psi$ points along $\mathbf{b}$. Far from the reference point, where $\|\mathbf{b}\|^2 \gg \epsilon$, the term approaches $q_\psi$ times one minus the cosine of the angle between $\psi$ and $\mathbf{b}$, while within a horizontal distance of the order of $\sqrt{\epsilon}$ its weight fades. The term thus remains well defined above the reference point, where the bearing is undefined, and does not drive the \gls{uav} to rotate when it passes close to it.
 
 The thrust is penalised relative to the hover thrust, since it cannot be penalised toward zero without opposing gravity,
 \begin{equation}
@@ -622,6 +641,7 @@ At every sampling instant $k$, the translational and physical attitude component
     \mathbf{x}_{a,k} = \big[x_k,y_k,z_k,\dot x_k,\dot y_k,\dot z_k,\ \phi_k,\theta_k,\psi_k,\ \phi_{\mathrm{cmd},k-1},\theta_{\mathrm{cmd},k-1},\psi_{\mathrm{cmd},k-1},\ T_{k-1}\big]^\top.
     \label{eq:uav_mpc_initial_condition}
 \end{equation}
+The tilt angles $\phi_k, \theta_k$ are obtained from the estimated direction of the thrust, expressed in the frame rotated by the last commanded yaw as in \eqref{eq:uav_mpc_tilt}, $\mathbf{R}(0,0,\psi_{\mathrm{cmd},k-1})^\top\mathbf{z}^{\mathcal{B}_a} = \mathbf{n}(\phi_k,\theta_k)$. Since the state estimate is not synchronised with the sampling instants, the position is also propagated with the estimated velocity from the instant $t_e$ of the most recent estimate to the sampling instant $t_k$, $\mathbf{p}_k = \mathbf{p}(t_e) + \mathbf{v}(t_e)\,(t_k - t_e)$.
 
 The references and the \gls{usv}'s most recently computed predicted trajectory are given data at each instant.
 
