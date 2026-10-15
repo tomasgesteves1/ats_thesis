@@ -1,6 +1,7 @@
 # Abort test: the second UAV maneuver cannot be completed (the point is beyond the tether range) and fails on
 # timeout; the mission is aborted, the boat holds its position and the UAV lands on the pad.
 name: "Abort and return to the boat"
+description: "A maneuver that cannot be completed fails: the boat holds and the UAV lands (abort sequence)."
 
 uav:
   - {id: takeoff, type: takeoff, vertical_clearance: 1.5, clearance_duration: 5.0, pull_release_height: 1.6,

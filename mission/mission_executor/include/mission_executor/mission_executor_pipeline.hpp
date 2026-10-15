@@ -56,6 +56,9 @@ public:
 
     Output tick(const Measurements & m);
 
+    /// Aborts the running mission at the next tick (e.g. requested by the operator).
+    void requestAbort() { abort_requested_ = true; }
+
     MissionState state() const { return state_; }
     const std::string & name() const { return name_; }
 
@@ -79,6 +82,7 @@ private:
     double rest_height_{0.0};
     bool usv_idle_set_{false};
     bool abort_reported_{false};
+    bool abort_requested_{false};
     double timeout_{0.0};
     double t_start_{-1.0};
     mission_maneuvers::UsvPose usv_idle_;

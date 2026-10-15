@@ -1,6 +1,7 @@
 # Takeoff from the pad, move away from the boat, and land back on the pad with the tether pull while the boat
 # follows a route. Offsets are relative to the winch (world axes), heights above its mean height.
 name: "Landing on the moving boat"
+description: "Takeoff, move away from the boat and land back on the pad while the boat follows a route."
 
 uav:
   - {id: takeoff, type: takeoff, vertical_clearance: 1.5, clearance_duration: 5.0, pull_release_height: 1.6,

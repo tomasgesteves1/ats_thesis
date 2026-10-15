@@ -86,6 +86,9 @@ MissionExecutorNode::MissionExecutorNode(const rclcpp::NodeOptions & options)
         "px4/vehicle_status", rclcpp::SensorDataQoS(),
         [this](px4_msgs::msg::VehicleStatus::SharedPtr msg) { status_ = msg; });
 
+    abort_sub_ = create_subscription<std_msgs::msg::Empty>(
+        "mission/abort", 10, [this](std_msgs::msg::Empty::SharedPtr) { pipeline_->requestAbort(); });
+
     uav_path_pub_ = create_publisher<nav_msgs::msg::Path>("uav/reference_path", 10);
     usv_path_pub_ = create_publisher<nav_msgs::msg::Path>("usv/reference_path", 10);
     tether_pull_pub_ = create_publisher<std_msgs::msg::Bool>("tether/pull", 10);

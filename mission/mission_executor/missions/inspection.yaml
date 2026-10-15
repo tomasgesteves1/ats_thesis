@@ -4,6 +4,9 @@
 # side is not inspected: the tether would cross the structure), and lands back on the pad.
 # Run with a long tether: ros2 launch mission_executor mission.launch.py mission:=inspection tether_max_length:=100.0
 name: "Tower inspection and height test"
+description: "The boat stops beside the radio tower; the UAV climbs up to 100 m, inspects the tower face and lands."
+# Options of mission.launch.py needed by this mission (used by the dashboard)
+launch: {tether_max_length: 100.0}
 
 uav:
   - {id: takeoff, type: takeoff, vertical_clearance: 1.5, clearance_duration: 5.0, pull_release_height: 1.6,

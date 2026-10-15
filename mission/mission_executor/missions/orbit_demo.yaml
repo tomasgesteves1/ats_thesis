@@ -1,5 +1,6 @@
 # Takeoff from the pad, one orbit around the boat while it follows a route, and landing back on the pad.
 name: "Orbit around the moving boat"
+description: "Takeoff, one orbit around the moving boat and landing on the pad."
 
 uav:
   - {id: takeoff, type: takeoff, vertical_clearance: 1.5, clearance_duration: 5.0, pull_release_height: 1.6,

@@ -120,7 +120,10 @@ Output MissionExecutorPipeline::tick(const Measurements & m)
     }
 
     if (state_ == MissionState::kRunning) {
-        if (m.t - t_start_ > timeout_) {
+        if (abort_requested_) {
+            out.events.push_back("abort requested by the operator");
+            startAbort(m, out);
+        } else if (m.t - t_start_ > timeout_) {
             out.events.push_back("mission timeout");
             startAbort(m, out);
         } else if (uav_->failed() || usv_->failed()) {

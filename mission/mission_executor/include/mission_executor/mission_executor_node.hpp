@@ -10,6 +10,7 @@
 #include <px4_msgs/msg/vehicle_status.hpp>
 #include <rclcpp/rclcpp.hpp>
 #include <std_msgs/msg/bool.hpp>
+#include <std_msgs/msg/empty.hpp>
 #include <std_msgs/msg/string.hpp>
 #include <tf2_ros/buffer.h>
 #include <tf2_ros/transform_listener.h>
@@ -60,6 +61,7 @@ private:
     rclcpp::Subscription<nav_msgs::msg::Path>::SharedPtr usv_horizon_sub_;
     rclcpp::Subscription<nav_msgs::msg::Odometry>::SharedPtr target_odom_sub_;
     rclcpp::Subscription<px4_msgs::msg::VehicleStatus>::SharedPtr status_sub_;
+    rclcpp::Subscription<std_msgs::msg::Empty>::SharedPtr abort_sub_;
 
     // outputs
     rclcpp::Publisher<nav_msgs::msg::Path>::SharedPtr uav_path_pub_;
