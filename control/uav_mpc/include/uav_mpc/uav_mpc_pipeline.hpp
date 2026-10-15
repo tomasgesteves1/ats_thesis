@@ -57,6 +57,8 @@ public:
     void setExternalReferencePath(const std::vector<TrajectoryPoint>& path);
     void setTrajectoryType(TrajectoryType type);
     void setUseTether(bool use_tether);
+    // Yaw aligned with a given heading instead of looking at the attachment point (e.g. the boat heading for landing)
+    void setYawHeading(bool enabled, double heading);
     void setParameters(const UavMpcParams& params);
     UavControlOutput computeControl(double current_time);
 
@@ -84,6 +86,8 @@ private:
     bool has_boat_horizon_;
     double L_tether_;
     bool use_tether_;
+    bool yaw_heading_enabled_{false};
+    double yaw_heading_{0.0};
     UavMpcParams params_;
 
     // Trajectory generator and time

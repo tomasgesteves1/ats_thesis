@@ -78,6 +78,11 @@ void UavMpcPipeline::setTrajectoryType(TrajectoryType type) {
     trajectory_type_ = type;
 }
 
+void UavMpcPipeline::setYawHeading(bool enabled, double heading) {
+    yaw_heading_enabled_ = enabled;
+    yaw_heading_ = heading;
+}
+
 void UavMpcPipeline::setUseTether(bool use_tether) {
     use_tether_ = use_tether;
 }
@@ -381,13 +386,22 @@ void UavMpcPipeline::setupOcpSolver(const double x0[13]) {
 
     // Parameters per node: tether attachment point (position, velocity), yaw reference point, tether switch.
     // The UAV looks at the attachment point; without tether the reference point is the UAV itself (yaw is free).
+    // To align the yaw with a given heading, the reference point is moved far along that heading from the
+    // attachment point, so that its bearing from the UAV is the heading (error below |p - anchor| / distance rad).
+    constexpr double kHeadingPointDistance = 100.0;  // m
     for (int i = 0; i <= N; i++) {
         auto b_state = tether::getInterpolatedBoatState(i, Ts_, anchor_x_, anchor_y_, anchor_z_, has_boat_horizon_, boat_horizon_);
+        double b_ref_x = use_tether_ ? b_state.px : x0[0];
+        double b_ref_y = use_tether_ ? b_state.py : x0[1];
+        if (use_tether_ && yaw_heading_enabled_) {
+            b_ref_x += kHeadingPointDistance * std::cos(yaw_heading_);
+            b_ref_y += kHeadingPointDistance * std::sin(yaw_heading_);
+        }
         double p_params[NP] = {
             b_state.px, b_state.py, b_state.pz,
             b_state.vx, b_state.vy, b_state.vz,
-            use_tether_ ? b_state.px : x0[0],
-            use_tether_ ? b_state.py : x0[1],
+            b_ref_x,
+            b_ref_y,
             use_tether_ ? 1.0 : 0.0
         };
         uav_tethered_acados_update_params(capsule, i, p_params, NP);

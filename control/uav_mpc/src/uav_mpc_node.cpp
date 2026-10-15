@@ -30,6 +30,10 @@ UavMpcNode::UavMpcNode()
     // Declare dynamic parameters (Rule 2 of CODE_STANDARDS.md)
     this->declare_parameter<bool>("open_loop_test", false);
     this->declare_parameter<bool>("use_tether", true);
+    // Align the yaw with the heading of the reference path (orientation of its first pose) instead of looking at
+    // the tether attachment point (used for landing, with the boat heading as reference). Initial value; it is
+    // switched at run time through the yaw_from_reference topic.
+    yaw_from_reference_ = this->declare_parameter<bool>("yaw_from_reference", false);
     this->declare_parameter<double>("tether_rate_limit", 1.5);
     this->declare_parameter<double>("winch_speed_limit", 2.0);
     rcl_interfaces::msg::ParameterDescriptor tether_desc;
@@ -44,7 +48,7 @@ UavMpcNode::UavMpcNode()
     this->declare_parameter<double>("phi_max", 0.5);
     this->declare_parameter<double>("theta_max", 0.5);
     this->declare_parameter<double>("thrust_min", 2.02);
-    this->declare_parameter<double>("thrust_max", 32.96);
+    this->declare_parameter<double>("thrust_max", 39.96);
     this->declare_parameter<double>("hover_throttle", 0.618);
     this->declare_parameter<double>("max_pose_age", 0.05);   // s, cap of the pose age compensation
     this->declare_parameter<double>("rotor_speed_min", 150.0);
@@ -70,6 +74,9 @@ UavMpcNode::UavMpcNode()
 
     boat_horizon_sub_ = this->create_subscription<nav_msgs::msg::Path>(
         "boat_mpc_horizon", 10, std::bind(&UavMpcNode::boatHorizonCallback, this, std::placeholders::_1));
+
+    yaw_mode_sub_ = this->create_subscription<std_msgs::msg::Bool>(
+        "yaw_from_reference", 10, [this](std_msgs::msg::Bool::SharedPtr msg) { yaw_from_reference_ = msg->data; });
 
     // Configure QoS identical to drone_tracker for PX4 (SensorDataQoS)
     auto qos = rclcpp::SensorDataQoS();
@@ -221,6 +228,7 @@ void UavMpcNode::controlLoop() {
 
     bool use_tether = this->get_parameter("use_tether").as_bool();
     pipeline_->setUseTether(use_tether);
+    pipeline_->setYawHeading(yaw_from_reference_, yaw_ref_);
 
     double target_tether_max_length = 15.0;
     auto tether_max_length_param = this->get_parameter("tether_max_length");
