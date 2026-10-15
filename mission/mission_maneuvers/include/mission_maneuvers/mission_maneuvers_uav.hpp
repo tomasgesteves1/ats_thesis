@@ -162,6 +162,42 @@ private:
     SettleTimer stall_;
 };
 
+/// Search for the target while the boat moves: the UAV sweeps across the track of the boat (zig-zag in the boat
+/// frame, ahead of the winch) and the maneuver ends when the target enters the field of view of a downward camera
+/// (horizontal distance below height * tan(fov / 2)). Fails if the target is not found within the timeout.
+/// Params: ahead [m], amplitude [m], period [s], height [m] (above the winch), fov [deg], entry_duration [s],
+/// timeout [s] (0: none).
+class Search : public UavManeuver
+{
+public:
+    using UavManeuver::UavManeuver;
+    std::string type() const override { return "search"; }
+    void start(const Context & ctx) override;
+    Status update(const Context & ctx, UavCommand & cmd) override;
+
+private:
+    Vec3 relAt(double t) const;
+    double t0_{0.0};
+    Vec3 rel0_{};
+};
+
+/// Keeps the UAV above the target (predicted with constant velocity along the horizon), looking at it, with the
+/// horizontal distance from the winch limited by the tether range; minimum-jerk entry from the current position.
+/// Runs until it is ended by the mission ('until').
+/// Params: height [m] (above the winch), max_horizontal [m] (from the winch), entry_duration [s].
+class Chase : public UavManeuver
+{
+public:
+    using UavManeuver::UavManeuver;
+    std::string type() const override { return "chase"; }
+    void start(const Context & ctx) override;
+    Status update(const Context & ctx, UavCommand & cmd) override;
+
+private:
+    double t0_{0.0};
+    Vec3 rel0_{};
+};
+
 /// Tether-pulled landing on the pad above the winch: approach above the winch, stay centred (horizontal
 /// tolerance) until settled, minimum-jerk descent to final_height above the pad with the landing pull requested,
 /// slow final approach at final_speed down to depth below the pad, touchdown detection relative to the current

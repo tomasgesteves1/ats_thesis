@@ -62,6 +62,7 @@ mission_maneuvers::Context MissionExecutorPipeline::buildContext(const Measureme
     ctx.t = m.t;
     ctx.uav = m.uav;
     ctx.boat = m.boat;
+    ctx.target = m.target;
     ctx.boat.anchor_z_mean = anchor_z_sum_ / static_cast<double>(anchor_z_count_);
     ctx.uav_rest_height = rest_height_;
     ctx.uav_horizon = config_.uav_horizon;

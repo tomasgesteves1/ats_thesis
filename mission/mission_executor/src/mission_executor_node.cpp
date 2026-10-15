@@ -47,6 +47,7 @@ MissionExecutorNode::MissionExecutorNode(const rclcpp::NodeOptions & options)
     px4_target_system_ = static_cast<int>(declare_parameter<int64_t>("px4_target_system", 2));
     px4_command_period_ = declare_parameter<double>("px4_command_period", 1.0);
     const double rate_hz = declare_parameter<double>("rate_hz", 50.0);
+    target_timeout_ = declare_parameter<double>("target_timeout", 1.0);
 
     PipelineConfig config;
     config.uav_horizon.steps = static_cast<int>(declare_parameter<int64_t>("uav_horizon_steps", 51));
@@ -78,6 +79,8 @@ MissionExecutorNode::MissionExecutorNode(const rclcpp::NodeOptions & options)
         "usv/odom", 10, [this](nav_msgs::msg::Odometry::SharedPtr msg) { usv_odom_ = msg; });
     usv_horizon_sub_ = create_subscription<nav_msgs::msg::Path>(
         "usv/mpc_horizon", 10, [this](nav_msgs::msg::Path::SharedPtr msg) { usv_horizon_ = msg; });
+    target_odom_sub_ = create_subscription<nav_msgs::msg::Odometry>(
+        "target/odom", 10, [this](nav_msgs::msg::Odometry::SharedPtr msg) { target_odom_ = msg; });
     status_sub_ = create_subscription<px4_msgs::msg::VehicleStatus>(
         "px4/vehicle_status", rclcpp::SensorDataQoS(),
         [this](px4_msgs::msg::VehicleStatus::SharedPtr msg) { status_ = msg; });
@@ -126,6 +129,13 @@ bool MissionExecutorNode::gatherMeasurements(Measurements & m)
     m.boat.v = worldVelocity(*usv_odom_);
     m.boat.yaw = yawOf(usv_odom_->pose.pose.orientation);
     m.boat.yaw_rate = usv_odom_->twist.twist.angular.z;
+    if (target_odom_ && (now() - rclcpp::Time(target_odom_->header.stamp)).seconds() < target_timeout_) {
+        const auto & tp = target_odom_->pose.pose.position;
+        m.target.valid = true;
+        m.target.p = {tp.x, tp.y, tp.z};
+        m.target.v = worldVelocity(*target_odom_);
+        m.target.yaw = yawOf(target_odom_->pose.pose.orientation);
+    }
     if (usv_horizon_ && !usv_horizon_->poses.empty()) {
         m.boat.horizon.stamp = rclcpp::Time(usv_horizon_->header.stamp).seconds();
         m.boat.horizon.dt = get_parameter("usv_horizon_dt").as_double();

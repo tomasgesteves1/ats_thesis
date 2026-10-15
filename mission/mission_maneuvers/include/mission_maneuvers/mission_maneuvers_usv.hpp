@@ -45,6 +45,26 @@ private:
     double final_yaw_{0.0};
 };
 
+/// Pursuit of the target: the boat heads for the target (predicted with constant velocity) at a speed ramped up to
+/// the pursuit speed, and stops short of it. Done when the target has stayed within the intercept distance for the
+/// settle time.
+/// Params: speed [m/s], ramp_time [s], intercept_distance [m], standoff [m] (distance kept from the target),
+/// settle [s].
+class UsvFollow : public UsvManeuver
+{
+public:
+    using UsvManeuver::UsvManeuver;
+    std::string type() const override { return "follow"; }
+    void start(const Context & ctx) override;
+    Status update(const Context & ctx, UsvCommand & cmd) override;
+
+private:
+    double t0_{0.0};
+    double v0_{0.0};
+    double settle_since_{-1.0};
+    UsvPose hold_;
+};
+
 }  // namespace mission_maneuvers
 
 #endif  // MISSION_MANEUVERS__MISSION_MANEUVERS_USV_HPP_

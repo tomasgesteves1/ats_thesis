@@ -28,6 +28,7 @@ struct Measurements
     double t{0.0};
     mission_maneuvers::UavState uav;
     mission_maneuvers::BoatState boat;   ///< anchor_z_mean is filled by the pipeline
+    mission_maneuvers::TargetState target;
 };
 
 /// Commands of one cycle and the events to log.

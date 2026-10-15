@@ -51,12 +51,22 @@ struct BoatState
     BoatHorizon horizon;
 };
 
+/// State of a tracked target (world frame), e.g. an intruder boat; valid only while it is being received.
+struct TargetState
+{
+    bool valid{false};
+    Vec3 p{};
+    Vec3 v{};
+    double yaw{0.0};
+};
+
 /// Everything a maneuver may read.
 struct Context
 {
     double t{0.0};                   ///< time (s)
     UavState uav;
     BoatState boat;
+    TargetState target;
     double uav_rest_height{0.0};     ///< height of the UAV above the winch when resting on the landing pad (m)
     HorizonSpec uav_horizon;
     HorizonSpec usv_horizon;

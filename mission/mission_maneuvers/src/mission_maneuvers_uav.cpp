@@ -304,6 +304,86 @@ Status Climb::update(const Context & ctx, UavCommand & cmd)
 }
 
 // ---------------------------------------------------------------------------------------------------------------
+// Search
+// ---------------------------------------------------------------------------------------------------------------
+
+void Search::start(const Context & ctx)
+{
+    t0_ = ctx.t;
+    rel0_ = toBoatFrame(ctx, uavRelative(ctx));
+}
+
+Vec3 Search::relAt(double t) const
+{
+    const double tau = t - t0_;
+    const Vec3 sweep{params_.get("ahead", 4.0),
+                     params_.get("amplitude", 10.0) * std::sin(2.0 * M_PI * tau / params_.get("period", 20.0)),
+                     params_.get("height", 9.0)};
+    return lerp(rel0_, sweep, minJerk(tau / params_.get("entry_duration", 6.0)));
+}
+
+Status Search::update(const Context & ctx, UavCommand & cmd)
+{
+    cmd.path = boatRelativePath(ctx, [this](double t) { return relAt(t); }, true);
+    if (ctx.target.valid) {
+        const double height = ctx.uav.p[2] - ctx.target.p[2];
+        const double footprint = height * std::tan(0.5 * params_.get("fov", 90.0) * M_PI / 180.0);
+        const double horizontal = norm2(ctx.uav.p[0] - ctx.target.p[0], ctx.uav.p[1] - ctx.target.p[1]);
+        if (height > 0.0 && horizontal < footprint) {
+            cmd.message = fmt("target detected; horizontal distance from the UAV [m]: ", horizontal);
+            return Status::kDone;
+        }
+    }
+    const double timeout = params_.get("timeout", 0.0);
+    if (timeout > 0.0 && ctx.t - t0_ > timeout) {
+        cmd.message = "target not found within the timeout";
+        return Status::kFailed;
+    }
+    return Status::kRunning;
+}
+
+// ---------------------------------------------------------------------------------------------------------------
+// Chase
+// ---------------------------------------------------------------------------------------------------------------
+
+void Chase::start(const Context & ctx)
+{
+    t0_ = ctx.t;
+    rel0_ = uavRelative(ctx);
+}
+
+Status Chase::update(const Context & ctx, UavCommand & cmd)
+{
+    cmd.yaw_from_reference = true;
+    if (!ctx.target.valid) {
+        // target lost: stay where the UAV is relative to the winch
+        cmd.path = boatRelativePath(ctx, [this](double) { return rel0_; });
+        return Status::kRunning;
+    }
+    const double height = params_.get("height", 9.0);
+    const double r_max = params_.get("max_horizontal", 10.0);
+    const double entry = params_.get("entry_duration", 5.0);
+    const Vec3 origin = anchorReference(ctx);
+    cmd.path.resize(static_cast<size_t>(ctx.uav_horizon.steps));
+    for (size_t k = 0; k < cmd.path.size(); ++k) {
+        const double tau = static_cast<double>(k) * ctx.uav_horizon.dt;
+        const Vec3 anchor = add(origin, boatDisplacement(ctx, tau));
+        const Vec3 target = add(ctx.target.p, scale(ctx.target.v, tau));
+        // above the target, within the tether range from the winch
+        Vec3 rel{target[0] - anchor[0], target[1] - anchor[1], height};
+        const double r = norm2(rel[0], rel[1]);
+        if (r > r_max) {
+            rel[0] *= r_max / r;
+            rel[1] *= r_max / r;
+        }
+        rel = lerp(rel0_, rel, minJerk((ctx.t + tau - t0_) / entry));
+        cmd.path[k].p = add(anchor, rel);
+        cmd.path[k].yaw = std::atan2(target[1] - cmd.path[k].p[1], target[0] - cmd.path[k].p[0]);
+    }
+    return Status::kRunning;
+}
+
+// ---------------------------------------------------------------------------------------------------------------
 // Land
 // ---------------------------------------------------------------------------------------------------------------
 

@@ -18,6 +18,7 @@
   <depend>ament_index_cpp</depend>
   <depend>yaml-cpp</depend>
   <depend>mission_maneuvers</depend>
+  <exec_depend>intruder_sim</exec_depend>
 
   <export>
     <build_type>ament_cmake</build_type>

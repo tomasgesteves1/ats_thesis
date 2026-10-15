@@ -16,6 +16,9 @@ mission_executor_node:
     # the UAV already armed (otherwise it is measured before the first takeoff)
     default_rest_height: 0.26     # [m]
 
+    # A target (e.g. the intruder boat, topic target/odom) is valid while its odometry is younger than this
+    target_timeout: 1.0           # [s]
+
     world_frame: "world"
     anchor_frame: "boat/tether_anchor"
     uav_frame: "drone/base_link"

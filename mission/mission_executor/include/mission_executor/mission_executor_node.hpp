@@ -19,7 +19,8 @@
 namespace mission_executor
 {
 
-/// ROS wrapper of the mission executor: gathers the measurements (TF, odometry, USV horizon, PX4 status), runs the
+/// ROS wrapper of the mission executor: gathers the measurements (TF, odometry, USV horizon, PX4 status, target
+/// odometry when there is one), runs the
 /// pipeline at a fixed rate and publishes the references of both controllers, the winch, yaw and altitude switches,
 /// and the arm/offboard/disarm commands to PX4. It is the only publisher of the controllers' references.
 class MissionExecutorNode : public rclcpp::Node
@@ -48,6 +49,8 @@ private:
     nav_msgs::msg::Odometry::SharedPtr uav_odom_;
     nav_msgs::msg::Odometry::SharedPtr usv_odom_;
     nav_msgs::msg::Path::SharedPtr usv_horizon_;
+    nav_msgs::msg::Odometry::SharedPtr target_odom_;
+    double target_timeout_{1.0};
     px4_msgs::msg::VehicleStatus::SharedPtr status_;
     std::shared_ptr<tf2_ros::Buffer> tf_buffer_;
     std::shared_ptr<tf2_ros::TransformListener> tf_listener_;
@@ -55,6 +58,7 @@ private:
     rclcpp::Subscription<nav_msgs::msg::Odometry>::SharedPtr uav_odom_sub_;
     rclcpp::Subscription<nav_msgs::msg::Odometry>::SharedPtr usv_odom_sub_;
     rclcpp::Subscription<nav_msgs::msg::Path>::SharedPtr usv_horizon_sub_;
+    rclcpp::Subscription<nav_msgs::msg::Odometry>::SharedPtr target_odom_sub_;
     rclcpp::Subscription<px4_msgs::msg::VehicleStatus>::SharedPtr status_sub_;
 
     // outputs

@@ -42,10 +42,10 @@ protected:
 };
 
 /// Creates the maneuver of the given type ("takeoff", "goto", "hold", "goto_world", "orbit",
-/// "inspect", "climb", "land"); nullptr if unknown.
+/// "inspect", "climb", "search", "chase", "land"); nullptr if unknown.
 std::unique_ptr<UavManeuver> createUavManeuver(const std::string & type, const Params & params);
 
-/// Creates the maneuver of the given type ("hold", "waypoints"); nullptr if unknown.
+/// Creates the maneuver of the given type ("hold", "waypoints", "follow"); nullptr if unknown.
 std::unique_ptr<UsvManeuver> createUsvManeuver(const std::string & type, const Params & params);
 
 }  // namespace mission_maneuvers
