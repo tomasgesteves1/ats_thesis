@@ -4,6 +4,7 @@
 #include <nav_msgs/msg/odometry.hpp>
 #include <nav_msgs/msg/path.hpp>
 #include <geometry_msgs/msg/point.hpp>
+#include <geometry_msgs/msg/vector3.hpp>
 #include <std_msgs/msg/bool.hpp>
 #include <std_msgs/msg/float64.hpp>
 #include <std_msgs/msg/float64_multi_array.hpp>
@@ -29,6 +30,7 @@ private:
     double yaw_ref_{0.0};  ///< Reference yaw from the external path orientation [rad]
     bool yaw_from_reference_{false};  ///< yaw aligned with yaw_ref_ instead of looking at the attachment point
     bool low_altitude_{false};        ///< the lower bound on the height is z_min_low_altitude (takeoff and landing)
+    bool tether_pull_{false};         ///< the winch pulls the UAV towards the deck (the disturbance estimate is frozen)
     void odomCallback(const nav_msgs::msg::Odometry::SharedPtr msg);
     void targetCallback(const geometry_msgs::msg::Point::SharedPtr msg);
     void trajectoryPathCallback(const nav_msgs::msg::Path::SharedPtr msg);
@@ -51,6 +53,7 @@ private:
     rclcpp::Subscription<nav_msgs::msg::Path>::SharedPtr boat_horizon_sub_;
     rclcpp::Subscription<std_msgs::msg::Bool>::SharedPtr yaw_mode_sub_;
     rclcpp::Subscription<std_msgs::msg::Bool>::SharedPtr low_altitude_sub_;
+    rclcpp::Subscription<std_msgs::msg::Bool>::SharedPtr tether_pull_sub_;
     
     // TF Listener
     std::shared_ptr<tf2_ros::Buffer> tf_buffer_;
@@ -69,6 +72,7 @@ private:
     rclcpp::Publisher<std_msgs::msg::Float64>::SharedPtr mpc_tether_force_pub_;
     rclcpp::Publisher<std_msgs::msg::Float64>::SharedPtr virtual_tether_distance_pub_;
     rclcpp::Publisher<std_msgs::msg::Float64>::SharedPtr solve_time_pub_;
+    rclcpp::Publisher<geometry_msgs::msg::Vector3>::SharedPtr disturbance_pub_;
     rclcpp::Publisher<std_msgs::msg::Float64>::SharedPtr virtual_tether_limit_pub_;
     rclcpp::Publisher<std_msgs::msg::Float64>::SharedPtr virtual_tether_separation_speed_pub_;
 

@@ -46,6 +46,12 @@ UavMpcNode::UavMpcNode()
     // Lower bound on the height while the low-altitude mode is requested on the low_altitude topic (takeoff from
     // and landing on the pad, which are below z_min)
     this->declare_parameter<double>("z_min_low_altitude", 0.0);
+    // Observer of the external force (offset-free tracking); its vertical component is frozen while the winch pulls
+    // the UAV (topic tether_pull: the pull of takeoff and landing is opposed, not compensated; the horizontal
+    // components keep rejecting wind and model errors) and the estimate is reset while disarmed
+    this->declare_parameter<bool>("disturbance_observer", true);
+    this->declare_parameter<double>("disturbance_gain", 0.03);
+    this->declare_parameter<double>("disturbance_max_force", 8.0);
     this->declare_parameter<double>("v_xy_max", 10.0);
     this->declare_parameter<double>("v_z_max", 10.0);
     this->declare_parameter<double>("phi_max", 0.5);
@@ -84,6 +90,9 @@ UavMpcNode::UavMpcNode()
     low_altitude_sub_ = this->create_subscription<std_msgs::msg::Bool>(
         "low_altitude", 10, [this](std_msgs::msg::Bool::SharedPtr msg) { low_altitude_ = msg->data; });
 
+    tether_pull_sub_ = this->create_subscription<std_msgs::msg::Bool>(
+        "tether_pull", 10, [this](std_msgs::msg::Bool::SharedPtr msg) { tether_pull_ = msg->data; });
+
     // Configure QoS identical to drone_tracker for PX4 (SensorDataQoS)
     auto qos = rclcpp::SensorDataQoS();
     
@@ -120,6 +129,7 @@ UavMpcNode::UavMpcNode()
         "virtual_tether_distance", 10);
 
     solve_time_pub_ = this->create_publisher<std_msgs::msg::Float64>("uav_solve_time_ms", 10);
+    disturbance_pub_ = this->create_publisher<geometry_msgs::msg::Vector3>("disturbance_estimate", 10);
 
     virtual_tether_limit_pub_ = this->create_publisher<std_msgs::msg::Float64>(
         "virtual_tether_limit", 10);
@@ -393,6 +403,21 @@ void UavMpcNode::controlLoop() {
     params.rotor_speed_min = this->get_parameter("rotor_speed_min").as_double();
     params.rotor_speed_max = this->get_parameter("rotor_speed_max").as_double();
     pipeline_->setParameters(params);
+    pipeline_->configureDisturbanceObserver(this->get_parameter("disturbance_observer").as_bool(),
+                                            this->get_parameter("disturbance_gain").as_double(),
+                                            this->get_parameter("disturbance_max_force").as_double());
+    pipeline_->setDisturbanceFrozen(tether_pull_);
+    if (latest_vehicle_status_.arming_state != px4_msgs::msg::VehicleStatus::ARMING_STATE_ARMED) {
+        pipeline_->resetDisturbance();
+    }
+    {
+        const auto d = pipeline_->disturbanceEstimate();
+        geometry_msgs::msg::Vector3 msg;
+        msg.x = d[0];
+        msg.y = d[1];
+        msg.z = d[2];
+        disturbance_pub_->publish(msg);
+    }
 
     // The pose and the control loop run at the same rate without synchronisation, so the latest sample is up to one
     // period old (or repeated): the position is propagated to the current time with the measured velocity

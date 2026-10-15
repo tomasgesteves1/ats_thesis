@@ -1,6 +1,9 @@
 #pragma once
 
+#include <array>
 #include <vector>
+
+#include "uav_mpc/uav_mpc_disturbance.hpp"
 
 namespace uav_mpc {
 
@@ -59,6 +62,13 @@ public:
     void setUseTether(bool use_tether);
     // Yaw aligned with a given heading instead of looking at the attachment point (e.g. the boat heading for landing)
     void setYawHeading(bool enabled, double heading);
+    // Observer of the external force (offset-free tracking): the estimate enters the model as a constant force along
+    // the horizon; its vertical component can be frozen (kept, e.g. while the winch pulls the UAV) and it can be reset
+    // (e.g. on the ground)
+    void configureDisturbanceObserver(bool enabled, double gain, double max_force);
+    void setDisturbanceFrozen(bool frozen) { disturbance_frozen_ = frozen; }
+    void resetDisturbance() { observer_.reset(); has_predicted_velocity_ = false; }
+    std::array<double, 3> disturbanceEstimate() const { return observer_.estimate(); }
     void setParameters(const UavMpcParams& params);
     UavControlOutput computeControl(double current_time);
 
@@ -87,6 +97,11 @@ private:
     double L_tether_;
     bool use_tether_;
     bool yaw_heading_enabled_{false};
+    DisturbanceObserver observer_;
+    bool observer_enabled_{false};
+    bool disturbance_frozen_{false};
+    bool has_predicted_velocity_{false};
+    std::array<double, 3> predicted_velocity_{0.0, 0.0, 0.0};   ///< velocity predicted for the next step
     double yaw_heading_{0.0};
     UavMpcParams params_;
 

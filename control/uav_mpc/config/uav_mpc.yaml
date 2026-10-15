@@ -51,6 +51,12 @@ uav_mpc_node:
     # State limits (soft)
     z_min: 2.0                   # m
     z_min_low_altitude: 0.0      # m, lower bound while low altitude is requested (takeoff from and landing on the pad)
+
+    # Disturbance observer (offset-free tracking): d_k = d_{k-1} + beta m (v_meas - v_pred) / T_s, |d_i| <= d_bar;
+    # vertical component frozen while the winch pulls the UAV (tether_pull topic); reset while disarmed
+    disturbance_observer: true
+    disturbance_gain: 0.03       # beta
+    disturbance_max_force: 8.0   # d_bar (N)
     v_xy_max: 10.0               # m/s
     v_z_max: 10.0                # m/s
     phi_max: 0.5                 # rad

@@ -55,10 +55,10 @@ casadi_real casadi_sq(casadi_real x) { return x*x;}
 
 static const casadi_int casadi_s0[3] = {13, 1, 1};
 static const casadi_int casadi_s1[3] = {0, 1, 1};
-static const casadi_int casadi_s2[3] = {9, 1, 1};
+static const casadi_int casadi_s2[3] = {12, 1, 1};
 static const casadi_int casadi_s3[3] = {3, 1, 1};
 
-/* uav_tethered_constr_h_e_fun:(i0[13],i1[0],i2[0],i3[9])->(o0[3]) */
+/* uav_tethered_constr_h_e_fun:(i0[13],i1[0],i2[0],i3[12])->(o0[3]) */
 static int casadi_f0(const casadi_real** arg, casadi_real** res, casadi_int* iw, casadi_real* w, int mem) {
   casadi_real a0, a1, a2, a3, a4, a5, a6;
   a0=arg[0]? arg[0][0] : 0;

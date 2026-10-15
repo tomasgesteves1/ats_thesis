@@ -61,14 +61,14 @@ static const casadi_int casadi_s1[3] = {4, 1, 1};
 static const casadi_int casadi_s2[3] = {0, 1, 1};
 static const casadi_int casadi_s3[3] = {15, 1, 1};
 static const casadi_int casadi_s4[3] = {0, 0, 1};
-static const casadi_int casadi_s5[3] = {9, 1, 1};
+static const casadi_int casadi_s5[3] = {12, 1, 1};
 static const casadi_int casadi_s6[25] = 
   {17, 17, 0, 0, 0, 0, 0, 2,
   4, 4, 4, 4, 4, 4, 4, 5,
   5, 5, 5, 5, 4, 5, 4, 5,
   12};
 
-/* uav_tethered_cost_y_hess:(i0[13],i1[4],i2[0],i3[15],i4[],i5[9])->(o0[17x17,5nz]) */
+/* uav_tethered_cost_y_hess:(i0[13],i1[4],i2[0],i3[15],i4[],i5[12])->(o0[17x17,5nz]) */
 static int casadi_f0(const casadi_real** arg, casadi_real** res, casadi_int* iw, casadi_real* w, int mem) {
   casadi_real a00, a01, a02, a03, a04, a05, a06, a07, a08, a09, a10, a11;
   casadi_real a12, a13, a14, a15, a16, a17;

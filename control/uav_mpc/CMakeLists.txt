@@ -45,6 +45,7 @@ add_executable(uav_mpc_node
   src/uav_mpc_main.cpp
   src/uav_mpc_node.cpp
   src/uav_mpc_pipeline.cpp
+  src/uav_mpc_disturbance.cpp
   src/uav_mpc_kinematics.cpp
   src/uav_mpc_tether_geometry.cpp
   src/uav_mpc_telemetry.cpp

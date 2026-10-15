@@ -826,7 +826,7 @@ void uav_tethered_acados_setup_nlp_in(uav_tethered_solver_capsule* capsule, cons
     lbx[3] = -0.5;
     ubx[3] = 0.5;
     lbx[4] = 2.02;
-    ubx[4] = 32.96;
+    ubx[4] = 39.96;
 
     for (int i = 1; i < N; i++)
     {
@@ -934,7 +934,7 @@ void uav_tethered_acados_setup_nlp_in(uav_tethered_solver_capsule* capsule, cons
     lbx_e[3] = -0.5;
     ubx_e[3] = 0.5;
     lbx_e[4] = 2.02;
-    ubx_e[4] = 32.96;
+    ubx_e[4] = 39.96;
     ocp_nlp_constraints_model_set(nlp_config, nlp_dims, nlp_in, nlp_out, N, "idxbx", idxbx_e);
     ocp_nlp_constraints_model_set(nlp_config, nlp_dims, nlp_in, nlp_out, N, "lbx", lbx_e);
     ocp_nlp_constraints_model_set(nlp_config, nlp_dims, nlp_in, nlp_out, N, "ubx", ubx_e);
@@ -1303,7 +1303,7 @@ int uav_tethered_acados_update_params(uav_tethered_solver_capsule* capsule, int 
 {
     int solver_status = 0;
 
-    int casadi_np = 9;
+    int casadi_np = 12;
     if (casadi_np != np) {
         printf("acados_update_params: trying to set %i parameters for external functions."
             " External function has %i parameters. Exiting.\n", np, casadi_np);

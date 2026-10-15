@@ -15,7 +15,7 @@ constexpr int PREDICTED_ATTITUDE_NODE = 10;  // node of the horizon whose attitu
 constexpr int NU = 4;       // [phi_dot_cmd, theta_dot_cmd, psi_dot_cmd, T_dot]
 constexpr int NY = 15;      // [p, v, phi, theta, yaw residual (2), T - m g, u (4)]
 constexpr int NY_E = 11;
-constexpr int NP = 9;       // [anchor (3), anchor velocity (3), yaw reference point (2), tether switch]
+constexpr int NP = 12;      // [anchor (3), anchor velocity (3), yaw reference point (2), tether switch, disturbance (3)]
 constexpr double NO_LIMIT = 1.0e6;
 
 double wrapAngle(double a) {
@@ -76,6 +76,14 @@ void UavMpcPipeline::setExternalReferencePath(const std::vector<TrajectoryPoint>
 
 void UavMpcPipeline::setTrajectoryType(TrajectoryType type) {
     trajectory_type_ = type;
+}
+
+void UavMpcPipeline::configureDisturbanceObserver(bool enabled, double gain, double max_force) {
+    observer_enabled_ = enabled;
+    observer_.configure(gain, max_force, params_.mass, Ts_);
+    if (!enabled) {
+        resetDisturbance();
+    }
 }
 
 void UavMpcPipeline::setYawHeading(bool enabled, double heading) {
@@ -175,6 +183,11 @@ UavControlOutput UavMpcPipeline::computeControl(double current_time) {
     double x0[NX];
     buildInitialState(x0);
     const bool warm = target_initialized_;
+
+    // Disturbance observer: velocity predicted by the previous solution for this instant against the measured one
+    if (observer_enabled_ && has_predicted_velocity_) {
+        observer_.update({x0[3], x0[4], x0[5]}, predicted_velocity_, disturbance_frozen_);
+    }
     warmStartOnce(x0);
 
     setupOcpSolver(x0);
@@ -208,8 +221,11 @@ UavControlOutput UavMpcPipeline::computeControl(double current_time) {
         last_theta_cmd_ = x_step1[10];
         last_psi_cmd_ = x_step1[11];
         last_thrust_cmd_ = x_step1[12];
+        predicted_velocity_ = {x_step1[3], x_step1[4], x_step1[5]};
+        has_predicted_velocity_ = true;
     } else {
         std::cerr << "UavMpcPipeline: ACADOS solver failed with status: " << status << std::endl;
+        has_predicted_velocity_ = false;
     }
 
     UavControlOutput output;
@@ -389,6 +405,7 @@ void UavMpcPipeline::setupOcpSolver(const double x0[13]) {
     // To align the yaw with a given heading, the reference point is moved far along that heading from the
     // attachment point, so that its bearing from the UAV is the heading (error below |p - anchor| / distance rad).
     constexpr double kHeadingPointDistance = 100.0;  // m
+    const std::array<double, 3> disturbance = observer_enabled_ ? observer_.estimate() : std::array<double, 3>{0.0, 0.0, 0.0};
     for (int i = 0; i <= N; i++) {
         auto b_state = tether::getInterpolatedBoatState(i, Ts_, anchor_x_, anchor_y_, anchor_z_, has_boat_horizon_, boat_horizon_);
         double b_ref_x = use_tether_ ? b_state.px : x0[0];
@@ -402,7 +419,8 @@ void UavMpcPipeline::setupOcpSolver(const double x0[13]) {
             b_state.vx, b_state.vy, b_state.vz,
             b_ref_x,
             b_ref_y,
-            use_tether_ ? 1.0 : 0.0
+            use_tether_ ? 1.0 : 0.0,
+            disturbance[0], disturbance[1], disturbance[2]
         };
         uav_tethered_acados_update_params(capsule, i, p_params, NP);
     }
