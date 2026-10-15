@@ -318,6 +318,13 @@ while the limits on their rates of change, which act on the input, define the ad
     \label{eq:usv_mpc_set_U}
 \end{equation}
 
+The surge speed is bounded from below, so that the \gls{usv} does not sail astern: without this bound, when the reference changes direction the tracking cost can be reduced faster by turning the stern towards it and backing than by turning the bow, which is not how the vessel is meant to be operated. A small negative bound $u_{min} \le 0$ still allows the slow backing needed to hold a position or to brake. Since the speed is a state that a disturbance can push below the bound, it is enforced as a soft constraint through a slack variable $\sigma_u \ge 0$,
+\begin{equation}
+    u_{min} - u \le \sigma_u,
+    \label{eq:usv_mpc_surge_constraint}
+\end{equation}
+penalised by $\rho_u(\sigma_u)$ of the form \eqref{eq:nmpc_slack_penalty}, with its own weights $\mu_{u,1}$ and $\mu_{u,2}$.
+
 The last constraint couples the \gls{usv} to the \gls{uav} through the tether, and is the only one that depends on the other vehicle. The tether limits the distance between its attachment point on the \gls{usv} deck and the \gls{uav} to a maximum admissible separation $d_{max}$. The attachment point is vertically aligned with the origin of the \gls{usv}'s body frame, at a fixed height $z_t$ in the inertial frame, so its position is $(x, y, z_t)$. Along the horizon, the \gls{usv} controller uses the \gls{uav}'s most recently computed predicted trajectory $\hat{\mathbf{p}}_a = [\hat x_a, \hat y_a, \hat z_a]^\top$, temporally resampled at the \gls{usv}'s prediction nodes covered by it, to compute the squared distance between the attachment point and the \gls{uav},
 \begin{equation}
     d^2 = (x - \hat x_a)^2 + (y - \hat y_a)^2 + (\hat z_a - z_t)^2.
@@ -343,11 +350,12 @@ The references and the \gls{uav}'s predicted trajectory are given data at each i
  
 Assembling the cost, the model, and the constraints gives the optimal control problem the \gls{usv} solves at every sampling instant:
 \begin{align}
-    \min_{\hat{\mathbf{x}}_v,\, \hat{\mathbf{u}}_v,\, \hat{\sigma}} \quad & \sum_{i=0}^{N-1} \ell\big(\hat{\mathbf{x}}_{v,k+i|k}, \hat{\mathbf{u}}_{v,k+i|k}\big) + \ell_f\big(\hat{\mathbf{x}}_{v,k+N|k}\big) + \sum_{i=0}^{N_c} \rho\big(\hat\sigma_{k+i|k}\big) \notag \\
+    \min_{\hat{\mathbf{x}}_v,\, \hat{\mathbf{u}}_v,\, \hat{\sigma},\, \hat{\sigma}_u} \quad & \sum_{i=0}^{N-1} \Big[ \ell\big(\hat{\mathbf{x}}_{v,k+i|k}, \hat{\mathbf{u}}_{v,k+i|k}\big) + \rho_u\big(\hat\sigma_{u,k+i|k}\big) \Big] + \ell_f\big(\hat{\mathbf{x}}_{v,k+N|k}\big) + \sum_{i=0}^{N_c} \rho\big(\hat\sigma_{k+i|k}\big) \notag \\
     \text{s.t.} \quad & \hat{\mathbf{x}}_{v,k|k} = \mathbf{x}_{v,k}, \notag \\
     & \hat{\mathbf{x}}_{v,k+i+1|k} = \boldsymbol\Phi_v\big(\hat{\mathbf{x}}_{v,k+i|k}, \hat{\mathbf{u}}_{v,k+i|k}\big), \quad i = 0, \dots, N-1, \notag \\
     & \hat{\mathbf{x}}_{v,k+i|k} \in \mathcal{X}, \quad i = 0, \dots, N, \notag \\
     & \hat{\mathbf{u}}_{v,k+i|k} \in \mathcal{U}, \quad i = 0, \dots, N-1, \notag \\
+    & u_{min} - \hat u_{k+i|k} \le \hat\sigma_{u,k+i|k}, \quad \hat\sigma_{u,k+i|k} \ge 0, \quad i = 1, \dots, N-1, \notag \\
     & h\big(\hat{\mathbf{x}}_{v,k+i|k}\big) \le \hat\sigma_{k+i|k}, \quad \hat\sigma_{k+i|k} \ge 0, \quad i = 0, \dots, N_c. \label{eq:usv_mpc_ocp}
 \end{align}
 The \gls{usv}'s low-level actuators receive the integrated thruster commands $T_{L,k}, T_{R,k}, \alpha_{L,k}, \alpha_{R,k}$, obtained by integrating the first optimal input rate $\hat{\mathbf{u}}_{v,k|k}$ over the sampling interval $T_s$. These become the thruster components of the initial state at the subsequent sampling instant.
