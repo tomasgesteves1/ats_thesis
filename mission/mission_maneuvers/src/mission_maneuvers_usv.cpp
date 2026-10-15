@@ -107,20 +107,24 @@ Status UsvFollow::update(const Context & ctx, UsvCommand & cmd)
     const double speed = params_.get("speed", 1.5);
     const double ramp = params_.get("ramp_time", 4.0);
     const double standoff = params_.get("standoff", 6.0);
-    double travelled = 0.0;
+    const double turn_rate = params_.get("turn_rate", 0.3);
+    const double dt = ctx.usv_horizon.dt;
+    // The reference is a unicycle started at the current pose of the boat that turns towards the target (predicted
+    // with constant velocity) with a limited turn rate and a speed ramped to the pursuit speed, and stops at the
+    // standoff distance: a reference the boat can follow bow first (a jump of the reference heading towards the
+    // target makes the NMPC back towards it instead)
+    double x = ctx.boat.p[0], y = ctx.boat.p[1], yaw = ctx.boat.yaw;
     for (size_t k = 0; k < cmd.path.size(); ++k) {
-        const double tau = static_cast<double>(k) * ctx.usv_horizon.dt;
-        const double t = ctx.t + tau;
+        cmd.path[k] = {x, y, yaw};
+        const double tau = static_cast<double>(k) * dt;
         const Vec3 target = add(ctx.target.p, scale(ctx.target.v, tau));
-        const double dx = target[0] - ctx.boat.p[0];
-        const double dy = target[1] - ctx.boat.p[1];
-        const double d = norm2(dx, dy);
-        // speed ramped from the initial one to the pursuit speed; the boat stops at the standoff distance
-        if (k > 0) {
-            travelled += ctx.usv_horizon.dt * (v0_ + (speed - v0_) * minJerk((t - t0_) / ramp));
-        }
-        const double s = d > 1e-6 ? std::min(travelled, std::max(0.0, d - standoff)) / d : 0.0;
-        cmd.path[k] = {ctx.boat.p[0] + s * dx, ctx.boat.p[1] + s * dy, std::atan2(dy, dx)};
+        const double bearing = std::atan2(target[1] - y, target[0] - x);
+        yaw += std::clamp(wrapAngle(bearing - yaw), -turn_rate * dt, turn_rate * dt);
+        const double d = norm2(target[0] - x, target[1] - y);
+        const double v = d > standoff ? v0_ + (speed - v0_) * minJerk((ctx.t + tau - t0_) / ramp) : 0.0;
+        const double step = std::min(v * dt, std::max(0.0, d - standoff));
+        x += step * std::cos(yaw);
+        y += step * std::sin(yaw);
     }
     hold_ = cmd.path.front();
     const double d = norm2(ctx.target.p[0] - ctx.boat.p[0], ctx.target.p[1] - ctx.boat.p[1]);

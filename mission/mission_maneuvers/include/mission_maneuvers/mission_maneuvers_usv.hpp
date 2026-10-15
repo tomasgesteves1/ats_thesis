@@ -45,11 +45,11 @@ private:
     double final_yaw_{0.0};
 };
 
-/// Pursuit of the target: the boat heads for the target (predicted with constant velocity) at a speed ramped up to
-/// the pursuit speed, and stops short of it. Done when the target has stayed within the intercept distance for the
-/// settle time.
-/// Params: speed [m/s], ramp_time [s], intercept_distance [m], standoff [m] (distance kept from the target),
-/// settle [s].
+/// Pursuit of the target: the boat turns towards the target (predicted with constant velocity) with a limited turn
+/// rate, at a speed ramped up to the pursuit speed, and stops short of it. Done when the target has stayed within
+/// the intercept distance for the settle time.
+/// Params: speed [m/s], ramp_time [s], turn_rate [rad/s], intercept_distance [m], standoff [m] (distance kept from
+/// the target), settle [s].
 class UsvFollow : public UsvManeuver
 {
 public:

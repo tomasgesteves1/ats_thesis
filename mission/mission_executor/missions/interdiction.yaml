@@ -18,6 +18,6 @@ usv:
   - {id: wait, type: hold, duration: 0.0}
   - {id: patrol, type: waypoints, after: uav.takeoff, until: uav.search, points: [[45.0, 0.0], [45.0, 40.0]],
      speed: 1.0, ramp_time: 5.0, lookahead: 6.0, tolerance: 1.5}
-  - {id: intercept, type: follow, after: uav.search, speed: 1.8, ramp_time: 4.0, intercept_distance: 10.0,
-     standoff: 7.0, settle: 3.0}
+  - {id: intercept, type: follow, after: uav.search, speed: 2.2, ramp_time: 4.0, turn_rate: 0.3,
+     intercept_distance: 6.0, standoff: 4.0, settle: 3.0}
   - {id: stop, type: hold, duration: 0.0}
