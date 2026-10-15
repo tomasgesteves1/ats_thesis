@@ -56,6 +56,7 @@ MissionExecutorNode::MissionExecutorNode(const rclcpp::NodeOptions & options)
     config.usv_horizon.dt = declare_parameter<double>("usv_horizon_dt", 0.1);
     config.horizon_timeout = declare_parameter<double>("horizon_timeout", 0.5);
     config.default_rest_height = declare_parameter<double>("default_rest_height", 0.26);
+    config.mission_timeout = declare_parameter<double>("mission_timeout", 300.0);
     pipeline_ = std::make_unique<MissionExecutorPipeline>(config);
 
     const auto path = resolveMissionPath(mission);

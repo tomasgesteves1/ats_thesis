@@ -20,6 +20,7 @@ struct PipelineConfig
     mission_maneuvers::HorizonSpec usv_horizon;
     double horizon_timeout{0.5};
     double default_rest_height{0.26};   ///< used when the mission starts with the UAV already armed
+    double mission_timeout{300.0};      ///< s, default maximum duration of a mission (aborted beyond it)
 };
 
 /// Measurements of one cycle.
@@ -43,8 +44,8 @@ enum class MissionState { kNotLoaded, kRunning, kDone, kAborted };
 
 /// Pure C++ orchestrator: builds the maneuver context from the measurements (mean winch height, resting height
 /// of the UAV on the pad) and runs the UAV and USV sequences of the mission. When a maneuver fails the mission is
-/// aborted: the boat holds its position and, if the UAV is armed, the abort sequence of the mission (by default a
-/// landing on the pad) is run.
+/// aborted, and also when it lasts longer than its timeout: the boat holds its position and, if the UAV is armed, the
+/// abort sequence of the mission (by default a landing on the pad) is run.
 class MissionExecutorPipeline
 {
 public:
@@ -78,6 +79,8 @@ private:
     double rest_height_{0.0};
     bool usv_idle_set_{false};
     bool abort_reported_{false};
+    double timeout_{0.0};
+    double t_start_{-1.0};
     mission_maneuvers::UsvPose usv_idle_;
 };
 

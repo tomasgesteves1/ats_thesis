@@ -23,6 +23,7 @@ struct StepSpec
 struct MissionSpec
 {
     std::string name;
+    double timeout{0.0};   ///< maximum duration (s, simulation time; 0: the executor default)
     std::vector<StepSpec> uav;
     std::vector<StepSpec> usv;
     std::vector<StepSpec> uav_abort;

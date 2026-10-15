@@ -43,6 +43,8 @@ bool MissionExecutorPipeline::load(const MissionSpec & mission, std::string & er
     uav_abort_.reset();
     usv_abort_.reset();
     name_ = mission.name;
+    timeout_ = mission.timeout > 0.0 ? mission.timeout : config_.mission_timeout;
+    t_start_ = -1.0;
     done_.clear();
     state_ = MissionState::kRunning;
     return true;
@@ -98,6 +100,9 @@ Output MissionExecutorPipeline::tick(const Measurements & m)
         return out;
     }
     const auto ctx = buildContext(m);
+    if (t_start_ < 0.0) {
+        t_start_ = m.t;
+    }
 
     auto & uav_seq = uav_abort_ ? *uav_abort_ : *uav_;
     auto & usv_seq = usv_abort_ ? *usv_abort_ : *usv_;
@@ -115,7 +120,10 @@ Output MissionExecutorPipeline::tick(const Measurements & m)
     }
 
     if (state_ == MissionState::kRunning) {
-        if (uav_->failed() || usv_->failed()) {
+        if (m.t - t_start_ > timeout_) {
+            out.events.push_back("mission timeout");
+            startAbort(m, out);
+        } else if (uav_->failed() || usv_->failed()) {
             startAbort(m, out);
         } else if (uav_->finished() && usv_->finished()) {
             state_ = MissionState::kDone;

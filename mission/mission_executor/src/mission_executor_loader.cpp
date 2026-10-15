@@ -69,6 +69,7 @@ MissionSpec loadMission(const std::string & path)
     }
     MissionSpec mission;
     mission.name = root["name"] ? root["name"].as<std::string>() : path;
+    mission.timeout = root["timeout"] ? root["timeout"].as<double>() : 0.0;
     mission.uav = loadSequence(root["uav"], "uav");
     mission.usv = loadSequence(root["usv"], "usv");
     mission.uav_abort = loadSequence(root["uav_abort"], "uav_abort");
