@@ -39,9 +39,10 @@ std::vector<StepSpec> loadSequence(const YAML::Node & node, const std::string & 
         step.type = item["type"].as<std::string>();
         step.id = item["id"] ? item["id"].as<std::string>() : step.type;
         step.after = item["after"] ? item["after"].as<std::string>() : "";
+        step.until = item["until"] ? item["until"].as<std::string>() : "";
         for (const auto & kv : item) {
             const auto key = kv.first.as<std::string>();
-            if (key == "type" || key == "id" || key == "after") {
+            if (key == "type" || key == "id" || key == "after" || key == "until") {
                 continue;
             }
             std::vector<double> values;
@@ -70,6 +71,7 @@ MissionSpec loadMission(const std::string & path)
     mission.name = root["name"] ? root["name"].as<std::string>() : path;
     mission.uav = loadSequence(root["uav"], "uav");
     mission.usv = loadSequence(root["usv"], "usv");
+    mission.uav_abort = loadSequence(root["uav_abort"], "uav_abort");
     if (mission.uav.empty() && mission.usv.empty()) {
         throw std::runtime_error("mission " + path + " has no maneuvers");
     }

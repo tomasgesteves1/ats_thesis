@@ -60,6 +60,7 @@ Vec3 Takeoff::relAt(double t) const
 Status Takeoff::update(const Context & ctx, UavCommand & cmd)
 {
     cmd.yaw_from_reference = true;
+    cmd.low_altitude = true;
     cmd.request_offboard = true;
     cmd.request_arm = !climbing_;
     // the winch keeps pulling the UAV towards the pad until it is clear of the deck (height above the current,
@@ -98,7 +99,8 @@ Status Takeoff::update(const Context & ctx, UavCommand & cmd)
 void GotoBoat::start(const Context & ctx)
 {
     t0_ = ctx.t;
-    rel0_ = uavRelative(ctx);
+    boat_frame_ = params_.get("boat_frame", 0.0) > 0.5;
+    rel0_ = boat_frame_ ? toBoatFrame(ctx, uavRelative(ctx)) : uavRelative(ctx);
     settle_.reset();
 }
 
@@ -109,21 +111,46 @@ Status GotoBoat::update(const Context & ctx, UavCommand & cmd)
     cmd.yaw_from_reference = params_.get("yaw_from_reference", 0.0) > 0.5;
     cmd.path = boatRelativePath(ctx, [&](double t) {
         return lerp(rel0_, offset, minJerk((t - t0_) / duration));
-    });
+    }, boat_frame_);
     if (ctx.t - t0_ < duration) {
         return Status::kRunning;
     }
+    const Vec3 target = boat_frame_ ? rotateZ(offset, ctx.boat.yaw) : offset;
     const Vec3 vrel = uavRelativeVelocity(ctx);
-    const bool ok = norm(sub(uavRelative(ctx), offset)) < params_.get("tolerance", 0.15) &&
+    const bool ok = norm(sub(uavRelative(ctx), target)) < params_.get("tolerance", 0.15) &&
                     norm2(vrel[0], vrel[1]) < params_.get("velocity_tolerance", 0.15);
     if (settle_.update(ok, ctx.t, params_.get("settle", 3.0))) {
         return Status::kDone;
     }
     if (ctx.t - t0_ > duration + params_.get("timeout", 40.0)) {
+        if (params_.get("fail_on_timeout", 0.0) > 0.5) {
+            cmd.message = "tolerance not reached within the timeout";
+            return Status::kFailed;
+        }
         cmd.message = "tolerance not reached within the timeout, continuing";
         return Status::kDone;
     }
     return Status::kRunning;
+}
+
+// ---------------------------------------------------------------------------------------------------------------
+// UavHold
+// ---------------------------------------------------------------------------------------------------------------
+
+void UavHold::start(const Context & ctx)
+{
+    t0_ = ctx.t;
+    boat_frame_ = params_.get("boat_frame", 0.0) > 0.5;
+    const Vec3 here = boat_frame_ ? toBoatFrame(ctx, uavRelative(ctx)) : uavRelative(ctx);
+    offset_ = params_.getVec3("offset", here);
+}
+
+Status UavHold::update(const Context & ctx, UavCommand & cmd)
+{
+    cmd.yaw_from_reference = params_.get("yaw_from_reference", 0.0) > 0.5;
+    cmd.path = boatRelativePath(ctx, [this](double) { return offset_; }, boat_frame_);
+    const double duration = params_.get("duration", 0.0);
+    return duration > 0.0 && ctx.t - t0_ >= duration ? Status::kDone : Status::kRunning;
 }
 
 // ---------------------------------------------------------------------------------------------------------------
@@ -257,6 +284,7 @@ Status Land::update(const Context & ctx, UavCommand & cmd)
     }
 
     cmd.tether_pull = phase_ == Phase::kDescend || phase_ == Phase::kTouch || phase_ == Phase::kLanded;
+    cmd.low_altitude = cmd.tether_pull;
     cmd.request_disarm = phase_ == Phase::kTouch;
     cmd.path = boatRelativePath(ctx, [this](double t) { return relAt(t); });
     return phase_ == Phase::kLanded ? Status::kDone : Status::kRunning;

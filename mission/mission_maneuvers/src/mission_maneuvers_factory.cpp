@@ -9,6 +9,7 @@ std::unique_ptr<UavManeuver> createUavManeuver(const std::string & type, const P
 {
     if (type == "takeoff") { return std::make_unique<Takeoff>(params); }
     if (type == "goto") { return std::make_unique<GotoBoat>(params); }
+    if (type == "hold") { return std::make_unique<UavHold>(params); }
     if (type == "orbit") { return std::make_unique<Orbit>(params); }
     if (type == "land") { return std::make_unique<Land>(params); }
     return nullptr;

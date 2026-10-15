@@ -44,12 +44,23 @@ double wrapAngle(double a);
 /// (constant velocity beyond it, or for the whole interval when the horizon is missing or stale).
 Vec3 boatDisplacement(const Context & ctx, double tau);
 
+/// Heading of the boat at now + tau, along the predicted horizon (constant yaw rate when it is missing or stale).
+double boatYawAt(const Context & ctx, double tau);
+
+/// Rotation of a vector about the vertical axis.
+Vec3 rotateZ(const Vec3 & v, double yaw);
+
+/// Vector expressed in the boat frame (current heading) from world axes.
+Vec3 toBoatFrame(const Context & ctx, const Vec3 & v);
+
 /// Winch position used as origin of the boat-relative references: current planar position, mean height.
 Vec3 anchorReference(const Context & ctx);
 
 /// Reference horizon of the UAV given relative to the winch: point k is anchorReference + boat displacement over
-/// k*dt + rel(t + k*dt). The heading of every point is the boat heading.
-std::vector<UavPose> boatRelativePath(const Context & ctx, const std::function<Vec3(double)> & rel);
+/// k*dt + rel(t + k*dt), with rel in world axes or, if boat_frame, in the axes of the boat (rotated with its
+/// predicted heading). The heading of every point is the boat heading.
+std::vector<UavPose> boatRelativePath(const Context & ctx, const std::function<Vec3(double)> & rel,
+                                      bool boat_frame = false);
 
 /// UAV position relative to the winch reference (anchorReference).
 Vec3 uavRelative(const Context & ctx);

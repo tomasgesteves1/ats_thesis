@@ -1,0 +1,19 @@
+# Scout: while the boat follows a route, the UAV flies ahead of the bow (offset in the boat frame, so it turns
+# with the boat) looking forward, and lands back on the pad when the route is over.
+name: "Scout ahead of the boat"
+
+uav:
+  - {id: takeoff, type: takeoff, vertical_clearance: 1.5, clearance_duration: 5.0, pull_release_height: 1.6,
+     offset: [0.0, 0.0, 3.0], duration: 6.0, tolerance: 0.3, arm_timeout: 30.0}
+  - {id: scout, type: goto, boat_frame: 1, offset: [8.0, 0.0, 5.0], yaw_from_reference: 1, duration: 10.0,
+     tolerance: 0.5, velocity_tolerance: 0.3, settle: 2.0, timeout: 20.0}
+  - {id: watch, type: hold, boat_frame: 1, offset: [8.0, 0.0, 5.0], yaw_from_reference: 1, until: usv.route}
+  - {id: land, type: land, height: 3.0, approach_duration: 8.0, tolerance: 0.15, velocity_tolerance: 0.15,
+     settle: 3.0, track_timeout: 40.0, descent_duration: 12.0, final_height: 0.5, final_speed: 0.15,
+     final_ramp: 1.0, depth: 0.2, touch_margin: 0.05, touch_velocity: 0.1, touch_time: 0.5, disarm_timeout: 5.0}
+
+usv:
+  - {id: wait, type: hold, duration: 0.0}
+  - {id: route, type: waypoints, after: uav.scout, points: [[30.0, 0.0], [30.0, 25.0], [5.0, 25.0]],
+     speed: 1.0, ramp_time: 5.0, lookahead: 6.0, tolerance: 1.5}
+  - {id: stop, type: hold, duration: 0.0}

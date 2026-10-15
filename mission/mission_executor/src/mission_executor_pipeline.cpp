@@ -27,6 +27,21 @@ bool MissionExecutorPipeline::load(const MissionSpec & mission, std::string & er
         }
         usv_->add(step, std::move(maneuver));
     }
+    abort_spec_ = mission.uav_abort;
+    if (abort_spec_.empty()) {
+        StepSpec land;
+        land.id = "land";
+        land.type = "land";
+        abort_spec_.push_back(land);
+    }
+    for (const auto & step : abort_spec_) {
+        if (!mission_maneuvers::createUavManeuver(step.type, Params(step.params))) {
+            error = "unknown UAV maneuver '" + step.type + "' in uav_abort (step " + step.id + ")";
+            return false;
+        }
+    }
+    uav_abort_.reset();
+    usv_abort_.reset();
     name_ = mission.name;
     done_.clear();
     state_ = MissionState::kRunning;
@@ -55,6 +70,26 @@ mission_maneuvers::Context MissionExecutorPipeline::buildContext(const Measureme
     return ctx;
 }
 
+void MissionExecutorPipeline::startAbort(const Measurements & m, Output & out)
+{
+    state_ = MissionState::kAborted;
+    out.events.push_back("mission aborted: the boat holds its position");
+    usv_abort_ = std::make_unique<Sequence<mission_maneuvers::UsvManeuver, mission_maneuvers::UsvCommand>>(
+        "usv_abort");
+    StepSpec hold;
+    hold.id = "hold";
+    hold.type = "hold";
+    usv_abort_->add(hold, mission_maneuvers::createUsvManeuver("hold", Params()));
+    if (m.uav.armed) {
+        out.events.push_back("UAV armed: running the abort sequence");
+        uav_abort_ = std::make_unique<Sequence<mission_maneuvers::UavManeuver, mission_maneuvers::UavCommand>>(
+            "uav_abort");
+        for (const auto & step : abort_spec_) {
+            uav_abort_->add(step, mission_maneuvers::createUavManeuver(step.type, Params(step.params)));
+        }
+    }
+}
+
 Output MissionExecutorPipeline::tick(const Measurements & m)
 {
     Output out;
@@ -63,12 +98,14 @@ Output MissionExecutorPipeline::tick(const Measurements & m)
     }
     const auto ctx = buildContext(m);
 
-    if (!uav_->tick(ctx, done_, out.uav, out.events)) {
+    auto & uav_seq = uav_abort_ ? *uav_abort_ : *uav_;
+    auto & usv_seq = usv_abort_ ? *usv_abort_ : *usv_;
+    if (!uav_seq.tick(ctx, done_, out.uav, out.events)) {
         // no UAV maneuver yet: the reference stays at the current position
         mission_maneuvers::UavPose here{m.uav.p, m.uav.yaw};
         out.uav.path.assign(static_cast<size_t>(config_.uav_horizon.steps), here);
     }
-    if (!usv_->tick(ctx, done_, out.usv, out.events)) {
+    if (!usv_seq.tick(ctx, done_, out.usv, out.events)) {
         if (!usv_idle_set_) {
             usv_idle_ = {m.boat.p[0], m.boat.p[1], m.boat.yaw};
             usv_idle_set_ = true;
@@ -78,12 +115,14 @@ Output MissionExecutorPipeline::tick(const Measurements & m)
 
     if (state_ == MissionState::kRunning) {
         if (uav_->failed() || usv_->failed()) {
-            state_ = MissionState::kAborted;
-            out.events.push_back("mission aborted");
+            startAbort(m, out);
         } else if (uav_->finished() && usv_->finished()) {
             state_ = MissionState::kDone;
             out.events.push_back("mission complete");
         }
+    } else if (state_ == MissionState::kAborted && uav_abort_ && uav_abort_->finished() && !abort_reported_) {
+        abort_reported_ = true;
+        out.events.push_back("abort sequence complete");
     }
     return out;
 }

@@ -41,9 +41,10 @@ private:
     Vec3 rel0_{};
 };
 
-/// Minimum-jerk transfer to a point given relative to the winch, then waits until the UAV is settled there.
-/// Params: offset [m], duration [s], tolerance [m], velocity_tolerance [m/s], settle [s], timeout [s] (after the
-/// transfer; the maneuver then finishes anyway), yaw_from_reference (0/1).
+/// Minimum-jerk transfer to a point given relative to the winch, in world axes or in the axes of the boat (the
+/// point then turns with the boat: scout ahead of the bow, escort beside it), then waits until the UAV is settled.
+/// Params: offset [m], boat_frame (0/1), duration [s], tolerance [m], velocity_tolerance [m/s], settle [s],
+/// timeout [s] (after the transfer), fail_on_timeout (0: finishes anyway, 1: fails), yaw_from_reference (0/1).
 class GotoBoat : public UavManeuver
 {
 public:
@@ -54,8 +55,26 @@ public:
 
 private:
     double t0_{0.0};
+    bool boat_frame_{false};
     Vec3 rel0_{};
     SettleTimer settle_;
+};
+
+/// Keeps a point relative to the winch (world or boat axes; the current one if no offset is given) for a duration
+/// (0: until the step is ended by the mission, see 'until').
+/// Params: offset [m], boat_frame (0/1), duration [s], yaw_from_reference (0/1).
+class UavHold : public UavManeuver
+{
+public:
+    using UavManeuver::UavManeuver;
+    std::string type() const override { return "hold"; }
+    void start(const Context & ctx) override;
+    Status update(const Context & ctx, UavCommand & cmd) override;
+
+private:
+    double t0_{0.0};
+    bool boat_frame_{false};
+    Vec3 offset_{};
 };
 
 /// Orbit around the winch: minimum-jerk entry to the circle at the current bearing, then the angular speed is

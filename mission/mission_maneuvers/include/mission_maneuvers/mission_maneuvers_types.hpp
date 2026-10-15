@@ -45,6 +45,7 @@ struct BoatState
     Vec3 p{};
     Vec3 v{};
     double yaw{0.0};
+    double yaw_rate{0.0};
     Vec3 anchor{};              ///< current position of the winch
     double anchor_z_mean{0.0};  ///< running mean of the winch height (the references ignore the heave)
     BoatHorizon horizon;
@@ -86,6 +87,7 @@ struct UavCommand
     bool request_disarm{false};
     bool tether_pull{false};         ///< the winch pulls the UAV towards the deck (takeoff and landing)
     bool yaw_from_reference{false};  ///< the UAV yaw follows the reference heading (the boat heading)
+    bool low_altitude{false};        ///< the lower bound on the height is relaxed (takeoff and landing)
     std::string message;             ///< event to log (empty if none)
 };
 

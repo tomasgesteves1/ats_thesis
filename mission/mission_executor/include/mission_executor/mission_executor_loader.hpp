@@ -14,18 +14,21 @@ struct StepSpec
     std::string id;      ///< unique within the vehicle sequence (defaults to the type)
     std::string type;    ///< maneuver type
     std::string after;   ///< "<vehicle>.<id>": the step waits until that step is done (empty = no wait)
+    std::string until;   ///< "<vehicle>.<id>": the step is ended when that step is done (empty = by itself)
     std::map<std::string, std::vector<double>> params;
 };
 
-/// A mission: one sequence of maneuvers per vehicle.
+/// A mission: one sequence of maneuvers per vehicle, and the UAV sequence run if the mission is aborted (a
+/// maneuver failed) while the UAV is armed.
 struct MissionSpec
 {
     std::string name;
     std::vector<StepSpec> uav;
     std::vector<StepSpec> usv;
+    std::vector<StepSpec> uav_abort;
 };
 
-/// Reads a mission file. Every key of a step other than id, type and after is a parameter of the maneuver:
+/// Reads a mission file. Every key of a step other than id, type, after and until is a parameter of the maneuver:
 /// numbers become vectors of size 1, lists of numbers are kept, and lists of lists are flattened.
 /// Throws std::runtime_error with a description when the file is invalid.
 MissionSpec loadMission(const std::string & path);

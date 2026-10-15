@@ -25,16 +25,15 @@ def generate_launch_description():
                     ('reference_path', '/usv/reference_path'),
                     ('mpc_horizon', '/usv/mpc_horizon')])
 
-    # The soft lower bound on the height is removed so that the UAV can land on the pad
     uav_mpc = Node(
         package='uav_mpc', executable='uav_mpc_node', name='uav_mpc_node', output='screen',
-        parameters=[uav_cfg, {'use_sim_time': True, 'trajectory_type': 'external', 'use_tether': True,
-                              'z_min': 0.0}],
+        parameters=[uav_cfg, {'use_sim_time': True, 'trajectory_type': 'external', 'use_tether': True}],
         remappings=[('odom', '/drone/ground_truth/odometry'),
                     ('tether_length', '/moordyn_tether_node/tether_length'),
                     ('reference_path', '/uav/reference_path'),
                     ('boat_mpc_horizon', '/usv/mpc_horizon'),
-                    ('yaw_from_reference', '/uav/yaw_from_reference')])
+                    ('yaw_from_reference', '/uav/yaw_from_reference'),
+                    ('low_altitude', '/uav/low_altitude')])
 
     executor = Node(
         package='mission_executor', executable='mission_executor_node', name='mission_executor_node',
@@ -48,6 +47,7 @@ def generate_launch_description():
                     ('uav/reference_path', '/uav/reference_path'),
                     ('usv/reference_path', '/usv/reference_path'),
                     ('uav/yaw_from_reference', '/uav/yaw_from_reference'),
+                    ('uav/low_altitude', '/uav/low_altitude'),
                     ('tether/pull', '/moordyn_tether_node/tether_pull')])
 
     return LaunchDescription([

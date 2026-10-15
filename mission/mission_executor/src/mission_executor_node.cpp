@@ -86,6 +86,7 @@ MissionExecutorNode::MissionExecutorNode(const rclcpp::NodeOptions & options)
     usv_path_pub_ = create_publisher<nav_msgs::msg::Path>("usv/reference_path", 10);
     tether_pull_pub_ = create_publisher<std_msgs::msg::Bool>("tether/pull", 10);
     yaw_mode_pub_ = create_publisher<std_msgs::msg::Bool>("uav/yaw_from_reference", 10);
+    low_altitude_pub_ = create_publisher<std_msgs::msg::Bool>("uav/low_altitude", 10);
     events_pub_ = create_publisher<std_msgs::msg::String>("mission/events", 10);
     command_pub_ = create_publisher<px4_msgs::msg::VehicleCommand>("px4/vehicle_command", 10);
 
@@ -124,6 +125,7 @@ bool MissionExecutorNode::gatherMeasurements(Measurements & m)
     m.boat.p = {bp.x, bp.y, bp.z};
     m.boat.v = worldVelocity(*usv_odom_);
     m.boat.yaw = yawOf(usv_odom_->pose.pose.orientation);
+    m.boat.yaw_rate = usv_odom_->twist.twist.angular.z;
     if (usv_horizon_ && !usv_horizon_->poses.empty()) {
         m.boat.horizon.stamp = rclcpp::Time(usv_horizon_->header.stamp).seconds();
         m.boat.horizon.dt = get_parameter("usv_horizon_dt").as_double();
@@ -189,6 +191,8 @@ void MissionExecutorNode::publishCommands(const Output & out)
     tether_pull_pub_->publish(b);
     b.data = out.uav.yaw_from_reference;
     yaw_mode_pub_->publish(b);
+    b.data = out.uav.low_altitude;
+    low_altitude_pub_->publish(b);
 }
 
 void MissionExecutorNode::sendPx4Commands(const mission_maneuvers::UavCommand & cmd)

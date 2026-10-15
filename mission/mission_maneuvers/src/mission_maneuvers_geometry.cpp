@@ -96,18 +96,47 @@ Vec3 boatDisplacement(const Context & ctx, double tau)
     return {ctx.boat.v[0] * tau, ctx.boat.v[1] * tau, 0.0};
 }
 
+double boatYawAt(const Context & ctx, double tau)
+{
+    const auto & h = ctx.boat.horizon;
+    if (h.x_y_yaw.size() > 2 && ctx.t - h.stamp < ctx.horizon_timeout) {
+        // heading change along the horizon, accumulated with wrapped increments
+        const double u_now = std::clamp((ctx.t - h.stamp) / h.dt, 0.0, static_cast<double>(h.x_y_yaw.size() - 1));
+        const double u_end = std::clamp((ctx.t + tau - h.stamp) / h.dt, 0.0, static_cast<double>(h.x_y_yaw.size() - 1));
+        auto yawAt = [&h](double u) {
+            const auto i = std::min(static_cast<size_t>(u), h.x_y_yaw.size() - 2);
+            const double f = u - static_cast<double>(i);
+            return h.x_y_yaw[i][2] + f * wrapAngle(h.x_y_yaw[i + 1][2] - h.x_y_yaw[i][2]);
+        };
+        return ctx.boat.yaw + wrapAngle(yawAt(u_end) - yawAt(u_now));
+    }
+    return ctx.boat.yaw + ctx.boat.yaw_rate * tau;
+}
+
+Vec3 rotateZ(const Vec3 & v, double yaw)
+{
+    const double c = std::cos(yaw), s = std::sin(yaw);
+    return {c * v[0] - s * v[1], s * v[0] + c * v[1], v[2]};
+}
+
+Vec3 toBoatFrame(const Context & ctx, const Vec3 & v)
+{
+    return rotateZ(v, -ctx.boat.yaw);
+}
+
 Vec3 anchorReference(const Context & ctx)
 {
     return {ctx.boat.anchor[0], ctx.boat.anchor[1], ctx.boat.anchor_z_mean};
 }
 
-std::vector<UavPose> boatRelativePath(const Context & ctx, const std::function<Vec3(double)> & rel)
+std::vector<UavPose> boatRelativePath(const Context & ctx, const std::function<Vec3(double)> & rel, bool boat_frame)
 {
     std::vector<UavPose> path(static_cast<size_t>(ctx.uav_horizon.steps));
     const Vec3 origin = anchorReference(ctx);
     for (size_t k = 0; k < path.size(); ++k) {
         const double tau = static_cast<double>(k) * ctx.uav_horizon.dt;
-        path[k].p = add(add(origin, boatDisplacement(ctx, tau)), rel(ctx.t + tau));
+        const Vec3 r = rel(ctx.t + tau);
+        path[k].p = add(add(origin, boatDisplacement(ctx, tau)), boat_frame ? rotateZ(r, boatYawAt(ctx, tau)) : r);
         path[k].yaw = ctx.boat.yaw;
     }
     return path;

@@ -13,8 +13,9 @@ namespace mission_executor
 {
 
 /// Runs the maneuvers of one vehicle in order. A step whose 'after' names a step not yet done waits, and the
-/// previous maneuver keeps producing the reference meanwhile; the last maneuver keeps producing it once the
-/// sequence is finished. A failed maneuver stops the sequence (its last command is kept).
+/// previous maneuver keeps producing the reference meanwhile; a step whose 'until' names a step that is done is
+/// ended; the last maneuver keeps producing the reference once the sequence is finished. A failed maneuver stops
+/// the sequence.
 template <class ManeuverT, class CommandT>
 class Sequence
 {
@@ -39,15 +40,20 @@ public:
                 events.push_back(vehicle_ + "." + spec.id + ": started (" + spec.type + ")");
             }
         }
-        if (active_ < 0) {
-            return false;
+        if (active_ < 0 || failed_) {
+            return false;   // nothing to run, or stopped after a failure: the caller provides an idle command
         }
         auto & step = steps_[static_cast<size_t>(active_)];
-        const auto status = step.maneuver->update(ctx, cmd);
+        auto status = step.maneuver->update(ctx, cmd);
         if (!cmd.message.empty()) {
             events.push_back(vehicle_ + "." + step.spec.id + ": " + cmd.message);
         }
         const bool current = started_ && static_cast<size_t>(active_) == index_ && !finished_ && !failed_;
+        if (current && status == mission_maneuvers::Status::kRunning && !step.spec.until.empty() &&
+            done.count(step.spec.until) > 0) {
+            events.push_back(vehicle_ + "." + step.spec.id + ": ended by " + step.spec.until);
+            status = mission_maneuvers::Status::kDone;
+        }
         if (current && status == mission_maneuvers::Status::kDone) {
             done.insert(vehicle_ + "." + step.spec.id);
             events.push_back(vehicle_ + "." + step.spec.id + ": done");

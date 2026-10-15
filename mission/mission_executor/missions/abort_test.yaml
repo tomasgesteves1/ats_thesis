@@ -1,0 +1,19 @@
+# Abort test: the second UAV maneuver cannot be completed (the point is beyond the tether range) and fails on
+# timeout; the mission is aborted, the boat holds its position and the UAV lands on the pad.
+name: "Abort and return to the boat"
+
+uav:
+  - {id: takeoff, type: takeoff, vertical_clearance: 1.5, clearance_duration: 5.0, pull_release_height: 1.6,
+     offset: [0.0, 0.0, 3.0], duration: 6.0, tolerance: 0.3, arm_timeout: 30.0}
+  - {id: unreachable, type: goto, offset: [0.0, 0.0, 20.0], duration: 10.0, tolerance: 0.5, settle: 2.0,
+     timeout: 10.0, fail_on_timeout: 1}
+
+usv:
+  - {id: wait, type: hold, duration: 0.0}
+  - {id: route, type: waypoints, after: uav.takeoff, points: [[30.0, 0.0], [30.0, 25.0]], speed: 0.75,
+     ramp_time: 5.0, lookahead: 6.0, tolerance: 1.5}
+
+uav_abort:
+  - {id: land, type: land, height: 3.0, approach_duration: 8.0, tolerance: 0.2, velocity_tolerance: 0.2,
+     settle: 2.0, track_timeout: 30.0, descent_duration: 12.0, final_height: 0.5, final_speed: 0.15,
+     final_ramp: 1.0, depth: 0.2, touch_margin: 0.05, touch_velocity: 0.1, touch_time: 0.5, disarm_timeout: 5.0}

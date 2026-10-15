@@ -41,7 +41,9 @@ struct Output
 enum class MissionState { kNotLoaded, kRunning, kDone, kAborted };
 
 /// Pure C++ orchestrator: builds the maneuver context from the measurements (mean winch height, resting height
-/// of the UAV on the pad) and runs the UAV and USV sequences of the mission.
+/// of the UAV on the pad) and runs the UAV and USV sequences of the mission. When a maneuver fails the mission is
+/// aborted: the boat holds its position and, if the UAV is armed, the abort sequence of the mission (by default a
+/// landing on the pad) is run.
 class MissionExecutorPipeline
 {
 public:
@@ -57,6 +59,7 @@ public:
 
 private:
     mission_maneuvers::Context buildContext(const Measurements & m);
+    void startAbort(const Measurements & m, Output & out);
 
     PipelineConfig config_;
     std::string name_;
@@ -64,12 +67,16 @@ private:
     std::unique_ptr<Sequence<mission_maneuvers::UavManeuver, mission_maneuvers::UavCommand>> uav_;
     std::unique_ptr<Sequence<mission_maneuvers::UsvManeuver, mission_maneuvers::UsvCommand>> usv_;
     std::set<std::string> done_;
+    std::vector<StepSpec> abort_spec_;   ///< UAV sequence run on abort (default: land on the pad)
+    std::unique_ptr<Sequence<mission_maneuvers::UavManeuver, mission_maneuvers::UavCommand>> uav_abort_;
+    std::unique_ptr<Sequence<mission_maneuvers::UsvManeuver, mission_maneuvers::UsvCommand>> usv_abort_;
 
     double anchor_z_sum_{0.0};
     long anchor_z_count_{0};
     bool rest_height_set_{false};
     double rest_height_{0.0};
     bool usv_idle_set_{false};
+    bool abort_reported_{false};
     mission_maneuvers::UsvPose usv_idle_;
 };
 

@@ -20,7 +20,7 @@ namespace mission_executor
 {
 
 /// ROS wrapper of the mission executor: gathers the measurements (TF, odometry, USV horizon, PX4 status), runs the
-/// pipeline at a fixed rate and publishes the references of both controllers, the winch and yaw mode switches,
+/// pipeline at a fixed rate and publishes the references of both controllers, the winch, yaw and altitude switches,
 /// and the arm/offboard/disarm commands to PX4. It is the only publisher of the controllers' references.
 class MissionExecutorNode : public rclcpp::Node
 {
@@ -62,6 +62,7 @@ private:
     rclcpp::Publisher<nav_msgs::msg::Path>::SharedPtr usv_path_pub_;
     rclcpp::Publisher<std_msgs::msg::Bool>::SharedPtr tether_pull_pub_;
     rclcpp::Publisher<std_msgs::msg::Bool>::SharedPtr yaw_mode_pub_;
+    rclcpp::Publisher<std_msgs::msg::Bool>::SharedPtr low_altitude_pub_;
     rclcpp::Publisher<std_msgs::msg::String>::SharedPtr events_pub_;
     rclcpp::Publisher<px4_msgs::msg::VehicleCommand>::SharedPtr command_pub_;
     rclcpp::TimerBase::SharedPtr timer_;
