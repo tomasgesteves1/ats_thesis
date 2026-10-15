@@ -9,6 +9,13 @@
       <uri>https://fuel.gazebosim.org/1.0/OpenRobotics/models/Radio tower</uri>
       <pose>-25 0 -1 0 0 0</pose>
     </include>
+    <!-- Intruder boat of the interdiction missions (kinematic, idle away from the other missions until intruder_sim
+         moves it) -->
+    <include>
+      <name>wamv_intruder</name>
+      <uri>wamv_intruder</uri>
+      <pose>60 40 0 0 0 0</pose>
+    </include>
 
     <physics name="1ms" type="ode">
       <max_step_size>0.001</max_step_size>

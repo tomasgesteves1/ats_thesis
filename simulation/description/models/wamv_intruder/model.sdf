@@ -1,0 +1,27 @@
+<?xml version="1.0" ?>
+<!-- Intruder boat: WAM-V hull and engines, visual only and static; its pose is set at every step by intruder_sim -->
+<sdf version="1.9">
+  <model name="wamv_intruder">
+    <static>true</static>
+    <link name="base_link">
+      <visual name="hull">
+        <pose>0.288249 0 0 0 0 0</pose>
+        <geometry><mesh><uri>model://wamv/meshes/WAM-V-Base.dae</uri></mesh></geometry>
+      </visual>
+      <visual name="left_engine">
+        <pose>-2.0855 1.0271 0.3182 0 0 0</pose>
+        <geometry><mesh><uri>model://wamv/meshes/engine.dae</uri></mesh></geometry>
+      </visual>
+      <visual name="right_engine">
+        <pose>-2.0855 -1.0271 0.3182 0 0 0</pose>
+        <geometry><mesh><uri>model://wamv/meshes/engine.dae</uri></mesh></geometry>
+      </visual>
+      <!-- red cabin to tell it apart from the USV -->
+      <visual name="marker">
+        <pose>0.288 0 1.6 0 0 0</pose>
+        <geometry><box><size>1.6 0.9 0.6</size></box></geometry>
+        <material><ambient>0.8 0.05 0.05 1</ambient><diffuse>0.8 0.05 0.05 1</diffuse></material>
+      </visual>
+    </link>
+  </model>
+</sdf>

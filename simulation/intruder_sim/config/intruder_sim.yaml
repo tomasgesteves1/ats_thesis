@@ -1,0 +1,19 @@
+intruder_sim_node:
+  ros__parameters:
+    # Patrol loop [x1, y1, x2, y2, ...] (m, world); the intruder starts at the first point
+    patrol: [55.0, 15.0, 65.0, 15.0, 65.0, 25.0, 55.0, 25.0]
+    patrol_speed: 0.6        # m/s
+    flee_speed: 1.0          # m/s (below the speed the USV can reach)
+    acceleration: 0.3        # m/s^2
+    turn_rate: 0.3           # rad/s
+    waypoint_radius: 2.0     # m
+    alert_radius: 10.0       # m, flees when the UAV or the USV gets closer (horizontal distance)
+    capture_radius: 10.0     # m, stops when the USV stays closer ...
+    capture_time: 3.0        # s, ... for this time
+    zone: [20.0, 100.0, -20.0, 70.0]   # x_min, x_max, y_min, y_max (m): area it does not leave when fleeing
+    zone_margin: 8.0         # m
+    entity_name: "wamv_intruder"
+    world_frame: "world"
+    child_frame: "intruder/base_link"
+    z: -0.05                 # m, height of the hull reference (as the USV floating at rest)
+    rate_hz: 20.0
