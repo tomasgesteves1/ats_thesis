@@ -36,7 +36,7 @@ function selectMission(id) {
     $('mission-detail').classList.remove('hidden');
     $('md-name').textContent = selected.name;
     $('md-desc').textContent = selected.description;
-    const chips = (steps) => steps.map((s) => `<span class="step">${s}</span>`).join('') || '<span class="muted small">none</span>';
+    const chips = (steps) => steps.map((s) => `<span class="step">${s.name}</span>`).join('') || '<span class="muted small">none</span>';
     $('md-uav').innerHTML = chips(selected.uav);
     $('md-usv').innerHTML = chips(selected.usv);
     const opts = Object.entries(selected.launch).map(([k, v]) => `${k}=${v}`).join(', ');
@@ -70,7 +70,6 @@ function render(s) {
     const st = s.mission_state;
     $('mission-status').innerHTML = s.mission ? `
         <div>Mission <b>${s.mission}</b>: <span class="state-${st.split(' ')[0]}">${st}</span></div>
-        <div class="muted small">UAV: ${s.steps.uav || '–'} · USV: ${s.steps.usv || '–'}</div>
         ${s.bag ? `<div class="muted small">bag: ${s.bag}${s.processes.bag.running ? ' (recording)' : ''}</div>` : ''}` : '';
 
     const u = t.uav, b = t.usv, th = t.tether, ix = t.intruder;
@@ -85,9 +84,31 @@ function render(s) {
                                       ['distance USV', fresh(b) ? fmt(Math.hypot(ix.x - b.x, ix.y - b.y), 1, ' m') : '–']]
                                     : [['', 'not present']]);
 
-    $('events').innerHTML = s.events.map((e) =>
-        `<li><span class="t">${e.t === null ? '' : fmt(e.t, 0, ' s')}</span>${e.text}</li>`).join('');
+    renderProgress(s);
     drawMap(t);
+}
+
+// ------------------------------------------------------------------------------------------------- progress
+// Maneuvers of the running mission as blocks: done, current and next
+function renderProgress(s) {
+    const m = missions.find((x) => x.id === s.mission);
+    if (!m) { $('progress').innerHTML = '<div class="muted small">no mission</div>'; return; }
+    const complete = s.mission_state === 'complete';
+    const row = (who, label) => {
+        const current = s.steps[who] || '';
+        const abort = current.endsWith('(abort)');
+        // the blocks before the current one are done (the first events can be missed while the topic is discovered)
+        const at = m[who].findIndex((b) => b.ids.includes(current));
+        let blocks = m[who].map((b, i) => {
+            let cls = 'next';
+            if (complete || (at >= 0 && i < at) || b.ids.every((id) => s.done[who].includes(id))) { cls = 'done'; }
+            else if (!abort && i === at) { cls = 'current'; }
+            return `<span class="block ${cls}">${b.name}</span>`;
+        });
+        if (abort) { blocks.push(`<span class="block current abort">${who === 'uav' ? 'landing' : 'hold'} (abort)</span>`); }
+        return `<div class="progress-row"><span class="tag">${label}</span>${blocks.join('<span class="arrow">›</span>')}</div>`;
+    };
+    $('progress').innerHTML = row('uav', 'UAV') + row('usv', 'USV');
 }
 
 // ------------------------------------------------------------------------------------------------- map

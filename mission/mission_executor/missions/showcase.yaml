@@ -2,6 +2,8 @@
 # it and tether-pulled landing back on the pad, while the boat follows a square route.
 name: "Maneuver showcase"
 description: "All the basic maneuvers: vertical takeoff, transfer, orbit and tether-pulled landing with the boat moving."
+# Not listed in the Mission Control Centre (run it with mission.launch.py)
+dashboard: false
 
 uav:
   - {id: takeoff, type: takeoff, vertical_clearance: 1.5, clearance_duration: 5.0, pull_release_height: 1.6,

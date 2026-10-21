@@ -2,6 +2,8 @@
 # timeout; the mission is aborted, the boat holds its position and the UAV lands on the pad.
 name: "Abort and return to the boat"
 description: "A maneuver that cannot be completed fails: the boat holds and the UAV lands (abort sequence)."
+# Not listed in the Mission Control Centre (run it with mission.launch.py)
+dashboard: false
 
 uav:
   - {id: takeoff, type: takeoff, vertical_clearance: 1.5, clearance_duration: 5.0, pull_release_height: 1.6,

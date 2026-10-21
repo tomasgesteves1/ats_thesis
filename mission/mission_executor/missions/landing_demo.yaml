@@ -2,6 +2,8 @@
 # follows a route. Offsets are relative to the winch (world axes), heights above its mean height.
 name: "Landing on the moving boat"
 description: "Takeoff, move away from the boat and land back on the pad while the boat follows a route."
+# Not listed in the Mission Control Centre (run it with mission.launch.py)
+dashboard: false
 timeout: 400.0
 
 uav:

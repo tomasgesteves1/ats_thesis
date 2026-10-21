@@ -112,9 +112,12 @@ dl { margin: 0; display: grid; grid-template-columns: auto 1fr; gap: 2px 8px; fo
 dt { color: var(--muted); }
 dd { margin: 0; text-align: right; font-variant-numeric: tabular-nums; }
 
-#events { margin: 0; padding-left: 0; list-style: none; max-height: 300px; overflow: auto; font-size: 12px; }
-#events li { padding: 2px 0; border-bottom: 1px solid #1d2532; }
-#events li .t { color: var(--muted); display: inline-block; width: 52px; }
+.progress-row { display: flex; flex-wrap: wrap; align-items: center; gap: 4px; margin: 6px 0; }
+.block { font-size: 12px; padding: 4px 9px; border-radius: 5px; border: 1px solid var(--line); color: var(--muted); }
+.block.done { background: #1f3a2c; border-color: var(--ok); color: var(--text); }
+.block.current { background: var(--accent); border-color: var(--accent); color: #fff; font-weight: 600; }
+.block.current.abort { background: var(--warn); border-color: var(--warn); color: #111; }
+.arrow { color: var(--muted); }
 
 #logs { margin: 0 16px 16px; background: var(--panel); border: 1px solid var(--line); border-radius: 8px; padding: 8px 12px; }
 #logs summary { cursor: pointer; color: var(--muted); }

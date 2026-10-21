@@ -45,6 +45,23 @@ BAG_TOPICS = [
     '/px4_1/fmu/out/vehicle_status_v1', '/mission/events', '/intruder/odometry', '/simulation/stats']
 NAV_STATES = {0: 'MANUAL', 1: 'ALTCTL', 2: 'POSCTL', 3: 'MISSION', 4: 'LOITER', 5: 'RTL', 14: 'OFFBOARD',
               17: 'TAKEOFF', 18: 'LAND'}
+# Names of the maneuvers shown to the operator (as in the thesis): several maneuver types are one maneuver
+UAV_NAMES = {'goto': 'formation', 'goto_world': 'formation', 'hold': 'formation', 'inspect': 'orbit',
+             'land': 'landing'}
+USV_NAMES = {'waypoints': 'route', 'follow': 'pursuit'}
+
+
+def maneuver_blocks(steps, names):
+    """Maneuvers of a sequence as shown to the operator: consecutive steps with the same name are one block."""
+    out = []
+    for s in steps or []:
+        name = names.get(s.get('type', '?'), s.get('type', '?'))
+        step_id = s.get('id', s.get('type', '?'))
+        if out and out[-1]['name'] == name:
+            out[-1]['ids'].append(step_id)
+        else:
+            out.append({'name': name, 'ids': [step_id]})
+    return out
 
 
 def yaw_deg(q):
@@ -113,6 +130,7 @@ class DashboardNode(Node):
         self.t = {'uav': {}, 'usv': {}, 'tether': {}, 'intruder': None, 'sim': {}, 'paths': {}}
         self.events = deque(maxlen=200)
         self.steps = {'uav': '', 'usv': ''}
+        self.done = {'uav': [], 'usv': []}   # ids of the finished steps
         self.mission_state = 'idle'
 
         sub = self.create_subscription
@@ -179,6 +197,8 @@ class DashboardNode(Node):
                 if text.startswith(v + '.') and ': started' in text:
                     self.steps[v.split('_')[0]] = text.split(':')[0].split('.', 1)[1] + \
                         (' (abort)' if v.endswith('abort') else '')
+                if v in ('uav', 'usv') and text.startswith(v + '.') and text.endswith(': done'):
+                    self.done[v].append(text.split(':')[0].split('.', 1)[1])
             if text == 'mission complete':
                 self.mission_state = 'complete'
             elif text.startswith('mission aborted'):
@@ -197,9 +217,11 @@ class DashboardNode(Node):
                 d = yaml.safe_load(open(f)) or {}
             except yaml.YAMLError:
                 continue
-            steps = lambda key: [s.get('type', '?') for s in d.get(key) or []]
+            if d.get('dashboard', True) is False:
+                continue
             out.append({'id': os.path.splitext(os.path.basename(f))[0], 'name': d.get('name', ''),
-                        'description': d.get('description', ''), 'uav': steps('uav'), 'usv': steps('usv'),
+                        'description': d.get('description', ''), 'uav': maneuver_blocks(d.get('uav'), UAV_NAMES),
+                        'usv': maneuver_blocks(d.get('usv'), USV_NAMES),
                         'launch': d.get('launch') or {}, 'timeout': d.get('timeout')})
         return out
 
@@ -228,6 +250,7 @@ class DashboardNode(Node):
         with self.lock:
             self.events.clear()
             self.steps = {'uav': '', 'usv': ''}
+            self.done = {'uav': [], 'usv': []}
             self.mission_state = 'running'
         self.mission = mission_id
         if record:
@@ -249,7 +272,7 @@ class DashboardNode(Node):
 
     def state(self):
         with self.lock:
-            return {'telemetry': self.t, 'events': list(self.events)[:40], 'steps': self.steps,
+            return {'telemetry': self.t, 'events': list(self.events)[:40], 'steps': self.steps, 'done': self.done,
                     'mission': self.mission, 'mission_state': self.mission_state, 'bag': self.bag_path,
                     'processes': {n: p.info() for n, p in self.procs.items()}, 'now': time.time()}
 

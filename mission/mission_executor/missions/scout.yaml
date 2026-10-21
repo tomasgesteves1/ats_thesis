@@ -1,7 +1,7 @@
 # Scout: while the boat follows a route, the UAV flies ahead of the bow (offset in the boat frame, so it turns
 # with the boat) looking forward, and lands back on the pad when the route is over.
-name: "Scout ahead of the boat"
-description: "The UAV flies ahead of the bow while the boat follows a route, then lands."
+name: "Scout"
+description: "The UAV flies ahead of the bow while the USV follows a route, then lands."
 
 uav:
   - {id: takeoff, type: takeoff, vertical_clearance: 1.5, clearance_duration: 5.0, pull_release_height: 1.6,
