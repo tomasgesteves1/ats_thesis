@@ -50,6 +50,8 @@ CONFIGS = {
     "uav": {
         "online": (50, "SQP_RTI", None, None),
         "sqp": (50, "SQP", 1e-4, 25),
+        "sqp_loose": (50, "SQP", 1e-2, 25),
+        "sqp_loose10": (50, "SQP", 1e-2, 10),
         "N25": (25, "SQP_RTI", None, None),
         "N75": (75, "SQP_RTI", None, None),
         "N100": (100, "SQP_RTI", None, None),
