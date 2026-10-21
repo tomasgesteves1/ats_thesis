@@ -1,0 +1,103 @@
+% Software architecture (standalone; compile with pdflatex and include architecture.pdf)
+\documentclass[tikz, border=2pt]{standalone}
+\usepackage[T1]{fontenc}
+\usepackage{helvet}
+\renewcommand{\familydefault}{\sfdefault}
+\usetikzlibrary{arrows.meta, positioning, fit, backgrounds, calc}
+
+\definecolor{simfill}{RGB}{253, 242, 228}
+\definecolor{simline}{RGB}{214, 140, 60}
+\definecolor{rosfill}{RGB}{231, 239, 248}
+\definecolor{rosline}{RGB}{34, 49, 79}
+\definecolor{brfill}{RGB}{238, 238, 238}
+\definecolor{coop}{RGB}{200, 40, 40}
+\definecolor{opfill}{RGB}{233, 245, 233}
+\definecolor{opline}{RGB}{60, 130, 60}
+
+\newcommand{\logo}[2]{\includegraphics[height=#1]{logos/#2}}
+
+\begin{document}
+\begin{tikzpicture}[
+    node/.style={draw=#1, fill=white, rounded corners=2pt, align=center, minimum width=2.2cm, minimum height=0.95cm,
+                 inner sep=3pt, font=\footnotesize, line width=0.6pt},
+    node/.default=rosline,
+    rate/.style={font=\scriptsize\color{black!60}},
+    panel/.style={draw=#1, rounded corners=6pt, line width=0.9pt},
+    flow/.style={-{Stealth[length=4pt]}, line width=0.6pt, black!75},
+    both/.style={{Stealth[length=4pt]}-{Stealth[length=4pt]}, line width=0.6pt, black!75},
+    lbl/.style={font=\scriptsize, black!80, inner sep=1.5pt, align=center},
+]
+
+% ---------------------------------------------------------------- simulation
+\fill[simfill, rounded corners=6pt] (0, 3.2) rectangle (3.75, 9.3);
+\draw[panel=simline] (0, 3.2) rectangle (3.75, 9.3);
+\node[anchor=north west] at (0.15, 9.2) {\logo{0.55cm}{gazebo.png}};
+\node[anchor=north west, font=\small\bfseries, align=left] at (0.8, 9.12) {Gazebo\\[-2pt]\scriptsize\mdseries Harmonic};
+
+\node[node=simline] (phys) at (1.75, 7.75) {Physics\\[-1pt]\textcolor{black!60}{\scriptsize 1\,kHz}};
+\node[node=simline] (wamv) at (1.75, 5.95) {WAM-V\\[-1pt]\textcolor{black!60}{\scriptsize VRX waves, hydrodynamics}};
+\node[node=simline] (x500) at (1.75, 4.15) {x500\\[-1pt]\textcolor{black!60}{\scriptsize sensors, rotors}};
+
+\node[node=black!60, minimum height=1.25cm, minimum width=2.6cm, line width=0.9pt] (px4) at (1.75, 1.15) {\logo{0.42cm}{px4.pdf}\\[1pt]SITL autopilot};
+\draw[flow] ($(x500.south)+(-0.3,0)$) -- node[lbl, left] {sensors} ($(px4.north)+(-0.3,0)$);
+\draw[flow] ($(px4.north)+(0.3,0)$) -- node[lbl, right] {rotor speeds} ($(x500.south)+(0.3,0)$);
+
+% ---------------------------------------------------------------- bridges
+\node[draw=black!50, fill=brfill, rounded corners=3pt, minimum width=1.55cm, minimum height=5.4cm, align=center,
+      font=\footnotesize] (gzb) at (6.0, 6.15) {};
+\node[font=\footnotesize\bfseries, align=center] at (6.0, 8.45) {ROS--Gz\\bridge};
+\node[font=\scriptsize, black!60, align=center] at (6.0, 3.85) {gz-\\transport};
+\node[draw=black!50, fill=brfill, rounded corners=3pt, minimum width=1.55cm, minimum height=2.2cm, align=center,
+      font=\footnotesize] (xrce) at (6.0, 1.15) {};
+\node[align=center, font=\footnotesize\bfseries] at (6.0, 1.15)
+    {\logo{0.42cm}{eprosima.pdf}\\XRCE-DDS\\agent\\[-1pt]\textcolor{black!60}{\scriptsize\mdseries UDP}};
+
+\draw[flow] (phys.east) -- node[lbl, above, pos=0.6] {clock} (gzb.west |- phys.east);
+\draw[flow] ($(wamv.east)+(0,0.15)$) -- node[lbl, above, pos=0.6] {odometry} (gzb.west |- 0, 6.1);
+\draw[flow] (gzb.west |- 0, 5.8) -- node[lbl, below, pos=0.4] {thrusters,\\tether force} ($(wamv.east)+(0,-0.15)$);
+\draw[flow] ($(x500.east)+(0,0.15)$) -- node[lbl, above, pos=0.6] {odometry} (gzb.west |- 0, 4.3);
+\draw[flow] (gzb.west |- 0, 4.0) -- node[lbl, below, pos=0.4] {tether force} ($(x500.east)+(0,-0.15)$);
+\draw[both] (px4.east) -- node[lbl, above] {uORB} (xrce.west);
+
+% ---------------------------------------------------------------- ROS 2
+\fill[rosfill, rounded corners=6pt] (7.05, -0.3) -- (7.05, 9.3) -- (16.2, 9.3) -- (16.2, 0.7) -- (13.6, 0.7) -- (13.6, -0.3) -- cycle;
+\draw[panel=rosline] (7.05, -0.3) -- (7.05, 9.3) -- (16.2, 9.3) -- (16.2, 0.7) -- (13.6, 0.7) -- (13.6, -0.3) -- cycle;
+\node[anchor=north east] at (16.05, 9.18) {\logo{0.42cm}{ros.pdf}\,\raisebox{0.06cm}{\small\bfseries 2}};
+\node[anchor=north west, font=\scriptsize, black!60] at (7.2, 9.15) {all nodes run on simulation time};
+
+\node[node] (tether) at (9.6, 7.65) {Tether and winch\\[-1pt]\textcolor{black!60}{\scriptsize 50\,Hz}};
+\node[node, dashed] (moordyn) at (14.6, 7.65) {MoorDyn\\[-1pt]\textcolor{black!60}{\scriptsize cable dynamics}};
+\draw[flow] (tether.east |- 0, 7.9) -- node[lbl, above] {end points} (moordyn.west |- 0, 7.9);
+\draw[flow] (moordyn.west |- 0, 7.4) -- node[lbl, below] {forces} (tether.east |- 0, 7.4);
+\node[node, minimum height=1.2cm] (usv) at (9.6, 5.9) {\logo{0.22cm}{acados.png}\\[1pt]\textbf{USV NMPC}\\[-1pt]\textcolor{black!60}{\scriptsize 10\,Hz \textperiodcentered{} \textit{N}\,=\,20}};
+\node[node, minimum height=1.2cm] (uav) at (9.6, 1.6) {\logo{0.22cm}{acados.png}\\[1pt]\textbf{UAV NMPC}\\[-1pt]\textcolor{black!60}{\scriptsize 50\,Hz \textperiodcentered{} \textit{N}\,=\,50}};
+
+\node[node, line width=1pt, minimum height=1.1cm] (exec) at (14.6, 3.75) {\textbf{Mission executor}\\[-1pt]\textcolor{black!60}{\scriptsize manoeuvres \textperiodcentered{} 50\,Hz}};
+\node[node] (dash) at (14.6, 1.6) {Web server};
+
+% cooperation: predicted trajectories
+\draw[both] (usv.south) -- node[lbl, right] {\textbf{predicted}\\\textbf{trajectories}} (uav.north);
+
+% executor -> controllers and winch
+\draw[flow] (exec.west |- 0, 3.95) -- (11.6, 3.95) |- (usv.east |- 0, 5.6);
+\draw[flow] (11.6, 3.95) |- (uav.east |- 0, 1.9);
+\node[lbl, above] at (12.35, 3.95) {references};
+\draw[both] (dash.north) -- node[lbl, right] {events, abort} (dash.north |- exec.south);
+
+% bridge <-> nodes
+\draw[flow] (tether.west) -- node[lbl, above] {forces} (gzb.east |- tether.west);
+\draw[flow] (usv.west |- 0, 5.65) -- node[lbl, below] {thrusters} (gzb.east |- 0, 5.65);
+\draw[flow] (gzb.east |- 0, 6.15) -- node[lbl, above] {odometry} (usv.west |- 0, 6.15);
+\draw[flow] (gzb.east |- 0, 3.75) -- node[lbl, above, pos=0.4] {odometry} (8.85, 3.75) -- (8.85, 2.2);
+
+% XRCE <-> nodes
+\draw[flow] (uav.west) -- node[lbl, above] {attitude,} node[lbl, below] {thrust} (xrce.east |- uav.west);
+\draw[both] (exec.west |- 0, 3.45) -- (12.6, 3.45) -- (12.6, 0.3) -- node[lbl, below, pos=0.45] {arm, offboard, status} (xrce.east |- 0, 0.3);
+
+% ---------------------------------------------------------------- operator
+\node[draw=opline, fill=opfill, rounded corners=4pt, align=center, font=\footnotesize, minimum width=2.4cm,
+      minimum height=0.85cm, line width=0.8pt] (mcc) at (14.95, 0.13) {\textbf{Mission Control}\\\textbf{Centre}};
+\draw[both] (dash.south) -- node[lbl, right] {HTTP} (dash.south |- mcc.north);
+
+\end{tikzpicture}
+\end{document}
