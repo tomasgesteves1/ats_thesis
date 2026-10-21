@@ -10,16 +10,72 @@
 \section{Control Implementation}
 \label{sec:controller_implementation}
 
+
+
 \newcommand{\tbd}{\textcolor{red}{TBD}}
+
+% With the simulator built and the models validated, what comes next?
+With the simulation environment of Section~\ref{sec:simulation_environment} developed and the models validated against it in Section~\ref{sec:model_validation}, the next step is to implement the controllers of Chapter~\ref{chapter:methodology}, which use these models to drive both vehicles.
 
 \subsection{Optimization Framework}
 \label{subsec:nmpc_solver_framework}
 
+% Which tools implement the NMPC?
+The controllers of Chapter~\ref{chapter:methodology} must solve an optimisation problem at every sampling instant, within the time available before the next one. To make this possible, they are implemented with two complementary tools. The problem is first written in CasADi~\cite{anderssonCasADiSoftwareFramework2019}, which describes the models, the cost, and the constraints as symbolic expressions and obtains their derivatives automatically. From this description, acados~\cite{verschueren2022acados} generates a solver in C dedicated to that specific problem, which is compiled once, before operation. During operation, each controller only runs this compiled solver, which is much faster than a general-purpose optimiser.
+
+% How is the problem discretised and solved?
+The prediction model requires integrating the vehicle models over each sampling interval, which is done with the fourth-order Runge--Kutta method~\cite{kutta1901}. Since the models are nonlinear, the resulting problem cannot be solved directly, and acados approaches the solution iteratively, solving at each iteration a simpler, quadratic approximation of the problem~\cite{frison2020hpipm}. More iterations bring the result closer to the solution, but take more time. The \gls{usv}, with a sampling interval of $0.1\,\text{s}$, can iterate until convergence. The \gls{uav} has only $0.02\,\text{s}$, so it performs a single iteration per instant, a strategy known as real-time iteration~\cite{diehl2005rti}. Since the solution changes little between consecutive instants, starting from the previous one and refining it once is enough to follow it.
 
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 \subsection{\texorpdfstring{\gls{usv} Control}{USV Control}}
 \label{subsec:usv_controller_implementation}
+
+% Where do the limits of the controller come from?
+Most limits of the controller are not design choices, but the limits of the thrusters of the simulated \gls{wamv}, described in Section~\ref{sec:usv_model}, on the thrust, on the azimuth angle, and on how fast each can change. The remaining two come from how the system is meant to operate. The minimum surge speed keeps the vessel sailing bow first, while still allowing the slow backing needed to hold a position or to brake, and the maximum separation defines the working radius of the \gls{uav} around the \gls{usv}. All parameters of the controller are listed in Table~\ref{tab:usv_controller_parameters}.
+
+% How often does the controller act, and how far ahead does it look?
+The sampling time, which sets how often the controller computes a new command, and the prediction horizon, which sets how far ahead it plans, are both chosen from how fast the \gls{usv} responds to its commands. At the operating speeds, the hull takes between half a second and a second to react to a change of force, and a new command every $0.1\,\text{s}$ gives six to eight samples within this response. The horizon must be long enough for the controller to see most of this response, and is set to $2\,\text{s}$, or $20$ steps, which covers two to four times the response time and is the horizon over which the model was validated in Section~\ref{sec:model_validation}.
+
+% What does the controller prioritise?
+The weights of the cost set what the controller values most, and were tuned in simulation until the vessel followed its references smoothly. The position and the heading dominate the cost, since following the reference is the purpose of the controller. The sway velocity is also penalised, so that the vessel does not drift sideways, and the thrust and its rate of change receive a light penalty that avoids unnecessary effort without compromising the tracking. The steering needs little weight to remain smooth, since the azimuth rate limit already prevents abrupt changes of direction.
+
+% How good is the computed command, and how long does it take?
+Since the solver approaches the solution iteratively, its settings trade the quality of the solution for computation time. To choose them, three settings were compared on a recorded run, on a laptop with an Intel i5-1135G7 processor (4 cores, $2.4\,\text{GHz}$), through their iterations, computation time, and optimality residual, which measures how far the command is from satisfying the conditions that define a solution. The results are shown in Figure~\ref{fig:usv_solver_performance}, and summarised in Table~\ref{tab:usv_solver_settings} after the first $2\,\text{s}$, once the solver has stabilised. A strict tolerance gives the smallest residual but needs the most iterations, a single iteration per instantachas q is the fastest but leaves the command furthest from the solution, and a moderate tolerance lies between the two. The controller uses this moderate tolerance, of $10^{-4}$, since a stricter one changes the applied thrust by less than $0.1\,\text{N}$ and the azimuth by less than $0.01^\circ$, with a limit of $25$ iterations that keeps even the first instants of the run well within the $100\,\text{ms}$ available.
+
+\begin{figure}[htbp]
+    \centering
+    \subfloat[Computation time.]{
+        \includegraphics[width=0.48\textwidth]{Implementation/figures/03_controller_implementation/usv_solver_time.pdf}
+        \label{fig:usv_solver_time}
+    }
+    \subfloat[Optimality residual.]{
+        \includegraphics[width=0.48\textwidth]{Implementation/figures/03_controller_implementation/usv_solver_residual.pdf}
+        \label{fig:usv_solver_residual}
+    }
+    \caption{\Gls{usv} \gls{nmpc} computation time and optimality residual for different solver settings.}
+    \label{fig:usv_solver_performance}
+\end{figure}
+
+\begin{table}[htbp]
+    \centering
+    \caption{\Gls{usv} \gls{nmpc} solver statistics for different solver settings.}
+    \label{tab:usv_solver_settings}
+    \begin{tabular}{lcccccc}
+        \toprule
+        & \multicolumn{2}{c}{\textbf{Iterations}} & \multicolumn{2}{c}{\textbf{Time (ms)}} & \multicolumn{2}{c}{\textbf{Residual}} \\
+        \cmidrule(lr){2-3} \cmidrule(lr){4-5} \cmidrule(lr){6-7}
+        \textbf{Settings} & Mean & Max & Mean & Max & Mean & Max \\
+        \midrule
+        Tolerance $10^{-6}$, $100$ iterations & $5.3$ & $14$ & $2.0$ & $6.3$ & $4\times10^{-7}$ & $1\times10^{-6}$ \\
+        Tolerance $10^{-4}$, $25$ iterations & $3.0$ & $7$ & $1.1$ & $3.7$ & $4\times10^{-5}$ & $1\times10^{-4}$ \\
+        Single iteration & $1$ & $1$ & $0.4$ & $1.4$ & $1.1$ & $5\times10^{2}$ \\
+        \bottomrule
+    \end{tabular}
+\end{table}
+ 
+% What happens when the solver fails?
+The solver may also fail to return a usable command, for instance when the solution of the previous instant is a poor starting point for the current one. In that case, the solver is restarted from the current state of the vessel and solves the problem once more. If it fails again, the thrusters keep the last command, and the \gls{uav} keeps the last predicted trajectory of the \gls{usv}, until a new solution is found. Reaching the iteration limit is not treated as a failure, and the command reached is still used. In the recorded run, the solver never failed, and the limit was reached only in the first instants of the run.
 
 \begin{table}[htbp]
     \centering
@@ -29,14 +85,7 @@
         \toprule
         \textbf{Parameter} & \textbf{Symbol} & \textbf{Value} \\
         \midrule
-        Sampling time & $T_s$ & $0.1\,\text{s}$ \\
-        Prediction horizon & $N$ & $20$ \\
-        Nodes covered by the \gls{uav} trajectory & $N_c$ & $10$ \\
-        Position weight & $Q_p$ & $\mathrm{diag}(150,\,150)$ \\
-        Heading weight & $q_\psi$ & $150$ \\
-        Velocity weight & $Q_\nu$ & $\mathrm{diag}(2,\,40,\,1)$ \\
-        Thruster command weight & $Q_\tau$ & $\mathrm{diag}(10^{-5},\,10^{-5},\,0.1,\,0.1)$ \\
-        Thruster rate weight & $R$ & $\mathrm{diag}(10^{-5},\,10^{-5},\,10,\,10)$ \\
+        \multicolumn{3}{l}{\textit{Limits}} \\
         Thrust limits & $T_{L,max}=T_{R,max}$ & $510.0\,\text{N}$ \\
          & $T_{L,min}=T_{R,min}$ & $-380.0\,\text{N}$ \\
         Azimuth limits & $\alpha_{L,max}=\alpha_{R,max}$ & $30^\circ$ \\
@@ -47,6 +96,18 @@
         Surge slack penalty & $\mu_{u,1},\ \mu_{u,2}$ & $200,\ 2000$ \\
         Maximum tether separation & $d_{max}$ & $15.0\,\text{m}$ \\
         Tether slack penalty & $\mu_1,\ \mu_2$ & $500,\ 5000$ \\
+        \midrule
+        \multicolumn{3}{l}{\textit{Sampling and horizon}} \\
+        Sampling time & $T_s$ & $0.1\,\text{s}$ \\
+        Prediction horizon & $N$ & $20$ \\
+        Nodes covered by the \gls{uav} trajectory & $N_c$ & $10$ \\
+        \midrule
+        \multicolumn{3}{l}{\textit{Cost weights}} \\
+        Position weight & $Q_p$ & $\mathrm{diag}(150,\,150)$ \\
+        Heading weight & $q_\psi$ & $150$ \\
+        Velocity weight & $Q_\nu$ & $\mathrm{diag}(2,\,40,\,1)$ \\
+        Thruster command weight & $Q_\tau$ & $\mathrm{diag}(10^{-5},\,10^{-5},\,0.1,\,0.1)$ \\
+        Thruster rate weight & $R$ & $\mathrm{diag}(10^{-5},\,10^{-5},\,10,\,10)$ \\
         \bottomrule
     \end{tabular}
 \end{table}
@@ -55,6 +116,48 @@
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 \subsection{\texorpdfstring{\gls{uav} Control}{UAV Control}}
 \label{subsec:uav_controller_implementation}
+
+% How do the commands of the controller reach the vehicle?
+Unlike the \gls{usv}, the \gls{uav} is not driven directly by its controller, but through the PX4 autopilot~\cite{meier2015px4}. PX4 can follow commands given at different levels, from positions to the speeds of the rotors, and the controller uses it at the attitude level. At every sampling instant, it sends the commanded attitude and thrust, and PX4 turns them into rotor speeds through its own attitude controller. The \gls{nmpc} does not need to know how this is done, only how quickly the attitude follows the command, and these dynamics are already included in its prediction model, as described in Section~\ref{sec:ctrl_uav_mpc}.
+
+% How is the thrust converted into the command that PX4 expects?
+The \gls{nmpc} computes the thrust in newtons, while PX4 expects a throttle $\delta_T$ between zero and one, which sets the speed of the rotors. This conversion is usually based on the hover throttle that PX4 estimates in flight, but here that estimate also absorbs the pull of the tether, which the \gls{nmpc} already accounts for. Since the vehicle is powered through the tether, its supply voltage does not drop during the flight as that of a battery would, which is one of the main causes of variation of this relation, and any remaining deviation is compensated by the disturbance observer. The conversion therefore uses the theoretical relation of the rotors. The total thrust of the four rotors grows with the square of their speed $\omega$, and the throttle sets this speed linearly between $\omega_{min}$ and $\omega_{max}$,
+\begin{equation}
+    T = 4\,k_F\,\omega^2, \qquad \delta_T = \frac{\omega - \omega_{min}}{\omega_{max} - \omega_{min}},
+    \label{eq:uav_rotor_relations}
+\end{equation}
+where $k_F$, $\omega_{min}$, and $\omega_{max}$ are given in Table~\ref{tab:x500_parameters}. Solving the first relation for the speed and replacing it in the second gives the throttle sent to PX4 for the thrust $T$ computed by the \gls{nmpc},
+\begin{equation}
+    \delta_T = \frac{\sqrt{T/(4\,k_F)} - \omega_{min}}{\omega_{max} - \omega_{min}},
+    \label{eq:uav_thrust_conversion}
+\end{equation}
+which is limited to the interval $[0,1]$.
+
+% Where do the limits of the controller come from?
+As for the \gls{usv}, some limits of the controller come from the vehicle itself. The maximum thrust is set slightly below what the rotors produce at full speed, leaving PX4 a margin to correct the attitude, and the minimum thrust keeps the rotors spinning so that the attitude remains controllable during descents. The rate at which the separation can grow is limited to the speed of the winch, described in Section~\ref{sec:tether_winch}, and the maximum separation is the same as in the \gls{usv} controller. The remaining bounds, on the altitude, the speed, the tilt, and the rates of the commands, define the operating envelope of the vehicle, and were chosen for the intended operation, within the capabilities of the vehicle. All parameters of the controller are listed in Table~\ref{tab:uav_controller_parameters}.
+
+% How often does the controller act, and how far ahead does it look?
+
+% What does the controller prioritise?
+
+% How does the controller account for unmodelled forces?
+
+% How good is the computed command, and how long does it take?
+\begin{figure}[htbp]
+    \centering
+    \subfloat[Computation time.]{
+        \includegraphics[width=0.48\textwidth]{Implementation/figures/03_controller_implementation/uav_solver_time.pdf}
+        \label{fig:uav_solver_time}
+    }
+    \subfloat[Optimality residual.]{
+        \includegraphics[width=0.48\textwidth]{Implementation/figures/03_controller_implementation/uav_solver_residual.pdf}
+        \label{fig:uav_solver_residual}
+    }
+    \caption{\Gls{uav} \gls{nmpc} computation time and optimality residual for different solver settings.}
+    \label{fig:uav_solver_performance}
+\end{figure}
+
+% What happens when the solver fails?
 
 
 \begin{table}[htbp]

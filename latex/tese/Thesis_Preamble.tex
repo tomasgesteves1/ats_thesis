@@ -385,6 +385,18 @@
 %
 \usepackage{subfig}
 
+% Float barriers.
+% https://www.ctan.org/pkg/placeins
+%
+% > keeps figures and tables from floating past the next section or subsection
+%
+\usepackage[section]{placeins}
+\makeatletter
+\AtBeginDocument{%
+  \expandafter\renewcommand\expandafter\subsection\expandafter{%
+    \expandafter\@fb@secFB\subsection}}
+\makeatother
+
 
 % 'ar' package
 %
