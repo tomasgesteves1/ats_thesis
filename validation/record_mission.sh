@@ -40,7 +40,8 @@ until grep -qE "mission complete|abort sequence complete|Mission not loaded" $LO
   sleep 2; [ $(( $(date +%s) - T0 )) -gt $MAXW ] && { echo "wall timeout" | tee -a $LOG/ctl.log; break; }
 done
 sleep $AFTER
-kill -INT $BAGPID; for i in $(seq 30); do [ -f "$BAG/metadata.yaml" ] && break; sleep 1; done
+kill -TERM $BAGPID;  # SIGINT is ignored by background jobs of a script
+ for i in $(seq 30); do [ -f "$BAG/metadata.yaml" ] && break; sleep 1; done
 stop_all
 grep -E "mission complete|abort|wall timeout|Mission not loaded" $LOG/ctl.log | tail -2
 echo "bag: $BAG"

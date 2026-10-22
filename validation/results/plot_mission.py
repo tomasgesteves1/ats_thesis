@@ -21,8 +21,9 @@ NAMES = {'takeoff': 'Takeoff', 'formation': 'Formation', 'scout': 'Formation', '
 SHADES = ['#dce6f2', '#b9cde6', '#94b3d9', '#6f99cc', '#4a7fbf']
 
 
-def phases(d, vehicle):
-    """[(name, t_start, t_end)] of the manoeuvres of one vehicle, from the mission events."""
+def phases(d, vehicle, t_first):
+    """[(name, t_start, t_end)] of the manoeuvres of one vehicle, from the mission events (a step that started
+    before the events were recorded starts at t_first)."""
     out, cur = [], None
     for t, e in zip(d['ev_t'], d['ev']):
         m = re.match(r'%s\.(\w+): (started|done)' % vehicle, e)
@@ -32,6 +33,8 @@ def phases(d, vehicle):
             cur = (m.group(1), t)
         elif cur and cur[0] == m.group(1):
             out.append((NAMES.get(cur[0], cur[0]), cur[1], t)); cur = None
+        elif not out:   # the first step started before the events were recorded
+            out.append((NAMES.get(m.group(1), m.group(1)), t_first, t))
     if cur:
         out.append((NAMES.get(cur[0], cur[0]), cur[1], d['drone'][-1, 0]))
     merged = []   # consecutive steps with the same name (e.g. scout + watch) are one manoeuvre
@@ -54,9 +57,11 @@ def main(name, d_max):
     set_thesis_style()
     d = load(name)
     dr, b, it = d['drone'], d['boat'], d['intruder']
-    t0 = d['ev_t'][0]
+    # start of the mission: the first event, or the liftoff of the UAV if the first events were not recorded
+    z = dr[:, 3]; t_lift = dr[np.argmax(z > z[:50].mean() + 0.3), 0] - 1.0
+    t0 = min(d['ev_t'][0], t_lift)
     t_end = next((t for t, e in zip(d['ev_t'], d['ev']) if 'mission complete' in e or 'abort sequence' in e), dr[-1, 0])
-    pu, pv = phases(d, 'uav'), phases(d, 'usv')
+    pu, pv = phases(d, 'uav', t0), phases(d, 'usv', t0)
     for t, e in zip(d['ev_t'], d['ev']):
         if not re.search(r': (started|done)$|started \(', e):
             print('  %6.1f  %s' % (t - t0, e))
@@ -76,9 +81,22 @@ def main(name, d_max):
     print('  UAV phases:', [(p[0], round(p[1] - t0, 1), round(p[2] - t0, 1)) for p in pu])
     print('  USV phases:', [(p[0], round(p[1] - t0, 1), round(p[2] - t0, 1)) for p in pv])
 
-    fig = plt.figure(figsize=(6.3, 3.6))
-    gs = fig.add_gridspec(3, 2, width_ratios=[1.0, 1.1], height_ratios=[0.8, 1.0, 1.0])
-    ax = fig.add_subplot(gs[:, 0])
+    # missions much wider than tall are drawn with the top view above the time histories
+    xs = np.concatenate([dr[m, 1], b[mb, 1]]); ys = np.concatenate([dr[m, 2], b[mb, 2]])
+    wide = np.ptp(xs) > 2.0 * np.ptp(ys)
+    if wide:
+        fig = plt.figure(figsize=(6.3, 4.9))
+        gs = fig.add_gridspec(2, 1, height_ratios=[1.6, 2.0], hspace=0.32,
+                              left=0.1, right=0.98, top=0.98, bottom=0.09)
+        ax = fig.add_subplot(gs[0])
+        sub = gs[1].subgridspec(3, 1, height_ratios=[0.45, 0.8, 0.8], hspace=0.12)
+    else:
+        fig = plt.figure(figsize=(6.3, 3.6))
+        gs = fig.add_gridspec(1, 2, width_ratios=[1.0, 1.1], wspace=0.28,
+                              left=0.08, right=0.98, top=0.98, bottom=0.14)
+        ax = fig.add_subplot(gs[0])
+        sub = gs[1].subgridspec(3, 1, height_ratios=[0.8, 1.0, 1.0], hspace=0.12)
+    cells = [sub[0], sub[1], sub[2]]
     if name.startswith('inspection'):
         ax.add_patch(Rectangle((-25 - 5.9, -6.7), 11.8, 13.4, fc='#bbbbbb', ec='#555555', lw=0.6, zorder=1))
         ax.annotate('tower', (-25, 0), ha='center', va='center', fontsize=7, zorder=2)
@@ -96,31 +114,32 @@ def main(name, d_max):
         ax.plot(pd[0], pd[1], 'o', ms=3.5, mfc=UAV, mec='k', mew=0.4, alpha=a, zorder=5)
         if len(it):
             pt = interp(it, [tk], (1, 2, 4))[0]; boat(ax, pt[0], pt[1], pt[2], color=TGT, alpha=a)
-    ax.set_aspect('equal', adjustable='datalim'); ax.set_xlabel('$x$ (m)'); ax.set_ylabel('$y$ (m)')
-    ax.legend(loc='best', fontsize=7)
-    ax.set_title('(a)', fontsize=9, y=-0.17)
+    ax.set_aspect('equal', adjustable='datalim' if wide else 'box'); ax.margins(0.06); ax.set_xlabel('$x$ (m)\n(a)'); ax.set_ylabel('$y$ (m)')
+    h = [plt.Line2D([], [], color=UAV, lw=1.0), plt.Line2D([], [], color=USV, lw=1.2)]
+    lab = ['UAV', 'USV']
+    if len(it):
+        h.append(plt.Line2D([], [], color=TGT, lw=1.0)); lab.append('target')
+    ax.legend(h, lab, loc='best', fontsize=7)
 
-    a0 = fig.add_subplot(gs[0, 1])
+    a0 = fig.add_subplot(cells[0])
     for row, (ph, label) in enumerate(((pu, 'UAV'), (pv, 'USV'))):
         y = 1 - row
         for k, (n, ts, te) in enumerate(ph):
             a0.add_patch(Rectangle((ts - t0, y - 0.4), te - ts, 0.8, fc=SHADES[k % len(SHADES)], ec='white', lw=0.8))
-            if te - ts > 0.07 * (t_end - t0):
+            if te - ts > 0.012 * len(n) * (t_end - t0):   # only where the name fits
                 a0.text(0.5 * (ts + te) - t0, y, n, ha='center', va='center', fontsize=6.5)
     a0.set_yticks([1, 0]); a0.set_yticklabels(['UAV', 'USV']); a0.set_ylim(-0.6, 1.6); a0.grid(False)
-    a1 = fig.add_subplot(gs[1, 1], sharex=a0)
+    a1 = fig.add_subplot(cells[1], sharex=a0)
     a1.plot(dr[m, 0] - t0, sep[m], color='#333333', lw=0.9)
     a1.axhline(d_max, color=LIMIT, ls='--', lw=0.9, label='$d_{max}$')
-    a1.set_ylabel('$d$ (m)'); a1.legend(loc='lower right', fontsize=7)
-    a2 = fig.add_subplot(gs[2, 1], sharex=a0)
+    a1.set_ylabel('$d$ (m)'); a1.legend(loc='lower right', fontsize=7); a1.set_ylim(0, 1.12 * d_max)
+    a2 = fig.add_subplot(cells[2], sharex=a0)
     a2.plot(dr[m, 0] - t0, dr[m, 3], color=UAV, lw=0.9)
-    a2.set_ylabel('UAV $z$ (m)'); a2.set_xlabel('time (s)')
+    a2.set_ylabel('UAV $z$ (m)'); a2.set_xlabel('time (s)\n(b)')
     for a in (a0, a1):
         plt.setp(a.get_xticklabels(), visible=False)
     a0.set_xlim(0, t_end - t0)
-    a2.set_title('(b)', fontsize=9, y=-0.75)
     fig.align_ylabels([a0, a1, a2])
-    fig.tight_layout(h_pad=0.4)
     save_figure(fig, os.path.join(OUT, name))
 
 

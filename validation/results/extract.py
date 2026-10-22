@@ -18,6 +18,11 @@ def yaw_of(q):
     return np.arctan2(2 * (q.w * q.z + q.x * q.y), 1 - 2 * (q.y * q.y + q.z * q.z))
 
 
+def roll_pitch_of(q):
+    return (np.arctan2(2 * (q.w * q.x + q.y * q.z), 1 - 2 * (q.x * q.x + q.y * q.y)),
+            np.arcsin(np.clip(2 * (q.w * q.y - q.z * q.x), -1.0, 1.0)))
+
+
 def main(bag, out):
     r = rosbag2_py.SequentialReader()
     r.open(rosbag2_py.StorageOptions(uri=bag), rosbag2_py.ConverterOptions('cdr', 'cdr'))
@@ -41,7 +46,8 @@ def main(bag, out):
             m = deserialize_message(raw, msg[tp])
             ts = m.header.stamp.sec + m.header.stamp.nanosec * 1e-9
             p, v = m.pose.pose.position, m.twist.twist.linear
-            row = (ts, p.x, p.y, p.z, yaw_of(m.pose.pose.orientation), v.x, v.y, v.z)
+            # t, x, y, z, yaw, vx, vy, vz (body axes, as published), roll, pitch
+            row = (ts, p.x, p.y, p.z, yaw_of(m.pose.pose.orientation), v.x, v.y, v.z, *roll_pitch_of(m.pose.pose.orientation))
             key = {'/drone/ground_truth/odometry': 'drone', '/boat/ground_truth/odometry': 'boat'}.get(tp, 'intruder')
             data[key].append(row)
             if key == 'drone':
