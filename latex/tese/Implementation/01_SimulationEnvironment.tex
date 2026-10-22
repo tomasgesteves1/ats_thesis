@@ -172,7 +172,7 @@ where $\ell$ and $\ell_0$ are the current and the unstretched lengths of the seg
 
 \input{Implementation/figures/01_simulation_environment/tether_model.tex}
 
-The parameters of the model are the mass per unit length, which gives the mass $m_i$ of each node in~\eqref{eq:tether_node}, the axial stiffness $EA$ and the damping ratio, which define the tension in~\eqref{eq:tether_tension}, the bending stiffness, and the drag coefficients. Their values are given in Table~\ref{tab:tether_parameters}, together with the number of segments and the time step used to integrate the equations. The mass per unit length and the diameter are based on commercial micro-tethers for \glspl{uav} that provide power and data \cite{elistair_safet2,linden_microtethers}, and the axial stiffness is estimated from the tensile strength of these tethers. The length of the tether is not fixed, and it is changed by the winch described in Section~\ref{sec:tether_winch}.
+The parameters of the model are the mass per unit length, which gives the mass $m_i$ of each node in~\eqref{eq:tether_node}, the axial stiffness $EA$ and the damping ratio, which define the tension in~\eqref{eq:tether_tension}, the bending stiffness, and the drag coefficients. Their values are given in Table~\ref{tab:tether_parameters}, together with the number of segments and the time step used to integrate the equations. The mass per unit length and the diameter are based on commercial micro-tethers for \glspl{uav} that provide power and data \cite{elistair_safet2,linden_microtethers}. The axial stiffness is lower than that of a real tether, since a stiffer tether would require a much smaller time step for the integration to remain stable. Under the tensions of a few newtons found in this work, it stretches the tether by only a few percent. The length of the tether is not fixed, and it is changed by the winch described in Section~\ref{sec:tether_winch}.
 
 \begin{table}[!htbp]
     \centering
@@ -182,16 +182,16 @@ The parameters of the model are the mass per unit length, which gives the mass $
         \toprule
         \textbf{Parameter} & \textbf{Value} & \textbf{Unit} \\
         \midrule
-        Diameter & $3$ & $\text{mm}$ \\
+        Diameter & $4$ & $\text{mm}$ \\
         Mass per unit length & $0.020$ & $\text{kg/m}$ \\
-        Axial stiffness, $EA$ & $5\times 10^{4}$ & $\text{N}$ \\
+        Axial stiffness, $EA$ & $100$ & $\text{N}$ \\
         Damping ratio (relative to critical) & $0.8$ & -- \\
         Bending stiffness & $2\times 10^{-5}$ & $\text{N}\cdot\text{m}^2$ \\
         Transverse drag coefficient & $1.2$ & -- \\
         Axial drag coefficient & $0.005$ & -- \\
         Density of the surrounding air & $1.225$ & $\text{kg/m}^3$ \\
         Number of segments & $30$ & -- \\
-        Integration time step & $0.02$ & $\text{ms}$ \\
+        Integration time step & $0.2$ & $\text{ms}$ \\
         \bottomrule
     \end{tabular}
 \end{table}
