@@ -413,17 +413,17 @@ The kinematics are the trivial identity already used in \eqref{eq:uav_kinematics
     \label{eq:uav_mpc_kinematics}
 \end{equation}
 
-The translational dynamics follow \eqref{eq:uav_dynamics}, with the thrust term expanded using the direction of the thrust \eqref{eq:uav_mpc_tilt}, including the linear horizontal rotor drag opposing translational motion, the tether force $\mathbf{F}_{\mathrm{tether}}^{\mathcal{I}} = [F_{\mathrm{tether},x}^{\mathcal{I}}, F_{\mathrm{tether},y}^{\mathcal{I}}, F_{\mathrm{tether},z}^{\mathcal{I}}]^\top$ given by \eqref{eq:uav_tether_geometry}--\eqref{eq:uav_tether_force}, and an estimated external force $\hat{\mathbf{d}} = [\hat d_x, \hat d_y, \hat d_z]^\top$ that accounts for the forces the model does not describe, such as wind, and is held constant along the horizon (its estimation is given with the optimal control problem):
+The translational dynamics follow \eqref{eq:uav_dynamics}, with the thrust term expanded using the direction of the thrust \eqref{eq:uav_mpc_tilt}, including the linear horizontal rotor drag opposing translational motion, the tether force $\mathbf{F}_{\mathrm{tether}}^{\mathcal{I}} = [F_{\mathrm{tether},x}^{\mathcal{I}}, F_{\mathrm{tether},y}^{\mathcal{I}}, F_{\mathrm{tether},z}^{\mathcal{I}}]^\top$ given by \eqref{eq:uav_tether_geometry}--\eqref{eq:uav_tether_force}, and an estimated external force $\hat{\mathbf{F}}_{\mathrm{ext}} = [\hat F_{\mathrm{ext},x}, \hat F_{\mathrm{ext},y}, \hat F_{\mathrm{ext},z}]^\top$ that accounts for the forces the model does not describe, such as wind, and is held constant along the horizon (its estimation is given with the optimal control problem):
 \begin{equation}
-    \ddot x = \frac{T}{m}\big(\cos\psi_{\mathrm{cmd}}\sin\theta\cos\phi+\sin\psi_{\mathrm{cmd}}\sin\phi\big) - \frac{d_r}{m}\dot{x} + \frac{1}{m}\big(F_{\mathrm{tether},x}^{\mathcal{I}} + \hat d_x\big),
+    \ddot x = \frac{T}{m}\big(\cos\psi_{\mathrm{cmd}}\sin\theta\cos\phi+\sin\psi_{\mathrm{cmd}}\sin\phi\big) - \frac{d_r}{m}\dot{x} + \frac{1}{m}\big(F_{\mathrm{tether},x}^{\mathcal{I}} + \hat F_{\mathrm{ext},x}\big),
     \label{eq:uav_mpc_xddot}
 \end{equation}
 \begin{equation}
-    \ddot y = \frac{T}{m}\big(\sin\psi_{\mathrm{cmd}}\sin\theta\cos\phi-\cos\psi_{\mathrm{cmd}}\sin\phi\big) - \frac{d_r}{m}\dot{y} + \frac{1}{m}\big(F_{\mathrm{tether},y}^{\mathcal{I}} + \hat d_y\big),
+    \ddot y = \frac{T}{m}\big(\sin\psi_{\mathrm{cmd}}\sin\theta\cos\phi-\cos\psi_{\mathrm{cmd}}\sin\phi\big) - \frac{d_r}{m}\dot{y} + \frac{1}{m}\big(F_{\mathrm{tether},y}^{\mathcal{I}} + \hat F_{\mathrm{ext},y}\big),
     \label{eq:uav_mpc_yddot}
 \end{equation}
 \begin{equation}
-    \ddot z = \frac{T}{m}\cos\theta\cos\phi - g + \frac{1}{m}\big(F_{\mathrm{tether},z}^{\mathcal{I}} + \hat d_z\big).
+    \ddot z = \frac{T}{m}\cos\theta\cos\phi - g + \frac{1}{m}\big(F_{\mathrm{tether},z}^{\mathcal{I}} + \hat F_{\mathrm{ext},z}\big).
     \label{eq:uav_mpc_zddot}
 \end{equation}
 
@@ -651,12 +651,12 @@ At every sampling instant $k$, the translational and physical attitude component
 \end{equation}
 The tilt angles $\phi_k, \theta_k$ are obtained from the estimated direction of the thrust, expressed in the frame rotated by the last commanded yaw as in \eqref{eq:uav_mpc_tilt}, $\mathbf{R}(0,0,\psi_{\mathrm{cmd},k-1})^\top\mathbf{z}^{\mathcal{B}_a} = \mathbf{n}(\phi_k,\theta_k)$. Since the state estimate is not synchronised with the sampling instants, the position is also propagated with the estimated velocity from the instant $t_e$ of the most recent estimate to the sampling instant $t_k$, $\mathbf{p}_k = \mathbf{p}(t_e) + \mathbf{v}(t_e)\,(t_k - t_e)$.
 
-A force that the model does not describe makes the prediction drift from the true motion, and without a model of it the controller settles with a steady offset. Following the disturbance-model approach to offset-free predictive control~\cite{pannocchia2003offsetfree,maeder2009offsetfree}, the external force $\hat{\mathbf{d}}$ in \eqref{eq:uav_mpc_xddot}--\eqref{eq:uav_mpc_zddot} is estimated at every sampling instant from the one-step prediction error of the velocity. The velocity $\hat{\mathbf{v}}_{k|k-1}$ predicted for the current instant by the solution of the previous instant is compared with the estimated velocity $\mathbf{v}_k$, and the force left unexplained over the last interval corrects the estimate,
+A force that the model does not describe makes the prediction drift from the true motion, and without a model of it the controller settles with a steady offset. Following the disturbance-model approach to offset-free predictive control~\cite{pannocchia2003offsetfree,maeder2009offsetfree}, the external force $\hat{\mathbf{F}}_{\mathrm{ext}}$ in \eqref{eq:uav_mpc_xddot}--\eqref{eq:uav_mpc_zddot} is estimated at every sampling instant from the one-step prediction error of the velocity. The velocity $\hat{\mathbf{v}}_{k|k-1}$ predicted for the current instant by the solution of the previous instant is compared with the estimated velocity $\mathbf{v}_k$, and the force left unexplained over the last interval corrects the estimate,
 \begin{equation}
-    \hat{\mathbf{d}}_k = \mathrm{sat}_{\bar d}\!\Big(\hat{\mathbf{d}}_{k-1} + \beta\,\frac{m}{T_s}\big(\mathbf{v}_k - \hat{\mathbf{v}}_{k|k-1}\big)\Big),
+    \hat{\mathbf{F}}_{\mathrm{ext},k} = \mathrm{sat}_{\bar F}\!\Big(\hat{\mathbf{F}}_{\mathrm{ext},k-1} + \beta\,\frac{m}{T_s}\big(\mathbf{v}_k - \hat{\mathbf{v}}_{k|k-1}\big)\Big),
     \label{eq:uav_mpc_disturbance_observer}
 \end{equation}
-where $0 < \beta < 1$ sets the speed of the estimate, trading the rejection of the disturbance against the transmission of measurement noise, and $\mathrm{sat}_{\bar d}$ bounds each component to $\pm \bar d$. For a constant force the update vanishes only when the prediction matches the motion, so the steady offset is removed.
+where $0 < \beta < 1$ sets the speed of the estimate, trading the rejection of the disturbance against the transmission of measurement noise, and $\mathrm{sat}_{\bar F}$ bounds each component to $\pm \bar F$. For a constant force the update vanishes only when the prediction matches the motion, so the steady offset is removed.
 
 The references and the \gls{usv}'s most recently computed predicted trajectory are given data at each instant.
 
