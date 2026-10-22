@@ -353,9 +353,11 @@ void UavMpcPipeline::setupOcpSolver(const double x0[13]) {
     ocp_nlp_constraints_model_set(cfg, dims, in, out, 0, "lbx", const_cast<double*>(x0));
     ocp_nlp_constraints_model_set(cfg, dims, in, out, 0, "ubx", const_cast<double*>(x0));
 
-    // State bounds on [z, vz, phi, theta] (soft) and T (hard), nodes 1..N
-    double lbx[5] = {params_.z_min, -params_.v_z_max, -params_.phi_max, -params_.theta_max, params_.thrust_min};
-    double ubx[5] = {NO_LIMIT, params_.v_z_max, params_.phi_max, params_.theta_max, params_.thrust_max};
+    // State bounds on [z, vz, phi, theta, phi_cmd, theta_cmd] (soft) and T (hard), nodes 1..N
+    double lbx[7] = {params_.z_min, -params_.v_z_max, -params_.phi_max, -params_.theta_max, -params_.phi_max,
+                     -params_.theta_max, params_.thrust_min};
+    double ubx[7] = {NO_LIMIT, params_.v_z_max, params_.phi_max, params_.theta_max, params_.phi_max,
+                     params_.theta_max, params_.thrust_max};
     for (int i = 1; i <= N; i++) {
         ocp_nlp_constraints_model_set(cfg, dims, in, out, i, "lbx", lbx);
         ocp_nlp_constraints_model_set(cfg, dims, in, out, i, "ubx", ubx);

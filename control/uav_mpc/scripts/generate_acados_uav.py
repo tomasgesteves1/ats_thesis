@@ -141,14 +141,18 @@ def generate_acados_ocp():
     ocp.constraints.ubu = np.array([prm['phi_dot_max'], prm['theta_dot_max'], prm['psi_dot_max'], prm['thrust_rate_max']])
     ocp.constraints.idxbu = np.arange(4)
 
-    # State bounds: soft z >= z_min, |vz| <= v_z_max, |phi| <= phi_max, |theta| <= theta_max; hard T in [T_min, T_max]
-    lbx = np.array([prm['z_min'], -prm['v_z_max'], -prm['phi_max'], -prm['theta_max'], prm['thrust_min']])
-    ubx = np.array([1.0e3, prm['v_z_max'], prm['phi_max'], prm['theta_max'], prm['thrust_max']])
-    idxbx = np.array([2, 5, 6, 7, 12])
+    # State bounds: soft z >= z_min, |vz| <= v_z_max, |phi| <= phi_max, |theta| <= theta_max, and the same tilt limits on
+    # the commanded tilt (phi_cmd, theta_cmd), so that the command sent to the autopilot respects them too; hard T in
+    # [T_min, T_max]
+    lbx = np.array([prm['z_min'], -prm['v_z_max'], -prm['phi_max'], -prm['theta_max'], -prm['phi_max'],
+                    -prm['theta_max'], prm['thrust_min']])
+    ubx = np.array([1.0e3, prm['v_z_max'], prm['phi_max'], prm['theta_max'], prm['phi_max'], prm['theta_max'],
+                    prm['thrust_max']])
+    idxbx = np.array([2, 5, 6, 7, 9, 10, 12])
     ocp.constraints.lbx, ocp.constraints.ubx, ocp.constraints.idxbx = lbx, ubx, idxbx
     ocp.constraints.lbx_e, ocp.constraints.ubx_e, ocp.constraints.idxbx_e = lbx, ubx, idxbx
-    ocp.constraints.idxsbx = np.arange(4)
-    ocp.constraints.idxsbx_e = np.arange(4)
+    ocp.constraints.idxsbx = np.arange(6)
+    ocp.constraints.idxsbx_e = np.arange(6)
 
     # Soft nonlinear constraints: d^2 <= d_max^2, d_dot <= d_dot_max, |v_xy| <= v_xy_max (bounds updated at run time)
     lh = np.array([0.0, prm['d_dot_min'], 0.0])
@@ -159,9 +163,9 @@ def generate_acados_ocp():
     ocp.constraints.idxsh_e = np.arange(3)
 
     # Slack penalties rho(sigma) = mu1*sigma + mu2*sigma^2 (acados: z*s + 0.5*Z*s^2, so Z = 2*mu2).
-    # Slack order: bounds (z, vz, phi, theta), then h (d^2, d_dot, |v_xy|)
-    mu1 = np.array([prm['slack_mu1_bounds']] * 4 + [prm['slack_mu1_tether']] * 2 + [prm['slack_mu1_bounds']])
-    mu2 = np.array([prm['slack_mu2_bounds']] * 4 + [prm['slack_mu2_tether']] * 2 + [prm['slack_mu2_bounds']])
+    # Slack order: bounds (z, vz, phi, theta, phi_cmd, theta_cmd), then h (d^2, d_dot, |v_xy|)
+    mu1 = np.array([prm['slack_mu1_bounds']] * 6 + [prm['slack_mu1_tether']] * 2 + [prm['slack_mu1_bounds']])
+    mu2 = np.array([prm['slack_mu2_bounds']] * 6 + [prm['slack_mu2_tether']] * 2 + [prm['slack_mu2_bounds']])
     for suffix in ('', '_e'):
         setattr(ocp.cost, 'zl' + suffix, mu1.copy())
         setattr(ocp.cost, 'zu' + suffix, mu1.copy())
