@@ -2,6 +2,7 @@ import os
 from ament_index_python.packages import get_package_share_directory
 from launch import LaunchDescription
 from launch.actions import DeclareLaunchArgument
+from launch.conditions import UnlessCondition
 from launch.substitutions import LaunchConfiguration
 from launch_ros.actions import Node
 from launch_ros.parameter_descriptions import ParameterValue
@@ -70,6 +71,7 @@ def generate_launch_description():
         executable='uav_mpc_node',
         name='uav_mpc_node',
         output='screen',
+        condition=UnlessCondition(LaunchConfiguration('px4_baseline')),
         parameters=[
             uav_mpc_config,
             {
@@ -105,9 +107,11 @@ def generate_launch_description():
                 'circle_z_amplitude': ParameterValue(LaunchConfiguration('uav_circle_z_amplitude'), value_type=float),
                 'wait_for_drone': True,
                 'start_altitude': ParameterValue(LaunchConfiguration('start_altitude'), value_type=float),
+                'px4_offboard': ParameterValue(LaunchConfiguration('px4_baseline'), value_type=bool),
                 'horizon_stages': 50,
                 'control_period': 0.02,
-                'update_rate_hz': 50.0,
+                # Published well above the controller rate, so that the reference in use is at most a few ms old
+                'update_rate_hz': 250.0,
             }
         ],
         remappings=[
@@ -138,6 +142,8 @@ def generate_launch_description():
         DeclareLaunchArgument('start_altitude', default_value='3.0',
                               description='UAV altitude at which both reference circles start (m)'),
         DeclareLaunchArgument('tether_max_length', default_value='15.0', description='d_max of both NMPCs (m)'),
+        DeclareLaunchArgument('px4_baseline', default_value='false',
+                              description='Fly the UAV circle with the PX4 position controller instead of the NMPC'),
         DeclareLaunchArgument('tether_model', default_value='true',
                               description='Tether force in the UAV prediction model (false: tether-unaware NMPC)'),
         usv_mpc_node,
