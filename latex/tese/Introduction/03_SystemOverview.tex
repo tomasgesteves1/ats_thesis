@@ -1,0 +1,20 @@
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%                                                                      %
+%     File: Introduction/03_SystemOverview.tex                         %
+%     Tex Master: ../Thesis.tex                                        %
+%                                                                      %
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+% ==============================================================================
+\section{System Overview}
+\label{sec:intro_system_overview}
+
+% How is the proposed system organised?
+Figure~\ref{fig:intro_system_overview} shows how the proposed system is organised. An operator selects a mission in the Mission Control Centre, and the mission chains the manoeuvres of both vehicles, each of which produces the reference of one vehicle. Each vehicle is controlled by its own \gls{nmpc}, which follows its reference within the limits of the vehicle. The two controllers exchange their predicted trajectories, so that each anticipates the motion of the other and keeps the tether within its reach, while a winch on the \gls{usv} sets the length of the tether.
+
+\begin{figure}[htbp]
+    \centering
+    \includegraphics[width=\linewidth]{Introduction/figures/system_overview.pdf}
+    \caption{Overview of the proposed system.}
+    \label{fig:intro_system_overview}
+\end{figure}

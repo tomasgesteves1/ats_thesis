@@ -1,0 +1,16 @@
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%                                                                      %
+%     File: Introduction/02_ProblemStatement.tex                       %
+%     Tex Master: ../Thesis.tex                                        %
+%                                                                      %
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+% ==============================================================================
+\section{Problem Statement}
+\label{sec:intro_problem_statement}
+
+% What problem does this work address?
+This work addresses the control of a \gls{usv}, the \gls{wamv}, and a \gls{uav}, the x500, connected by a tether, so that they carry out maritime missions autonomously as a single system. Each vehicle must follow its reference within its own limits, while the distance between them stays within the reach of the tether, also under waves and wind.
+
+% What does solving it require?
+This requires a controller for each vehicle that respects its limits and anticipates the motion of the other vehicle, so that the two keep the tether within its limits together. It also requires manoeuvres that produce the references of both vehicles, including the takeoff and the landing on the moving deck, and missions that chain these manoeuvres into a complete operation.

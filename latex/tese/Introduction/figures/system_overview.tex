@@ -1,0 +1,40 @@
+% System overview (standalone; compile with pdflatex and include system_overview.pdf)
+\documentclass[tikz, border=2pt]{standalone}
+\usepackage[T1]{fontenc}
+\usepackage{helvet}
+\renewcommand{\familydefault}{\sfdefault}
+\usetikzlibrary{arrows.meta, positioning, calc}
+
+\definecolor{rosline}{RGB}{34, 49, 79}
+\definecolor{opfill}{RGB}{233, 245, 233}
+\definecolor{opline}{RGB}{60, 130, 60}
+\definecolor{vehfill}{RGB}{253, 242, 228}
+\definecolor{vehline}{RGB}{214, 140, 60}
+
+\begin{document}
+\begin{tikzpicture}[
+    box/.style={draw=#1, fill=white, rounded corners=2pt, align=center, minimum width=2.6cm, minimum height=1.0cm,
+                inner sep=3pt, font=\footnotesize, line width=0.6pt},
+    box/.default=rosline,
+    flow/.style={-{Stealth[length=4pt]}, line width=0.6pt, black!75},
+    both/.style={{Stealth[length=4pt]}-{Stealth[length=4pt]}, line width=0.6pt, black!75},
+    lbl/.style={font=\scriptsize, black!80, inner sep=1.5pt, align=center},
+]
+\node[box=opline, fill=opfill] (mcc) at (0, 0) {\textbf{Mission Control}\\\textbf{Centre}};
+\node[box] (exec) at (3.9, 0) {\textbf{Missions}\\[-1pt]\textcolor{black!60}{\scriptsize manoeuvres}};
+\node[box] (usvc) at (8.6, 1.2) {\textbf{USV NMPC}};
+\node[box] (uavc) at (8.6, -1.2) {\textbf{UAV NMPC}};
+\node[box=vehline, fill=vehfill] (usv) at (13.0, 1.2) {\textbf{USV}\\[-1pt]\textcolor{black!60}{\scriptsize winch}};
+\node[box=vehline, fill=vehfill] (uav) at (13.0, -1.2) {\textbf{UAV}};
+
+\draw[flow] (mcc) -- node[lbl, above] {mission} (exec);
+\draw[flow] (exec.east |- 0, 0.2) -- (5.9, 0.2) |- node[lbl, above, pos=0.75] {reference} (usvc.west);
+\draw[flow] (exec.east |- 0, -0.2) -- (5.9, -0.2) |- node[lbl, below, pos=0.75] {reference} (uavc.west);
+\draw[both] (usvc) -- node[lbl, right] {predicted\\trajectories} (uavc);
+\draw[flow] (usvc.east |- 0, 1.4) -- node[lbl, above] {commands} (usv.west |- 0, 1.4);
+\draw[flow] (usv.west |- 0, 1.0) -- node[lbl, below] {state} (usvc.east |- 0, 1.0);
+\draw[flow] (uavc.east |- 0, -1.0) -- node[lbl, above] {commands} (uav.west |- 0, -1.0);
+\draw[flow] (uav.west |- 0, -1.4) -- node[lbl, below] {state} (uavc.east |- 0, -1.4);
+\draw[line width=1.2pt, black!70, densely dashed] (usv) -- node[lbl, right] {tether} (uav);
+\end{tikzpicture}
+\end{document}
