@@ -1,0 +1,88 @@
+%%%%%%%%%%%%%%%%%%%%%%%% ExtendedAbstract.tex %%%%%%%%%%%%%%%%%%%%%%%%
+%                                                                    %
+%  Extended abstract (up to 10 pages) of the MSc thesis, following   %
+%  the IST template by Andre C. Marta (2011, CC BY 4.0).             %
+%  Figures and references are taken from the thesis (../tese).       %
+%                                                                    %
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\documentclass[8pt,a4paper,twocolumn]{article}
+
+\usepackage{graphicx}
+\graphicspath{{../tese/}}
+\usepackage{siunitx}
+
+% Arial-like font, as in the template
+\usepackage{helvet}
+\renewcommand{\familydefault}{\sfdefault}
+
+\usepackage[utf8]{inputenc}
+\usepackage[T1]{fontenc}
+
+\usepackage[font=footnotesize, skip=1pt, labelfont=bf]{caption}
+\usepackage[font=footnotesize]{subcaption}
+
+\usepackage{amsmath}
+\usepackage{amsfonts}
+\usepackage{amssymb}
+\usepackage{float}
+\usepackage{booktabs}
+\usepackage{csquotes}
+
+% Section headings of the template: 9 pt, bold, with trailing dots
+\usepackage{sectsty}
+\newcommand{\myFontSize}{\fontsize{9}{0}\selectfont}
+\sectionfont{\myFontSize}
+\subsectionfont{\myFontSize}
+\usepackage{titlesec}
+\titlespacing*{\section}{0pt}{10pt}{0pt}
+\titlespacing*{\subsection}{0pt}{10pt}{0pt}
+\usepackage{secdot}
+\sectiondot{subsection}
+\sectionpunct{section}{. }
+\sectionpunct{subsection}{. }
+
+% A4 page with top margin of 25 mm, bottom of 30 mm, left and right of 25 mm (printable area 242 x 160 mm)
+\setlength{\topmargin}{-10.4mm}
+\setlength{\headheight}{0.0mm}
+\setlength{\headsep}{10.0mm}
+\setlength{\textwidth}{160mm}
+\setlength{\textheight}{242mm}
+\setlength{\oddsidemargin}{0mm}
+\setlength{\evensidemargin}{0mm}
+\setlength{\marginparwidth}{0mm}
+\setlength{\marginparsep}{0mm}
+
+\newcommand{\eqnref}[1]{Eq.~(\ref{#1})}
+
+% Up to two full-width floats at the top of a page, so that they stay close to their text
+\setcounter{dbltopnumber}{2}
+\renewcommand{\dbltopfraction}{0.8}
+\renewcommand{\dblfloatpagefraction}{0.8}
+\renewcommand{\topfraction}{0.85}
+\renewcommand{\textfraction}{0.1}
+
+% Title, author and address
+\title{\bfseries Cooperative Control of a Tethered Drone and Surface Vessel for Sustained Presence at Sea}
+\date{January 2026}
+\author{Tomás Grossinho Esteves \\ tomasesteves03@gmail.com \\ \\ Instituto Superior Técnico, Lisboa, Portugal}
+
+\begin{document}
+
+\twocolumn[
+\begin{@twocolumnfalse}
+\maketitle
+\input{00_abstr}
+\end{@twocolumnfalse}
+]
+
+\input{01_intro}
+\input{02_backg}
+\input{03_model}
+\input{04_imple}
+\input{05_resul}
+\input{06_concl}
+
+\bibliographystyle{abbrv}
+\bibliography{../tese/refs}
+
+\end{document}

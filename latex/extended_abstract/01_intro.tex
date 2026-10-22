@@ -1,0 +1,17 @@
+\section{Introduction}
+\label{sec:intro}
+
+Saving lives at sea, protecting marine ecosystems and securing maritime infrastructure all rely on a continuous and local awareness of what happens at sea~\cite{europeanmaritimesafetyagencyEMSAOutlook2025_v302025}. Surface vessels provide a long-lasting presence, but they only see as far as the horizon, while unmanned aerial vehicles (UAVs) sense from above but have a short endurance and an unreliable long-range link~\cite{introduction_motivation_uavs_limitations}. An unmanned surface vehicle (USV) and a UAV working as a team can keep an awareness that neither achieves alone, and a tether between them supplies the UAV with power and a reliable communication link from the vessel, which removes the two main limits of maritime UAVs~\cite{introduction_motivation_tethered_drones}. Such systems already exist in industry~\cite{exail_elistair_tethered,acua_ocean_teledyne_mod}, but their operation remains largely manual.
+
+The tether, however, turns the two vehicles into a single system. The distance between them must stay within its reach, so the motion of one restricts that of the other, and the two move on very different time scales, the USV slowly, dominated by its inertia and the drag of the water, and the UAV quickly. Wind and waves disturb both, and the UAV must take off from and land on a deck that moves with the waves. In research, the two vehicles are often controlled separately, the tether is simplified, or the vessel is assumed to be fixed.
+
+This work addresses the control of a USV, the WAM-V, and a UAV, the x500 multirotor, connected by a tether, so that they carry out maritime missions autonomously as a single system, each within its own limits and both within the reach of the tether, also under waves and wind. Its main contributions are:
+\begin{itemize}
+    \setlength{\itemsep}{0pt}
+    \item control-oriented models of both vehicles and a closed-form model of the force of a slack tether, validated against a simulator;
+    \item two cooperating nonlinear model predictive controllers (NMPCs), one for each vehicle, which exchange their predicted trajectories to keep the tether within its reach;
+    \item a simulation of the tethered system at sea, with waves, the PX4 autopilot and a tether whose length is set by a winch;
+    \item manoeuvres and missions for both vehicles, including the takeoff from and the landing on the moving deck;
+    \item an evaluation of the system in tracking and planning, in three missions, and under waves and wind.
+\end{itemize}
+Section~\ref{sec:backg} reviews related work, Section~\ref{sec:model} presents the models and the controllers, Section~\ref{sec:imple} the simulation, the validation of the models and the missions, Section~\ref{sec:resul} the results, and Section~\ref{sec:concl} concludes.
