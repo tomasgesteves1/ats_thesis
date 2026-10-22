@@ -7,6 +7,8 @@
 #include <px4_msgs/msg/trajectory_setpoint.hpp>
 #include <px4_msgs/msg/vehicle_odometry.hpp>
 #include <array>
+#include <string>
+#include <vector>
 #include <memory>
 #include "test_uav_circle/test_uav_circle_pipeline.hpp"
 
@@ -32,6 +34,7 @@ private:
 
     double drone_altitude_{0.0};
     bool px4_offboard_{false};
+    std::vector<std::array<double, 4>> waypoints_;  // [t, x, y, z]
     bool has_px4_odom_{false};
     std::array<double, 3> drone_gt_{0.0, 0.0, 0.0};   // ground truth (odometry origin), world ENU
     std::array<double, 3> drone_px4_{0.0, 0.0, 0.0};  // PX4 local position, converted to ENU

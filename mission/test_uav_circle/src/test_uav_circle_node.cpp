@@ -2,8 +2,34 @@
 #include <geometry_msgs/msg/pose_stamped.hpp>
 #include <cmath>
 #include <limits>
+#include <sstream>
 
 namespace test_uav_circle {
+
+namespace {
+// Waypoints "t,a,b,c; t,a,b,c; ..." (times from the start of the trajectory, increasing)
+std::vector<std::array<double, 4>> parseWaypoints(const std::string& text) {
+    std::vector<std::array<double, 4>> out;
+    std::stringstream rows(text);
+    std::string row;
+    while (std::getline(rows, row, ';')) {
+        std::array<double, 4> w{};
+        std::stringstream cols(row);
+        std::string col;
+        int k = 0;
+        while (k < 4 && std::getline(cols, col, ',')) w[k++] = std::stod(col);
+        if (k == 4) out.push_back(w);
+    }
+    return out;
+}
+
+// Last waypoint whose time has been reached (the first one before that)
+const std::array<double, 4>& activeWaypoint(const std::vector<std::array<double, 4>>& wps, double t) {
+    size_t i = 0;
+    while (i + 1 < wps.size() && wps[i + 1][0] <= t) ++i;
+    return wps[i];
+}
+}  // namespace
 
 TestUavCircleNode::TestUavCircleNode() 
     : Node("uav_trajectory_circle_node") 
@@ -27,6 +53,8 @@ TestUavCircleNode::TestUavCircleNode()
     // nothing of the tether. The reference is the point tracked by the NMPC, drone_z_offset above the odometry origin.
     this->declare_parameter<bool>("px4_offboard", false);
     this->declare_parameter<double>("drone_z_offset", 0.265);
+    // Instead of the circle, a sequence of fixed points (step references), "t,x,y,z; ..."
+    this->declare_parameter<std::string>("waypoints", "");
 
     pipeline_ = std::make_unique<TestUavCirclePipeline>();
 
@@ -41,6 +69,10 @@ TestUavCircleNode::TestUavCircleNode()
         });
 
     px4_offboard_ = this->get_parameter("px4_offboard").as_bool();
+    waypoints_ = parseWaypoints(this->get_parameter("waypoints").as_string());
+    if (!waypoints_.empty()) {
+        RCLCPP_INFO(this->get_logger(), "UAV waypoint mode: %zu waypoints.", waypoints_.size());
+    }
     if (px4_offboard_) {
         boat_odom_sub_ = this->create_subscription<nav_msgs::msg::Odometry>(
             "/boat/ground_truth/odometry", 10,
@@ -96,11 +128,17 @@ void TestUavCircleNode::timerCallback() {
         t_ref = trajectory_time_;
     }
 
-    // Before the start the reference is the first point of the circle, at rest
-    auto points = pipeline_->generateCircle(
-        t_ref, radius, (this->get_parameter("wait_for_drone").as_bool() && !started_) ? 0.0 : omega,
-        height, center_x, center_y, this->get_parameter("circle_z_amplitude").as_double(), steps, dt
-    );
+    // Before the start the reference is the first point of the circle (or the first waypoint), at rest
+    std::vector<TrajectoryPoint> points;
+    if (!waypoints_.empty()) {
+        const auto& w = activeWaypoint(waypoints_, t_ref);
+        points.assign(steps + 1, TrajectoryPoint{w[1], w[2], w[3], 0.0, 0.0, 0.0});
+    } else {
+        points = pipeline_->generateCircle(
+            t_ref, radius, (this->get_parameter("wait_for_drone").as_bool() && !started_) ? 0.0 : omega,
+            height, center_x, center_y, this->get_parameter("circle_z_amplitude").as_double(), steps, dt
+        );
+    }
 
     auto path_msg = nav_msgs::msg::Path();
     path_msg.header.frame_id = world_frame;

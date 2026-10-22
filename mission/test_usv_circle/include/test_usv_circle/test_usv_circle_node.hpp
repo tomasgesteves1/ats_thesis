@@ -5,6 +5,9 @@
 #include <nav_msgs/msg/odometry.hpp>
 #include <geometry_msgs/msg/wrench_stamped.hpp>
 #include <memory>
+#include <array>
+#include <string>
+#include <vector>
 #include "test_usv_circle/test_usv_circle_pipeline.hpp"
 
 namespace test_usv_circle {
@@ -38,6 +41,8 @@ private:
     double boat_x_{0.0};
     double boat_y_{0.0};
     double boat_yaw_{0.0};
+
+    std::vector<std::array<double, 4>> waypoints_;  // [t, x, y, yaw (deg)]
 };
 
 } // namespace test_usv_circle

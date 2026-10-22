@@ -1,8 +1,34 @@
 #include "test_usv_circle/test_usv_circle_node.hpp"
 #include <geometry_msgs/msg/pose_stamped.hpp>
 #include <cmath>
+#include <sstream>
 
 namespace test_usv_circle {
+
+namespace {
+// Waypoints "t,a,b,c; t,a,b,c; ..." (times from the start of the trajectory, increasing)
+std::vector<std::array<double, 4>> parseWaypoints(const std::string& text) {
+    std::vector<std::array<double, 4>> out;
+    std::stringstream rows(text);
+    std::string row;
+    while (std::getline(rows, row, ';')) {
+        std::array<double, 4> w{};
+        std::stringstream cols(row);
+        std::string col;
+        int k = 0;
+        while (k < 4 && std::getline(cols, col, ',')) w[k++] = std::stod(col);
+        if (k == 4) out.push_back(w);
+    }
+    return out;
+}
+
+// Last waypoint whose time has been reached (the first one before that)
+const std::array<double, 4>& activeWaypoint(const std::vector<std::array<double, 4>>& wps, double t) {
+    size_t i = 0;
+    while (i + 1 < wps.size() && wps[i + 1][0] <= t) ++i;
+    return wps[i];
+}
+}  // namespace
 
 TestUsvCircleNode::TestUsvCircleNode() 
     : Node("usv_trajectory_circle_node") 
@@ -22,6 +48,9 @@ TestUsvCircleNode::TestUsvCircleNode()
     this->declare_parameter("world_frame", rclcpp::ParameterValue("world"), desc);
     this->declare_parameter("wait_for_drone", rclcpp::ParameterValue(false), desc); // Wait for drone to takeoff before starting trajectory
     this->declare_parameter("start_altitude", rclcpp::ParameterValue(3.0), desc);  // Drone altitude that starts the trajectory (m)
+    // Instead of the circle, a sequence of fixed poses (step references), "t,x,y,yaw_deg; ..."
+    this->declare_parameter("waypoints", rclcpp::ParameterValue(std::string("")), desc);
+    waypoints_ = parseWaypoints(this->get_parameter("waypoints").as_string());
 
     // Dynamic testing configuration inputs from Dashboard
     this->declare_parameter("mode_step", rclcpp::ParameterValue(false), desc);
@@ -205,6 +234,25 @@ void TestUsvCircleNode::timerCallback() {
         }
     }
     trajectory_time_ += dt_step;
+
+    if (!waypoints_.empty()) {
+        const auto& w = activeWaypoint(waypoints_, trajectory_time_);
+        const double half_yaw = 0.5 * w[3] * M_PI / 180.0;
+        auto path_msg = nav_msgs::msg::Path();
+        path_msg.header.frame_id = world_frame;
+        path_msg.header.stamp = this->get_clock()->now();
+        for (int i = 0; i <= steps; ++i) {
+            geometry_msgs::msg::PoseStamped pose;
+            pose.header = path_msg.header;
+            pose.pose.position.x = w[1];
+            pose.pose.position.y = w[2];
+            pose.pose.orientation.z = std::sin(half_yaw);
+            pose.pose.orientation.w = std::cos(half_yaw);
+            path_msg.poses.push_back(pose);
+        }
+        path_pub_->publish(path_msg);
+        return;
+    }
 
     auto points = pipeline_->generateCircle(
         trajectory_time_, radius, omega, height, center_x, center_y, steps, dt
