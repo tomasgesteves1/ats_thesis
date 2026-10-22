@@ -1,0 +1,57 @@
+\begin{figure}[htbp]
+    \centering
+    \definecolor{rosfill}{RGB}{231, 239, 248}
+    \definecolor{rosline}{RGB}{34, 49, 79}
+    \tikzset{
+        mbox/.style={draw, rounded corners=3pt, fill=white, line width=0.6pt,
+            minimum width=1.7cm, minimum height=0.62cm, text height=1.6ex, text depth=0.3ex,
+            font=\footnotesize},
+        uavbox/.style={mbox, draw=rosline},
+        usvbox/.style={mbox, draw=rosline},
+        mlink/.style={-{Stealth[length=4pt]}, semithick, black!70},
+        mcond/.style={font=\scriptsize\itshape, text=black!75, text width=1.6cm,
+            align=center, inner sep=1.5pt},
+        vlabel/.style={font=\footnotesize\bfseries}}
+    % \missionlane{y}{prefix}{box style}{label side}{manoeuvres}{conditions}
+    \newcommand{\missionlane}[6]{%
+        \foreach \m [count=\i from 0] in {#5}
+            \node[#3] (#2\i) at ({2.1+3.45*\i},#1) {\m};
+        \foreach \c [count=\i from 0] in {#6} {
+            \pgfmathtruncatemacro{\j}{\i+1}
+            \draw[mlink] (#2\i) -- node[mcond, #4] {\c} (#2\j);
+        }}
+    % \missionlanes: the two lane bands and their labels
+    \newcommand{\missionlanes}{%
+        \fill[rosfill, rounded corners=4pt] (0,-0.55) rectangle (14.0,0.8);
+        \fill[rosfill!60, rounded corners=4pt] (0,-2.0) rectangle (14.0,-0.65);
+        \node[vlabel, text=rosline] at (0.55,0) {\gls{uav}};
+        \node[vlabel, text=rosline] at (0.55,-1.2) {\gls{usv}};}
+    \subfloat[Scout.]{
+    \begin{tikzpicture}
+        \missionlanes
+        \missionlane{0}{a}{uavbox}{above}{Takeoff, Formation, Landing}
+            {, route ended}
+        \missionlane{-1.2}{v}{usvbox}{below}{Hold, Route, Hold}
+            {\gls{uav} ahead of the bow, }
+    \end{tikzpicture}}
+    \\[3mm]
+    \subfloat[Inspection.]{
+    \begin{tikzpicture}
+        \missionlanes
+        \missionlane{0}{a}{uavbox}{above}{Takeoff, Formation, Orbit, Landing}
+            {, \gls{usv} at the tower, }
+        \missionlane{-1.2}{v}{usvbox}{below}{Hold, Route, Support, Hold}
+            {\gls{uav} took off, , lap covered}
+    \end{tikzpicture}}
+    \\[3mm]
+    \subfloat[Patrol.]{
+    \begin{tikzpicture}
+        \missionlanes
+        \missionlane{0}{a}{uavbox}{above}{Takeoff, Orbit, Chase, Landing}
+            {, target detected, }
+        \missionlane{-1.2}{v}{usvbox}{below}{Hold, Route, Pursuit, Hold}
+            {\gls{uav} took off, target detected, }
+    \end{tikzpicture}}
+    \caption[Missions tested in simulation.]{Missions tested in simulation.}
+    \label{fig:missions}
+\end{figure}
