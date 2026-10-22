@@ -6,11 +6,14 @@
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 % ==============================================================================
-\section{System Overview}
+\section{Proposed Approach}
 \label{sec:intro_system_overview}
 
-% How is the proposed system organised?
-Figure~\ref{fig:intro_system_overview} shows how the proposed system is organised. An operator selects a mission in the Mission Control Centre, and the mission chains the manoeuvres of both vehicles, each of which produces the reference of one vehicle. Each vehicle is controlled by its own \gls{nmpc}, which follows its reference within the limits of the vehicle. The two controllers exchange their predicted trajectories, so that each anticipates the motion of the other and keeps the tether within its reach, while a winch on the \gls{usv} sets the length of the tether.
+% How is the problem tackled?
+The two vehicles move on very different time scales, and a single controller for both would impose one horizon and one sampling time on them. Each vehicle is therefore controlled by its own \gls{nmpc}, which plans its motion over a horizon of its own, within the limits of the vehicle. The two controllers exchange the trajectories they predict, so that each keeps the tether within its reach taking into account where the other vehicle is going, rather than where it is. Both rely on models derived from the physics of the vehicles and, for the \gls{uav}, on a model of the force that the hanging tether applies on it, while a disturbance observer compensates the forces that the models do not describe, such as the wind.
+
+% And how do the controllers know where to go?
+The controllers follow references, but do not decide where each vehicle should go. This is the role of the manoeuvres, such as a takeoff, a formation or a landing, which give the reference of each vehicle at every instant, and of the missions, which chain the manoeuvres of both vehicles into a complete operation. Since the controllers keep the vehicles within their limits whatever reference they are given, the manoeuvres can remain simple. Figure~\ref{fig:intro_system_overview} shows how these parts fit together.
 
 \begin{figure}[htbp]
     \centering

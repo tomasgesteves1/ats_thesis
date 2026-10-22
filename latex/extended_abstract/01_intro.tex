@@ -9,9 +9,9 @@ This work addresses the control of a USV, the WAM-V, and a UAV, the x500 multiro
 \begin{itemize}
     \setlength{\itemsep}{0pt}
     \item control-oriented models of both vehicles and a closed-form model of the force of a slack tether, validated against a simulator;
-    \item two cooperating nonlinear model predictive controllers (NMPCs), one for each vehicle, which exchange their predicted trajectories to keep the tether within its reach;
+    \item two cooperating nonlinear model predictive controllers (NMPCs), one for each vehicle, which exchange their predicted trajectories to keep the tether within its reach, and plan the motion of both vehicles from simple or unreachable references;
     \item a simulation of the tethered system at sea, with waves, the PX4 autopilot and a tether whose length is set by a winch;
-    \item manoeuvres and missions for both vehicles, including the takeoff from and the landing on the moving deck;
+    \item manoeuvres and missions for both vehicles, including the takeoff from and the landing on the moving deck, and the support of the UAV by the USV around a structure;
     \item an evaluation of the system in tracking and planning, in three missions, and under waves and wind.
 \end{itemize}
 Section~\ref{sec:backg} reviews related work, Section~\ref{sec:model} presents the models and the controllers, Section~\ref{sec:imple} the simulation, the validation of the models and the missions, Section~\ref{sec:resul} the results, and Section~\ref{sec:concl} concludes.

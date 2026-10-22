@@ -12,9 +12,9 @@
 % What does this work contribute?
 The main contributions of this work are the following.
 \begin{itemize}
-    \item Control-oriented models of the \gls{wamv} and of the x500, validated against the simulator.
-    \item Two cooperating \gls{nmpc} controllers, one for each vehicle, which exchange their predicted trajectories to keep the tether within its reach while each vehicle respects its own limits.
+    \item Control-oriented models of the \gls{wamv} and of the x500, and a closed-form model of the force of a slack tether, validated against the simulator.
+    \item Two cooperating \gls{nmpc} controllers, one for each vehicle, which exchange their predicted trajectories to keep the tether within its reach while each vehicle respects its own limits, and which plan the motion of both vehicles from simple or unreachable references.
     \item A simulation environment of the tethered system at sea, with waves, the PX4 autopilot of the \gls{uav}, and a tether whose length is set by a winch.
-    \item Manoeuvres and missions for both vehicles, including the takeoff and the landing on the moving deck, launched and followed from a Mission Control Centre.
+    \item Manoeuvres and missions for both vehicles, including the takeoff from and the landing on the moving deck, and the support of the \gls{uav} by the \gls{usv} around a structure.
     \item An evaluation of the system in tracking and planning, in three missions, and under waves and wind.
 \end{itemize}
