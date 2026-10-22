@@ -11,7 +11,7 @@ from common import (load, interp, rms, set_thesis_style, save_figure, FIGS, UAV,
 
 SKIP = 15.0          # s after the start of the circle
 START_ALT = 28.0     # m, altitude at which the circle starts
-DURATION = 79.0      # s, common window of the two runs
+DURATION = 79.0      # s, longest window; shortened to the common length of the two runs
 OUT = os.path.join(FIGS, '01_tracking')
 
 
@@ -27,7 +27,10 @@ def window(d):
 
 def main():
     set_thesis_style()
+    global DURATION
     runs = {'NMPC': load('tracking_reachable_nmpc'), 'PX4': load('tracking_reachable_px4')}
+    res = {k: window(d) for k, d in runs.items()}
+    DURATION = min(DURATION, min(t[-1] - t0 for t0, t, _ in res.values()))
     res = {k: window(d) for k, d in runs.items()}
 
     print('=== UAV tracking over %.0f s ===' % DURATION)

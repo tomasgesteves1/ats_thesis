@@ -16,7 +16,7 @@ The controllers of Chapter~\ref{chapter:methodology} play two roles at once. The
 \label{subsec:res_tracking_nominal}
 
 % Which reference, and why this one?
-In the nominal scenario, the \gls{usv} sails a circle of $3\,\text{m}$ radius at $0.15\,\text{m/s}$, while the \gls{uav} flies a circle of $5\,\text{m}$ radius about the same centre at $1.5\,\text{m/s}$, tilted so that its height goes from $21$ to $29\,\text{m}$ along each lap, as shown in Figure~\ref{fig:res_nominal_scenario}a. Since the two circles are flown at different angular speeds, the \gls{uav} passes alternately above the \gls{usv} and on the opposite side, and the separation between them varies between $20$ and $29\,\text{m}$. The length of hanging tether varies with it, and so does the force it applies to the \gls{uav}, between $3.8$ and $5.9\,\text{N}$, Figure~\ref{fig:res_nominal_scenario}b. The reference is therefore easy to follow, but the force acting on the \gls{uav} changes at every instant. The maximum separation was set to $35\,\text{m}$ for this scenario, so that the constraint of the tether is never active.
+In the nominal scenario, the \gls{usv} sails a circle of $3\,\text{m}$ radius at $0.15\,\text{m/s}$, while the \gls{uav} flies a circle of $5\,\text{m}$ radius about the same centre at $1.5\,\text{m/s}$, tilted so that its height goes from $21$ to $29\,\text{m}$ along each lap, as shown in Figure~\ref{fig:res_nominal_scenario}a. Since the two circles are flown at different angular speeds, the \gls{uav} passes alternately above the \gls{usv} and on the opposite side, and the separation between them varies between $20$ and $29\,\text{m}$. The length of hanging tether varies with it, and so does the force it applies to the \gls{uav}, between $3.9$ and $6.0\,\text{N}$, Figure~\ref{fig:res_nominal_scenario}b. The reference is therefore easy to follow, but the force acting on the \gls{uav} changes at every instant. The maximum separation was set to $35\,\text{m}$ for this scenario, so that the constraint of the tether is never active.
 
 \begin{figure}[htbp]
     \centering
@@ -29,7 +29,7 @@ In the nominal scenario, the \gls{usv} sails a circle of $3\,\text{m}$ radius at
 To give these results a reference point, the same circle was also flown by the position controller of PX4, which is the usual way of flying a multirotor along a trajectory. It receives the position, the velocity and the acceleration of the reference at every instant, and follows them through its cascade of position, velocity and attitude loops, with the default gains of the x500. It is not aware of the tether, but it compensates any constant force through the integral action of its velocity loop, much as the disturbance observer does for the \gls{nmpc}. In both cases, the \gls{usv} is driven by its own \gls{nmpc}.
 
 % How closely do the two follow it?
-The tracking error was measured from the ground truth of the simulator, against the reference at the same instant, over $79\,\text{s}$, starting $15\,\text{s}$ after the start of the circle. Table~\ref{tab:res_nominal} and Figure~\ref{fig:res_nominal_error} show that the \gls{nmpc} follows the circle with an error of $3.8\,\text{cm}$, less than half of that of PX4. Neither controller keeps an offset in height, and the force of the tether is compensated by both. The difference lies in the timing. PX4 reacts to the error once it has appeared, and follows the reference about $45\,\text{ms}$ behind it, while the \gls{nmpc} anticipates its motion over the horizon. Most of the remaining error of the \gls{nmpc} is along the path, slightly ahead of the reference, by about $20\,\text{ms}$.
+The tracking error was measured from the ground truth of the simulator, against the reference at the same instant, over $68\,\text{s}$, starting $15\,\text{s}$ after the start of the circle. Table~\ref{tab:res_nominal} and Figure~\ref{fig:res_nominal_error} show that the \gls{nmpc} follows the circle with an error of $4.0\,\text{cm}$, less than half of that of PX4. Neither controller keeps an offset in height, and the force of the tether is compensated by both. The difference lies in the timing. PX4 reacts to the error once it has appeared, and follows the reference about $45\,\text{ms}$ behind it, while the \gls{nmpc} anticipates its motion over the horizon. Most of the remaining error of the \gls{nmpc} is along the path, slightly ahead of the reference, by about $20\,\text{ms}$.
 
 \begin{table}[htbp]
     \centering
@@ -39,8 +39,8 @@ The tracking error was measured from the ground truth of the simulator, against 
         \toprule
         Controller & \gls{rmse} & Maximum & $x$ & $y$ & $z$ \\
         \midrule
-        \gls{nmpc} & $3.8$ & $5.2$ & $2.5$ & $2.4$ & $1.7$ \\
-        PX4 & $8.9$ & $11.6$ & $5.9$ & $5.8$ & $3.2$ \\
+        \gls{nmpc} & $4.0$ & $5.3$ & $2.6$ & $2.5$ & $1.7$ \\
+        PX4 & $9.0$ & $11.6$ & $5.9$ & $5.9$ & $3.2$ \\
         \bottomrule
     \end{tabular*}
     \\[1mm]
@@ -55,7 +55,7 @@ The tracking error was measured from the ground truth of the simulator, against 
 \end{figure}
 
 % And the USV, and the time taken by the solvers?
-The \gls{usv} follows its slower circle with an error of $0.6\,\text{cm}$ and a heading error of $0.2^\circ$. Both controllers solve their problem well within their sampling period. The \gls{nmpc} of the \gls{uav} takes $3.5\,\text{ms}$ on average and at most $6.0\,\text{ms}$ of its $20\,\text{ms}$, and that of the \gls{usv} $1.8\,\text{ms}$ on average and at most $7.5\,\text{ms}$ of its $100\,\text{ms}$.
+The \gls{usv} follows its slower circle with an error of $0.6\,\text{cm}$ and a heading error of $0.2^\circ$. Both controllers solve their problem well within their sampling period. The \gls{nmpc} of the \gls{uav} takes $4.8\,\text{ms}$ on average and at most $8.2\,\text{ms}$ of its $20\,\text{ms}$, and that of the \gls{usv} $1.9\,\text{ms}$ on average and at most $6.4\,\text{ms}$ of its $100\,\text{ms}$.
 
 \subsection{Tether Constraint}
 \label{subsec:res_tracking_tether}
