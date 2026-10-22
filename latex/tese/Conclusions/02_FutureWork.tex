@@ -8,5 +8,18 @@
 % ==============================================================================
 \section{Future Work}
 \label{sec:concl_future}
-% What comes next: tests with the real vehicles, missions that branch (e.g. the target is lost), planned references
-% (e.g. with obstacles) in place of the manoeuvres, without changing the controllers
+
+% What is the next step for the system as a whole?
+The system was evaluated in simulation only, with the state of both vehicles taken from the simulator. The next step is to test it with the real vehicles, where the state is estimated from noisy sensors, the communication between the vehicles has delays, and the tether is stiffer than the one simulated, so that its tension changes faster with the distance. The models were validated against the simulator, and would first need to be identified again against the real vehicles, with the same procedure.
+
+% What did the results show to be the weakest moment of the missions?
+The takeoff in strong wind is the moment most exposed to disturbances, since the \gls{uav} can be tipped against the pad while the winch still holds it, before the controller has any effect. Releasing the pull of the winch progressively, turning the \gls{usv} so that the \gls{uav} faces the wind, or starting the estimate of the disturbance observer before the \gls{uav} leaves the deck could make it more robust. In the landing, a prediction of the motion of the deck could time the touchdown to the moment the deck rises the least, and reduce the speed of the contact, which grows with the waves.
+
+% How could the missions become more capable?
+The missions are fixed sequences of manoeuvres, in which every manoeuvre ends with an event or with the end of a manoeuvre of the other vehicle. Real operations also need missions that branch, for instance to return to the search when the target is lost, or to change the route when the sea is too rough to land. A reactive mission layer, such as a behaviour tree, could choose the next manoeuvre from the state of both vehicles, and a higher-level interface could let an operator describe the mission in more general terms, leaving its decomposition into manoeuvres to the system.
+
+% And the references given to the controllers?
+Since the controllers plan the motion within the limits of both vehicles and of the tether from simple references, the manoeuvres could be replaced by references planned over a longer horizon, for instance around obstacles, without changing the controllers. The controllers do not avoid obstacles themselves. Obstacles described by simple shapes could be added to both \glspl{nmpc} as further constraints, on the positions of the vehicles and on points along the tether, which would let the \gls{uav} inspect the far side of a structure such as the tower, which the tether would otherwise cross.
+
+% What could be improved in the controllers?
+In the cooperation, it is the \gls{uav} that gives way when the reference leads beyond the reach of the tether, since its trajectory already respects the separation and the constraint of the \gls{usv} never becomes active. Sharing this between the vehicles, so that the \gls{usv} also moves to give the \gls{uav} its reach, would let the cooperation emerge from the controllers rather than from a manoeuvre such as the support of the inspection. Finally, the tilt of the \gls{uav} is limited about axes turned by its commanded yaw, so that a lag of the yaw lets the measured roll or pitch exceed its limit by a few degrees. Limiting the total tilt instead, which does not depend on the yaw, would remove this effect.
