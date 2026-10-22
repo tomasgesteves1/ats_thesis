@@ -13,9 +13,9 @@
 % Add entry in the table of contents as section
 \addcontentsline{toc}{section}{Abstract}
 
-Insert your abstract here with a maximum of 250 words, followed by 4 to 6 keywords.
+An unmanned surface vehicle and an unmanned aerial vehicle connected by a tether combine the endurance of the vessel with the view from above of the aircraft, which receives power and a reliable communication link through the tether. The tether, however, couples the vehicles, which must keep within its reach while each respects its own limits, under waves and wind. This thesis develops the cooperative control of such a system, formed by a WAM-V vessel and an x500 multirotor. Control-oriented models of both vehicles are derived and validated against a simulator, together with a closed-form model of the force of a slack tether that accounts for its weight. Each vehicle is driven by its own nonlinear model predictive controller, and the two controllers exchange their predicted trajectories, so that each keeps the tether within its reach while anticipating the motion of the other. A disturbance observer compensates unmodelled forces, such as wind. The system is evaluated in a simulation at sea built on Gazebo, PX4 and MoorDyn. The aerial controller tracks a reference with less than half the error of the position controller of PX4, and both controllers plan, from simple or unreachable references, motions within the limits of the vehicles and of the tether. In missions of scouting, inspection of a tower and pursuit of a target, the two vehicles work as one system, and the aircraft lands on the moving deck a few centimetres from the pad centre, under waves and winds of up to $12\,\text{m/s}$.
 
 \vfill
 
-\textbf{\Large Keywords:} keyword1, keyword2, keyword3,...
+\textbf{\Large Keywords:} Tethered UAV, Unmanned Surface Vehicle, Cooperative Control, Nonlinear Model Predictive Control, Maritime Robotics
 
