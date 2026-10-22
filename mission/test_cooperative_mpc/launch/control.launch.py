@@ -22,6 +22,7 @@ def generate_launch_description():
             {
                 'use_sim_time': True,
                 'trajectory_type': 'external',
+                'tether_max_length': ParameterValue(LaunchConfiguration('tether_max_length'), value_type=float),
             }
         ],
         remappings=[
@@ -54,6 +55,7 @@ def generate_launch_description():
                 'control_period': 0.1,
                 'update_rate_hz': 10.0,
                 'wait_for_drone': True,
+                'start_altitude': ParameterValue(LaunchConfiguration('start_altitude'), value_type=float),
             }
         ],
         remappings=[
@@ -74,6 +76,8 @@ def generate_launch_description():
                 'use_sim_time': True,
                 'trajectory_type': 'external',
                 'use_tether': True,
+                'tether_model': ParameterValue(LaunchConfiguration('tether_model'), value_type=bool),
+                'tether_max_length': ParameterValue(LaunchConfiguration('tether_max_length'), value_type=float),
             }
         ],
         remappings=[
@@ -98,6 +102,9 @@ def generate_launch_description():
                 'circle_height': ParameterValue(LaunchConfiguration('uav_circle_height'), value_type=float),
                 'circle_center_x': ParameterValue(LaunchConfiguration('uav_circle_center_x'), value_type=float),
                 'circle_center_y': 0.0,
+                'circle_z_amplitude': ParameterValue(LaunchConfiguration('uav_circle_z_amplitude'), value_type=float),
+                'wait_for_drone': True,
+                'start_altitude': ParameterValue(LaunchConfiguration('start_altitude'), value_type=float),
                 'horizon_stages': 50,
                 'control_period': 0.02,
                 'update_rate_hz': 50.0,
@@ -124,8 +131,15 @@ def generate_launch_description():
         DeclareLaunchArgument('uav_circle_center_x', default_value='0.0', description='x of the centre of the UAV reference circle (m)'),
         DeclareLaunchArgument('uav_circle_omega', default_value='0.05', description='Angular speed of the UAV reference circle (rad/s)'),
         DeclareLaunchArgument('uav_circle_radius', default_value='5.0', description='Radius of the UAV reference circle (m)'),
+        DeclareLaunchArgument('uav_circle_z_amplitude', default_value='0.0',
+                              description='Height oscillation of the UAV reference circle (tilted circle) (m)'),
         DeclareLaunchArgument('usv_circle_radius', default_value='15.0',
                               description='Radius of the USV reference circle (m)'),
+        DeclareLaunchArgument('start_altitude', default_value='3.0',
+                              description='UAV altitude at which both reference circles start (m)'),
+        DeclareLaunchArgument('tether_max_length', default_value='15.0', description='d_max of both NMPCs (m)'),
+        DeclareLaunchArgument('tether_model', default_value='true',
+                              description='Tether force in the UAV prediction model (false: tether-unaware NMPC)'),
         usv_mpc_node,
         usv_circle_node,
         uav_mpc_node,

@@ -22,6 +22,7 @@ public:
         double height,
         double center_x,
         double center_y,
+        double z_amplitude,
         int steps,
         double dt) const;
 };

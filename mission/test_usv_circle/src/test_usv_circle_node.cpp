@@ -21,6 +21,7 @@ TestUsvCircleNode::TestUsvCircleNode()
     this->declare_parameter("update_rate_hz", rclcpp::ParameterValue(10.0), desc); // 10Hz update rate
     this->declare_parameter("world_frame", rclcpp::ParameterValue("world"), desc);
     this->declare_parameter("wait_for_drone", rclcpp::ParameterValue(false), desc); // Wait for drone to takeoff before starting trajectory
+    this->declare_parameter("start_altitude", rclcpp::ParameterValue(3.0), desc);  // Drone altitude that starts the trajectory (m)
 
     // Dynamic testing configuration inputs from Dashboard
     this->declare_parameter("mode_step", rclcpp::ParameterValue(false), desc);
@@ -167,7 +168,7 @@ void TestUsvCircleNode::timerCallback() {
     bool wait_for_drone = this->get_parameter("wait_for_drone").as_bool();
 
     if (wait_for_drone && !drone_started_flying_) {
-        if (drone_altitude_ > 3.0) {
+        if (drone_altitude_ > this->get_double_param("start_altitude")) {
             drone_started_flying_ = true;
             RCLCPP_INFO(this->get_logger(), "Drone altitude is %.2f m. Drone is flying! Starting boat trajectory.", drone_altitude_);
         } else {
