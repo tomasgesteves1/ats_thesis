@@ -41,7 +41,27 @@ Figure~\ref{fig:maneuver_catalogue} shows the manoeuvres of the \gls{uav} as per
 The takeoff and the landing are the manoeuvres in which the \gls{uav} is closest to the deck and moves with it. To hold the vehicle against the deck, so that the waves do not tip it over and throw it into the sea, the winch can pull the tether with a constant force, which it applies at the start of the takeoff and keeps until the \gls{uav} is clear of the deck. The takeoff therefore begins with a vertical climb off the pad, phase~1 in Figure~\ref{fig:maneuver_catalogue}a, and only then moves the vehicle to its first position, phase~2, so that it does not drift over the edge of the deck at low height.
 
 % How does the UAV land on the moving deck?
-The landing is divided into four phases, shown in Figure~\ref{fig:maneuver_catalogue}f. The \gls{uav} first moves above the winch (1) and waits until it is centred above the pad and moving with it (2). It then descends with the winch pulling it towards the deck (3), and ends with a slow final approach towards a point below the deck (4), so that it touches down even if the deck falls away, and the speed of the contact is set by the heave rather than by the descent. Once it rests on the pad, the vehicle is disarmed, and the winch keeps it against the deck.
+The landing is divided into four phases, shown in Figure~\ref{fig:maneuver_catalogue}f and Figure~\ref{fig:landing_phases}. The \gls{uav} first moves above the winch (1) and waits until it is centred above the pad and moving with it (2). It then descends with the winch pulling it towards the deck (3), and ends with a slow final approach towards a point below the deck (4), so that it touches down even if the deck falls away, and the speed of the contact is set by the heave rather than by the descent. Once it rests on the pad, the vehicle is disarmed, and the winch keeps it against the deck.
+
+\begin{figure}[htbp]
+    \centering
+    \subfloat[Waiting above the pad (2).]{
+        \includegraphics[width=0.32\textwidth]{Implementation/figures/04_maneuvers_and_missions/landing_hover.png}
+        \label{fig:landing_hover}
+    }
+    \hfill
+    \subfloat[Descent pulled by the winch (3).]{
+        \includegraphics[width=0.32\textwidth]{Implementation/figures/04_maneuvers_and_missions/landing_descent.png}
+        \label{fig:landing_descent}
+    }
+    \hfill
+    \subfloat[Touchdown on the pad (4).]{
+        \includegraphics[width=0.32\textwidth]{Implementation/figures/04_maneuvers_and_missions/landing_touchdown.png}
+        \label{fig:landing_touchdown}
+    }
+    \caption{Phases of the landing, with the \gls{usv} sailing at $0.75\,\text{m/s}$.}
+    \label{fig:landing_phases}
+\end{figure}
 
 \subsection{Missions}
 \label{subsec:missions_coordination}
