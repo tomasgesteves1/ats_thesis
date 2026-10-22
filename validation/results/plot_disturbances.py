@@ -34,7 +34,7 @@ def winch(d, t):
 def landing(d):
     """Metrics of the landing: heave of the winch, offset when the descent starts, touchdown offset and speed."""
     t_land = ev_time(d, 'uav.land: started')
-    t_desc = ev_time(d, 'descending with the landing pull')
+    t_desc = ev_time(d, 'descending')   # centred, or the centring timed out
     t_td = ev_time(d, 'touchdown')
     td_text = next(e for e in d['ev'] if 'touchdown' in e)
     offset = float(re.findall(r'[-0-9.]+$', td_text)[0])
@@ -102,6 +102,10 @@ def wind():
     for w in WINDS:
         for obs in ('obs', 'noobs'):
             d = load('landing_wind%d_%s' % (w, obs))
+            if ev_time(d, 'touchdown') is None:
+                table[(w, obs)] = (np.nan, np.nan, np.nan)
+                print('wind %2d m/s %-5s: no touchdown (mission not completed)' % (w, obs))
+                continue
             r = landing(d); h, _, _ = hover(d)
             table[(w, obs)] = (h, r['centring'], r['offset'])
             print('wind %2d m/s %-5s: hover error %.2f m | offset at descent %.2f m | touchdown offset %.2f m' % (
@@ -114,15 +118,17 @@ def wind():
     for k, (obs, lab) in enumerate((('noobs', 'without observer'), ('obs', 'with observer'))):
         axs[0].bar(x + (k - 0.5) * 0.36, [100 * table[(w, obs)][1] for w in WINDS], 0.36,
                    color=[COLOR_CYCLE[1], COLOR_CYCLE[0]][k], label=lab)
-    axs[0].set_xticks(x); axs[0].set_xticklabels(['%d' % w for w in WINDS]); axs[0].set_xlabel('wind (m/s)')
-    axs[0].set_ylabel('offset above the pad (cm)'); axs[0].legend(fontsize=7, loc='upper left')
-    axs[0].set_title('(a)', fontsize=9, y=-0.42)
+    for k, w in enumerate(WINDS):
+        if np.isnan(table[(w, 'noobs')][1]):
+            axs[0].text(k - 0.18, 1.0, 'no\nlanding', ha='center', va='bottom', fontsize=6.5, color=COLOR_CYCLE[1])
+    axs[0].set_xticks(x); axs[0].set_xticklabels(['%d' % w for w in WINDS]); axs[0].set_xlabel('wind (m/s)\n(a)')
+    axs[0].set_ylabel('offset at the descent (cm)'); axs[0].set_ylim(0, 60)
+    axs[0].legend(fontsize=7, loc='upper right')
     me = (ext[:, 0] >= t_to) & (ext[:, 0] <= t_td); md = (dist[:, 0] >= t_to) & (dist[:, 0] <= t_td)
     t0 = t_to
     axs[1].plot(ext[me, 0] - t0, np.hypot(ext[me, 1], ext[me, 2]), color='#333333', lw=0.9, label='applied')
     axs[1].plot(dist[md, 0] - t0, np.hypot(dist[md, 1], dist[md, 2]), color=UAV, lw=0.9, label='estimated')
-    axs[1].set_xlabel('time (s)'); axs[1].set_ylabel('horizontal force (N)'); axs[1].legend(fontsize=7)
-    axs[1].set_title('(b)', fontsize=9, y=-0.42)
+    axs[1].set_xlabel('time (s)\n(b)'); axs[1].set_ylabel('horizontal force (N)'); axs[1].legend(fontsize=7)
     fig.tight_layout()
     save_figure(fig, os.path.join(OUT, 'wind'))
 
