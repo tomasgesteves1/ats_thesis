@@ -72,10 +72,10 @@ uav_mpc_node:
     d_dot_min: -20.0             # m/s, lower bound of the separation rate
 
     # Slack penalties rho(sigma) = mu1*sigma + mu2*sigma^2
-    slack_mu1_bounds: 100.0
-    slack_mu2_bounds: 500.0
-    slack_mu1_tether: 500.0
-    slack_mu2_tether: 2000.0
+    slack_mu1_bounds: 10000.0     # exact-penalty regime: the bounds give way only when they cannot be met
+    slack_mu2_bounds: 10000.0
+    slack_mu1_tether: 10000.0
+    slack_mu2_tether: 10000.0
 
     # Normalised hover throttle (nominal; the PX4 estimate is used only if use_px4_hover_estimate is true)
     hover_throttle: 0.618
