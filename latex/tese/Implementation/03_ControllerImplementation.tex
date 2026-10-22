@@ -30,13 +30,52 @@ The prediction model requires integrating the vehicle models over each sampling 
 \label{subsec:usv_controller_implementation}
 
 % Where do the limits of the controller come from?
-Most limits of the controller are not design choices, but the limits of the thrusters of the simulated \gls{wamv}, described in Section~\ref{sec:usv_model}, on the thrust, on the azimuth angle, and on how fast each can change. The remaining two come from how the system is meant to operate. The minimum surge speed keeps the vessel sailing bow first, while still allowing the slow backing needed to hold a position or to brake, and the maximum separation defines the working radius of the \gls{uav} around the \gls{usv}. All parameters of the controller are listed in Table~\ref{tab:usv_controller_parameters}.
+Most limits of the controller are not design choices, but the limits of the thrusters of the simulated \gls{wamv}, described in Section~\ref{sec:usv_model}, on the thrust, on the azimuth angle, and on how fast each can change. The remaining two come from how the system is meant to operate. The minimum surge speed keeps the vessel sailing bow first, while still allowing the slow backing needed to hold a position or to brake, and the maximum separation defines the working radius of the \gls{uav} around the \gls{usv}. These limits are listed in Table~\ref{tab:usv_ctrl_limits}.
+
+\begin{table}[htbp]
+    \centering
+    \caption{Limits of the \gls{usv} \gls{nmpc}.}
+    \label{tab:usv_ctrl_limits}
+    \begin{tabular*}{0.75\linewidth}{@{\extracolsep{\fill}}llr}
+        \toprule
+        \textbf{Parameter} & \textbf{Symbol} & \textbf{Value} \\
+        \midrule
+        Thrust limits & $T_{L,max}=T_{R,max}$ & $510.0\,\text{N}$ \\
+         & $T_{L,min}=T_{R,min}$ & $-380.0\,\text{N}$ \\
+        Azimuth limits & $\alpha_{L,max}=\alpha_{R,max}$ & $30^\circ$ \\
+         & $\alpha_{L,min}=\alpha_{R,min}$ & $-30^\circ$ \\
+        Thrust rate limit & $\dot T_{L,max}=\dot T_{R,max}$ & $500\,\text{N/s}$ \\
+        Azimuth rate limit & $\dot\alpha_{L,max}=\dot\alpha_{R,max}$ & $10^\circ/\text{s}$ \\
+        Minimum surge speed & $u_{min}$ & $-0.3\,\text{m/s}$ \\
+        Surge slack penalty & $\mu_{u,1},\ \mu_{u,2}$ & $200,\ 2000$ \\
+        Maximum tether separation & $d_{max}$ & $15.0\,\text{m}$ \\
+        Tether slack penalty & $\mu_1,\ \mu_2$ & $500,\ 5000$ \\
+        \bottomrule
+    \end{tabular*}
+\end{table}
 
 % How often does the controller act, and how far ahead does it look?
-The sampling time, which sets how often the controller computes a new command, and the prediction horizon, which sets how far ahead it plans, are both chosen from how fast the \gls{usv} responds to its commands. At the operating speeds, the hull takes between half a second and a second to react to a change of force. The controller runs at $10\,\text{Hz}$, so it computes a new command every $0.1\,\text{s}$, five to ten while the vessel responds to a single one, and can correct this response as it develops. The horizon must be long enough for the controller to see most of this response, and is set to $2\,\text{s}$, or $20$ steps, which covers two to four times the response time and is the horizon over which the model was validated in Section~\ref{sec:model_validation}.
+The sampling time, which sets how often the controller computes a new command, and the prediction horizon, which sets how far ahead it plans, are both chosen from how fast the \gls{usv} responds to its commands. At the operating speeds, the hull takes between half a second and a second to react to a change of force. The controller runs at $10\,\text{Hz}$, so it computes a new command every $0.1\,\text{s}$, five to ten while the vessel responds to a single one, and can correct this response as it develops. The horizon must be long enough for the controller to see most of this response, and is set to $2\,\text{s}$, or $20$ steps, which covers two to four times the response time and is the horizon over which the model was validated in Section~\ref{sec:model_validation}. Since the \gls{uav} predicts only $1\,\text{s}$ ahead, its trajectory covers the first $N_c = 10$ steps of this horizon, over which the tether constraint is applied.
 
 % What does the controller prioritise?
-The weights of the cost set what the controller values most, and were tuned in simulation until the vessel followed its references smoothly. They form a baseline for all the missions of this work, which could be adapted to each manoeuvre, favouring precision when holding a station or smoothness on a long transit. The position and the heading dominate the cost, since following the reference is the purpose of the controller. The sway velocity is also penalised, so that the vessel does not drift sideways, and the thrust and its rate of change receive a light penalty that avoids unnecessary effort without compromising the tracking. The steering needs little weight to remain smooth, since the azimuth rate limit already prevents abrupt changes of direction.
+The weights of the cost set what the controller values most, and were tuned in simulation until the vessel followed its references smoothly. They form a baseline for all the missions of this work, which could be adapted to each manoeuvre, favouring precision when holding a station or smoothness on a long transit. The position and the heading dominate the cost, since following the reference is the purpose of the controller. The sway velocity is also penalised, so that the vessel does not drift sideways, and the thrust and its rate of change receive a light penalty that avoids unnecessary effort without compromising the tracking. The steering needs little weight to remain smooth, since the azimuth rate limit already prevents abrupt changes of direction. The weights are listed in Table~\ref{tab:usv_ctrl_weights}.
+
+\begin{table}[htbp]
+    \centering
+    \caption{Cost weights of the \gls{usv} \gls{nmpc}.}
+    \label{tab:usv_ctrl_weights}
+    \begin{tabular*}{0.75\linewidth}{@{\extracolsep{\fill}}llr}
+        \toprule
+        \textbf{Parameter} & \textbf{Symbol} & \textbf{Value} \\
+        \midrule
+        Position weight & $Q_p$ & $\mathrm{diag}(150,\,150)$ \\
+        Heading weight & $q_\psi$ & $150$ \\
+        Velocity weight & $Q_\nu$ & $\mathrm{diag}(2,\,40,\,1)$ \\
+        Thruster command weight & $Q_\tau$ & $\mathrm{diag}(10^{-5},\,10^{-5},\,0.1,\,0.1)$ \\
+        Thruster rate weight & $R$ & $\mathrm{diag}(10^{-5},\,10^{-5},\,10,\,10)$ \\
+        \bottomrule
+    \end{tabular*}
+\end{table}
 
 % How good is the computed command, and how long does it take?
 Since the solver approaches the solution iteratively, its settings trade the quality of the solution for computation time. To choose them, three settings were compared on a recorded run, on a laptop with an Intel i5-1135G7 processor (4 cores, $2.4\,\text{GHz}$), through their iterations, computation time, and optimality residual, which measures how far the command is from satisfying the conditions that define a solution. The results are shown in Figure~\ref{fig:usv_solver_performance}, and summarised in Table~\ref{tab:usv_solver_settings} after the first $2\,\text{s}$, once the solver has stabilised. A strict tolerance gives the smallest residual but needs the most iterations, a single iteration per instant, known as \gls{rti}~\cite{diehl2005rti}, is the fastest but leaves the command furthest from the solution, and a moderate tolerance lies between the two. The controller uses this moderate tolerance, of $10^{-4}$, since a stricter one changes the applied thrust by less than $0.1\,\text{N}$ and the azimuth by less than $0.01^\circ$, with a limit of $25$ iterations that keeps even the first instants of the run well within the $100\,\text{ms}$ available.
@@ -75,41 +114,6 @@ Since the solver approaches the solution iteratively, its settings trade the qua
 % What happens when the solver fails?
 The solver may also fail to return a usable command, for instance when the solution of the previous instant is a poor starting point for the current one. In that case, the solver is restarted from the current state of the vessel and solves the problem once more. If it fails again, the thrusters keep the last command, and the \gls{uav} keeps the last predicted trajectory of the \gls{usv}, until a new solution is found. Reaching the iteration limit is not treated as a failure, and the command reached is still used. In the recorded run, the solver never failed, and the limit was reached only in the first instants of the run.
 
-\begin{table}[htbp]
-    \centering
-    \caption{Parameters of the \gls{usv} \gls{nmpc}.}
-    \label{tab:usv_controller_parameters}
-    \begin{tabular}{llr}
-        \toprule
-        \textbf{Parameter} & \textbf{Symbol} & \textbf{Value} \\
-        \midrule
-        \multicolumn{3}{l}{\textit{Limits}} \\
-        Thrust limits & $T_{L,max}=T_{R,max}$ & $510.0\,\text{N}$ \\
-         & $T_{L,min}=T_{R,min}$ & $-380.0\,\text{N}$ \\
-        Azimuth limits & $\alpha_{L,max}=\alpha_{R,max}$ & $30^\circ$ \\
-         & $\alpha_{L,min}=\alpha_{R,min}$ & $-30^\circ$ \\
-        Thrust rate limit & $\dot T_{L,max}=\dot T_{R,max}$ & $500\,\text{N/s}$ \\
-        Azimuth rate limit & $\dot\alpha_{L,max}=\dot\alpha_{R,max}$ & $10^\circ/\text{s}$ \\
-        Minimum surge speed & $u_{min}$ & $-0.3\,\text{m/s}$ \\
-        Surge slack penalty & $\mu_{u,1},\ \mu_{u,2}$ & $200,\ 2000$ \\
-        Maximum tether separation & $d_{max}$ & $15.0\,\text{m}$ \\
-        Tether slack penalty & $\mu_1,\ \mu_2$ & $500,\ 5000$ \\
-        \midrule
-        \multicolumn{3}{l}{\textit{Sampling and horizon}} \\
-        Sampling time & $T_s$ & $0.1\,\text{s}$ \\
-        Prediction horizon & $N$ & $20$ \\
-        Nodes covered by the \gls{uav} trajectory & $N_c$ & $10$ \\
-        \midrule
-        \multicolumn{3}{l}{\textit{Cost weights}} \\
-        Position weight & $Q_p$ & $\mathrm{diag}(150,\,150)$ \\
-        Heading weight & $q_\psi$ & $150$ \\
-        Velocity weight & $Q_\nu$ & $\mathrm{diag}(2,\,40,\,1)$ \\
-        Thruster command weight & $Q_\tau$ & $\mathrm{diag}(10^{-5},\,10^{-5},\,0.1,\,0.1)$ \\
-        Thruster rate weight & $R$ & $\mathrm{diag}(10^{-5},\,10^{-5},\,10,\,10)$ \\
-        \bottomrule
-    \end{tabular}
-\end{table}
-
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 \subsection{\texorpdfstring{\gls{uav} Control}{UAV Control}}
@@ -132,13 +136,53 @@ where $k_F$, $\omega_{min}$, and $\omega_{max}$ are given in Table~\ref{tab:x500
 which is limited to the interval $[0,1]$.
 
 % Where do the limits of the controller come from?
-As for the \gls{usv}, some limits of the controller come from the vehicle itself. The thrust is kept above a small minimum, so that the rotors do not stop during descents, and its maximum is set slightly below what the rotors produce at full speed, since rotating the vehicle requires some rotors to spin faster than others, and this margin leaves them room to do so. When the margin is not enough, the mixer of PX4, which distributes the commands among the rotors, gives priority to the attitude and reduces the total thrust instead. Representing each rotor in the model would let the \gls{nmpc} account for this directly, but it would have to command the rotors itself, bypassing the attitude controller of PX4. The rate at which the separation between the \gls{uav} and the \gls{usv} can grow is limited to the speed of the winch, described in Section~\ref{sec:tether_winch}, and the maximum separation is the same as in the \gls{usv} controller. The remaining bounds, on the altitude, the speed, the tilt, and the rates of the commands, define the operating envelope of the vehicle, and were chosen for the intended operation, within the capabilities of the vehicle. All parameters of the controller are listed in Table~\ref{tab:uav_controller_parameters}.
+As for the \gls{usv}, some limits of the controller come from the vehicle itself. The thrust is kept above a small minimum, so that the rotors do not stop during descents, and its maximum is set slightly below what the rotors produce at full speed, since rotating the vehicle requires some rotors to spin faster than others, and this margin leaves them room to do so. When the margin is not enough, the mixer of PX4, which distributes the commands among the rotors, gives priority to the attitude and reduces the total thrust instead. Representing each rotor in the model would let the \gls{nmpc} account for this directly, but it would have to command the rotors itself, bypassing the attitude controller of PX4. The rate at which the separation between the \gls{uav} and the \gls{usv} can grow is limited to the speed of the winch, described in Section~\ref{sec:tether_winch}, and the maximum separation is the same as in the \gls{usv} controller. The remaining bounds, on the altitude, the speed, the tilt, and the rates of the commands, define the operating envelope of the vehicle, and were chosen for the intended operation, within the capabilities of the vehicle. These limits are listed in Table~\ref{tab:uav_ctrl_limits}.
+
+\begin{table}[htbp]
+    \centering
+    \caption{Limits of the \gls{uav} \gls{nmpc}.}
+    \label{tab:uav_ctrl_limits}
+    \begin{tabular*}{0.75\linewidth}{@{\extracolsep{\fill}}llr}
+        \toprule
+        \textbf{Parameter} & \textbf{Symbol} & \textbf{Value} \\
+        \midrule
+        Thrust limits & $T_{min},\ T_{max}$ & $2.02\,\text{N},\ 39.96\,\text{N}$ \\
+        Thrust rate limit & $\dot T_{max}$ & $30\,\text{N/s}$ \\
+        Tilt limits & $\phi_{max},\ \theta_{max}$ & $0.5\,\text{rad}$ \\
+        Attitude command rate limits & $\dot\phi_{max},\ \dot\theta_{max},\ \dot\psi_{max}$ & $0.8,\ 0.8,\ 1.0\,\text{rad/s}$ \\
+        Horizontal and vertical speed limits & $v_{xy,max},\ v_{z,max}$ & $10.0\,\text{m/s}$ \\
+        Minimum altitude & $z_{min}$ & $2.0\,\text{m}$ \\
+        Slack penalty, bounds $h_1$--$h_5$ & $\mu_{1,j},\ \mu_{2,j}$ & $100,\ 500$ \\
+        Maximum tether separation & $d_{max}$ & $15.0\,\text{m}$ \\
+        Maximum tether pay-out rate & $\dot d_{max}$ & $2.0\,\text{m/s}$ \\
+        Slack penalty, tether $h_6$, $h_7$ & $\mu_{1,j},\ \mu_{2,j}$ & $500,\ 2000$ \\
+        \bottomrule
+    \end{tabular*}
+\end{table}
 
 % How often does the controller act, and how far ahead does it look?
 The sampling time and the prediction horizon of the \gls{uav} controller follow from how fast the vehicle responds, which is much faster than the \gls{usv}. Its roll and pitch respond to a new command within about $0.2\,\text{s}$, the delay and the time constant of Table~\ref{tab:uav_model_parameters} together. The controller runs at $50\,\text{Hz}$, the rate at which the state estimate of the vehicle is received, so it computes a new command every $0.02\,\text{s}$, about ten while the vehicle responds to a single one, and can correct this response as it develops. The horizon is set to $1\,\text{s}$, or $50$ steps, which covers about five times this response and more than twice the slower response of the yaw, and is the horizon over which the model was validated.
 
 % What does the controller prioritise?
-The weights of the cost were also tuned in simulation, until the vehicle followed its references closely with smooth commands, and are likewise a baseline that could favour precision when landing or smoothness when following a target. The position dominates the cost, with a larger weight on the height, since the thrust corrects it directly, whereas a horizontal correction requires the vehicle to tilt first and a lighter weight keeps this tilting gradual. The yaw is tracked as well, independently of the position, since the vehicle can turn without moving. Among the inputs, the rates of the roll and pitch commands are penalised the most, while the thrust may change quickly within its rate limit. The tilt and the deviation of the thrust from the hover value are lightly penalised to discourage values larger than the tracking requires.
+The weights of the cost were also tuned in simulation, until the vehicle followed its references closely with smooth commands, and are likewise a baseline that could favour precision when landing or smoothness when following a target. The position dominates the cost, with a larger weight on the height, since the thrust corrects it directly, whereas a horizontal correction requires the vehicle to tilt first and a lighter weight keeps this tilting gradual. The yaw is tracked as well, independently of the position, since the vehicle can turn without moving. Among the inputs, the rates of the roll and pitch commands are penalised the most, while the thrust may change quickly within its rate limit. The tilt and the deviation of the thrust from the hover value are lightly penalised to discourage values larger than the tracking requires. The weights are listed in Table~\ref{tab:uav_ctrl_weights}.
+
+\begin{table}[htbp]
+    \centering
+    \caption{Cost weights of the \gls{uav} \gls{nmpc}.}
+    \label{tab:uav_ctrl_weights}
+    \begin{tabular*}{0.75\linewidth}{@{\extracolsep{\fill}}llr}
+        \toprule
+        \textbf{Parameter} & \textbf{Symbol} & \textbf{Value} \\
+        \midrule
+        Position weight & $Q_p$ & $\mathrm{diag}(60,\,60,\,150)$ \\
+        Velocity weight & $Q_v$ & $\mathrm{diag}(5,\,5,\,7.5)$ \\
+        Tilt weight & $Q_{tilt}$ & $\mathrm{diag}(5,\,5)$ \\
+        Yaw weight & $q_\psi$ & $20$ \\
+        Thrust weight & $Q_T$ & $0.118$ \\
+        Input weight & $R$ & $\mathrm{diag}(30,\,30,\,5,\,5\times10^{-4})$ \\
+        \bottomrule
+    \end{tabular*}
+\end{table}
 
 % How does the controller account for unmodelled forces?
 The disturbance observer of Chapter~\ref{chapter:control} is set by its gain and its bound. With $\beta = 0.03$, the estimate converges with a time constant of about $T_s/\beta \approx 0.7\,\text{s}$, slower than the response of the attitude, so that it does not react to the short prediction errors of a manoeuvre, but fast enough to follow the gusts of the wind, which vary over several seconds. The bound of $8\,\text{N}$ is above the force of a strong wind on the vehicle, of about $5\,\text{N}$ at $12\,\text{m/s}$.
@@ -177,42 +221,3 @@ The same comparison was made for the \gls{uav}, close to its limits, between ite
 
 % What happens when the solver fails?
 If the solver fails to return a usable command, the vehicle keeps the last attitude and thrust commanded until a new solution is found, while the disturbance estimate is held, since there is no prediction to compare with the measured velocity. With a single iteration there is no iteration limit to reach, and in the recorded run the \gls{rti} never failed.
-
-\begin{table}[htbp]
-    \centering
-    \caption{Parameters of the \gls{uav} \gls{nmpc}.}
-    \label{tab:uav_controller_parameters}
-    \begin{tabular}{llr}
-        \toprule
-        \textbf{Parameter} & \textbf{Symbol} & \textbf{Value} \\
-        \midrule
-        \multicolumn{3}{l}{\textit{Limits}} \\
-        Thrust limits & $T_{min},\ T_{max}$ & $2.02\,\text{N},\ 39.96\,\text{N}$ \\
-        Thrust rate limit & $\dot T_{max}$ & $30\,\text{N/s}$ \\
-        Tilt limits & $\phi_{max},\ \theta_{max}$ & $0.5\,\text{rad}$ \\
-        Attitude command rate limits & $\dot\phi_{max},\ \dot\theta_{max},\ \dot\psi_{max}$ & $0.8,\ 0.8,\ 1.0\,\text{rad/s}$ \\
-        Horizontal and vertical speed limits & $v_{xy,max},\ v_{z,max}$ & $10.0\,\text{m/s}$ \\
-        Minimum altitude & $z_{min}$ & $2.0\,\text{m}$ \\
-        Slack penalty, bounds $h_1$--$h_5$ & $\mu_{1,j},\ \mu_{2,j}$ & $100,\ 500$ \\
-        Maximum tether separation & $d_{max}$ & $15.0\,\text{m}$ \\
-        Maximum tether pay-out rate & $\dot d_{max}$ & $2.0\,\text{m/s}$ \\
-        Slack penalty, tether $h_6$, $h_7$ & $\mu_{1,j},\ \mu_{2,j}$ & $500,\ 2000$ \\
-        \midrule
-        \multicolumn{3}{l}{\textit{Sampling and horizon}} \\
-        Sampling time & $T_s$ & $0.02\,\text{s}$ \\
-        Prediction horizon & $N$ & $50$ \\
-        \midrule
-        \multicolumn{3}{l}{\textit{Cost weights}} \\
-        Position weight & $Q_p$ & $\mathrm{diag}(60,\,60,\,150)$ \\
-        Velocity weight & $Q_v$ & $\mathrm{diag}(5,\,5,\,7.5)$ \\
-        Tilt weight & $Q_{tilt}$ & $\mathrm{diag}(5,\,5)$ \\
-        Yaw weight & $q_\psi$ & $20$ \\
-        Thrust weight & $Q_T$ & $0.118$ \\
-        Input weight & $R$ & $\mathrm{diag}(30,\,30,\,5,\,5\times10^{-4})$ \\
-        \midrule
-        \multicolumn{3}{l}{\textit{Disturbance observer}} \\
-        Observer gain & $\beta$ & $0.03$ \\
-        Disturbance bound & $\bar F$ & $8\,\text{N}$ \\
-        \bottomrule
-    \end{tabular}
-\end{table}
