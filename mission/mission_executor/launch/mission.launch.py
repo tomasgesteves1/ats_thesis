@@ -33,6 +33,8 @@ def generate_launch_description():
     uav_mpc = Node(
         package='uav_mpc', executable='uav_mpc_node', name='uav_mpc_node', output='screen',
         parameters=[uav_cfg, {'use_sim_time': True, 'trajectory_type': 'external', 'use_tether': True,
+                              'disturbance_observer': ParameterValue(LaunchConfiguration('disturbance_observer'),
+                                                                     value_type=bool),
                               'tether_max_length': ParameterValue(LaunchConfiguration('tether_max_length'),
                                                                   value_type=float)}],
         remappings=[('odom', '/drone/ground_truth/odometry'),
@@ -70,6 +72,8 @@ def generate_launch_description():
                               description='Mission file in share/mission_executor/missions (or absolute path)'),
         DeclareLaunchArgument('tether_max_length', default_value='15.0',
                               description='Maximum tether length d_max of both NMPCs (m)'),
+        DeclareLaunchArgument('disturbance_observer', default_value='true',
+                              description='Disturbance observer of the UAV NMPC'),
         DeclareLaunchArgument('intruder', default_value='false',
                               description='Run the intruder boat (interdiction missions)'),
         usv_mpc, uav_mpc, executor, intruder])

@@ -80,7 +80,8 @@ private:
 
 /// Orbit around the winch: minimum-jerk entry to the circle at the current bearing, then the angular speed is
 /// ramped up, kept, and ramped down to stop after the requested laps. The UAV looks at the winch.
-/// Params: radius [m], height [m], omega [rad/s] (sign = direction), laps, entry_duration [s], ramp_time [s].
+/// Params: radius [m], height [m], omega [rad/s] (sign = direction), laps, entry_duration [s], ramp_time [s],
+/// fov [deg] (if given, the orbit ends when the target is within the field of view of a downward camera).
 class Orbit : public UavManeuver
 {
 public:

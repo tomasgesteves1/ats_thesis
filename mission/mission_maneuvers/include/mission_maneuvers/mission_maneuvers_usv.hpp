@@ -65,6 +65,22 @@ private:
     UsvPose hold_;
 };
 
+/// Support of the UAV around a structure: the reference is the point on the water below the UAV, pushed away from
+/// the structure by the standoff, so that the boat follows the UAV and gives it the reach of the tether. The bow
+/// points along the motion of the UAV around the structure, predicted with its current angular speed.
+/// Params: center [x, y] (m), standoff [m].
+class UsvSupport : public UsvManeuver
+{
+public:
+    using UsvManeuver::UsvManeuver;
+    std::string type() const override { return "support"; }
+    void start(const Context & ctx) override;
+    Status update(const Context & ctx, UsvCommand & cmd) override;
+
+private:
+    double direction_{1.0};
+};
+
 }  // namespace mission_maneuvers
 
 #endif  // MISSION_MANEUVERS__MISSION_MANEUVERS_USV_HPP_

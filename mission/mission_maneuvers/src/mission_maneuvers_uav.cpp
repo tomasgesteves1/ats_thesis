@@ -15,6 +15,23 @@ std::string fmt(const char * text, double value)
     os << std::fixed << text << value;
     return os.str();
 }
+
+// True when the target is within the field of view (full angle, deg) of a downward camera on the UAV; the
+// detection is reported in the message of the command
+bool targetInView(const Context & ctx, double fov_deg, UavCommand & cmd)
+{
+    if (!ctx.target.valid) {
+        return false;
+    }
+    const double height = ctx.uav.p[2] - ctx.target.p[2];
+    const double footprint = height * std::tan(0.5 * fov_deg * M_PI / 180.0);
+    const double horizontal = norm2(ctx.uav.p[0] - ctx.target.p[0], ctx.uav.p[1] - ctx.target.p[1]);
+    if (height > 0.0 && horizontal < footprint) {
+        cmd.message = fmt("target detected; horizontal distance from the UAV [m]: ", horizontal);
+        return true;
+    }
+    return false;
+}
 }  // namespace
 
 bool SettleTimer::update(bool condition, double t, double hold_time)
@@ -191,6 +208,9 @@ Status Orbit::update(const Context & ctx, UavCommand & cmd)
 {
     cmd.yaw_from_reference = false;   // the UAV looks at the winch
     cmd.path = boatRelativePath(ctx, [this](double t) { return relAt(t); });
+    if (params_.has("fov") && targetInView(ctx, params_.get("fov", 90.0), cmd)) {
+        return Status::kDone;
+    }
     return ctx.t - t0_ >= params_.get("entry_duration", 8.0) + angle_.duration() ? Status::kDone : Status::kRunning;
 }
 
@@ -330,14 +350,8 @@ Vec3 Search::relAt(double t) const
 Status Search::update(const Context & ctx, UavCommand & cmd)
 {
     cmd.path = boatRelativePath(ctx, [this](double t) { return relAt(t); }, true);
-    if (ctx.target.valid) {
-        const double height = ctx.uav.p[2] - ctx.target.p[2];
-        const double footprint = height * std::tan(0.5 * params_.get("fov", 90.0) * M_PI / 180.0);
-        const double horizontal = norm2(ctx.uav.p[0] - ctx.target.p[0], ctx.uav.p[1] - ctx.target.p[1]);
-        if (height > 0.0 && horizontal < footprint) {
-            cmd.message = fmt("target detected; horizontal distance from the UAV [m]: ", horizontal);
-            return Status::kDone;
-        }
+    if (targetInView(ctx, params_.get("fov", 90.0), cmd)) {
+        return Status::kDone;
     }
     const double timeout = params_.get("timeout", 0.0);
     if (timeout > 0.0 && ctx.t - t0_ > timeout) {

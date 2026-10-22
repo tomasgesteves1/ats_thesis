@@ -142,4 +142,35 @@ Status UsvFollow::update(const Context & ctx, UsvCommand & cmd)
     return Status::kRunning;
 }
 
+// ---------------------------------------------------------------------------------------------------------------
+// UsvSupport
+// ---------------------------------------------------------------------------------------------------------------
+
+void UsvSupport::start(const Context & ctx)
+{
+    direction_ = 1.0;
+    (void)ctx;
+}
+
+Status UsvSupport::update(const Context & ctx, UsvCommand & cmd)
+{
+    const auto c = params_.getVector("center", {0.0, 0.0});
+    const double standoff = params_.get("standoff", 6.0);
+    const double rx = ctx.uav.p[0] - c[0], ry = ctx.uav.p[1] - c[1];
+    const double r = std::max(norm2(rx, ry), 1e-3);
+    const double theta = std::atan2(ry, rx);
+    // angular speed of the UAV about the structure; the sense of turn is kept while the UAV is (almost) still
+    const double omega = (rx * ctx.uav.v[1] - ry * ctx.uav.v[0]) / (r * r);
+    if (std::abs(omega) > 0.01) {
+        direction_ = omega > 0.0 ? 1.0 : -1.0;
+    }
+    cmd.path.resize(static_cast<size_t>(ctx.usv_horizon.steps));
+    for (size_t k = 0; k < cmd.path.size(); ++k) {
+        const double th = theta + omega * static_cast<double>(k) * ctx.usv_horizon.dt;
+        cmd.path[k] = {c[0] + (r + standoff) * std::cos(th), c[1] + (r + standoff) * std::sin(th),
+                       th + direction_ * M_PI_2};
+    }
+    return Status::kRunning;   // ended by the mission ('until')
+}
+
 }  // namespace mission_maneuvers

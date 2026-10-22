@@ -1,26 +1,27 @@
-# Interdiction: the boat patrols while the UAV searches across its track; when the UAV detects the intruder (a boat
-# in a forbidden zone, which flees when approached) the boat pursues it and the UAV stays above it, within the
-# tether range, until the boat intercepts it; then the UAV lands back on the pad.
+# Patrol: the boat patrols while the UAV orbits it, looking down; when the UAV detects the intruder (a boat in a
+# forbidden zone, which flees when approached) it chases it, above the target, and the boat pursues it. The chase
+# reference is the point above the target, wherever it is: the NMPC keeps the UAV within the reach of the tether.
+# When the boat has caught up with the target, the UAV lands back on the pad.
 # Run with the intruder: ros2 launch mission_executor mission.launch.py mission:=interdiction intruder:=true
 name: "Patrol"
-description: "The USV patrols while the UAV looks for a moving target, which the USV then pursues while the UAV chases it."
+description: "The USV patrols while the UAV orbits it until it detects a moving target, which the UAV chases while the USV pursues it."
 # Options of mission.launch.py needed by this mission (used by the dashboard)
 launch: {intruder: true}
 
 uav:
   - {id: takeoff, type: takeoff, vertical_clearance: 1.5, clearance_duration: 5.0, pull_release_height: 1.6,
      offset: [0.0, 0.0, 3.0], duration: 6.0, tolerance: 0.3, arm_timeout: 30.0}
-  - {id: search, type: search, ahead: 4.0, amplitude: 10.0, period: 20.0, height: 9.0, fov: 90.0,
-     entry_duration: 6.0, timeout: 200.0}
-  - {id: chase, type: chase, height: 9.0, max_horizontal: 10.5, entry_duration: 5.0, until: usv.intercept}
+  - {id: orbit, type: orbit, radius: 6.0, height: 9.0, omega: 0.25, laps: 20.0, entry_duration: 6.0, ramp_time: 4.0,
+     fov: 90.0}
+  - {id: chase, type: chase, height: 9.0, max_horizontal: 100.0, entry_duration: 2.0, until: usv.pursuit}
   - {id: land, type: land, height: 3.0, approach_duration: 10.0, tolerance: 0.15, velocity_tolerance: 0.15,
      settle: 3.0, track_timeout: 40.0, descent_duration: 12.0, final_height: 0.5, final_speed: 0.15,
      final_ramp: 1.0, depth: 0.2, touch_margin: 0.05, touch_velocity: 0.1, touch_time: 0.5, disarm_timeout: 5.0}
 
 usv:
   - {id: wait, type: hold, duration: 0.0}
-  - {id: patrol, type: waypoints, after: uav.takeoff, until: uav.search, points: [[45.0, 0.0], [45.0, 40.0]],
+  - {id: route, type: waypoints, after: uav.takeoff, until: uav.orbit, points: [[45.0, 0.0], [45.0, 40.0]],
      speed: 1.0, ramp_time: 5.0, lookahead: 6.0, tolerance: 1.5}
-  - {id: intercept, type: follow, after: uav.search, speed: 2.2, ramp_time: 4.0, turn_rate: 0.3,
+  - {id: pursuit, type: follow, after: uav.orbit, speed: 2.2, ramp_time: 4.0, turn_rate: 0.3,
      intercept_distance: 6.0, standoff: 4.0, settle: 3.0}
   - {id: stop, type: hold, duration: 0.0}

@@ -25,6 +25,7 @@ std::unique_ptr<UsvManeuver> createUsvManeuver(const std::string & type, const P
     if (type == "hold") { return std::make_unique<UsvHold>(params); }
     if (type == "waypoints") { return std::make_unique<UsvWaypoints>(params); }
     if (type == "follow") { return std::make_unique<UsvFollow>(params); }
+    if (type == "support") { return std::make_unique<UsvSupport>(params); }
     return nullptr;
 }
 
