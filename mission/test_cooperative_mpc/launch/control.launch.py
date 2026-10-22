@@ -79,6 +79,7 @@ def generate_launch_description():
                 'trajectory_type': 'external',
                 'use_tether': True,
                 'tether_model': ParameterValue(LaunchConfiguration('tether_model'), value_type=bool),
+                'disturbance_observer': ParameterValue(LaunchConfiguration('disturbance_observer'), value_type=bool),
                 'tether_max_length': ParameterValue(LaunchConfiguration('tether_max_length'), value_type=float),
             }
         ],
@@ -144,6 +145,7 @@ def generate_launch_description():
         DeclareLaunchArgument('tether_max_length', default_value='15.0', description='d_max of both NMPCs (m)'),
         DeclareLaunchArgument('px4_baseline', default_value='false',
                               description='Fly the UAV circle with the PX4 position controller instead of the NMPC'),
+        DeclareLaunchArgument('disturbance_observer', default_value='true', description='Disturbance observer of the UAV NMPC'),
         DeclareLaunchArgument('tether_model', default_value='true',
                               description='Tether force in the UAV prediction model (false: tether-unaware NMPC)'),
         usv_mpc_node,

@@ -10,6 +10,7 @@
 # Controllers: nmpc    - the NMPC of the thesis
 #              nomodel - the same NMPC without the tether force in its prediction model
 #              px4     - the PX4 position controller (offboard), unaware of the tether
+#              noobs   - the NMPC without the disturbance observer
 # The bag is written to <workspace>/bags/tracking/tracking_<scenario>_<controller>_<timestamp>.
 SCENARIO=${1:-reachable}; DUR=${2:-240}; CTRL=${3:-nmpc}
 UAV_ARGS=""
@@ -17,7 +18,7 @@ case $SCENARIO in reachable) RADIUS=3.0; UAV_ARGS="uav_circle_height:=25.0 uav_c
   aggressive) RADIUS=3.0; UAV_ARGS="uav_circle_radius:=8.0 uav_circle_omega:=0.8 uav_circle_center_x:=0.0";;
   tether_edge) RADIUS=3.0; UAV_ARGS="uav_circle_radius:=8.0 uav_circle_omega:=0.7 uav_circle_center_x:=6.0";;
   *) echo "unknown scenario"; exit 1;; esac
-case $CTRL in nmpc) CTRL_ARGS="";; nomodel) CTRL_ARGS="tether_model:=false";; px4) CTRL_ARGS="px4_baseline:=true";; *) echo "unknown controller"; exit 1;; esac
+case $CTRL in nmpc) CTRL_ARGS="";; nomodel) CTRL_ARGS="tether_model:=false";; px4) CTRL_ARGS="px4_baseline:=true";; noobs) CTRL_ARGS="disturbance_observer:=false";; *) echo "unknown controller"; exit 1;; esac
 WS=$(cd "$(dirname "$0")/../.." && pwd)
 source /opt/ros/*/setup.bash; source "$WS/install/setup.bash"
 export ACADOS_SOURCE_DIR=${ACADOS_SOURCE_DIR:-$HOME/acados}; export LD_LIBRARY_PATH=$ACADOS_SOURCE_DIR/lib:$LD_LIBRARY_PATH
@@ -29,13 +30,15 @@ stop_all() {  # stops every simulation/control process by PID (no pkill -f, the 
 stop_all; sleep 3
 (setsid ros2 launch test_cooperative_mpc sim.launch.py use_tether:=true > /tmp/tracking_sim.log 2>&1 &)
 sleep 80
-(setsid ros2 launch test_cooperative_mpc control.launch.py usv_circle_radius:=$RADIUS $UAV_ARGS $CTRL_ARGS > /tmp/tracking_ctl.log 2>&1 &)
-sleep 5
 TOPICS="/tf /tf_static /tether_geometry_marker /tether_force_markers /predicted_trajectory /reference_trajectory /mpc_predicted_path /usv/mpc_horizon \
  /mpc_states_and_inputs /drone/ground_truth/odometry /boat/ground_truth/odometry /usv/reference_path /uav/reference_path \
  /boat/thrusters/left/thrust /boat/thrusters/right/thrust /boat/thrusters/left/pos /boat/thrusters/right/pos \
  /moordyn_tether_node/tether_distance /moordyn_tether_node/tether_length /tether_force_drone_mag /tether_force_boat_mag \
  /px4_1/fmu/out/vehicle_attitude /px4_1/fmu/out/vehicle_attitude_setpoint /virtual_tether_distance /virtual_tether_limit /virtual_tether_separation_speed /uav_solve_time_ms /usv_solve_time_ms /disturbance_estimate /simulation/stats /clock"
-timeout $DUR ros2 bag record --use-sim-time -o "$BAG" $TOPICS > /tmp/tracking_bag.log 2>&1
+# The bag starts before the controllers, so that the takeoff is recorded
+(timeout $DUR ros2 bag record --use-sim-time -o "$BAG" $TOPICS > /tmp/tracking_bag.log 2>&1 &)
+sleep 3
+(setsid ros2 launch test_cooperative_mpc control.launch.py usv_circle_radius:=$RADIUS $UAV_ARGS $CTRL_ARGS > /tmp/tracking_ctl.log 2>&1 &)
+sleep $((DUR + 2))  # the bag stops itself (timeout) before everything is killed
 stop_all
 echo "bag: $BAG"
