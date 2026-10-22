@@ -6,7 +6,7 @@ from acados_template import AcadosOcp, AcadosOcpSolver, AcadosModel
 
 NX = 13   # [x, y, z, vx, vy, vz, phi, theta, psi, phi_cmd, theta_cmd, psi_cmd, T]
 NU = 4    # [phi_dot_cmd, theta_dot_cmd, psi_dot_cmd, T_dot]
-NP = 12   # [x_v, y_v, z_v, vx_v, vy_v, vz_v, bx, by, tether_on, d_x, d_y, d_z]
+NP = 13   # [x_v, y_v, z_v, vx_v, vy_v, vz_v, bx, by, tether_on, d_x, d_y, d_z, tether_model]
 
 
 def load_parameters():
@@ -47,13 +47,15 @@ def create_uav_model(prm) -> AcadosModel:
     u = ca.vertcat(dphi_c, dtheta_c, dpsi_c, dT)
 
     # Parameters per node: tether attachment point (position, velocity), yaw reference point, tether switch, and the
-    # estimated external force (disturbance), constant along the horizon
+    # estimated external force (disturbance), constant along the horizon, and the switch of the tether force in the model
+    # (off only to compare against a controller unaware of the tether)
     anchor = ca.SX.sym('anchor', 3)
     anchor_v = ca.SX.sym('anchor_v', 3)
     b_ref = ca.SX.sym('b_ref', 2)
     tether_on = ca.SX.sym('tether_on')
     dist = ca.SX.sym('dist', 3)
-    params = ca.vertcat(anchor, anchor_v, b_ref, tether_on, dist)
+    tether_model = ca.SX.sym('tether_model')
+    params = ca.vertcat(anchor, anchor_v, b_ref, tether_on, dist, tether_model)
 
     # Translational dynamics (Eqs. uav_mpc_xddot -- uav_mpc_zddot)
     # The tilt (phi, theta) is the thrust axis expressed in the frame rotated by the commanded yaw psi_c, which is the
@@ -64,7 +66,7 @@ def create_uav_model(prm) -> AcadosModel:
                             ca.sin(psi_c) * n[0] + ca.cos(psi_c) * n[1], n[2])
     drag = ca.vertcat(d_r * v[0], d_r * v[1], 0.0)
     acc = T / m * thrust_dir - drag / m + ca.vertcat(0.0, 0.0, -g) \
-          + tether_force(p, anchor, tether_on, prm) / m + dist / m
+          + tether_force(p, anchor, tether_on * tether_model, prm) / m + dist / m
 
     # The thrust axis of the platform converges to the commanded axis with time constant tau in the inertial frame;
     # expressed in the rotating frame (rate dpsi_c) its derivative has the extra term -dpsi_c * e_z x n

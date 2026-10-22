@@ -64,6 +64,7 @@ uav_mpc_node:
 
     # Tether
     use_tether: false            # Enable/Disable the coupling to the USV
+    tether_model: true           # Tether force in the prediction model (false only for the tether-unaware comparison)
     yaw_from_reference: false    # Yaw aligned with the heading of the reference path instead of the attachment point (landing)
     tether_max_length: 15.0      # d_max (m)
     tether_rate_limit: 1.5       # Slew rate limit for d_max adjustments (m/s)

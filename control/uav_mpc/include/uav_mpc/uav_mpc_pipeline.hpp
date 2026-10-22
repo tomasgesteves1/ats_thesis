@@ -60,6 +60,8 @@ public:
     void setExternalReferencePath(const std::vector<TrajectoryPoint>& path);
     void setTrajectoryType(TrajectoryType type);
     void setUseTether(bool use_tether);
+    // Tether force in the prediction model (false only to compare against a tether-unaware controller)
+    void setTetherModel(bool tether_model);
     // Yaw aligned with a given heading instead of looking at the attachment point (e.g. the boat heading for landing)
     void setYawHeading(bool enabled, double heading);
     // Observer of the external force (offset-free tracking): the estimate enters the model as a constant force along
@@ -96,6 +98,7 @@ private:
     bool has_boat_horizon_;
     double L_tether_;
     bool use_tether_;
+    bool tether_model_{true};
     bool yaw_heading_enabled_{false};
     DisturbanceObserver observer_;
     bool observer_enabled_{false};

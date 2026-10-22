@@ -30,6 +30,7 @@ UavMpcNode::UavMpcNode()
     // Declare dynamic parameters (Rule 2 of CODE_STANDARDS.md)
     this->declare_parameter<bool>("open_loop_test", false);
     this->declare_parameter<bool>("use_tether", true);
+    this->declare_parameter<bool>("tether_model", true);  // tether force in the prediction model
     // Align the yaw with the heading of the reference path (orientation of its first pose) instead of looking at
     // the tether attachment point (used for landing, with the boat heading as reference). Initial value; it is
     // switched at run time through the yaw_from_reference topic.
@@ -244,6 +245,7 @@ void UavMpcNode::controlLoop() {
 
     bool use_tether = this->get_parameter("use_tether").as_bool();
     pipeline_->setUseTether(use_tether);
+    pipeline_->setTetherModel(this->get_parameter("tether_model").as_bool());
     pipeline_->setYawHeading(yaw_from_reference_, yaw_ref_);
 
     double target_tether_max_length = 15.0;

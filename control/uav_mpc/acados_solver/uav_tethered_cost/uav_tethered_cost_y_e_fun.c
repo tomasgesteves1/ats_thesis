@@ -34,7 +34,6 @@ extern "C" {
 #define casadi_s1 CASADI_PREFIX(s1)
 #define casadi_s2 CASADI_PREFIX(s2)
 #define casadi_s3 CASADI_PREFIX(s3)
-#define casadi_s4 CASADI_PREFIX(s4)
 #define casadi_sq CASADI_PREFIX(sq)
 
 /* Symbol visibility in DLLs */
@@ -57,10 +56,9 @@ casadi_real casadi_sq(casadi_real x) { return x*x;}
 static const casadi_int casadi_s0[3] = {13, 1, 1};
 static const casadi_int casadi_s1[3] = {0, 1, 1};
 static const casadi_int casadi_s2[3] = {0, 0, 1};
-static const casadi_int casadi_s3[3] = {12, 1, 1};
-static const casadi_int casadi_s4[3] = {11, 1, 1};
+static const casadi_int casadi_s3[3] = {11, 1, 1};
 
-/* uav_tethered_cost_y_e_fun:(i0[13],i1[0],i2[0],i3[],i4[12])->(o0[11]) */
+/* uav_tethered_cost_y_e_fun:(i0[13],i1[0],i2[0],i3[],i4[13])->(o0[11]) */
 static int casadi_f0(const casadi_real** arg, casadi_real** res, casadi_int* iw, casadi_real* w, int mem) {
   casadi_real a0, a1, a2, a3, a4, a5, a6;
   a0=arg[0]? arg[0][0] : 0;
@@ -170,14 +168,14 @@ CASADI_SYMBOL_EXPORT const casadi_int* uav_tethered_cost_y_e_fun_sparsity_in(cas
     case 1: return casadi_s1;
     case 2: return casadi_s1;
     case 3: return casadi_s2;
-    case 4: return casadi_s3;
+    case 4: return casadi_s0;
     default: return 0;
   }
 }
 
 CASADI_SYMBOL_EXPORT const casadi_int* uav_tethered_cost_y_e_fun_sparsity_out(casadi_int i) {
   switch (i) {
-    case 0: return casadi_s4;
+    case 0: return casadi_s3;
     default: return 0;
   }
 }

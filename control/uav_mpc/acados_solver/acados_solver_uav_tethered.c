@@ -1303,7 +1303,7 @@ int uav_tethered_acados_update_params(uav_tethered_solver_capsule* capsule, int 
 {
     int solver_status = 0;
 
-    int casadi_np = 12;
+    int casadi_np = 13;
     if (casadi_np != np) {
         printf("acados_update_params: trying to set %i parameters for external functions."
             " External function has %i parameters. Exiting.\n", np, casadi_np);

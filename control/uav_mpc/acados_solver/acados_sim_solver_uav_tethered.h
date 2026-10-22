@@ -37,7 +37,7 @@
 #define UAV_TETHERED_NX     13
 #define UAV_TETHERED_NZ     0
 #define UAV_TETHERED_NU     4
-#define UAV_TETHERED_NP     12
+#define UAV_TETHERED_NP     13
 
 #ifdef __cplusplus
 extern "C" {

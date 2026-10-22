@@ -311,7 +311,7 @@ def replay_uav(solver, N, d):
             yref = np.zeros(15 if i < N else 11)
             yref[0:3], yref[3:6] = ref, vel[i]
             solver.set(i, "yref", yref)
-            solver.set(i, "p", np.array([bp[0], bp[1], z_t, bv[0], bv[1], 0.0, bp[0], bp[1], 1.0, *dist]))
+            solver.set(i, "p", np.array([bp[0], bp[1], z_t, bv[0], bv[1], 0.0, bp[0], bp[1], 1.0, *dist, 1.0]))
             if i >= 1:
                 solver.constraints_set(i, "lh", np.array([0.0, -20.0, 0.0]))
                 solver.constraints_set(i, "uh", np.array([L ** 2, 2.0, 10.0]))

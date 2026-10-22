@@ -15,7 +15,7 @@ constexpr int PREDICTED_ATTITUDE_NODE = 10;  // node of the horizon whose attitu
 constexpr int NU = 4;       // [phi_dot_cmd, theta_dot_cmd, psi_dot_cmd, T_dot]
 constexpr int NY = 15;      // [p, v, phi, theta, yaw residual (2), T - m g, u (4)]
 constexpr int NY_E = 11;
-constexpr int NP = 12;      // [anchor (3), anchor velocity (3), yaw reference point (2), tether switch, disturbance (3)]
+constexpr int NP = 13;      // [anchor (3), anchor velocity (3), yaw reference point (2), tether switch, disturbance (3), tether model switch]
 constexpr double NO_LIMIT = 1.0e6;
 
 double wrapAngle(double a) {
@@ -93,6 +93,10 @@ void UavMpcPipeline::setYawHeading(bool enabled, double heading) {
 
 void UavMpcPipeline::setUseTether(bool use_tether) {
     use_tether_ = use_tether;
+}
+
+void UavMpcPipeline::setTetherModel(bool tether_model) {
+    tether_model_ = tether_model;
 }
 
 void UavMpcPipeline::setParameters(const UavMpcParams& params) {
@@ -420,7 +424,8 @@ void UavMpcPipeline::setupOcpSolver(const double x0[13]) {
             b_ref_x,
             b_ref_y,
             use_tether_ ? 1.0 : 0.0,
-            disturbance[0], disturbance[1], disturbance[2]
+            disturbance[0], disturbance[1], disturbance[2],
+            tether_model_ ? 1.0 : 0.0
         };
         uav_tethered_acados_update_params(capsule, i, p_params, NP);
     }
