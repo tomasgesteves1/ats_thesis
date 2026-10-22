@@ -36,7 +36,7 @@ uav_mpc_node:
     weight_Qv: [5.0, 5.0, 7.5]
     weight_Qtilt: [5.0, 5.0]
     weight_q_psi: 20.0
-    yaw_epsilon: 1.0             # m^2, regularisation of the bearing: the yaw weight fades within ~1 m of the anchor
+    yaw_epsilon: 4.0             # m^2, regularisation of the bearing: the yaw weight fades within ~2 m of the anchor
     weight_Q_thrust: 0.118                # weight of (T - m g)^2
     weight_R: [30.0, 30.0, 5.0, 0.0005]  # [phi_dot, theta_dot, psi_dot, T_dot]
 
