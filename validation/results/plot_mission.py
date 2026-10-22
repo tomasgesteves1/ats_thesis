@@ -126,7 +126,7 @@ def main(name, d_max):
         y = 1 - row
         for k, (n, ts, te) in enumerate(ph):
             a0.add_patch(Rectangle((ts - t0, y - 0.4), te - ts, 0.8, fc=SHADES[k % len(SHADES)], ec='white', lw=0.8))
-            if te - ts > 0.012 * len(n) * (t_end - t0):   # only where the name fits
+            if te - ts > 0.016 * len(n) * (t_end - t0):   # only where the name fits
                 a0.text(0.5 * (ts + te) - t0, y, n, ha='center', va='center', fontsize=6.5)
     a0.set_yticks([1, 0]); a0.set_yticklabels(['UAV', 'USV']); a0.set_ylim(-0.6, 1.6); a0.grid(False)
     a1 = fig.add_subplot(cells[1], sharex=a0)

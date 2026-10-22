@@ -14,6 +14,8 @@ OUT = os.path.join(FIGS, '03_disturbances')
 ANCHOR = 1.3        # height of the winch above the origin of the boat (m)
 GAINS = (0, 1, 2)
 WINDS = (5, 8, 12)
+# runs repeated with the final controller (tilt limits also on the command)
+RUN = {(12, 'obs'): 'landing_wind12_obs_rerun', (12, 'noobs'): 'landing_wind12_noobs_rerun'}
 
 
 def ev_time(d, text):
@@ -54,6 +56,14 @@ def landing(d):
     return dict(t=t - t_land, rel=rel, wz=w[:, 2], t_desc=t_desc - t_land, t_td=t_td - t_land, offset=offset,
                 heave=0.5 * (heave.max() - heave.min()), heave_std=heave.std(),
                 centring=np.hypot(*rel[i_desc, :2]), contact=vrel, duration=t_td - t_land)
+
+
+def centring(d):
+    """Horizontal offset of the UAV from the winch when the descent starts (also when the landing then fails)."""
+    t_desc = ev_time(d, 'descending')
+    w = winch(d, [t_desc])[0]
+    p = interp(d['drone'], [t_desc], (1, 2, 3))[0]
+    return float(np.hypot(*(p - w)[:2]))
 
 
 def hover(d):
@@ -101,16 +111,18 @@ def wind():
     table = {}
     for w in WINDS:
         for obs in ('obs', 'noobs'):
-            d = load('landing_wind%d_%s' % (w, obs))
+            d = load(RUN.get((w, obs), 'landing_wind%d_%s' % (w, obs)))
             if ev_time(d, 'touchdown') is None:
-                table[(w, obs)] = (np.nan, np.nan, np.nan)
-                print('wind %2d m/s %-5s: no touchdown (mission not completed)' % (w, obs))
+                h, _, _ = hover(d)
+                table[(w, obs)] = (h, centring(d), np.nan)
+                print('wind %2d m/s %-5s: hover error %.2f m | offset at descent %.2f m | no touchdown' % (
+                    w, obs, h, table[(w, obs)][1]))
                 continue
             r = landing(d); h, _, _ = hover(d)
             table[(w, obs)] = (h, r['centring'], r['offset'])
             print('wind %2d m/s %-5s: hover error %.2f m | offset at descent %.2f m | touchdown offset %.2f m' % (
                 w, obs, h, r['centring'], r['offset']))
-    d = load('landing_wind12_obs')
+    d = load(RUN[(12, 'obs')])
     ext, dist = d['ext'], d['dist']
     t_to = ev_time(d, 'uav.takeoff: done'); t_td = ev_time(d, 'touchdown')
     fig, axs = plt.subplots(1, 2, figsize=(6.3, 2.6), gridspec_kw={'width_ratios': [1.0, 1.3]})
@@ -119,11 +131,12 @@ def wind():
         axs[0].bar(x + (k - 0.5) * 0.36, [100 * table[(w, obs)][1] for w in WINDS], 0.36,
                    color=[COLOR_CYCLE[1], COLOR_CYCLE[0]][k], label=lab)
     for k, w in enumerate(WINDS):
-        if np.isnan(table[(w, 'noobs')][1]):
-            axs[0].text(k - 0.18, 1.0, 'no\nlanding', ha='center', va='bottom', fontsize=6.5, color=COLOR_CYCLE[1])
+        if np.isnan(table[(w, 'noobs')][2]):   # no touchdown: the bar is the offset when the descent started
+            axs[0].text(k - 0.18, min(100 * table[(w, 'noobs')][1], 85) + 1.0, 'no\nlanding', ha='center',
+                        va='bottom', fontsize=6.5, color=COLOR_CYCLE[1])
     axs[0].set_xticks(x); axs[0].set_xticklabels(['%d' % w for w in WINDS]); axs[0].set_xlabel('wind (m/s)\n(a)')
-    axs[0].set_ylabel('offset at the descent (cm)'); axs[0].set_ylim(0, 60)
-    axs[0].legend(fontsize=7, loc='upper right')
+    axs[0].set_ylabel('offset at the descent (cm)'); axs[0].set_ylim(0, 100)
+    axs[0].legend(fontsize=7, loc='upper left')
     me = (ext[:, 0] >= t_to) & (ext[:, 0] <= t_td); md = (dist[:, 0] >= t_to) & (dist[:, 0] <= t_td)
     t0 = t_to
     axs[1].plot(ext[me, 0] - t0, np.hypot(ext[me, 1], ext[me, 2]), color='#333333', lw=0.9, label='applied')
