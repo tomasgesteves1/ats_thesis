@@ -33,4 +33,19 @@ What the heave changes is the contact. The final approach aims at a point below 
 
 \subsection{Wind}
 \label{subsec:res_wind}
-% Increasing wind, with and without the disturbance estimate
+
+% How is the wind applied?
+The wind acts on the \gls{uav} as a horizontal drag force, proportional to the square of its speed, along a fixed direction, across the first leg of the route of the \gls{usv}, with gusts of $\pm 30\,\%$ that vary over periods of $7$ to $23\,\text{s}$. Winds of $5$, $8$ and $12\,\text{m/s}$ give mean forces of $0.9$, $2.4$ and $5.3\,\text{N}$, the last a quarter of the weight of the \gls{uav}. Each wind was flown twice, with and without the disturbance observer, since this is the force the observer is meant to compensate.
+
+\begin{figure}[htbp]
+    \centering
+    \includegraphics[width=\textwidth]{Results/figures/03_disturbances/wind.pdf}
+    \caption[Landing with wind.]{Landing with wind: (a) horizontal offset of the \gls{uav} from the winch when the descent starts, with and without the disturbance observer, and (b) force applied by a wind of $12\,\text{m/s}$ and the force estimated by the observer, from the takeoff to the touchdown.}
+    \label{fig:res_wind}
+\end{figure}
+
+% What happens without the observer?
+Without the observer, the \gls{nmpc} only knows the forces of its model, and the wind pushes the \gls{uav} away from its reference until the error in position balances it. Above the pad, this offset grows with the wind, from $18\,\text{cm}$ at $5\,\text{m/s}$ to $44\,\text{cm}$ at $8\,\text{m/s}$, Figure~\ref{fig:res_wind}a. The landing waits for the \gls{uav} to be centred above the pad before it descends, which never happens, and the descent starts only once this wait has timed out, so that the landing takes more than twice as long. The pull of the winch then brings the \gls{uav} down onto the pad, $7\,\text{cm}$ from its centre. At $12\,\text{m/s}$, the \gls{uav} did not even take off. While it climbed off the pad, still low and pulled by the winch, the wind pushed it off the deck and into the water.
+
+% And with the observer?
+With the observer, the offset above the pad stays between $4$ and $8\,\text{cm}$ for the three winds, the landing takes the same $26$ to $28\,\text{s}$ as without wind, and the \gls{uav} touches down $1$ to $4\,\text{cm}$ from the centre of the pad. Figure~\ref{fig:res_wind}b shows why. The estimate settles within a few seconds of the takeoff on the mean force of the wind, but does not follow its gusts, which change faster than the observer responds. The observer turns a wind of $12\,\text{m/s}$, which without it prevents the mission altogether, into a disturbance of a few centimetres.

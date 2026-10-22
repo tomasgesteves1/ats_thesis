@@ -516,10 +516,10 @@ Unlike the thruster commands of the \gls{usv}, the velocity and attitude are sub
     \underbrace{z_{min} - z}_{h_1(\mathbf{x}_a)} &\le \sigma_1, \label{eq:uav_mpc_slack_z} \\
     \underbrace{\big\|[\dot x,\dot y]^\top\big\| - v_{xy,max}}_{h_2(\mathbf{x}_a)} &\le \sigma_2, \label{eq:uav_mpc_slack_vxy} \\
     \underbrace{|\dot z| - v_{z,max}}_{h_3(\mathbf{x}_a)} &\le \sigma_3, \label{eq:uav_mpc_slack_vz} \\
-    \underbrace{|\phi| - \phi_{max}}_{h_4(\mathbf{x}_a)} &\le \sigma_4, \label{eq:uav_mpc_slack_phi} \\
-    \underbrace{|\theta| - \theta_{max}}_{h_5(\mathbf{x}_a)} &\le \sigma_5. \label{eq:uav_mpc_slack_theta}
+    \underbrace{\max\big(|\phi|, |\phi_{\mathrm{cmd}}|\big) - \phi_{max}}_{h_4(\mathbf{x}_a)} &\le \sigma_4, \label{eq:uav_mpc_slack_phi} \\
+    \underbrace{\max\big(|\theta|, |\theta_{\mathrm{cmd}}|\big) - \theta_{max}}_{h_5(\mathbf{x}_a)} &\le \sigma_5. \label{eq:uav_mpc_slack_theta}
 \end{align}
-Each slack is penalised by $\rho_j(\sigma_j)$ as in \eqref{eq:nmpc_slack_penalty}, with weights $\mu_{1,j}$ and $\mu_{2,j}$.
+The tilt limits apply both to the attitude and to its command. The attitude follows the command with a delay and a time constant, so that, with a bound on the attitude alone, the \gls{nmpc} could command a tilt beyond the limit to reach the limit sooner, and the real attitude, if it responds faster than predicted, would follow the command beyond it. Each slack is penalised by $\rho_j(\sigma_j)$ as in \eqref{eq:nmpc_slack_penalty}, with weights $\mu_{1,j}$ and $\mu_{2,j}$.
 
 The thrust range acts on the state, since the thrust is a component of $\mathbf{x}_a$, defining the admissible state set
 \begin{equation}
