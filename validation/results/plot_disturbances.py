@@ -46,11 +46,12 @@ def landing(d):
     mb = (d['boat'][:, 0] >= t_land) & (d['boat'][:, 0] <= t_td)
     heave = w_all[mb, 2]
     i_desc = np.searchsorted(t, t_desc)
-    # contact speed: vertical speed of the UAV relative to the winch at the touchdown
+    # contact speed: largest approach speed of the UAV relative to the winch over the 2 s before the touchdown is
+    # declared (it is declared after the UAV has rested on the pad for a moment)
     dz = np.gradient(rel[:, 2], t)
-    i_td = np.searchsorted(t, t_td)
-    vrel = dz[max(i_td - 5, 0):i_td + 1].min()
-    return dict(t=t - t_land, rel=rel, t_desc=t_desc - t_land, t_td=t_td - t_land, offset=offset,
+    mc = (t >= t_td - 2.0) & (t <= t_td)
+    vrel = -dz[mc].min()
+    return dict(t=t - t_land, rel=rel, wz=w[:, 2], t_desc=t_desc - t_land, t_td=t_td - t_land, offset=offset,
                 heave=0.5 * (heave.max() - heave.min()), heave_std=heave.std(),
                 centring=np.hypot(*rel[i_desc, :2]), contact=vrel, duration=t_td - t_land)
 
@@ -65,28 +66,37 @@ def hover(d):
     return np.linalg.norm(e, axis=1).mean(), t_away, t_land
 
 
-def main():
+def main(part):
     set_thesis_style()
-    # ---- waves -------------------------------------------------------------------------------------------------
+    if part in ('waves', 'all'):
+        waves()
+    if part in ('wind', 'all'):
+        wind()
+
+
+def waves():
     runs = {g: landing(load('landing_gain%d' % g)) for g in GAINS}
     print('=== waves ===')
     for g, r in runs.items():
         print('gain %d: heave amplitude %.2f m (std %.2f) | landing %.1f s | offset at descent %.2f m | touchdown offset '
               '%.2f m | contact speed %.2f m/s' % (g, r['heave'], r['heave_std'], r['duration'], r['centring'],
                                                   r['offset'], r['contact']))
-    fig, axs = plt.subplots(2, 1, figsize=(6.3, 3.4), sharex=True)
+    fig, axs = plt.subplots(3, 1, figsize=(6.3, 4.2), sharex=True)
     for k, g in enumerate(GAINS):
-        r = runs[g]; c = COLOR_CYCLE[k]
-        axs[0].plot(r['t'] - r['t_td'], r['rel'][:, 2], color=c, lw=0.9, label='gain %d' % g)
-        axs[1].plot(r['t'] - r['t_td'], 100 * np.hypot(r['rel'][:, 0], r['rel'][:, 1]), color=c, lw=0.9)
-        axs[0].axvline(r['t_desc'] - r['t_td'], color=c, lw=0.6, ls=':')
-    axs[0].set_ylabel('height above\nthe winch (m)'); axs[1].set_ylabel('horizontal offset\n(cm)')
-    axs[1].set_xlabel('time to touchdown (s)'); axs[0].legend(loc='upper right', ncol=3, fontsize=7)
-    axs[1].set_xlim(-25, 3); axs[1].set_ylim(0, None)
+        r = runs[g]; c = COLOR_CYCLE[k]; tt = r['t'] - r['t_td']
+        axs[0].plot(tt, r['wz'], color=c, lw=0.9, label='gain %d' % g)
+        axs[1].plot(tt, r['rel'][:, 2], color=c, lw=0.9)
+        axs[2].plot(tt, 100 * np.hypot(r['rel'][:, 0], r['rel'][:, 1]), color=c, lw=0.9)
+    t_from = max(runs[g]['t_desc'] - runs[g]['t_td'] for g in GAINS) - 2.0
+    axs[0].set_ylabel('winch\nheight (m)'); axs[1].set_ylabel('height above\nthe winch (m)')
+    axs[2].set_ylabel('horizontal\noffset (cm)'); axs[2].set_xlabel('time to touchdown (s)')
+    axs[0].legend(loc='lower right', bbox_to_anchor=(1.0, 1.0), ncol=3, fontsize=7, frameon=False, borderaxespad=0.1)
+    axs[2].set_xlim(t_from, 3); axs[2].set_ylim(0, 15)
     fig.align_ylabels(axs); fig.tight_layout()
     save_figure(fig, os.path.join(OUT, 'waves_landing'))
 
-    # ---- wind --------------------------------------------------------------------------------------------------
+
+def wind():
     print('=== wind ===')
     table = {}
     for w in WINDS:
@@ -118,4 +128,5 @@ def main():
 
 
 if __name__ == '__main__':
-    main()
+    import sys
+    main(sys.argv[1] if len(sys.argv) > 1 else 'all')
