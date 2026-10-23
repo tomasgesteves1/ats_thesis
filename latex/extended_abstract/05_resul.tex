@@ -56,14 +56,14 @@ Figure~\ref{fig:nominal} and Table~\ref{tab:nominal} show that the NMPC follows 
     \centering
     \begin{subfigure}[b]{\columnwidth}
         \centering
-        \includegraphics[width=\linewidth]{Results/figures/01_tracking/steps_paths.pdf}
+        \includegraphics[width=0.8\linewidth]{Results/figures/01_tracking/steps_paths.pdf}
         \caption{Paths and waypoints, with the height of those of the UAV.}
         \label{fig:steps_paths}
     \end{subfigure}
 
     \begin{subfigure}[b]{\columnwidth}
         \centering
-        \includegraphics[width=\linewidth]{Results/figures/01_tracking/steps_separation.pdf}
+        \includegraphics[width=0.8\linewidth]{Results/figures/01_tracking/steps_separation.pdf}
         \caption{Separation $d$ and its rate $\dot d$, with their limits.}
         \label{fig:steps_separation}
     \end{subfigure}
@@ -92,13 +92,13 @@ Figure~\ref{fig:nominal} and Table~\ref{tab:nominal} show that the NMPC follows 
 
 To test the planning, both vehicles were given step references, single points held fixed over the horizon, with $d_{max} = 15\,\text{m}$. The UAV is sent $10\,\text{m}$ sideways, then $12\,\text{m}$ up, to a point $22\,\text{m}$ from the winch, beyond the reach of the tether; the USV is then sent $18\,\text{m}$ away, and both finally return, Figure~\ref{fig:steps}.
 
-When its reference lies beyond the reach of the tether, the UAV stops short of it, on the line towards it, at $14\,\text{m}$ from the winch, and when the USV then sails away, it follows the USV, with the separation between $14.0$ and $14.4\,\text{m}$. In the first step, moving sideways at the same height would separate the vehicles faster than the winch pays out the tether, and the UAV drops by $2\,\text{m}$ on the way to slow the growth of the separation, whose rate exceeds its limit of $2\,\text{m/s}$ only briefly at the start of the step. The steps bring the actuators to their limits: the thrust of the UAV saturates at its maximum and its commanded tilt at $28.6^\circ$, while the thrusters of the USV reach their maximum reverse thrust and their maximum angle as it turns in place. The rates of all the commands reach their limits without exceeding them, and the real pitch of the UAV exceeds its limit by at most $1.7^\circ$, as the attitude loop of the autopilot slightly overshoots its command. The controllers therefore do not need feasible, or even continuous, references, which keeps the manoeuvres simple.
+When its reference lies beyond the reach of the tether, the UAV stops short of it, on the line towards it, at $14\,\text{m}$ from the winch, where the projection of its reference places it, and when the USV then sails away, it follows the USV, with the separation between $14.0$ and $14.4\,\text{m}$. In the first step, moving sideways at the same height would separate the vehicles faster than the winch pays out the tether, and the UAV drops by $2\,\text{m}$ on the way to slow the growth of the separation, whose rate exceeds its limit of $2\,\text{m/s}$ only briefly at the start of the step. The steps bring the actuators to their limits: the thrust of the UAV saturates at its maximum and its commanded tilt at $28.6^\circ$, while the thrusters of the USV reach their maximum reverse thrust and their maximum angle as it turns in place. The rates of all the commands reach their limits without exceeding them, and the real pitch of the UAV exceeds its limit by at most $1.7^\circ$, as the attitude loop of the autopilot slightly overshoots its command. The controllers therefore do not need feasible, or even continuous, references, which keeps the manoeuvres simple.
 
 \subsection{Missions}
 
 The three missions were flown with $d_{max} = 15\,\text{m}$, and are summarised in Table~\ref{tab:missions}. In the scout, the UAV keeps $8\,\text{m}$ ahead of the bow of the USV as it sails a route with two turns of $90^\circ$, with a mean error of $5\,\text{cm}$, largest at the turns, where the point ahead of the bow swings around the USV. In the patrol, Figure~\ref{fig:patrol}, the UAV orbits the USV until it detects a target fleeing at $1.5\,\text{m/s}$, $19\,\text{m}$ away from it and $23\,\text{m}$ from the USV, beyond the reach of the tether. Its reference above the target is brought within reach along the line from the USV, which also lowers it, so that the UAV drops from $10$ to $5\,\text{m}$ as it flies towards the target, and is above it $5\,\text{s}$ after the detection, with the separation at $14.7\,\text{m}$. As the USV closes in, at up to $2.2\,\text{m/s}$, the reference comes back within reach and the UAV climbs to its height again, and the USV catches up with the target $21\,\text{s}$ after the detection.
 
-The inspection, Figure~\ref{fig:inspection}, shows best how the two vehicles work as one system. The UAV circles a tower of $12$ by $13\,\text{m}$ at a radius of $13\,\text{m}$, a circle beyond the reach of the tether from any fixed point. Its reference is a circle fixed in the world, regardless of the USV, while the USV supports it from the water, $6\,\text{m}$ further from the tower. The USV keeps within $3\,\text{cm}$ of its intended radius around the whole tower, the separation stays at $12.3\,\text{m}$, and the UAV follows its circle within $1\,\text{cm}$, so that the two vehicles together cover a circle that neither could cover alone.
+The inspection, Figure~\ref{fig:inspection}, shows best how the two vehicles work as one system. The UAV circles a tower of $12$ by $13\,\text{m}$ at a radius of $13\,\text{m}$, a circle beyond the reach of the tether from any fixed point. Its reference is a circle fixed in the world, regardless of the USV, while the USV supports it from the water, $6\,\text{m}$ further from the tower. The USV keeps within $3\,\text{cm}$ of its intended radius around the whole tower, the separation stays at $12.3\,\text{m}$, and the UAV follows its circle within $1\,\text{cm}$, so that the two vehicles together cover a circle that neither could cover alone. In the inspection and the patrol, the roll of the UAV reaches $32^\circ$ and $34^\circ$ for less than $0.5\,\text{s}$, above its limit of $28.6^\circ$, when its yaw lags behind its command, by up to $13^\circ$ in the patrol: the tilt is limited about axes turned by the commanded yaw, while the total tilt stays below the commanded one.
 
 \begin{table}[t]
     \centering
@@ -131,14 +131,14 @@ The disturbances were added during the landing on the deck of the USV, sailing a
     \centering
     \begin{subfigure}[b]{\columnwidth}
         \centering
-        \includegraphics[width=\linewidth]{Results/figures/03_disturbances/wind_offset.pdf}
+        \includegraphics[width=0.8\linewidth]{Results/figures/03_disturbances/wind_offset.pdf}
         \caption{Offset of the UAV from the winch when the descent starts.}
         \label{fig:wind_offset}
     \end{subfigure}
 
     \begin{subfigure}[b]{\columnwidth}
         \centering
-        \includegraphics[width=\linewidth]{Results/figures/03_disturbances/wind_force.pdf}
+        \includegraphics[width=0.8\linewidth]{Results/figures/03_disturbances/wind_force.pdf}
         \caption{Force of a $12\,\text{m/s}$ wind and estimate of the observer.}
         \label{fig:wind_force}
     \end{subfigure}

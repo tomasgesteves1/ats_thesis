@@ -37,6 +37,10 @@ The models of Section~\ref{sec:model} were compared with the simulator using its
     \end{tabular}
 \end{table}
 
+\subsection{Controller Implementation}
+
+Each controller receives the most recent predicted trajectory of the other and resamples it at the nodes of its own horizon, since the two run at different rates. The horizon of the UAV covers only the first second of that of the USV, so the USV enforces the tether constraint only at the nodes covered by the prediction of the UAV; as the problem is solved again at every instant, this window slides forward, and a violation is accounted for as soon as it enters it. The two solvers are set differently. The USV iterates until a tolerance of $10^{-4}$, with at most $25$ iterations, well within its $100\,\text{ms}$. For the UAV, iterating towards convergence exceeded the $20\,\text{ms}$ available in about $6\,\%$ of the instants, so it performs a single iteration per instant, the real-time iteration~\cite{diehl2005rti}, which never took more than $5\,\text{ms}$ and gave commands within $0.7^\circ$ and $0.6\,\text{N}$ of the converged ones. If a solver fails, the last command is kept until a new solution is found.
+
 \subsection{Manoeuvres and Missions}
 
 The controllers follow references, but do not decide where each vehicle should go. This is the role of the manoeuvres, which give the reference of one vehicle over the horizon of its controller at every instant. The UAV can take off, fly in formation at a point relative to the USV, in its axes or in fixed axes, orbit the USV or a point in the world, chase a target, and land, and the USV can hold its position, follow a route, pursue a target, and support the UAV from the water, following the point below it pushed away from a structure, so that it gives the UAV the reach of the tether. Since the controllers keep the vehicles within their limits, the references can remain simple, often a single point. Figure~\ref{fig:catalogue} shows the manoeuvres of the UAV as flown in the missions.
