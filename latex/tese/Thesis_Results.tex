@@ -8,8 +8,8 @@
 \chapter{Results}
 \label{chapter:results}
 
-% What is shown in this chapter, and under which conditions?
-The two cooperating \glspl{nmpc}, built on the validated models, now control the tethered \gls{usv}--\gls{uav} system in the complete simulation at sea, through its manoeuvres and missions. They are evaluated in three steps of growing scope: the tracking and planning of each controller, complete missions with both vehicles, and the response to waves and wind. Unless stated otherwise, the results were obtained with the default sea of the simulator, which moves the winch up and down by about $0.25\,\text{m}$, without wind, and with the final configuration of both controllers, given in Section~\ref{sec:controller_implementation}.
+% What must the results show, and under which conditions were they obtained?
+The results must show three things: that each controller follows its reference closely, within the limits of its vehicle and the reach of the tether, also when the reference cannot be reached; that the two vehicles together carry out complete missions, from the takeoff to the landing on the moving deck; and that they still do so under waves and wind. The three sections that follow answer these in turn, with the tracking and planning of the controllers, three example missions, and tests with growing waves and wind. Unless stated otherwise, every result was obtained in simulation, with the default sea of the simulator, which moves the winch up and down by about $0.25\,\text{m}$, without wind, and with the final configuration of both controllers, given in Section~\ref{sec:controller_implementation}.
 
 \input{Results/01_Tracking}
 \input{Results/02_Missions}
