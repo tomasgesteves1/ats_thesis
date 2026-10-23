@@ -8,8 +8,8 @@
 \chapter{Results}
 \label{chapter:results}
 
-% What must the results show, and under which conditions were they obtained?
-The results must show three things: that each controller follows its reference closely, within the limits of its vehicle and the reach of the tether, also when the reference cannot be reached; that the two vehicles together carry out complete missions, from the takeoff to the landing on the moving deck; and that they still do so under waves and wind. The three sections that follow answer these in turn, with the tracking and planning of the controllers, three example missions, and tests with growing waves and wind. Unless stated otherwise, every result was obtained in simulation, with the default sea of the simulator, which moves the winch up and down by about $0.25\,\text{m}$, without wind, and with the final configuration of both controllers, given in Section~\ref{sec:controller_implementation}.
+% How is the system evaluated, and under which conditions?
+Before the two vehicles can be trusted with a mission at sea, each controller must first be seen to do what it was designed for. The evaluation therefore starts with the controllers on their own, following simple references and finding a feasible motion when the reference leads beyond the reach of the tether or the limits of the vehicle. With that established, the two vehicles work together in three example missions, which take the \gls{uav} off the deck, through its task, and back onto the moving deck. Finally, the same manoeuvres are repeated under growing waves and wind, the conditions the system is meant for. Unless stated otherwise, every result was obtained in simulation, with the default sea of the simulator, which moves the winch up and down by about $0.25\,\text{m}$, without wind, and with the final configuration of both controllers, given in Section~\ref{sec:controller_implementation}.
 
 \input{Results/01_Tracking}
 \input{Results/02_Missions}
