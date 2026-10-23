@@ -7,7 +7,14 @@ The system is simulated in Gazebo~\cite{koenig2004gazebo}, with the hydrodynamic
 
 \subsection{Model Validation}
 
-The models of Section~\ref{sec:model} were compared with the simulator using its nominal parameters, without fitting them to the validation data, as they are used by the controllers: over predictions of the length of each horizon, started from the state of the simulator and driven by the recorded commands. Table~\ref{tab:validation} summarises the errors at the end of the horizons. The model of the WAM-V predicts its position within $1.4\,\text{cm}$ over $2\,\text{s}$, less than $2\,\%$ of its length at the worst. The model of the x500 predicts its position within $11\,\text{cm}$ over the up to $8\,\text{m}$ it travels in $1\,\text{s}$, and the delays of the attitude response reduce the error of the attitude from about $5\,\%$ to below $1.5\,\%$ of its range. The model of the tether reduces the error of the force by $72\,\%$ and $76\,\%$ relative to a taut tether and to a hanging load, to $0.25\,\text{N}$, $1.2\,\%$ of the weight of the UAV.
+The models of Section~\ref{sec:model} were compared with the simulator using its nominal parameters, without fitting them to the validation data, as they are used by the controllers: over predictions of the length of each horizon, started from the state of the simulator and driven by the recorded commands. Table~\ref{tab:validation} summarises the errors at the end of the horizons. The model of the WAM-V predicts its position within $1.4\,\text{cm}$ over $2\,\text{s}$, less than $2\,\%$ of its length at the worst. The model of the x500 predicts its position within $11\,\text{cm}$ over the up to $8\,\text{m}$ it travels in $1\,\text{s}$, and the delays of the attitude response reduce the error of the attitude from about $5\,\%$ to below $1.5\,\%$ of its range. The model of the tether reduces the error of the force by $72\,\%$ and $76\,\%$ relative to a taut tether and to a hanging load, to $0.25\,\text{N}$, $1.2\,\%$ of the weight of the UAV. Figure~\ref{fig:tether_fit} shows the tension along a flight in which the distance between the vehicles varied between $4.6$ and $14\,\text{m}$: computed only from the positions of the two vehicles, with no state of its own, the model follows the tension that the simulator obtains from the dynamics of the tether.
+
+\begin{figure}[t]
+    \centering
+    \includegraphics[width=\columnwidth]{Implementation/figures/02_model_validation/model_fit_comparison.pdf}
+    \caption{Tension of the tether at the UAV, computed by MoorDyn in the simulator and by the model of Eqs.~(\ref{eq:tether_tension})--(\ref{eq:tether_force}).}
+    \label{fig:tether_fit}
+\end{figure}
 
 \begin{table}[t]
     \centering
