@@ -11,6 +11,7 @@ WS = os.path.abspath(os.path.join(HERE, '..', '..', '..'))
 BAGS = os.path.join(WS, 'bags')
 DATA = os.path.join(HERE, 'data')
 FIGS = os.path.join(WS, 'src', 'latex', 'tese', 'Results', 'figures')
+EA_FIGS = os.path.join(WS, 'src', 'latex', 'extended_abstract', 'figures')   # column-width variants
 UAV, USV, PX4, TGT, LIMIT, REF = COLOR_CYCLE[0], COLOR_CYCLE[1], COLOR_CYCLE[2], COLOR_CYCLE[4], COLOR_CYCLE[3], '#666666'
 
 # Layout of /mpc_states_and_inputs (uav_mpc_node)

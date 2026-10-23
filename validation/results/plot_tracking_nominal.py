@@ -7,7 +7,7 @@ section and writes the figures to Results/figures/01_tracking.
 import os
 import numpy as np
 import matplotlib.pyplot as plt
-from common import (load, interp, rms, set_thesis_style, save_figure, FIGS, UAV, USV, PX4, REF, LIMIT)
+from common import (load, interp, rms, set_thesis_style, save_figure, FIGS, EA_FIGS, UAV, USV, PX4, REF, LIMIT)
 
 SKIP = 15.0          # s after the start of the circle
 START_ALT = 28.0     # m, altitude at which the circle starts
@@ -88,19 +88,24 @@ def main():
     fig.tight_layout()
     save_figure(fig, os.path.join(OUT, 'nominal_scenario_tension'))
 
-    # --- Figure: tracking error of the two controllers ---------------------------------------------------------
-    fig, axs = plt.subplots(2, 1, figsize=(6.3, 3.4), sharex=True)
-    for k, c in (('PX4', PX4), ('NMPC', UAV)):
-        t0k, t, e = res[k]
-        axs[0].plot(t - t0k, 100 * np.linalg.norm(e, axis=1), color=c, lw=0.9, label=k)
-        axs[1].plot(t - t0k, 100 * e[:, 2], color=c, lw=0.9)
-    axs[0].set_ylabel(r'$\|\mathbf{p}-\mathbf{p}_{ref}\|$ (cm)'); axs[1].set_ylabel(r'$z-z_{ref}$ (cm)')
-    axs[1].set_xlabel('time (s)'); axs[1].set_xlim(0, DURATION)
-    axs[0].legend(loc='upper right', ncol=2)
-    fig.align_ylabels(axs)
-    fig.tight_layout()
-    save_figure(fig, os.path.join(OUT, 'nominal_error'))
-
+    # --- Figure: tracking error of the two controllers (thesis, and a column of the extended abstract) ---------
+    for size, path in (((6.3, 3.4), os.path.join(OUT, 'nominal_error')),
+                       ((3.1, 2.9), os.path.join(EA_FIGS, 'nominal_error_column'))):
+        fig, axs = plt.subplots(2, 1, figsize=size, sharex=True)
+        for k, c in (('PX4', PX4), ('NMPC', UAV)):
+            t0k, t, e = res[k]
+            axs[0].plot(t - t0k, 100 * np.linalg.norm(e, axis=1), color=c, lw=0.9, label=k)
+            axs[1].plot(t - t0k, 100 * e[:, 2], color=c, lw=0.9)
+        axs[0].set_ylabel(r'$\|\mathbf{p}-\mathbf{p}_{ref}\|$ (cm)'); axs[1].set_ylabel(r'$z-z_{ref}$ (cm)')
+        axs[1].set_xlabel('time (s)'); axs[1].set_xlim(0, DURATION)
+        if size[0] > 5:
+            axs[0].legend(loc='upper right', ncol=2)
+        else:   # above the axes, where it covers no data
+            axs[0].legend(loc='lower right', bbox_to_anchor=(1.0, 1.0), ncol=2, fontsize=7, frameon=False,
+                          borderaxespad=0.1)
+        fig.align_ylabels(axs)
+        fig.tight_layout()
+        save_figure(fig, path)
 
 if __name__ == '__main__':
     main()

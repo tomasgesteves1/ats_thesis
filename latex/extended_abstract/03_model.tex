@@ -69,12 +69,12 @@ where $\boldsymbol\Phi$ integrates the model over one sampling interval with a f
 
 A single controller for both vehicles would impose one horizon and one sampling time on vehicles that move on very different time scales, and enlarge the problem to be solved in real time. Each vehicle therefore has its own NMPC, and the two exchange the trajectories they predict, Figure~\ref{fig:overview}. Each controller then constrains the distance between the vehicles along the predicted trajectory of the other, so that it anticipates where the other vehicle is going, rather than where it is.
 
-\begin{figure*}[t]
+\begin{figure}[t]
     \centering
-    \includegraphics[width=0.62\textwidth]{Introduction/figures/system_overview.pdf}
+    \includegraphics[width=\columnwidth]{system_overview_column.pdf}
     \caption{Overview of the system: the missions chain the manoeuvres of both vehicles, which give the references of their NMPCs, and the two controllers exchange their predicted trajectories.}
     \label{fig:overview}
-\end{figure*}
+\end{figure}
 
 \textbf{USV NMPC.} To limit both the thrusts and their rates, the thrusts and angles are included in the state, $\mathbf{x}_v = [x,y,\psi,u,v,r,T_L,T_R,\alpha_L,\alpha_R]^\top$, and the inputs are their rates, bounded by the limits of the thrusters. The stage cost penalises the errors of position, heading and velocity, $\|\mathbf{p}-\mathbf{p}_{ref}\|^2_{Q_p} + q_\psi(1-\cos(\psi-\psi_{ref})) + \|\boldsymbol\nu-\boldsymbol\nu_{ref}\|^2_{Q_\nu}$, together with the thrusts and their rates. A soft lower bound on the surge speed keeps the vessel sailing bow first, and the separation from the predicted trajectory of the UAV, $\hat{\mathbf{p}}_a$, is limited by the reach of the tether,
 \begin{equation}

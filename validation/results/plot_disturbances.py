@@ -8,7 +8,7 @@ import os
 import re
 import numpy as np
 import matplotlib.pyplot as plt
-from common import load, interp, rms, set_thesis_style, save_figure, FIGS, UAV, USV, LIMIT, COLOR_CYCLE
+from common import load, interp, rms, set_thesis_style, save_figure, FIGS, EA_FIGS, UAV, USV, LIMIT, COLOR_CYCLE
 
 OUT = os.path.join(FIGS, '03_disturbances')
 ANCHOR = 1.3        # height of the winch above the origin of the boat (m)
@@ -91,19 +91,22 @@ def waves():
         print('gain %d: heave amplitude %.2f m (std %.2f) | landing %.1f s | offset at descent %.2f m | touchdown offset '
               '%.2f m | contact speed %.2f m/s' % (g, r['heave'], r['heave_std'], r['duration'], r['centring'],
                                                   r['offset'], r['contact']))
-    fig, axs = plt.subplots(3, 1, figsize=(6.3, 4.2), sharex=True)
-    for k, g in enumerate(GAINS):
-        r = runs[g]; c = COLOR_CYCLE[k]; tt = r['t'] - r['t_td']
-        axs[0].plot(tt, r['wz'], color=c, lw=0.9, label='gain %d' % g)
-        axs[1].plot(tt, r['rel'][:, 2], color=c, lw=0.9)
-        axs[2].plot(tt, 100 * np.hypot(r['rel'][:, 0], r['rel'][:, 1]), color=c, lw=0.9)
-    t_from = max(runs[g]['t_desc'] - runs[g]['t_td'] for g in GAINS) - 2.0
-    axs[0].set_ylabel('winch\nheight (m)'); axs[1].set_ylabel('height above\nthe winch (m)')
-    axs[2].set_ylabel('horizontal\noffset (cm)'); axs[2].set_xlabel('time to touchdown (s)')
-    axs[0].legend(loc='lower right', bbox_to_anchor=(1.0, 1.0), ncol=3, fontsize=7, frameon=False, borderaxespad=0.1)
-    axs[2].set_xlim(t_from, 3); axs[2].set_ylim(0, 15)
-    fig.align_ylabels(axs); fig.tight_layout()
-    save_figure(fig, os.path.join(OUT, 'waves_landing'))
+    # thesis, and a column of the extended abstract
+    for size, path in (((6.3, 4.2), os.path.join(OUT, 'waves_landing')),
+                       ((3.1, 3.6), os.path.join(EA_FIGS, 'waves_landing_column'))):
+        fig, axs = plt.subplots(3, 1, figsize=size, sharex=True)
+        for k, g in enumerate(GAINS):
+            r = runs[g]; c = COLOR_CYCLE[k]; tt = r['t'] - r['t_td']
+            axs[0].plot(tt, r['wz'], color=c, lw=0.9, label='gain %d' % g)
+            axs[1].plot(tt, r['rel'][:, 2], color=c, lw=0.9)
+            axs[2].plot(tt, 100 * np.hypot(r['rel'][:, 0], r['rel'][:, 1]), color=c, lw=0.9)
+        t_from = max(runs[g]['t_desc'] - runs[g]['t_td'] for g in GAINS) - 2.0
+        axs[0].set_ylabel('winch\nheight (m)'); axs[1].set_ylabel('height above\nthe winch (m)')
+        axs[2].set_ylabel('horizontal\noffset (cm)'); axs[2].set_xlabel('time to touchdown (s)')
+        axs[0].legend(loc='lower right', bbox_to_anchor=(1.0, 1.0), ncol=3, fontsize=7, frameon=False, borderaxespad=0.1)
+        axs[2].set_xlim(t_from, 3); axs[2].set_ylim(0, 15)
+        fig.align_ylabels(axs); fig.tight_layout()
+        save_figure(fig, path)
 
 
 def wind():
