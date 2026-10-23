@@ -39,16 +39,24 @@ The wind acts on the \gls{uav} as a horizontal drag force, proportional to the s
 
 \begin{figure}[htbp]
     \centering
-    \includegraphics[width=\textwidth]{Results/figures/03_disturbances/wind.pdf}
-    \caption[Landing with wind.]{Landing with wind: (a) horizontal offset of the \gls{uav} from the winch when the descent starts, with and without the disturbance observer, and (b) force applied by a wind of $12\,\text{m/s}$ and the force estimated by the observer, from the end of the takeoff to the touchdown.}
+    \subfloat[Horizontal offset of the \gls{uav} from the winch when the descent starts.]{
+        \includegraphics[width=0.44\textwidth]{Results/figures/03_disturbances/wind_offset.pdf}
+        \label{fig:res_wind_offset}
+    }
+    \hfill
+    \subfloat[Force applied by a wind of $12\,\text{m/s}$ and force estimated by the observer, from the end of the takeoff to the touchdown.]{
+        \includegraphics[width=0.52\textwidth]{Results/figures/03_disturbances/wind_force.pdf}
+        \label{fig:res_wind_force}
+    }
+    \caption{Landing with wind, with and without the disturbance observer.}
     \label{fig:res_wind}
 \end{figure}
 
 % What happens without the observer?
-Without the observer, the \gls{nmpc} only knows the forces of its model, and the wind pushes the \gls{uav} away from its reference until the error in position balances it. Above the pad, this offset grows with the wind, from $18\,\text{cm}$ at $5\,\text{m/s}$ to $44\,\text{cm}$ at $8\,\text{m/s}$ and $83\,\text{cm}$ at $12\,\text{m/s}$, Figure~\ref{fig:res_wind}a. The landing waits for the \gls{uav} to be centred above the pad before it descends, which never happens, and the descent starts only once this wait has timed out, so that the landing takes more than twice as long. At $5$ and $8\,\text{m/s}$, the pull of the winch then brings the \gls{uav} down onto the pad, $7\,\text{cm}$ from its centre. At $12\,\text{m/s}$, the mission failed in both of the runs made. In one, the \gls{uav} was pushed off the deck as it took off. In the other, it descended $0.8\,\text{m}$ away from the centre, reached the deck at the edge of the pad, and was blown off it into the water.
+Without the observer, the \gls{nmpc} only knows the forces of its model, and the wind pushes the \gls{uav} away from its reference until the error in position balances it. Above the pad, this offset grows with the wind, from $18\,\text{cm}$ at $5\,\text{m/s}$ to $44\,\text{cm}$ at $8\,\text{m/s}$ and $83\,\text{cm}$ at $12\,\text{m/s}$, Figure~\ref{fig:res_wind_offset}. The landing waits for the \gls{uav} to be centred above the pad before it descends, which never happens, and the descent starts only once this wait has timed out, so that the landing takes more than twice as long. At $5$ and $8\,\text{m/s}$, the pull of the winch then brings the \gls{uav} down onto the pad, $7\,\text{cm}$ from its centre. At $12\,\text{m/s}$, the mission failed in both of the runs made. In one, the \gls{uav} was pushed off the deck as it took off. In the other, it descended $0.8\,\text{m}$ away from the centre, reached the deck at the edge of the pad, and was blown off it into the water.
 
 % And with the observer?
-With the observer, the offset above the pad when the descent starts is $4$, $6$ and $19\,\text{cm}$ for the three winds, the landing takes the same $26$ to $28\,\text{s}$ as without wind, and the \gls{uav} touches down $1$, $2$ and $8\,\text{cm}$ from the centre of the pad. Figure~\ref{fig:res_wind}b shows how. Once the \gls{uav} is in the air, the estimate follows the force of the wind, gusts included, about $0.7\,\text{s}$ behind it, so that the \gls{nmpc} plans with a force close to the real one. The observer thus turns a wind of $12\,\text{m/s}$, which without it prevents the mission, into a disturbance of a few centimetres.
+With the observer, the offset above the pad when the descent starts is $4$, $6$ and $19\,\text{cm}$ for the three winds, the landing takes the same $26$ to $28\,\text{s}$ as without wind, and the \gls{uav} touches down $1$, $2$ and $8\,\text{cm}$ from the centre of the pad. Figure~\ref{fig:res_wind_force} shows how. Once the \gls{uav} is in the air, the estimate follows the force of the wind, gusts included, about $0.7\,\text{s}$ behind it, so that the \gls{nmpc} plans with a force close to the real one. The observer thus turns a wind of $12\,\text{m/s}$, which without it prevents the mission, into a disturbance of a few centimetres.
 
 % Where is the system most exposed to the wind?
 The moment most exposed to the wind turned out, however, to be the takeoff rather than the landing. While the \gls{uav} lifts off the pad, still held by the winch, a wind of $12\,\text{m/s}$ tips it by more than $70^\circ$ against the rim of the pad, before it is clear of the deck, with a commanded tilt of only $10^\circ$. Once it is released, the \gls{nmpc} recovers it, after a drift of $5.5\,\text{m}$ and a drop to $0.5\,\text{m}$ above the water, and the mission then proceeds normally. The controller is not the cause, since the vehicle is tipped while it rests against the pad, but this shows that, in strong winds, the way the \gls{uav} leaves the deck matters as much as how it is controlled once in the air.

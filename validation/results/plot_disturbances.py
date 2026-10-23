@@ -125,7 +125,9 @@ def wind():
     d = load(RUN[(12, 'obs')])
     ext, dist = d['ext'], d['dist']
     t_to = ev_time(d, 'uav.takeoff: done'); t_td = ev_time(d, 'touchdown')
-    fig, axs = plt.subplots(1, 2, figsize=(6.3, 2.6), gridspec_kw={'width_ratios': [1.0, 1.3]})
+    # offset and force as two figures, side by side in the thesis
+    fig, ax = plt.subplots(figsize=(2.9, 2.6))
+    axs = [ax]
     x = np.arange(len(WINDS))
     for k, (obs, lab) in enumerate((('noobs', 'without observer'), ('obs', 'with observer'))):
         axs[0].bar(x + (k - 0.5) * 0.36, [100 * table[(w, obs)][1] for w in WINDS], 0.36,
@@ -134,16 +136,21 @@ def wind():
         if np.isnan(table[(w, 'noobs')][2]):   # no touchdown: the bar is the offset when the descent started
             axs[0].text(k - 0.18, min(100 * table[(w, 'noobs')][1], 85) + 1.0, 'no\nlanding', ha='center',
                         va='bottom', fontsize=6.5, color=COLOR_CYCLE[1])
-    axs[0].set_xticks(x); axs[0].set_xticklabels(['%d' % w for w in WINDS]); axs[0].set_xlabel('wind (m/s)\n(a)')
+    axs[0].set_xticks(x); axs[0].set_xticklabels(['%d' % w for w in WINDS]); axs[0].set_xlabel('wind (m/s)')
     axs[0].set_ylabel('offset at the descent (cm)'); axs[0].set_ylim(0, 100)
     axs[0].legend(fontsize=7, loc='upper left')
+    fig.tight_layout()
+    save_figure(fig, os.path.join(OUT, 'wind_offset'))
+
+    fig, ax = plt.subplots(figsize=(3.4, 2.6))
+    axs = [None, ax]
     me = (ext[:, 0] >= t_to) & (ext[:, 0] <= t_td); md = (dist[:, 0] >= t_to) & (dist[:, 0] <= t_td)
     t0 = t_to
     axs[1].plot(ext[me, 0] - t0, np.hypot(ext[me, 1], ext[me, 2]), color='#333333', lw=0.9, label='applied')
     axs[1].plot(dist[md, 0] - t0, np.hypot(dist[md, 1], dist[md, 2]), color=UAV, lw=0.9, label='estimated')
-    axs[1].set_xlabel('time (s)\n(b)'); axs[1].set_ylabel('horizontal force (N)'); axs[1].legend(fontsize=7)
+    axs[1].set_xlabel('time (s)'); axs[1].set_ylabel('horizontal force (N)'); axs[1].legend(fontsize=7)
     fig.tight_layout()
-    save_figure(fig, os.path.join(OUT, 'wind'))
+    save_figure(fig, os.path.join(OUT, 'wind_force'))
 
 
 if __name__ == '__main__':

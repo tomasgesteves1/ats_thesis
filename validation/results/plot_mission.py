@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """
-Section 5.2: one figure per mission, drawn from the extracted mission bag (record_mission.sh, extract.py): (a) top view
-of both vehicles, with their positions and the tether at a few instants, and (b) the manoeuvres of each vehicle over
+Section 5.2: one figure per mission, drawn from the extracted mission bag (record_mission.sh, extract.py): a top view
+of both vehicles, with their positions and the tether at a few instants, and a figure with the manoeuvres of each vehicle over
 time, the separation against its limit and the height of the UAV. Prints the metrics of the mission.
 Usage: plot_mission.py <name> [d_max=15]
 """
@@ -81,22 +81,11 @@ def main(name, d_max):
     print('  UAV phases:', [(p[0], round(p[1] - t0, 1), round(p[2] - t0, 1)) for p in pu])
     print('  USV phases:', [(p[0], round(p[1] - t0, 1), round(p[2] - t0, 1)) for p in pv])
 
-    # missions much wider than tall are drawn with the top view above the time histories
+    # top view and time histories as two figures; missions much wider than tall are placed one above the other in the
+    # thesis, the others side by side
     xs = np.concatenate([dr[m, 1], b[mb, 1]]); ys = np.concatenate([dr[m, 2], b[mb, 2]])
     wide = np.ptp(xs) > 2.0 * np.ptp(ys)
-    if wide:
-        fig = plt.figure(figsize=(6.3, 4.9))
-        gs = fig.add_gridspec(2, 1, height_ratios=[1.6, 2.0], hspace=0.32,
-                              left=0.1, right=0.98, top=0.98, bottom=0.09)
-        ax = fig.add_subplot(gs[0])
-        sub = gs[1].subgridspec(3, 1, height_ratios=[0.45, 0.8, 0.8], hspace=0.12)
-    else:
-        fig = plt.figure(figsize=(6.3, 3.6))
-        gs = fig.add_gridspec(1, 2, width_ratios=[1.0, 1.1], wspace=0.28,
-                              left=0.08, right=0.98, top=0.98, bottom=0.14)
-        ax = fig.add_subplot(gs[0])
-        sub = gs[1].subgridspec(3, 1, height_ratios=[0.8, 1.0, 1.0], hspace=0.12)
-    cells = [sub[0], sub[1], sub[2]]
+    fig, ax = plt.subplots(figsize=(6.3, min(3.2, 0.9 + 5.4 * np.ptp(ys) / np.ptp(xs))) if wide else (3.0, 3.2))
     if name.startswith('inspection'):
         ax.add_patch(Rectangle((-25 - 5.9, -6.7), 11.8, 13.4, fc='#bbbbbb', ec='#555555', lw=0.6, zorder=1))
         ax.annotate('tower', (-25, 0), ha='center', va='center', fontsize=7, zorder=2)
@@ -114,14 +103,18 @@ def main(name, d_max):
         ax.plot(pd[0], pd[1], 'o', ms=3.5, mfc=UAV, mec='k', mew=0.4, alpha=a, zorder=5)
         if len(it):
             pt = interp(it, [tk], (1, 2, 4))[0]; boat(ax, pt[0], pt[1], pt[2], color=TGT, alpha=a)
-    ax.set_aspect('equal', adjustable='datalim' if wide else 'box'); ax.margins(0.06); ax.set_xlabel('$x$ (m)\n(a)'); ax.set_ylabel('$y$ (m)')
+    ax.set_aspect('equal', adjustable='box'); ax.margins(0.06); ax.set_xlabel('$x$ (m)'); ax.set_ylabel('$y$ (m)')
     h = [plt.Line2D([], [], color=UAV, lw=1.0), plt.Line2D([], [], color=USV, lw=1.2)]
     lab = ['UAV', 'USV']
     if len(it):
         h.append(plt.Line2D([], [], color=TGT, lw=1.0)); lab.append('target')
     ax.legend(h, lab, loc='best', fontsize=7)
 
-    a0 = fig.add_subplot(cells[0])
+    fig.tight_layout()
+    save_figure(fig, os.path.join(OUT, name + '_paths'))
+
+    fig, (a0, a1, a2) = plt.subplots(3, 1, figsize=(6.3, 2.6) if wide else (3.3, 3.2), sharex=True,
+                                     gridspec_kw={'height_ratios': [0.45, 0.8, 0.8] if wide else [0.8, 1.0, 1.0]})
     for row, (ph, label) in enumerate(((pu, 'UAV'), (pv, 'USV'))):
         y = 1 - row
         for k, (n, ts, te) in enumerate(ph):
@@ -129,18 +122,15 @@ def main(name, d_max):
             if te - ts > 0.016 * len(n) * (t_end - t0):   # only where the name fits
                 a0.text(0.5 * (ts + te) - t0, y, n, ha='center', va='center', fontsize=6.5)
     a0.set_yticks([1, 0]); a0.set_yticklabels(['UAV', 'USV']); a0.set_ylim(-0.6, 1.6); a0.grid(False)
-    a1 = fig.add_subplot(cells[1], sharex=a0)
     a1.plot(dr[m, 0] - t0, sep[m], color='#333333', lw=0.9)
     a1.axhline(d_max, color=LIMIT, ls='--', lw=0.9, label='$d_{max}$')
     a1.set_ylabel('$d$ (m)'); a1.legend(loc='lower right', fontsize=7); a1.set_ylim(0, 1.12 * d_max)
-    a2 = fig.add_subplot(cells[2], sharex=a0)
     a2.plot(dr[m, 0] - t0, dr[m, 3], color=UAV, lw=0.9)
-    a2.set_ylabel('UAV $z$ (m)'); a2.set_xlabel('time (s)\n(b)')
-    for a in (a0, a1):
-        plt.setp(a.get_xticklabels(), visible=False)
+    a2.set_ylabel('UAV $z$ (m)'); a2.set_xlabel('time (s)')
     a0.set_xlim(0, t_end - t0)
     fig.align_ylabels([a0, a1, a2])
-    save_figure(fig, os.path.join(OUT, name))
+    fig.tight_layout(h_pad=0.4)
+    save_figure(fig, os.path.join(OUT, name + '_timeline'))
 
 
 if __name__ == '__main__':

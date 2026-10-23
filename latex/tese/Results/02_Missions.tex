@@ -10,7 +10,7 @@
 \label{sec:res_missions}
 
 % What do the missions add to the previous results?
-The missions of Figure~\ref{fig:missions} put the manoeuvres together, with both vehicles moving at once and the manoeuvres of one waiting for the other. They test whether the two controllers, each driven by simple references, keep the system within its limits through a complete operation, from the takeoff to the landing, with the normal tether of $15\,\text{m}$. Each mission is shown in the same way. On the left, the paths of both vehicles are seen from above, with their positions and the tether at five instants, the older ones more transparent. On the right, the manoeuvres of each vehicle are shown over time, in their order in Figure~\ref{fig:missions}, together with the separation between the vehicles and the height of the \gls{uav}.
+The missions of Figure~\ref{fig:missions} put the manoeuvres together, with both vehicles moving at once and the manoeuvres of one waiting for the other. They test whether the two controllers, each driven by simple references, keep the system within its limits through a complete operation, from the takeoff to the landing, with the normal tether of $15\,\text{m}$. Each mission is shown in the same way. In the first panel, the paths of both vehicles are seen from above, with their positions and the tether at five instants, the older ones more transparent. In the second, the manoeuvres of each vehicle are shown over time, in their order in Figure~\ref{fig:missions}, together with the separation between the vehicles and the height of the \gls{uav}.
 
 \subsection{Scout}
 \label{subsec:res_scout}
@@ -20,8 +20,16 @@ In the scout, the \gls{usv} sails a route of three legs at $1\,\text{m/s}$, with
 
 \begin{figure}[htbp]
     \centering
-    \includegraphics[width=\textwidth]{Results/figures/02_missions/scout.pdf}
-    \caption[Scout mission.]{Scout mission: (a) paths of both vehicles, and (b) manoeuvres of each vehicle, separation $d$ and height of the \gls{uav}.}
+    \subfloat[Paths of both vehicles.]{
+        \includegraphics[width=0.46\textwidth]{Results/figures/02_missions/scout_paths.pdf}
+        \label{fig:res_scout_paths}
+    }
+    \hfill
+    \subfloat[Manoeuvres, separation $d$ and height of the \gls{uav}.]{
+        \includegraphics[width=0.50\textwidth]{Results/figures/02_missions/scout_timeline.pdf}
+        \label{fig:res_scout_timeline}
+    }
+    \caption{Scout mission.}
     \label{fig:res_scout}
 \end{figure}
 
@@ -29,7 +37,7 @@ In the scout, the \gls{usv} sails a route of three legs at $1\,\text{m/s}$, with
 The transfer from the takeoff to the point ahead of the bow is given as a straight line covered in $5\,\text{s}$, rather than as a single point. Right after the takeoff the tether is only $3\,\text{m}$ long, and a single point would ask the separation to grow faster than the winch pays out the tether. As in the first step of Section~\ref{subsec:res_tracking_tether}, the \gls{nmpc} would then keep within the pay-out rate by trading height for it, and bring the \gls{uav} down close to the deck. Covered in $5\,\text{s}$, the transfer climbs smoothly to its height, with a tilt below $14^\circ$, while the separation grows at up to $2.4\,\text{m/s}$, close to the pay-out rate.
 
 % Does the UAV keep ahead of the bow as the USV turns?
-Along the route, the \gls{uav} keeps its place with a mean error of $5\,\text{cm}$, Figure~\ref{fig:res_scout}. The largest errors, of $17\,\text{cm}$, are at the turns, where the point ahead of the bow swings around the \gls{usv} as it turns, and the \gls{uav} follows it on the wide arcs seen in Figure~\ref{fig:res_scout}a. The separation stays at $9.5\,\text{m}$, and the \gls{uav} lands on the pad, $3\,\text{cm}$ from its centre, once the route is over.
+Along the route, the \gls{uav} keeps its place with a mean error of $5\,\text{cm}$, Figure~\ref{fig:res_scout}. The largest errors, of $17\,\text{cm}$, are at the turns, where the point ahead of the bow swings around the \gls{usv} as it turns, and the \gls{uav} follows it on the wide arcs seen in Figure~\ref{fig:res_scout_paths}. The separation stays at $9.5\,\text{m}$, and the \gls{uav} lands on the pad, $3\,\text{cm}$ from its centre, once the route is over.
 
 \subsection{Inspection}
 \label{subsec:res_inspection}
@@ -39,8 +47,16 @@ In the inspection, the \gls{uav} circles a tower standing in the water, $12$ by 
 
 \begin{figure}[htbp]
     \centering
-    \includegraphics[width=\textwidth]{Results/figures/02_missions/inspection.pdf}
-    \caption[Inspection mission.]{Inspection mission: (a) paths of both vehicles around the tower, and (b) manoeuvres of each vehicle, separation $d$ and height of the \gls{uav}.}
+    \subfloat[Paths of both vehicles around the tower.]{
+        \includegraphics[width=0.46\textwidth]{Results/figures/02_missions/inspection_paths.pdf}
+        \label{fig:res_inspection_paths}
+    }
+    \hfill
+    \subfloat[Manoeuvres, separation $d$ and height of the \gls{uav}.]{
+        \includegraphics[width=0.50\textwidth]{Results/figures/02_missions/inspection_timeline.pdf}
+        \label{fig:res_inspection_timeline}
+    }
+    \caption{Inspection mission.}
     \label{fig:res_inspection}
 \end{figure}
 
@@ -55,8 +71,16 @@ In the patrol, the \gls{usv} sails a route while the \gls{uav} orbits it, $7\,\t
 
 \begin{figure}[htbp]
     \centering
-    \includegraphics[width=\textwidth]{Results/figures/02_missions/patrol.pdf}
-    \caption[Patrol mission.]{Patrol mission: (a) paths of both vehicles and of the target, and (b) manoeuvres of each vehicle, separation $d$ and height of the \gls{uav}.}
+    \subfloat[Paths of both vehicles and of the target.]{
+        \includegraphics[width=0.97\textwidth]{Results/figures/02_missions/patrol_paths.pdf}
+        \label{fig:res_patrol_paths}
+    }
+
+    \subfloat[Manoeuvres of each vehicle, separation $d$ and height of the \gls{uav}.]{
+        \includegraphics[width=0.97\textwidth]{Results/figures/02_missions/patrol_timeline.pdf}
+        \label{fig:res_patrol_timeline}
+    }
+    \caption{Patrol mission.}
     \label{fig:res_patrol}
 \end{figure}
 

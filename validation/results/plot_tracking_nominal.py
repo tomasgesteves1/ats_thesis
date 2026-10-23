@@ -57,9 +57,9 @@ def main():
         s = d['s_%s_solve_time_ms' % k]; s = s[(s[:, 0] >= t0) & (s[:, 0] <= t0 + DURATION), 1]
         print('%s solve time mean %.2f p95 %.2f max %.2f ms' % (k.upper(), s.mean(), np.percentile(s, 95), s.max()))
 
-    # --- Figure: the scenario (3D, one lap) and the tether over time --------------------------------------------
-    fig = plt.figure(figsize=(6.3, 2.9))
-    ax = fig.add_subplot(1, 2, 1, projection='3d')
+    # --- Figures: the scenario (3D, one lap) and the tether over time, side by side in the thesis -----------------
+    fig = plt.figure(figsize=(3.1, 2.9))
+    ax = fig.add_subplot(projection='3d')
     lap = 2 * np.pi / 0.3
     dr = d['drone']; ml = (dr[:, 0] >= t0) & (dr[:, 0] <= t0 + lap)
     r = d['uav_ref']; mr = (r[:, 0] >= t0) & (r[:, 0] <= t0 + lap)
@@ -73,10 +73,11 @@ def main():
     ax.set_xlabel('$x$ (m)', labelpad=-4); ax.set_ylabel('$y$ (m)', labelpad=-4); ax.set_zlabel('$z$ (m)', labelpad=-4)
     ax.tick_params(pad=-2, labelsize=7)
     ax.set_zlim(0, 30); ax.view_init(elev=18, azim=-60)
-    ax.legend(loc='upper left', fontsize=7, bbox_to_anchor=(-0.05, 1.05))
-    ax.set_title('(a)', fontsize=9, y=-0.12)
+    ax.legend(loc='upper left', fontsize=7, bbox_to_anchor=(-0.02, 1.02))
+    fig.subplots_adjust(left=0.0, right=0.92, bottom=0.04, top=1.0)
+    save_figure(fig, os.path.join(OUT, 'nominal_scenario_3d'))
 
-    ax2 = fig.add_subplot(1, 2, 2)
+    fig, ax2 = plt.subplots(figsize=(3.1, 2.9))
     tt = d['drone'][ms, 0] - t0
     ax2.plot(tt, sep[ms], color='#333333', lw=1.0, label='separation')
     ax2.set_ylabel('separation (m)'); ax2.set_xlabel('time (s)')
@@ -84,9 +85,8 @@ def main():
     ax3.plot(f[mf, 0] - t0, f[mf, 1], color=UAV, lw=0.9, label='tension')
     ax3.set_ylabel('tension at the UAV (N)', color=UAV); ax3.tick_params(axis='y', colors=UAV); ax3.grid(False)
     ax2.set_xlim(0, DURATION)
-    ax2.set_title('(b)', fontsize=9, y=-0.32)
-    fig.tight_layout(w_pad=1.5)
-    save_figure(fig, os.path.join(OUT, 'nominal_scenario'))
+    fig.tight_layout()
+    save_figure(fig, os.path.join(OUT, 'nominal_scenario_tension'))
 
     # --- Figure: tracking error of the two controllers ---------------------------------------------------------
     fig, axs = plt.subplots(2, 1, figsize=(6.3, 3.4), sharex=True)

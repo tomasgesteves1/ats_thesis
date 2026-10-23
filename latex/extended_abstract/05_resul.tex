@@ -5,8 +5,20 @@ All results were obtained in simulation, with the default sea of the simulator, 
 
 \begin{figure*}[t]
     \centering
-    \includegraphics[width=0.8\textwidth]{Results/figures/01_tracking/steps_tether.pdf}
-    \caption{Step references: (a) paths and waypoints, with the height of those of the UAV, and (b) separation $d$ and its rate $\dot d$, with their limits; vertical lines mark the steps of the UAV (solid) and of the USV (dotted).}
+    \begin{subfigure}[b]{0.38\textwidth}
+        \centering
+        \includegraphics[width=1\linewidth]{Results/figures/01_tracking/steps_paths.pdf}
+        \caption{Paths and waypoints, with the height of those of the UAV.}
+        \label{fig:steps_paths}
+    \end{subfigure}
+    \hspace{0.03\textwidth}
+    \begin{subfigure}[b]{0.42\textwidth}
+        \centering
+        \includegraphics[width=1\linewidth]{Results/figures/01_tracking/steps_separation.pdf}
+        \caption{Separation $d$ and its rate $\dot d$, with their limits.}
+        \label{fig:steps_separation}
+    \end{subfigure}
+    \caption{Step references; vertical lines mark the steps of the UAV (solid) and of the USV (dotted).}
     \label{fig:steps}
 \end{figure*}
 
@@ -34,8 +46,20 @@ Figure~\ref{fig:nominal} and Table~\ref{tab:nominal} show that the NMPC follows 
 
 \begin{figure*}[t]
     \centering
-    \includegraphics[width=0.85\textwidth]{Results/figures/02_missions/inspection.pdf}
-    \caption{Inspection mission: (a) paths of both vehicles around the tower, with their positions and the tether at five instants, and (b) manoeuvres of each vehicle, separation $d$ and height of the UAV.}
+    \begin{subfigure}[b]{0.40\textwidth}
+        \centering
+        \includegraphics[width=1\linewidth]{Results/figures/02_missions/inspection_paths.pdf}
+        \caption{Paths around the tower, with the vehicles and the tether at five instants.}
+        \label{fig:inspection_paths}
+    \end{subfigure}
+    \hspace{0.03\textwidth}
+    \begin{subfigure}[b]{0.44\textwidth}
+        \centering
+        \includegraphics[width=1\linewidth]{Results/figures/02_missions/inspection_timeline.pdf}
+        \caption{Manoeuvres, separation $d$ and height of the UAV.}
+        \label{fig:inspection_timeline}
+    \end{subfigure}
+    \caption{Inspection mission.}
     \label{fig:inspection}
 \end{figure*}
 
@@ -56,15 +80,39 @@ When its reference lies beyond the reach of the tether, the UAV stops short of i
 
 \begin{figure*}[t]
     \centering
-    \includegraphics[width=0.8\textwidth]{Results/figures/03_disturbances/wind.pdf}
-    \caption{Landing with wind: (a) offset of the UAV from the winch when the descent starts, and (b) force of a $12\,\text{m/s}$ wind and estimate of the observer.}
+    \begin{subfigure}[b]{0.34\textwidth}
+        \centering
+        \includegraphics[width=1\linewidth]{Results/figures/03_disturbances/wind_offset.pdf}
+        \caption{Offset of the UAV from the winch when the descent starts.}
+        \label{fig:wind_offset}
+    \end{subfigure}
+    \hspace{0.03\textwidth}
+    \begin{subfigure}[b]{0.40\textwidth}
+        \centering
+        \includegraphics[width=1\linewidth]{Results/figures/03_disturbances/wind_force.pdf}
+        \caption{Force of a $12\,\text{m/s}$ wind and estimate of the observer.}
+        \label{fig:wind_force}
+    \end{subfigure}
+    \caption{Landing with wind.}
     \label{fig:wind}
 \end{figure*}
 
 \begin{figure*}[t]
     \centering
-    \includegraphics[width=0.75\textwidth]{Results/figures/02_missions/patrol.pdf}
-    \caption{Patrol mission: (a) paths of both vehicles and of the target, and (b) manoeuvres of each vehicle, separation $d$ and height of the UAV.}
+    \begin{subfigure}[b]{0.75\textwidth}
+        \centering
+        \includegraphics[width=1\linewidth]{Results/figures/02_missions/patrol_paths.pdf}
+        \caption{Paths of both vehicles and of the target.}
+        \label{fig:patrol_paths}
+    \end{subfigure}
+
+    \begin{subfigure}[b]{0.75\textwidth}
+        \centering
+        \includegraphics[width=1\linewidth]{Results/figures/02_missions/patrol_timeline.pdf}
+        \caption{Manoeuvres of each vehicle, separation $d$ and height of the UAV.}
+        \label{fig:patrol_timeline}
+    \end{subfigure}
+    \caption{Patrol mission.}
     \label{fig:patrol}
 \end{figure*}
 

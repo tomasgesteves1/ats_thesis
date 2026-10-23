@@ -59,9 +59,8 @@ def main():
     print('UAV jerk RMS %.2f m/s^3 | USV jerk RMS %.2f m/s^3' % (jerk_rms(dr[m, 0], dr[m, 1:4]),
                                                                  jerk_rms(b[b[:, 0] >= t0, 0], b[b[:, 0] >= t0, 1:3])))
 
-    fig = plt.figure(figsize=(6.3, 3.3))
-    gs = fig.add_gridspec(2, 2, width_ratios=[1.0, 1.15])
-    ax = fig.add_subplot(gs[:, 0])
+    # paths and separation, side by side in the thesis
+    fig, ax = plt.subplots(figsize=(3.0, 3.0))
     mb = b[:, 0] >= t0
     ax.plot(dr[m, 1], dr[m, 2], color=UAV, lw=1.0, label='UAV')
     ax.plot(b[mb, 1], b[mb, 2], color=USV, lw=1.2, label='USV')
@@ -75,13 +74,13 @@ def main():
     ax.set_xlabel('$x$ (m)'); ax.set_ylabel('$y$ (m)'); ax.set_aspect('equal', adjustable='datalim')
     ax.margins(0.12)
     ax.legend(loc='best', fontsize=7)
-    ax.set_title('(a)', fontsize=9, y=-0.25)
+    fig.tight_layout()
+    save_figure(fig, os.path.join(OUT, 'steps_paths'))
 
-    a1 = fig.add_subplot(gs[0, 1])
+    fig, (a1, a2) = plt.subplots(2, 1, figsize=(3.3, 3.0), sharex=True)
     a1.plot(dr[m, 0] - t0, sep[m], color='#333333', lw=1.0, label='$d$')
     a1.axhline(D_MAX, color=LIMIT, ls='--', lw=0.9, label='$d_{max}$')
-    a1.set_ylabel('$d$ (m)'); a1.legend(loc='lower right', fontsize=7)
-    a2 = fig.add_subplot(gs[1, 1], sharex=a1)
+    a1.set_ylabel('$d$ (m)'); a1.legend(loc='lower right', fontsize=7); a1.set_ylim(top=1.08 * D_MAX)
     a2.plot(v[mv, 0] - t0, v[mv, 1], color='#333333', lw=0.9, label=r'$\dot d$')
     a2.axhline(UAV_LIM['d_dot_max'], color=LIMIT, ls='--', lw=0.9, label=r'$\dot d_{max}$')
     a2.set_ylabel(r'$\dot d$ (m/s)'); a2.set_xlabel('time (s)'); a2.legend(loc='lower right', fontsize=7)
@@ -90,12 +89,10 @@ def main():
             a.axvline(t - t0, color=UAV, lw=0.5, alpha=0.5)
         for t in tb:
             a.axvline(t - t0, color=USV, lw=0.5, alpha=0.5, ls=':')
-    plt.setp(a1.get_xticklabels(), visible=False)
     a1.set_xlim(0, t1 - t0)
-    a2.set_title('(b)', fontsize=9, y=-0.62)
     fig.align_ylabels([a1, a2])
     fig.tight_layout()
-    save_figure(fig, os.path.join(OUT, 'steps_tether'))
+    save_figure(fig, os.path.join(OUT, 'steps_separation'))
 
     # ---- 5.1.3: actuators --------------------------------------------------------------------------------------
     att = d['att']; ma = att[:, 0] >= t0
@@ -126,37 +123,43 @@ def main():
               np.abs(rt).max(), USV_LIM['T_rate_max'], np.degrees(np.abs(al[:, 1]).max()),
               np.degrees(USV_LIM['alpha_max']), np.degrees(np.abs(ra).max()), np.degrees(USV_LIM['alpha_rate_max'])))
 
-    fig, axs = plt.subplots(2, 2, figsize=(6.3, 3.6), sharex=True)
-    axs[0, 0].plot(tel['t'][mt] - t0, np.degrees(np.abs(tel['roll'][mt])), color=UAV, lw=0.9, label=r'$|\phi|$')
-    axs[0, 0].plot(tel['t'][mt] - t0, np.degrees(np.abs(tel['pitch'][mt])), color=UAV, lw=0.9, ls='--',
-                   label=r'$|\theta|$')
-    axs[0, 0].axhline(np.degrees(UAV_LIM['phi_max']), color=LIMIT, ls='--', lw=0.9)
-    axs[0, 0].set_ylabel('UAV tilt (deg)'); axs[0, 0].legend(loc='upper right', fontsize=7, ncol=2)
-    axs[1, 0].plot(tel['t'][mt] - t0, T, color=UAV, lw=0.9)
+    # UAV and USV, each a stack on a shared time axis, side by side in the thesis
+    def steps_lines(axs):
+        for a in axs:
+            for t in tu:
+                a.axvline(t - t0, color=UAV, lw=0.5, alpha=0.5)
+            for t in tb:
+                a.axvline(t - t0, color=USV, lw=0.5, alpha=0.5, ls=':')
+        axs[1].set_xlabel('time (s)'); axs[0].set_xlim(0, t1 - t0)
+
+    fig, axs = plt.subplots(2, 1, figsize=(3.15, 3.4), sharex=True)
+    axs[0].plot(tel['t'][mt] - t0, np.degrees(np.abs(tel['roll'][mt])), color=UAV, lw=0.9, label=r'$|\phi|$')
+    axs[0].plot(tel['t'][mt] - t0, np.degrees(np.abs(tel['pitch'][mt])), color=UAV, lw=0.9, ls='--',
+                label=r'$|\theta|$')
+    axs[0].axhline(np.degrees(UAV_LIM['phi_max']), color=LIMIT, ls='--', lw=0.9)
+    axs[0].set_ylabel('UAV tilt (deg)'); axs[0].legend(loc='upper right', fontsize=7, ncol=2)
+    axs[1].plot(tel['t'][mt] - t0, T, color=UAV, lw=0.9)
     for lim in (UAV_LIM['T_min'], UAV_LIM['T_max']):
-        axs[1, 0].axhline(lim, color=LIMIT, ls='--', lw=0.9)
-    axs[1, 0].set_ylabel('UAV thrust (N)')
+        axs[1].axhline(lim, color=LIMIT, ls='--', lw=0.9)
+    axs[1].set_ylabel('UAV thrust (N)')
+    steps_lines(axs)
+    fig.align_ylabels(axs); fig.tight_layout()
+    save_figure(fig, os.path.join(OUT, 'steps_actuators_uav'))
+
+    fig, axs = plt.subplots(2, 1, figsize=(3.15, 3.4), sharex=True)
     for side, ls in (('left', '-'), ('right', '--')):
         th, al = usv[side]
-        axs[0, 1].plot(th[:, 0] - t0, th[:, 1], color=USV, lw=0.9, ls=ls, label=side)
-        axs[1, 1].plot(al[:, 0] - t0, np.degrees(al[:, 1]), color=USV, lw=0.9, ls=ls)
+        axs[0].plot(th[:, 0] - t0, th[:, 1], color=USV, lw=0.9, ls=ls, label=side)
+        axs[1].plot(al[:, 0] - t0, np.degrees(al[:, 1]), color=USV, lw=0.9, ls=ls)
     for lim in (USV_LIM['T_min'], USV_LIM['T_max']):
-        axs[0, 1].axhline(lim, color=LIMIT, ls='--', lw=0.9)
+        axs[0].axhline(lim, color=LIMIT, ls='--', lw=0.9)
     for lim in (-30, 30):
-        axs[1, 1].axhline(lim, color=LIMIT, ls='--', lw=0.9)
-    axs[0, 1].set_ylabel('USV thrust (N)'); axs[1, 1].set_ylabel('USV thruster angle (deg)')
-    axs[0, 1].legend(loc='upper right', fontsize=7, ncol=2)
-    for a in axs.flat:
-        for t in tu:
-            a.axvline(t - t0, color=UAV, lw=0.5, alpha=0.5)
-        for t in tb:
-            a.axvline(t - t0, color=USV, lw=0.5, alpha=0.5, ls=':')
-    for a in axs[1]:
-        a.set_xlabel('time (s)')
-    axs[0, 0].set_xlim(0, t1 - t0)
-    fig.align_ylabels(axs[:, 0]); fig.align_ylabels(axs[:, 1])
-    fig.tight_layout()
-    save_figure(fig, os.path.join(OUT, 'steps_actuators'))
+        axs[1].axhline(lim, color=LIMIT, ls='--', lw=0.9)
+    axs[0].set_ylabel('USV thrust (N)'); axs[1].set_ylabel('USV azimuth (deg)')
+    axs[0].legend(loc='upper right', fontsize=7, ncol=2)
+    steps_lines(axs)
+    fig.align_ylabels(axs); fig.tight_layout()
+    save_figure(fig, os.path.join(OUT, 'steps_actuators_usv'))
 
 
 if __name__ == '__main__':
