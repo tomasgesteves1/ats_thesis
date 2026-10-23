@@ -9,8 +9,8 @@
 \section{Tracking and Planning}
 \label{sec:res_tracking}
 
-% What is tested first, and why in two steps?
-The controllers of Chapter~\ref{chapter:methodology} play two roles at once. They follow the reference they are given, and they turn it into a motion that respects the limits of both vehicles and of the tether, whatever that reference is. The two roles are tested separately. The tracking is first measured with a reference that both vehicles can follow, so that the error reflects only how closely they follow it. The planning is then tested with references that cannot be followed, which jump from one point to another or lead beyond the reach of the tether, so that the limits decide the motion.
+% What is tested first, why in two steps, and under which conditions?
+The controllers of Chapter~\ref{chapter:methodology} play two roles at once. They follow the reference they are given, and they turn it into a motion that respects the limits of both vehicles and of the tether, whatever that reference is. The two roles are tested separately. The tracking is first measured with a reference that both vehicles can follow, so that the error reflects only how closely they follow it. The planning is then tested with references that cannot be followed, which jump from one point to another or lead beyond the reach of the tether, so that the limits decide the motion. These tests, like the missions that follow, use the default sea of the simulator and no wind.
 
 \subsection{Nominal Tracking}
 \label{subsec:res_tracking_nominal}

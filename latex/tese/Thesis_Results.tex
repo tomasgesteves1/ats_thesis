@@ -8,9 +8,10 @@
 \chapter{Results}
 \label{chapter:results}
 
-% How is the system evaluated, and under which conditions?
-The evaluation starts with each controller on its own, following simple references and finding a feasible motion when the reference lies beyond the reach of the tether or the limits of the vehicle. The two vehicles then work together in three example missions, from the takeoff to the landing on the moving deck. Finally, the same manoeuvres are repeated under growing waves and wind. Unless stated otherwise, the results were obtained with the default sea of the simulator, which moves the winch up and down by about $0.25\,\text{m}$, without wind, and with the controllers configured as in Section~\ref{sec:controller_implementation}.
+% How is the system evaluated?
+The evaluation starts with each controller on its own, following simple references and finding a feasible motion when the reference lies beyond the reach of the tether or the limits of the vehicle. The two vehicles then work together in three example missions, from the takeoff to the landing on the moving deck. Finally, the same manoeuvres are repeated under growing waves and wind.
 
 \input{Results/01_Tracking}
 \input{Results/02_Missions}
 \input{Results/03_Disturbances}
+    
