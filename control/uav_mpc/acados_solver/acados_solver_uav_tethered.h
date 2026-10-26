@@ -39,7 +39,7 @@
 #define UAV_TETHERED_NX     13
 #define UAV_TETHERED_NZ     0
 #define UAV_TETHERED_NU     4
-#define UAV_TETHERED_NP     13
+#define UAV_TETHERED_NP     16
 #define UAV_TETHERED_NP_GLOBAL     0
 #define UAV_TETHERED_NBX    3
 #define UAV_TETHERED_NBX0   13

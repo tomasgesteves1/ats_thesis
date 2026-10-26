@@ -6,7 +6,7 @@ from acados_template import AcadosOcp, AcadosOcpSolver, AcadosModel
 
 NX = 13   # [x, y, z, vx, vy, vz, phi, theta, psi, phi_cmd, theta_cmd, psi_cmd, T]
 NU = 4    # [phi_dot_cmd, theta_dot_cmd, psi_dot_cmd, T_dot]
-NP = 13   # [x_v, y_v, z_v, vx_v, vy_v, vz_v, bx, by, tether_on, d_x, d_y, d_z, tether_model]
+NP = 16   # [x_v, y_v, z_v, vx_v, vy_v, vz_v, bx, by, tether_on, d_x, d_y, d_z, tether_model, p_ref (3)]
 
 
 def load_parameters():
@@ -55,7 +55,8 @@ def create_uav_model(prm) -> AcadosModel:
     tether_on = ca.SX.sym('tether_on')
     dist = ca.SX.sym('dist', 3)
     tether_model = ca.SX.sym('tether_model')
-    params = ca.vertcat(anchor, anchor_v, b_ref, tether_on, dist, tether_model)
+    p_ref = ca.SX.sym('p_ref', 3)
+    params = ca.vertcat(anchor, anchor_v, b_ref, tether_on, dist, tether_model, p_ref)
 
     # Translational dynamics (Eqs. uav_mpc_xddot -- uav_mpc_zddot)
     # The tilt (phi, theta) is the thrust axis expressed in the frame rotated by the commanded yaw psi_c, which is the
@@ -98,8 +99,13 @@ def create_uav_model(prm) -> AcadosModel:
     # The yaw term is active only while the tether (hence the USV) is present: the UAV then looks at the attachment point
     yaw_res = tether_on * ca.vertcat(ca.cos(psi) - b_unit[0], ca.sin(psi) - b_unit[1])
     thrust_res = T - prm['mass'] * prm['gravity']          # deviation from the hover thrust
-    model.cost_y_expr = ca.vertcat(p, v, phi, theta, yaw_res, thrust_res, u)
-    model.cost_y_expr_e = ca.vertcat(p, v, phi, theta, yaw_res, thrust_res)
+    # Position error through a pseudo-Huber shaping: the residual e (1 + |e|^2/delta^2)^(-1/4) gives a cost equal to the
+    # quadratic one near the reference and growing linearly beyond delta, so that a distant or unreachable reference pulls
+    # with a bounded force and never outweighs the penalty of the soft constraints
+    e_p = p - p_ref
+    pos_res = e_p * (1.0 + ca.dot(e_p, e_p) / prm['huber_delta'] ** 2) ** (-0.25)
+    model.cost_y_expr = ca.vertcat(pos_res, v, phi, theta, yaw_res, thrust_res, u)
+    model.cost_y_expr_e = ca.vertcat(pos_res, v, phi, theta, yaw_res, thrust_res)
 
     # Nonlinear constraints: h = [d^2, d_dot, |v_xy|, cos(tilt), cos(tilt_cmd)], where cos(tilt) = cos(phi) cos(theta) is
     # the vertical component of the thrust direction n, so the tilt is limited as a whole, whatever its direction

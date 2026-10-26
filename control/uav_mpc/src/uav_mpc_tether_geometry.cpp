@@ -50,36 +50,5 @@ std::pair<double, double> getInterpolatedBoatPos(
     return {state.px, state.py};
 }
 
-void projectReferenceToTetherLimit(
-    int stage_idx, double Ts, double rx, double ry, double rz,
-    double anchor_x, double anchor_y, bool has_boat_horizon,
-    const std::vector<std::vector<double>>& boat_horizon,
-    double L_tether, bool use_tether,
-    double& proj_x, double& proj_y, double& proj_z)
-{
-    if (!use_tether) {
-        proj_x = rx;
-        proj_y = ry;
-        proj_z = rz;
-        return;
-    }
-    auto b_pos = getInterpolatedBoatPos(stage_idx, Ts, anchor_x, anchor_y, has_boat_horizon, boat_horizon);
-    double dx = rx - b_pos.first;
-    double dy = ry - b_pos.second;
-    double dz = rz; // Boat Z is assumed 0 in XY projection constraint
-    double d = std::sqrt(dx * dx + dy * dy + dz * dz);
-    double L_safe = 1.0 * L_tether;
-    if (d > L_safe) {
-        double scale = L_safe / d;
-        proj_x = b_pos.first + dx * scale;
-        proj_y = b_pos.second + dy * scale;
-        proj_z = dz * scale;
-    } else {
-        proj_x = rx;
-        proj_y = ry;
-        proj_z = rz;
-    }
-}
-
 } // namespace tether
 } // namespace uav_mpc

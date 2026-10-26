@@ -35,6 +35,7 @@ extern "C" {
 #define casadi_s2 CASADI_PREFIX(s2)
 #define casadi_s3 CASADI_PREFIX(s3)
 #define casadi_s4 CASADI_PREFIX(s4)
+#define casadi_s5 CASADI_PREFIX(s5)
 #define casadi_sq CASADI_PREFIX(sq)
 
 /* Symbol visibility in DLLs */
@@ -58,61 +59,80 @@ static const casadi_int casadi_s0[3] = {13, 1, 1};
 static const casadi_int casadi_s1[3] = {4, 1, 1};
 static const casadi_int casadi_s2[3] = {0, 1, 1};
 static const casadi_int casadi_s3[3] = {0, 0, 1};
-static const casadi_int casadi_s4[3] = {15, 1, 1};
+static const casadi_int casadi_s4[3] = {16, 1, 1};
+static const casadi_int casadi_s5[3] = {15, 1, 1};
 
-/* uav_tethered_cost_y_0_fun:(i0[13],i1[4],i2[0],i3[],i4[13])->(o0[15]) */
+/* uav_tethered_cost_y_0_fun:(i0[13],i1[4],i2[0],i3[],i4[16])->(o0[15]) */
 static int casadi_f0(const casadi_real** arg, casadi_real** res, casadi_int* iw, casadi_real* w, int mem) {
-  casadi_real a0, a1, a2, a3, a4, a5, a6;
+  casadi_real a0, a1, a2, a3, a4, a5, a6, a7;
   a0=arg[0]? arg[0][0] : 0;
-  if (res[0]!=0) res[0][0]=a0;
-  a1=arg[0]? arg[0][1] : 0;
-  if (res[0]!=0) res[0][1]=a1;
-  a2=arg[0]? arg[0][2] : 0;
-  if (res[0]!=0) res[0][2]=a2;
-  a2=arg[0]? arg[0][3] : 0;
-  if (res[0]!=0) res[0][3]=a2;
-  a2=arg[0]? arg[0][4] : 0;
-  if (res[0]!=0) res[0][4]=a2;
-  a2=arg[0]? arg[0][5] : 0;
-  if (res[0]!=0) res[0][5]=a2;
-  a2=arg[0]? arg[0][6] : 0;
-  if (res[0]!=0) res[0][6]=a2;
-  a2=arg[0]? arg[0][7] : 0;
-  if (res[0]!=0) res[0][7]=a2;
-  a2=arg[4]? arg[4][8] : 0;
-  a3=arg[0]? arg[0][8] : 0;
-  a4=cos(a3);
-  a5=arg[4]? arg[4][6] : 0;
-  a5=(a5-a0);
-  a0=casadi_sq(a5);
-  a6=arg[4]? arg[4][7] : 0;
-  a6=(a6-a1);
-  a1=casadi_sq(a6);
-  a0=(a0+a1);
-  a1=4.;
-  a0=(a0+a1);
+  a1=arg[4]? arg[4][13] : 0;
+  a1=(a0-a1);
+  a2=1.;
+  a3=casadi_sq(a1);
+  a4=arg[0]? arg[0][1] : 0;
+  a5=arg[4]? arg[4][14] : 0;
+  a5=(a4-a5);
+  a6=casadi_sq(a5);
+  a3=(a3+a6);
+  a6=arg[0]? arg[0][2] : 0;
+  a7=arg[4]? arg[4][15] : 0;
+  a6=(a6-a7);
+  a7=casadi_sq(a6);
+  a3=(a3+a7);
+  a2=(a2+a3);
+  a3=-2.5000000000000000e-01;
+  a2=pow(a2,a3);
+  a1=(a1*a2);
+  if (res[0]!=0) res[0][0]=a1;
+  a5=(a5*a2);
+  if (res[0]!=0) res[0][1]=a5;
+  a6=(a6*a2);
+  if (res[0]!=0) res[0][2]=a6;
+  a6=arg[0]? arg[0][3] : 0;
+  if (res[0]!=0) res[0][3]=a6;
+  a6=arg[0]? arg[0][4] : 0;
+  if (res[0]!=0) res[0][4]=a6;
+  a6=arg[0]? arg[0][5] : 0;
+  if (res[0]!=0) res[0][5]=a6;
+  a6=arg[0]? arg[0][6] : 0;
+  if (res[0]!=0) res[0][6]=a6;
+  a6=arg[0]? arg[0][7] : 0;
+  if (res[0]!=0) res[0][7]=a6;
+  a6=arg[4]? arg[4][8] : 0;
+  a2=arg[0]? arg[0][8] : 0;
+  a5=cos(a2);
+  a1=arg[4]? arg[4][6] : 0;
+  a1=(a1-a0);
+  a0=casadi_sq(a1);
+  a3=arg[4]? arg[4][7] : 0;
+  a3=(a3-a4);
+  a4=casadi_sq(a3);
+  a0=(a0+a4);
+  a4=4.;
+  a0=(a0+a4);
   a0=sqrt(a0);
-  a5=(a5/a0);
-  a4=(a4-a5);
-  a4=(a2*a4);
-  if (res[0]!=0) res[0][8]=a4;
-  a3=sin(a3);
-  a6=(a6/a0);
-  a3=(a3-a6);
-  a2=(a2*a3);
-  if (res[0]!=0) res[0][9]=a2;
-  a2=arg[0]? arg[0][12] : 0;
-  a3=2.0208600000000001e+01;
+  a1=(a1/a0);
+  a5=(a5-a1);
+  a5=(a6*a5);
+  if (res[0]!=0) res[0][8]=a5;
+  a2=sin(a2);
+  a3=(a3/a0);
   a2=(a2-a3);
-  if (res[0]!=0) res[0][10]=a2;
-  a2=arg[1]? arg[1][0] : 0;
-  if (res[0]!=0) res[0][11]=a2;
-  a2=arg[1]? arg[1][1] : 0;
-  if (res[0]!=0) res[0][12]=a2;
-  a2=arg[1]? arg[1][2] : 0;
-  if (res[0]!=0) res[0][13]=a2;
-  a2=arg[1]? arg[1][3] : 0;
-  if (res[0]!=0) res[0][14]=a2;
+  a6=(a6*a2);
+  if (res[0]!=0) res[0][9]=a6;
+  a6=arg[0]? arg[0][12] : 0;
+  a2=2.0208600000000001e+01;
+  a6=(a6-a2);
+  if (res[0]!=0) res[0][10]=a6;
+  a6=arg[1]? arg[1][0] : 0;
+  if (res[0]!=0) res[0][11]=a6;
+  a6=arg[1]? arg[1][1] : 0;
+  if (res[0]!=0) res[0][12]=a6;
+  a6=arg[1]? arg[1][2] : 0;
+  if (res[0]!=0) res[0][13]=a6;
+  a6=arg[1]? arg[1][3] : 0;
+  if (res[0]!=0) res[0][14]=a6;
   return 0;
 }
 
@@ -178,14 +198,14 @@ CASADI_SYMBOL_EXPORT const casadi_int* uav_tethered_cost_y_0_fun_sparsity_in(cas
     case 1: return casadi_s1;
     case 2: return casadi_s2;
     case 3: return casadi_s3;
-    case 4: return casadi_s0;
+    case 4: return casadi_s4;
     default: return 0;
   }
 }
 
 CASADI_SYMBOL_EXPORT const casadi_int* uav_tethered_cost_y_0_fun_sparsity_out(casadi_int i) {
   switch (i) {
-    case 0: return casadi_s4;
+    case 0: return casadi_s5;
     default: return 0;
   }
 }

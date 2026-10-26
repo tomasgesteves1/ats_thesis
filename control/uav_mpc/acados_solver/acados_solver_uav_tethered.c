@@ -558,7 +558,7 @@ void uav_tethered_acados_setup_nlp_in(uav_tethered_solver_capsule* capsule, cons
     W_0[11+(NY0) * 11] = 30;
     W_0[12+(NY0) * 12] = 30;
     W_0[13+(NY0) * 13] = 5;
-    W_0[14+(NY0) * 14] = 0.0005;
+    W_0[14+(NY0) * 14] = 0.01;
     ocp_nlp_cost_model_set(nlp_config, nlp_dims, nlp_in, 0, "W", W_0);
     free(W_0);
     double* yref = calloc(NY, sizeof(double));
@@ -585,7 +585,7 @@ void uav_tethered_acados_setup_nlp_in(uav_tethered_solver_capsule* capsule, cons
     W[11+(NY) * 11] = 30;
     W[12+(NY) * 12] = 30;
     W[13+(NY) * 13] = 5;
-    W[14+(NY) * 14] = 0.0005;
+    W[14+(NY) * 14] = 0.01;
 
     for (int i = 1; i < N; i++)
     {
@@ -632,34 +632,34 @@ void uav_tethered_acados_setup_nlp_in(uav_tethered_solver_capsule* capsule, cons
     double* zl = zlumem+NS*2;
     double* zu = zlumem+NS*3;
     // change only the non-zero elements:
-    Zl[0] = 20000;
-    Zl[1] = 20000;
-    Zl[2] = 20000;
-    Zl[3] = 20000;
-    Zl[4] = 20000;
-    Zl[5] = 20000;
-    Zl[6] = 20000;
-    Zu[0] = 20000;
-    Zu[1] = 20000;
-    Zu[2] = 20000;
-    Zu[3] = 20000;
-    Zu[4] = 20000;
-    Zu[5] = 20000;
-    Zu[6] = 20000;
-    zl[0] = 10000;
-    zl[1] = 10000;
-    zl[2] = 10000;
-    zl[3] = 10000;
-    zl[4] = 10000;
-    zl[5] = 10000;
-    zl[6] = 10000;
-    zu[0] = 10000;
-    zu[1] = 10000;
-    zu[2] = 10000;
-    zu[3] = 10000;
-    zu[4] = 10000;
-    zu[5] = 10000;
-    zu[6] = 10000;
+    Zl[0] = 200000;
+    Zl[1] = 200000;
+    Zl[2] = 200000;
+    Zl[3] = 200000;
+    Zl[4] = 200000;
+    Zl[5] = 200000;
+    Zl[6] = 200000;
+    Zu[0] = 200000;
+    Zu[1] = 200000;
+    Zu[2] = 200000;
+    Zu[3] = 200000;
+    Zu[4] = 200000;
+    Zu[5] = 200000;
+    Zu[6] = 200000;
+    zl[0] = 100000;
+    zl[1] = 100000;
+    zl[2] = 100000;
+    zl[3] = 100000;
+    zl[4] = 100000;
+    zl[5] = 100000;
+    zl[6] = 100000;
+    zu[0] = 100000;
+    zu[1] = 100000;
+    zu[2] = 100000;
+    zu[3] = 100000;
+    zu[4] = 100000;
+    zu[5] = 100000;
+    zu[6] = 100000;
 
     for (int i = 1; i < N; i++)
     {
@@ -679,34 +679,34 @@ void uav_tethered_acados_setup_nlp_in(uav_tethered_solver_capsule* capsule, cons
     double* zu_e = zluemem+NSN*3;
 
     // change only the non-zero elements:
-    Zl_e[0] = 20000;
-    Zl_e[1] = 20000;
-    Zl_e[2] = 20000;
-    Zl_e[3] = 20000;
-    Zl_e[4] = 20000;
-    Zl_e[5] = 20000;
-    Zl_e[6] = 20000;
-    Zu_e[0] = 20000;
-    Zu_e[1] = 20000;
-    Zu_e[2] = 20000;
-    Zu_e[3] = 20000;
-    Zu_e[4] = 20000;
-    Zu_e[5] = 20000;
-    Zu_e[6] = 20000;
-    zl_e[0] = 10000;
-    zl_e[1] = 10000;
-    zl_e[2] = 10000;
-    zl_e[3] = 10000;
-    zl_e[4] = 10000;
-    zl_e[5] = 10000;
-    zl_e[6] = 10000;
-    zu_e[0] = 10000;
-    zu_e[1] = 10000;
-    zu_e[2] = 10000;
-    zu_e[3] = 10000;
-    zu_e[4] = 10000;
-    zu_e[5] = 10000;
-    zu_e[6] = 10000;
+    Zl_e[0] = 200000;
+    Zl_e[1] = 200000;
+    Zl_e[2] = 200000;
+    Zl_e[3] = 200000;
+    Zl_e[4] = 200000;
+    Zl_e[5] = 200000;
+    Zl_e[6] = 200000;
+    Zu_e[0] = 200000;
+    Zu_e[1] = 200000;
+    Zu_e[2] = 200000;
+    Zu_e[3] = 200000;
+    Zu_e[4] = 200000;
+    Zu_e[5] = 200000;
+    Zu_e[6] = 200000;
+    zl_e[0] = 100000;
+    zl_e[1] = 100000;
+    zl_e[2] = 100000;
+    zl_e[3] = 100000;
+    zl_e[4] = 100000;
+    zl_e[5] = 100000;
+    zl_e[6] = 100000;
+    zu_e[0] = 100000;
+    zu_e[1] = 100000;
+    zu_e[2] = 100000;
+    zu_e[3] = 100000;
+    zu_e[4] = 100000;
+    zu_e[5] = 100000;
+    zu_e[6] = 100000;
 
     ocp_nlp_cost_model_set(nlp_config, nlp_dims, nlp_in, N, "Zl", Zl_e);
     ocp_nlp_cost_model_set(nlp_config, nlp_dims, nlp_in, N, "Zu", Zu_e);
@@ -1299,7 +1299,7 @@ int uav_tethered_acados_update_params(uav_tethered_solver_capsule* capsule, int 
 {
     int solver_status = 0;
 
-    int casadi_np = 13;
+    int casadi_np = 16;
     if (casadi_np != np) {
         printf("acados_update_params: trying to set %i parameters for external functions."
             " External function has %i parameters. Exiting.\n", np, casadi_np);

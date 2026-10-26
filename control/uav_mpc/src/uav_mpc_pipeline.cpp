@@ -15,7 +15,7 @@ constexpr int PREDICTED_ATTITUDE_NODE = 10;  // node of the horizon whose attitu
 constexpr int NU = 4;       // [phi_dot_cmd, theta_dot_cmd, psi_dot_cmd, T_dot]
 constexpr int NY = 15;      // [p, v, phi, theta, yaw residual (2), T - m g, u (4)]
 constexpr int NY_E = 11;
-constexpr int NP = 13;      // [anchor (3), anchor velocity (3), yaw reference point (2), tether switch, disturbance (3), tether model switch]
+constexpr int NP = 16;      // [anchor (3), anchor velocity (3), yaw reference point (2), tether switch, disturbance (3), tether model switch, position reference (3)]
 constexpr double NO_LIMIT = 1.0e6;
 
 double wrapAngle(double a) {
@@ -377,9 +377,12 @@ void UavMpcPipeline::setupOcpSolver(const double x0[13]) {
         ocp_nlp_constraints_model_set(cfg, dims, in, out, i, "uh", uh_val);
     }
 
-    // Reference trajectory over the horizon: yref = [p, v, 0 (tilt), 0, 0 (yaw residual), 0 (T - m g), 0 (inputs)]
+    // Reference trajectory over the horizon. The position reference enters as a parameter of each node, since the cost
+    // shapes the position error (pseudo-Huber); yref = [0 (position residual), v, 0 (tilt), 0, 0 (yaw residual),
+    // 0 (T - m g), 0 (inputs)]
     const bool external = (trajectory_type_ == TrajectoryType::EXTERNAL &&
                            external_reference_path_.size() >= static_cast<size_t>(N + 1));
+    p_ref_.resize(N + 1);
     for (int i = 0; i <= N; i++) {
         double rx, ry, rz, rvx = 0.0, rvy = 0.0, rvz = 0.0;
         if (external) {
@@ -388,16 +391,13 @@ void UavMpcPipeline::setupOcpSolver(const double x0[13]) {
         } else {
             rx = current_reference_[0]; ry = current_reference_[1]; rz = current_reference_[2];
         }
-        double proj_x, proj_y, proj_z;
-        tether::projectReferenceToTetherLimit(
-            i, Ts_, rx, ry, rz, anchor_x_, anchor_y_, has_boat_horizon_, boat_horizon_,
-            L_tether_, use_tether_, proj_x, proj_y, proj_z);
+        p_ref_[i] = {rx, ry, rz};
 
         if (i < N) {
-            double yref[NY] = {proj_x, proj_y, proj_z, rvx, rvy, rvz, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0};
+            double yref[NY] = {0.0, 0.0, 0.0, rvx, rvy, rvz, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0};
             ocp_nlp_cost_model_set(cfg, dims, in, i, "yref", yref);
         } else {
-            double yref_e[NY_E] = {proj_x, proj_y, proj_z, rvx, rvy, rvz, 0.0, 0.0, 0.0, 0.0, 0.0};
+            double yref_e[NY_E] = {0.0, 0.0, 0.0, rvx, rvy, rvz, 0.0, 0.0, 0.0, 0.0, 0.0};
             ocp_nlp_cost_model_set(cfg, dims, in, N, "yref", yref_e);
         }
     }
@@ -429,7 +429,8 @@ void UavMpcPipeline::setupOcpSolver(const double x0[13]) {
             b_ref_y,
             use_tether_ ? 1.0 : 0.0,
             disturbance[0], disturbance[1], disturbance[2],
-            tether_model_ ? 1.0 : 0.0
+            tether_model_ ? 1.0 : 0.0,
+            p_ref_[i][0], p_ref_[i][1], p_ref_[i][2]
         };
         uav_tethered_acados_update_params(capsule, i, p_params, NP);
     }

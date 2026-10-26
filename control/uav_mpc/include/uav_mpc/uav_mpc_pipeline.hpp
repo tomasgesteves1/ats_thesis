@@ -89,6 +89,7 @@ private:
     double target_yaw_;
     bool target_initialized_;
     std::vector<double> current_reference_;
+    std::vector<std::array<double, 3>> p_ref_;   // position reference of each node (parameter of the cost)
     std::vector<double> current_reference_velocity_;
 
     // Global tether anchor position and length

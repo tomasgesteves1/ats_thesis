@@ -116,6 +116,9 @@ int main()
     p[10] = 0;
     p[11] = 0;
     p[12] = 0;
+    p[13] = 0;
+    p[14] = 0;
+    p[15] = 0;
 
     uav_tethered_acados_sim_update_params(capsule, p, NP);
   

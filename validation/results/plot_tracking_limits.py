@@ -37,9 +37,9 @@ def main():
     d = load('tracking_limits_nmpc')
     ref, dr, tel = d['uav_ref'], d['drone'], d['tel']
     # Start of the table: end of the hold on its first point once the UAV has reached it (the reference also sits on
-    # this point for an instant before the first odometry, which is skipped)
+    # this point before the first odometry, so the search starts a few seconds after it)
     on_first = np.linalg.norm(ref[:, 1:4] - tab[0, 1:4], axis=1) < 1e-4
-    idx = np.where(on_first & (ref[:, 0] > ref[0, 0] + 1.0))[0]
+    idx = np.where(on_first & (ref[:, 0] > dr[0, 0] + 5.0))[0]
     cut = np.where(np.diff(idx) > 1)[0]
     t0 = ref[idx[cut[0]] if len(cut) else idx[-1], 0]
     marks, t_end = phase_marks()

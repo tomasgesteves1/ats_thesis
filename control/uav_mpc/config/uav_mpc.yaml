@@ -33,12 +33,13 @@ uav_mpc_node:
 
     # Cost weights (Table 4.12)
     weight_Qp: [60.0, 60.0, 150.0]
+    huber_delta: 1.0             # m, position error beyond which its cost grows linearly (pseudo-Huber)
     weight_Qv: [5.0, 5.0, 7.5]
     weight_Qtilt: [5.0, 5.0]
     weight_q_psi: 20.0
     yaw_epsilon: 4.0             # m^2, regularisation of the bearing: the yaw weight fades within ~2 m of the anchor
     weight_Q_thrust: 0.118                # weight of (T - m g)^2
-    weight_R: [30.0, 30.0, 5.0, 0.0005]  # [phi_dot, theta_dot, psi_dot, T_dot]
+    weight_R: [30.0, 30.0, 5.0, 0.01]  # [phi_dot, theta_dot, psi_dot, T_dot]
 
     # Input limits
     phi_dot_max: 0.8             # rad/s
@@ -71,10 +72,10 @@ uav_mpc_node:
     d_dot_min: -2.0              # m/s, lower bound of the separation rate (-d_dot_max: winch reel-in speed)
 
     # Slack penalties rho(sigma) = mu1*sigma + mu2*sigma^2
-    slack_mu1_bounds: 10000.0     # exact-penalty regime: the bounds give way only when they cannot be met
-    slack_mu2_bounds: 10000.0
-    slack_mu1_tether: 10000.0
-    slack_mu2_tether: 10000.0
+    slack_mu1_bounds: 100000.0    # exact-penalty regime: the bounds give way only when they cannot be met
+    slack_mu2_bounds: 100000.0
+    slack_mu1_tether: 100000.0
+    slack_mu2_tether: 100000.0
 
     # Normalised hover throttle (nominal; the PX4 estimate is used only if use_px4_hover_estimate is true)
     hover_throttle: 0.618
