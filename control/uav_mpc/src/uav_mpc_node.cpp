@@ -55,8 +55,7 @@ UavMpcNode::UavMpcNode()
     this->declare_parameter<double>("disturbance_max_force", 8.0);
     this->declare_parameter<double>("v_xy_max", 10.0);
     this->declare_parameter<double>("v_z_max", 10.0);
-    this->declare_parameter<double>("phi_max", 0.5);
-    this->declare_parameter<double>("theta_max", 0.5);
+    this->declare_parameter<double>("tilt_max", 0.5);
     this->declare_parameter<double>("thrust_min", 2.02);
     this->declare_parameter<double>("thrust_max", 39.96);
     this->declare_parameter<double>("hover_throttle", 0.618);
@@ -396,8 +395,7 @@ void UavMpcNode::controlLoop() {
     params.z_min = this->get_parameter(low_altitude_ ? "z_min_low_altitude" : "z_min").as_double();
     params.v_xy_max = this->get_parameter("v_xy_max").as_double();
     params.v_z_max = this->get_parameter("v_z_max").as_double();
-    params.phi_max = this->get_parameter("phi_max").as_double();
-    params.theta_max = this->get_parameter("theta_max").as_double();
+    params.tilt_max = this->get_parameter("tilt_max").as_double();
     params.thrust_min = this->get_parameter("thrust_min").as_double();
     params.thrust_max = this->get_parameter("thrust_max").as_double();
     params.d_dot_max = this->get_parameter("winch_speed_limit").as_double();

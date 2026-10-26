@@ -639,8 +639,6 @@ void uav_tethered_acados_setup_nlp_in(uav_tethered_solver_capsule* capsule, cons
     Zl[4] = 20000;
     Zl[5] = 20000;
     Zl[6] = 20000;
-    Zl[7] = 20000;
-    Zl[8] = 20000;
     Zu[0] = 20000;
     Zu[1] = 20000;
     Zu[2] = 20000;
@@ -648,8 +646,6 @@ void uav_tethered_acados_setup_nlp_in(uav_tethered_solver_capsule* capsule, cons
     Zu[4] = 20000;
     Zu[5] = 20000;
     Zu[6] = 20000;
-    Zu[7] = 20000;
-    Zu[8] = 20000;
     zl[0] = 10000;
     zl[1] = 10000;
     zl[2] = 10000;
@@ -657,8 +653,6 @@ void uav_tethered_acados_setup_nlp_in(uav_tethered_solver_capsule* capsule, cons
     zl[4] = 10000;
     zl[5] = 10000;
     zl[6] = 10000;
-    zl[7] = 10000;
-    zl[8] = 10000;
     zu[0] = 10000;
     zu[1] = 10000;
     zu[2] = 10000;
@@ -666,8 +660,6 @@ void uav_tethered_acados_setup_nlp_in(uav_tethered_solver_capsule* capsule, cons
     zu[4] = 10000;
     zu[5] = 10000;
     zu[6] = 10000;
-    zu[7] = 10000;
-    zu[8] = 10000;
 
     for (int i = 1; i < N; i++)
     {
@@ -694,8 +686,6 @@ void uav_tethered_acados_setup_nlp_in(uav_tethered_solver_capsule* capsule, cons
     Zl_e[4] = 20000;
     Zl_e[5] = 20000;
     Zl_e[6] = 20000;
-    Zl_e[7] = 20000;
-    Zl_e[8] = 20000;
     Zu_e[0] = 20000;
     Zu_e[1] = 20000;
     Zu_e[2] = 20000;
@@ -703,8 +693,6 @@ void uav_tethered_acados_setup_nlp_in(uav_tethered_solver_capsule* capsule, cons
     Zu_e[4] = 20000;
     Zu_e[5] = 20000;
     Zu_e[6] = 20000;
-    Zu_e[7] = 20000;
-    Zu_e[8] = 20000;
     zl_e[0] = 10000;
     zl_e[1] = 10000;
     zl_e[2] = 10000;
@@ -712,8 +700,6 @@ void uav_tethered_acados_setup_nlp_in(uav_tethered_solver_capsule* capsule, cons
     zl_e[4] = 10000;
     zl_e[5] = 10000;
     zl_e[6] = 10000;
-    zl_e[7] = 10000;
-    zl_e[8] = 10000;
     zu_e[0] = 10000;
     zu_e[1] = 10000;
     zu_e[2] = 10000;
@@ -721,8 +707,6 @@ void uav_tethered_acados_setup_nlp_in(uav_tethered_solver_capsule* capsule, cons
     zu_e[4] = 10000;
     zu_e[5] = 10000;
     zu_e[6] = 10000;
-    zu_e[7] = 10000;
-    zu_e[8] = 10000;
 
     ocp_nlp_cost_model_set(nlp_config, nlp_dims, nlp_in, N, "Zl", Zl_e);
     ocp_nlp_cost_model_set(nlp_config, nlp_dims, nlp_in, N, "Zu", Zu_e);
@@ -827,11 +811,7 @@ void uav_tethered_acados_setup_nlp_in(uav_tethered_solver_capsule* capsule, cons
     int* idxbx = malloc(NBX * sizeof(int));
     idxbx[0] = 2;
     idxbx[1] = 5;
-    idxbx[2] = 6;
-    idxbx[3] = 7;
-    idxbx[4] = 9;
-    idxbx[5] = 10;
-    idxbx[6] = 12;
+    idxbx[2] = 12;
     double* lubx = calloc(2*NBX, sizeof(double));
     double* lbx = lubx;
     double* ubx = lubx + NBX;
@@ -839,16 +819,8 @@ void uav_tethered_acados_setup_nlp_in(uav_tethered_solver_capsule* capsule, cons
     ubx[0] = 1000;
     lbx[1] = -10;
     ubx[1] = 10;
-    lbx[2] = -0.5;
-    ubx[2] = 0.5;
-    lbx[3] = -0.5;
-    ubx[3] = 0.5;
-    lbx[4] = -0.5;
-    ubx[4] = 0.5;
-    lbx[5] = -0.5;
-    ubx[5] = 0.5;
-    lbx[6] = 2.02;
-    ubx[6] = 39.96;
+    lbx[2] = 2.02;
+    ubx[2] = 39.96;
 
     for (int i = 1; i < N; i++)
     {
@@ -865,9 +837,13 @@ void uav_tethered_acados_setup_nlp_in(uav_tethered_solver_capsule* capsule, cons
     double* lh = luh;
     double* uh = luh + NH;
     lh[1] = -2;
+    lh[3] = 0.8775825618903728;
+    lh[4] = 0.8775825618903728;
     uh[0] = 225;
     uh[1] = 2;
     uh[2] = 10;
+    uh[3] = 1;
+    uh[4] = 1;
 
     for (int i = 1; i < N; i++)
     {
@@ -897,10 +873,6 @@ void uav_tethered_acados_setup_nlp_in(uav_tethered_solver_capsule* capsule, cons
     int* idxsbx = malloc(NSBX * sizeof(int));
     idxsbx[0] = 0;
     idxsbx[1] = 1;
-    idxsbx[2] = 2;
-    idxsbx[3] = 3;
-    idxsbx[4] = 4;
-    idxsbx[5] = 5;
 
     double* lusbx = calloc(2*NSBX, sizeof(double));
     double* lsbx = lusbx;
@@ -921,6 +893,8 @@ void uav_tethered_acados_setup_nlp_in(uav_tethered_solver_capsule* capsule, cons
     idxsh[0] = 0;
     idxsh[1] = 1;
     idxsh[2] = 2;
+    idxsh[3] = 3;
+    idxsh[4] = 4;
     double* lush = calloc(2*NSH, sizeof(double));
     double* lsh = lush;
     double* ush = lush + NSH;
@@ -943,11 +917,7 @@ void uav_tethered_acados_setup_nlp_in(uav_tethered_solver_capsule* capsule, cons
     int* idxbx_e = malloc(NBXN * sizeof(int));
     idxbx_e[0] = 2;
     idxbx_e[1] = 5;
-    idxbx_e[2] = 6;
-    idxbx_e[3] = 7;
-    idxbx_e[4] = 9;
-    idxbx_e[5] = 10;
-    idxbx_e[6] = 12;
+    idxbx_e[2] = 12;
     double* lubx_e = calloc(2*NBXN, sizeof(double));
     double* lbx_e = lubx_e;
     double* ubx_e = lubx_e + NBXN;
@@ -955,16 +925,8 @@ void uav_tethered_acados_setup_nlp_in(uav_tethered_solver_capsule* capsule, cons
     ubx_e[0] = 1000;
     lbx_e[1] = -10;
     ubx_e[1] = 10;
-    lbx_e[2] = -0.5;
-    ubx_e[2] = 0.5;
-    lbx_e[3] = -0.5;
-    ubx_e[3] = 0.5;
-    lbx_e[4] = -0.5;
-    ubx_e[4] = 0.5;
-    lbx_e[5] = -0.5;
-    ubx_e[5] = 0.5;
-    lbx_e[6] = 2.02;
-    ubx_e[6] = 39.96;
+    lbx_e[2] = 2.02;
+    ubx_e[2] = 39.96;
     ocp_nlp_constraints_model_set(nlp_config, nlp_dims, nlp_in, nlp_out, N, "idxbx", idxbx_e);
     ocp_nlp_constraints_model_set(nlp_config, nlp_dims, nlp_in, nlp_out, N, "lbx", lbx_e);
     ocp_nlp_constraints_model_set(nlp_config, nlp_dims, nlp_in, nlp_out, N, "ubx", ubx_e);
@@ -979,9 +941,13 @@ void uav_tethered_acados_setup_nlp_in(uav_tethered_solver_capsule* capsule, cons
     double* lh_e = luh_e;
     double* uh_e = luh_e + NHN;
     lh_e[1] = -2;
+    lh_e[3] = 0.8775825618903728;
+    lh_e[4] = 0.8775825618903728;
     uh_e[0] = 225;
     uh_e[1] = 2;
     uh_e[2] = 10;
+    uh_e[3] = 1;
+    uh_e[4] = 1;
 
     ocp_nlp_constraints_model_set_external_param_fun(nlp_config, nlp_dims, nlp_in, N, "nl_constr_h_fun_jac", &capsule->nl_constr_h_e_fun_jac);
     ocp_nlp_constraints_model_set_external_param_fun(nlp_config, nlp_dims, nlp_in, N, "nl_constr_h_fun", &capsule->nl_constr_h_e_fun);
@@ -1008,6 +974,8 @@ void uav_tethered_acados_setup_nlp_in(uav_tethered_solver_capsule* capsule, cons
     idxsh_e[0] = 0;
     idxsh_e[1] = 1;
     idxsh_e[2] = 2;
+    idxsh_e[3] = 3;
+    idxsh_e[4] = 4;
     double* lush_e = calloc(2*NSHN, sizeof(double));
     double* lsh_e = lush_e;
     double* ush_e = lush_e + NSHN;
@@ -1025,10 +993,6 @@ void uav_tethered_acados_setup_nlp_in(uav_tethered_solver_capsule* capsule, cons
     int* idxsbx_e = malloc(NSBXN * sizeof(int));
     idxsbx_e[0] = 0;
     idxsbx_e[1] = 1;
-    idxsbx_e[2] = 2;
-    idxsbx_e[3] = 3;
-    idxsbx_e[4] = 4;
-    idxsbx_e[5] = 5;
     double* lusbx_e = calloc(2*NSBXN, sizeof(double));
     double* lsbx_e = lusbx_e;
     double* usbx_e = lusbx_e + NSBXN;

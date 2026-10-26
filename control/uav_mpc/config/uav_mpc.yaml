@@ -59,8 +59,7 @@ uav_mpc_node:
     disturbance_max_force: 8.0   # d_bar (N)
     v_xy_max: 10.0               # m/s
     v_z_max: 10.0                # m/s
-    phi_max: 0.5                 # rad
-    theta_max: 0.5               # rad
+    tilt_max: 0.5                # rad, total tilt of the thrust from the vertical (predicted and commanded)
 
     # Tether
     use_tether: false            # Enable/Disable the coupling to the USV

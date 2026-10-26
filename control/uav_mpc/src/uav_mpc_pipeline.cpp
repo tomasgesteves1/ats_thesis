@@ -353,22 +353,24 @@ void UavMpcPipeline::setupOcpSolver(const double x0[13]) {
     ocp_nlp_constraints_model_set(cfg, dims, in, out, 0, "lbx", const_cast<double*>(x0));
     ocp_nlp_constraints_model_set(cfg, dims, in, out, 0, "ubx", const_cast<double*>(x0));
 
-    // State bounds on [z, vz, phi, theta, phi_cmd, theta_cmd] (soft) and T (hard), nodes 1..N
-    double lbx[7] = {params_.z_min, -params_.v_z_max, -params_.phi_max, -params_.theta_max, -params_.phi_max,
-                     -params_.theta_max, params_.thrust_min};
-    double ubx[7] = {NO_LIMIT, params_.v_z_max, params_.phi_max, params_.theta_max, params_.phi_max,
-                     params_.theta_max, params_.thrust_max};
+    // State bounds on [z, vz] (soft) and T (hard), nodes 1..N
+    double lbx[3] = {params_.z_min, -params_.v_z_max, params_.thrust_min};
+    double ubx[3] = {NO_LIMIT, params_.v_z_max, params_.thrust_max};
     for (int i = 1; i <= N; i++) {
         ocp_nlp_constraints_model_set(cfg, dims, in, out, i, "lbx", lbx);
         ocp_nlp_constraints_model_set(cfg, dims, in, out, i, "ubx", ubx);
     }
 
-    // Tether and speed bounds on h = [d^2, d_dot, |v_xy|]: d^2 <= d_max^2, |d_dot| <= d_dot_max, |v_xy| <= v_xy_max
-    double lh_val[3] = {0.0, use_tether_ ? -params_.d_dot_max : -NO_LIMIT, 0.0};
-    double uh_val[3] = {
+    // Tether, speed and tilt bounds on h = [d^2, d_dot, |v_xy|, cos(tilt), cos(tilt_cmd)]: d^2 <= d_max^2,
+    // |d_dot| <= d_dot_max, |v_xy| <= v_xy_max, tilt and commanded tilt <= tilt_max
+    const double cos_tilt_max = std::cos(params_.tilt_max);
+    double lh_val[5] = {0.0, use_tether_ ? -params_.d_dot_max : -NO_LIMIT, 0.0, cos_tilt_max, cos_tilt_max};
+    double uh_val[5] = {
         use_tether_ ? (L_tether_ * L_tether_) : NO_LIMIT,
         use_tether_ ? params_.d_dot_max : NO_LIMIT,
-        params_.v_xy_max
+        params_.v_xy_max,
+        1.0,
+        1.0
     };
     for (int i = 1; i <= N; i++) {
         ocp_nlp_constraints_model_set(cfg, dims, in, out, i, "lh", lh_val);
