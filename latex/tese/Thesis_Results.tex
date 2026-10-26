@@ -8,8 +8,11 @@
 \chapter{Results}
 \label{chapter:results}
 
-% How is the system evaluated?
-The evaluation starts with each controller on its own, following simple references and finding a feasible motion when the reference lies beyond the reach of the tether or the limits of the vehicle. The two vehicles then work together in three example missions, from the takeoff to the landing on the moving deck. Finally, the same manoeuvres are repeated under growing waves and wind.
+% What remains to be shown, after everything built in the previous chapters?
+The models developed so far predict the motion of the vehicles and of the tether, and the controllers built on them solve their problems in real time. It remains to be shown that, together, they carry out a maritime operation within the limits of the system. 
+
+% How will it be shown?
+The evaluation moves gradually closer to a real operation. It starts with each controller individually, measuring how closely it follows a reference and whether it still plans a feasible motion from the simple, and possibly unreachable, references given by the manoeuvres. The two vehicles are then brought together in the three missions of Section~\ref{sec:maneuvers_and_missions}, where they must operate as one system from the takeoff to the landing on the moving deck. Finally, the landing, the manoeuvre most exposed to the sea, is repeated under growing waves and wind, which the models do not describe.
 
 \input{Results/01_Tracking}
 \input{Results/02_Missions}

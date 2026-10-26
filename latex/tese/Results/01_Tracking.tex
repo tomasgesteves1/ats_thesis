@@ -6,17 +6,17 @@
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 % ==============================================================================
-\section{Tracking and Planning}
+\section{Tracking}
 \label{sec:res_tracking}
 
 % What is tested first, and why in two steps?
-The controllers of Chapter~\ref{chapter:methodology} play two roles at once. They follow the reference they are given, and they turn it into a motion that respects the limits of both vehicles and of the tether, whatever that reference is. The two roles are tested separately. The tracking is first measured with a reference that both vehicles can follow, so that the error reflects only how closely they follow it. The planning is then tested with references that cannot be followed, which jump from one point to another or lead beyond the reach of the tether, so that the limits decide the motion.
+The controllers of Chapter~\ref{chapter:methodology} play two roles at once. They follow the reference they are given, and they turn it into a motion that respects the limits of both vehicles and of the tether, whatever that reference is. The tracking accuracy is first measured with a reference that both vehicles can follow, so that the error reflects how closely they follow it. The controllers are then given references that cannot be followed, which jump from one point to another or lead beyond the reach of the tether, so that the limits decide the motion.
 
-\subsection{Nominal Tracking}
+\subsection{Tracking Accuracy}
 \label{subsec:res_tracking_nominal}
 
 % Which reference, and why this one?
-In the nominal scenario, the \gls{usv} sails a circle of $3\,\text{m}$ radius at $0.15\,\text{m/s}$, while the \gls{uav} flies a circle of $5\,\text{m}$ radius about the same centre at $1.5\,\text{m/s}$, tilted so that its height goes from $21$ to $29\,\text{m}$ along each lap, as shown in Figure~\ref{fig:res_nominal_3d}. Since the two circles are flown at different angular speeds, the \gls{uav} passes alternately above the \gls{usv} and on the opposite side, and the separation between them varies between $20$ and $29\,\text{m}$. The length of hanging tether varies with it, and so does the force it applies to the \gls{uav}, between $3.9$ and $6.0\,\text{N}$, Figure~\ref{fig:res_nominal_tension}. The reference is therefore easy to follow, but the force acting on the \gls{uav} changes at every instant. The maximum separation was set to $35\,\text{m}$ for this scenario, so that the constraint of the tether is never active.
+To measure the tracking accuracy alone, the reference must be one that both vehicles can follow without reaching their limits, while still exposing the \gls{uav} to a tether force that changes as the vehicles move. The \gls{usv} therefore sails a circle of $3\,\text{m}$ radius at $0.15\,\text{m/s}$, while the \gls{uav} flies a circle of $5\,\text{m}$ radius about the same centre at $1.5\,\text{m/s}$, tilted so that its height goes from $21$ to $29\,\text{m}$ along each lap, as shown in Figure~\ref{fig:res_nominal_3d}. Since the two circles are flown at different angular speeds, the \gls{uav} passes alternately above the \gls{usv} and on the opposite side, and the separation between them ranges from $20$ to $29\,\text{m}$. The tension at the \gls{uav} follows this separation, since it carries the weight of a longer or shorter tether, and ranges from $3.9$ to $6.0\,\text{N}$, Figure~\ref{fig:res_nominal_tension}. So that the reach of the tether does not interfere, its maximum separation is raised to $35\,\text{m}$ for this test.
 
 \begin{figure}[htbp]
     \centering
