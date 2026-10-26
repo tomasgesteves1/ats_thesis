@@ -549,14 +549,14 @@ The requirement $d^2 \le d_{max}^2$ is enforced as a soft constraint through a s
 \end{equation}
 which is penalised by $\rho_6(\sigma_6)$ as in \eqref{eq:nmpc_slack_penalty}, with large weights $\mu_{1,6}$ and $\mu_{2,6}$ so that violations remain small.
 
-Similarly, to prevent tension spikes during tether deployment, the rate at which the inter-vehicle distance increases must not exceed the maximum pay-out rate of the winch mechanism, $\dot d \le \dot d_{max}$. Differentiating $d = \|\mathbf{r}\|$ with respect to time yields the projection of the relative velocity $\dot{\mathbf{r}} = [\dot x-\hat{\dot x}_v,\, \dot y-\hat{\dot y}_v,\, \dot z]^\top$ onto the tether line of sight:
+Similarly, the length of the tether can only follow the distance between the vehicles as fast as the winch spools it, in either direction. If the distance grows faster than the winch pays out the tether, the tether is stretched and its tension rises sharply. If it shrinks faster than the winch reels the tether in, the tether is left with more slack than the operating point $\varepsilon_0$ of its model, and sags further, towards the water. The rate of change of the distance must therefore not exceed the maximum speed of the winch, $|\dot d| \le \dot d_{max}$. Differentiating $d = \|\mathbf{r}\|$ with respect to time yields the projection of the relative velocity $\dot{\mathbf{r}} = [\dot x-\hat{\dot x}_v,\, \dot y-\hat{\dot y}_v,\, \dot z]^\top$ onto the tether line of sight:
 \begin{equation}
     \dot d = \frac{\mathrm{d}}{\mathrm{d}t}\|\mathbf{r}\| = \frac{\mathbf{r}^\top\dot{\mathbf{r}}}{d}.
     \label{eq:uav_mpc_tether_rate_deriv}
 \end{equation}
-This formulation restricts only radial motion that moves away from the \gls{usv} ($\dot d > 0$), leaving tangential and approaching motions unconstrained. Enforcing $\dot d \le \dot d_{max}$ with a small regularisation $\epsilon > 0$ to avoid numerical singularity when $d \to 0$ gives the softened constraint:
+This formulation restricts only the radial component of the relative motion, leaving the motion around the attachment point, at constant distance, unconstrained. Enforcing $|\dot d| \le \dot d_{max}$ with a small regularisation $\epsilon > 0$ to avoid numerical singularity when $d \to 0$ gives the softened constraint:
 \begin{equation}
-    \underbrace{\frac{\mathbf{r}^\top \dot{\mathbf{r}}}{\sqrt{d^2 + \epsilon}} - \dot d_{max}}_{h_7(\mathbf{x}_a)} \le \sigma_7,
+    \underbrace{\frac{|\mathbf{r}^\top \dot{\mathbf{r}}|}{\sqrt{d^2 + \epsilon}} - \dot d_{max}}_{h_7(\mathbf{x}_a)} \le \sigma_7,
     \label{eq:uav_mpc_tether_rate_constraint}
 \end{equation}
 which is penalised by $\rho_7(\sigma_7)$ as in \eqref{eq:nmpc_slack_penalty}.

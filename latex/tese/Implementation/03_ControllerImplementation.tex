@@ -136,7 +136,7 @@ where $k_F$, $\omega_{min}$, and $\omega_{max}$ are given in Table~\ref{tab:x500
 which is limited to the interval $[0,1]$.
 
 % Where do the limits of the controller come from?
-As for the \gls{usv}, some limits of the controller come from the vehicle itself. The thrust is kept above a small minimum, so that the rotors do not stop during descents, and its maximum is set slightly below what the rotors produce at full speed, since rotating the vehicle requires some rotors to spin faster than others, and this margin leaves them room to do so. When the margin is not enough, the mixer of PX4, which distributes the commands among the rotors, gives priority to the attitude and reduces the total thrust instead. Representing each rotor in the model would let the \gls{nmpc} account for this directly, but it would have to command the rotors itself, bypassing the attitude controller of PX4. The rate at which the separation between the \gls{uav} and the \gls{usv} can grow is limited to the speed of the winch, described in Section~\ref{sec:tether_winch}, and the maximum separation is the same as in the \gls{usv} controller. The remaining bounds, on the altitude, the speed, the tilt, and the rates of the commands, define the operating envelope of the vehicle, and were chosen for the intended operation, within the capabilities of the vehicle. These limits are listed in Table~\ref{tab:uav_ctrl_limits}.
+As for the \gls{usv}, some limits of the controller come from the vehicle itself. The thrust is kept above a small minimum, so that the rotors do not stop during descents, and its maximum is set slightly below what the rotors produce at full speed, since rotating the vehicle requires some rotors to spin faster than others, and this margin leaves them room to do so. When the margin is not enough, the mixer of PX4, which distributes the commands among the rotors, gives priority to the attitude and reduces the total thrust instead. Representing each rotor in the model would let the \gls{nmpc} account for this directly, but it would have to command the rotors itself, bypassing the attitude controller of PX4. The rate at which the separation between the \gls{uav} and the \gls{usv} can change is limited to the speed of the winch, described in Section~\ref{sec:tether_winch}, and the maximum separation is the same as in the \gls{usv} controller. The remaining bounds, on the altitude, the speed, the tilt, and the rates of the commands, define the operating envelope of the vehicle, and were chosen for the intended operation, within the capabilities of the vehicle. These limits are listed in Table~\ref{tab:uav_ctrl_limits}.
 
 \begin{table}[htbp]
     \centering
@@ -154,7 +154,7 @@ As for the \gls{usv}, some limits of the controller come from the vehicle itself
         Minimum altitude & $z_{min}$ & $2.0\,\text{m}$ \\
         Slack penalty, bounds $h_1$--$h_5$ & $\mu_{1,j},\ \mu_{2,j}$ & $10^4,\ 10^4$ \\
         Maximum tether separation & $d_{max}$ & $15.0\,\text{m}$ \\
-        Maximum tether pay-out rate & $\dot d_{max}$ & $2.0\,\text{m/s}$ \\
+        Maximum separation rate & $\dot d_{max}$ & $2.0\,\text{m/s}$ \\
         Slack penalty, tether $h_6$, $h_7$ & $\mu_{1,j},\ \mu_{2,j}$ & $10^4,\ 10^4$ \\
         \bottomrule
     \end{tabular*}
