@@ -167,13 +167,13 @@
         "lg_e": [],
         "lh": [
             0.0,
-            -20.0,
+            -2.0,
             0.0
         ],
         "lh_0": [],
         "lh_e": [
             0.0,
-            -20.0,
+            -2.0,
             0.0
         ],
         "lphi": [],
@@ -1200,7 +1200,7 @@
         "uav_tethered_cost/uav_tethered_cost_y_e_fun_jac_ut_xt.c",
         "uav_tethered_cost/uav_tethered_cost_y_e_hess.c"
     ],
-    "hash": "9bfbd795173ea413ef1127e36e47660c",
+    "hash": "e71d6126ec32a2f17498deea4aebb7bb",
     "model": {
         "con_h_expr": "SX(@1=(p_0-anchor_0), @2=(p_1-anchor_1), @3=(p_2-anchor_2), @4=((sq(@1)+sq(@2))+sq(@3)), [@4, ((((@1*(v_0-anchor_v_0))+(@2*(v_1-anchor_v_1)))+(@3*(v_2-anchor_v_2)))/sqrt((@4+0.01))), sqrt(((sq(v_0)+sq(v_1))+0.0001))])",
         "con_h_expr_0": [],

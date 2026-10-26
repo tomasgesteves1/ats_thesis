@@ -69,7 +69,7 @@ uav_mpc_node:
     tether_max_length: 15.0      # d_max (m)
     tether_rate_limit: 1.5       # Slew rate limit for d_max adjustments (m/s)
     winch_speed_limit: 2.0       # d_dot_max (m/s)
-    d_dot_min: -20.0             # m/s, lower bound of the separation rate
+    d_dot_min: -2.0              # m/s, lower bound of the separation rate (-d_dot_max: winch reel-in speed)
 
     # Slack penalties rho(sigma) = mu1*sigma + mu2*sigma^2
     slack_mu1_bounds: 10000.0     # exact-penalty regime: the bounds give way only when they cannot be met

@@ -864,7 +864,7 @@ void uav_tethered_acados_setup_nlp_in(uav_tethered_solver_capsule* capsule, cons
     double* luh = calloc(2*NH, sizeof(double));
     double* lh = luh;
     double* uh = luh + NH;
-    lh[1] = -20;
+    lh[1] = -2;
     uh[0] = 225;
     uh[1] = 2;
     uh[2] = 10;
@@ -978,7 +978,7 @@ void uav_tethered_acados_setup_nlp_in(uav_tethered_solver_capsule* capsule, cons
     double* luh_e = calloc(2*NHN, sizeof(double));
     double* lh_e = luh_e;
     double* uh_e = luh_e + NHN;
-    lh_e[1] = -20;
+    lh_e[1] = -2;
     uh_e[0] = 225;
     uh_e[1] = 2;
     uh_e[2] = 10;

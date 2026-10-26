@@ -154,7 +154,7 @@ def generate_acados_ocp():
     ocp.constraints.idxsbx = np.arange(6)
     ocp.constraints.idxsbx_e = np.arange(6)
 
-    # Soft nonlinear constraints: d^2 <= d_max^2, d_dot <= d_dot_max, |v_xy| <= v_xy_max (bounds updated at run time)
+    # Soft nonlinear constraints: d^2 <= d_max^2, |d_dot| <= d_dot_max, |v_xy| <= v_xy_max (bounds updated at run time)
     lh = np.array([0.0, prm['d_dot_min'], 0.0])
     uh = np.array([prm['tether_max_length'] ** 2, prm['winch_speed_limit'], prm['v_xy_max']])
     ocp.constraints.lh, ocp.constraints.uh = lh, uh

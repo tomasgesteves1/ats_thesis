@@ -38,7 +38,7 @@ struct UavMpcParams {
     double v_z_max{10.0};         // vertical speed limit (m/s)
     double phi_max{0.5};          // roll limit (rad)
     double theta_max{0.5};        // pitch limit (rad)
-    double d_dot_max{2.0};        // maximum tether pay-out rate (m/s)
+    double d_dot_max{2.0};        // maximum winch speed, pay-out and reel-in (m/s)
     double thrust_min{2.02};      // minimum thrust (N)
     double thrust_max{32.96};     // maximum thrust (N)
     double hover_throttle{0.618}; // normalised hover throttle

@@ -363,8 +363,8 @@ void UavMpcPipeline::setupOcpSolver(const double x0[13]) {
         ocp_nlp_constraints_model_set(cfg, dims, in, out, i, "ubx", ubx);
     }
 
-    // Tether and speed bounds on h = [d^2, d_dot, |v_xy|]: d^2 <= d_max^2, d_dot <= d_dot_max, |v_xy| <= v_xy_max
-    double lh_val[3] = {0.0, -20.0, 0.0};
+    // Tether and speed bounds on h = [d^2, d_dot, |v_xy|]: d^2 <= d_max^2, |d_dot| <= d_dot_max, |v_xy| <= v_xy_max
+    double lh_val[3] = {0.0, use_tether_ ? -params_.d_dot_max : -NO_LIMIT, 0.0};
     double uh_val[3] = {
         use_tether_ ? (L_tether_ * L_tether_) : NO_LIMIT,
         use_tether_ ? params_.d_dot_max : NO_LIMIT,
