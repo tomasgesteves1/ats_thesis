@@ -1,7 +1,8 @@
 #!/usr/bin/env python3
 """References of the USV tests (Section 5.1), with the UAV resting on the deck.
 
-track  - accuracy: two laps of a figure-eight (two circles of 12 m joined by straight legs that cross), slow on the
+track  - accuracy: two laps of a figure-eight (two circles of 12 m joined by straight legs that cross, along y, clear of
+         the radio tower at (-25, 0)), slow on the
          circles and faster on the legs, starting and ending at rest. The model of Chapter 3 is inverted along it
          (surge, sway kept at zero, yaw rate) to obtain the thrust and azimuth each point needs, which must stay well
          inside the limits of the thrusters.
@@ -55,8 +56,9 @@ def eight(R=12.0, D=24.0, v_leg=1.6, v_arc=1.2, a_lon=0.1, laps=2, hold=10.0, ds
         seg(np.array([-L * np.cos(beta), -L * np.sin(beta)]), np.zeros(2), v_leg)
     pts.append(np.zeros(2)); vel.append(0.0)
     P, v = np.array(pts), np.array(vel)
-    # rotate so that the first leg points along x, the initial heading of the USV
-    c, s = np.cos(-beta), np.sin(-beta)
+    # rotate so that the two circles lie along y, with x within +-12 m: the radio tower of the inspection missions
+    # stands at (-25, 0); the USV turns to the heading of the first leg while the reference holds its first pose
+    c, s = np.cos(np.pi / 2), np.sin(np.pi / 2)
     P = P @ np.array([[c, s], [-s, c]])
     seg_len = np.linalg.norm(np.diff(P, axis=0), axis=1)
     v[0] = 0.0
