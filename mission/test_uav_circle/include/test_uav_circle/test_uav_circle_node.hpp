@@ -21,6 +21,7 @@ public:
 private:
     void timerCallback();
     void publishPx4Setpoint(const std::vector<TrajectoryPoint>& points, double dt);
+    std::vector<TrajectoryPoint> approachPoints(int steps, double dt, double dt_step);
 
     rclcpp::Publisher<nav_msgs::msg::Path>::SharedPtr path_pub_;
     rclcpp::Subscription<nav_msgs::msg::Odometry>::SharedPtr drone_odom_sub_;
@@ -39,9 +40,14 @@ private:
     std::array<double, 3> drone_gt_{0.0, 0.0, 0.0};   // ground truth (odometry origin), world ENU
     std::array<double, 3> drone_px4_{0.0, 0.0, 0.0};  // PX4 local position, converted to ENU
     std::array<double, 3> boat_gt_{0.0, 0.0, 0.0};
+    bool has_drone_odom_{false};
+    bool approach_init_{false};
+    std::array<double, 3> approach_{0.0, 0.0, 0.0};  // reference that leads the UAV to the start of the table
     bool started_{false};
     double trajectory_time_{0.0};
     double last_time_sec_{0.0};
+    double table_time_{0.0};
+    double last_table_time_{0.0};
 };
 
 } // namespace test_uav_circle

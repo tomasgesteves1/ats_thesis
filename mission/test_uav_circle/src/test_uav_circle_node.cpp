@@ -1,5 +1,6 @@
 #include "test_uav_circle/test_uav_circle_node.hpp"
 #include <geometry_msgs/msg/pose_stamped.hpp>
+#include <algorithm>
 #include <cmath>
 #include <limits>
 #include <sstream>
@@ -55,6 +56,13 @@ TestUavCircleNode::TestUavCircleNode()
     this->declare_parameter<double>("drone_z_offset", 0.265);
     // Instead of the circle, a sequence of fixed points (step references), "t,x,y,z; ..."
     this->declare_parameter<std::string>("waypoints", "");
+    // Instead of the circle, a periodic trajectory tabulated in a CSV file (t,x,y,z,vx,vy,vz,...). The UAV is first led
+    // to its first point (climb, then horizontal, at approach_speed), and the trajectory starts once it is within
+    // start_tolerance of it, entering from hover over ramp_time.
+    this->declare_parameter<std::string>("trajectory_file", "");
+    this->declare_parameter<double>("ramp_time", 8.0);
+    this->declare_parameter<double>("approach_speed", 1.0);
+    this->declare_parameter<double>("start_tolerance", 0.3);
 
     pipeline_ = std::make_unique<TestUavCirclePipeline>();
 
@@ -66,12 +74,21 @@ TestUavCircleNode::TestUavCircleNode()
             const auto& p = msg->pose.pose.position;
             drone_altitude_ = p.z;
             drone_gt_ = {p.x, p.y, p.z};
+            has_drone_odom_ = true;
         });
 
     px4_offboard_ = this->get_parameter("px4_offboard").as_bool();
     waypoints_ = parseWaypoints(this->get_parameter("waypoints").as_string());
     if (!waypoints_.empty()) {
         RCLCPP_INFO(this->get_logger(), "UAV waypoint mode: %zu waypoints.", waypoints_.size());
+    }
+    const std::string table = this->get_parameter("trajectory_file").as_string();
+    if (!table.empty()) {
+        if (pipeline_->loadTable(table)) {
+            RCLCPP_INFO(this->get_logger(), "UAV table mode: %s.", table.c_str());
+        } else {
+            RCLCPP_ERROR(this->get_logger(), "Could not read the trajectory file %s.", table.c_str());
+        }
     }
     if (px4_offboard_) {
         boat_odom_sub_ = this->create_subscription<nav_msgs::msg::Odometry>(
@@ -117,7 +134,8 @@ void TestUavCircleNode::timerCallback() {
     std::string world_frame = this->get_parameter("world_frame").as_string();
 
     double t_ref = now_sec;
-    if (this->get_parameter("wait_for_drone").as_bool()) {
+    // The table has its own start (approach to its first point)
+    if (this->get_parameter("wait_for_drone").as_bool() && !pipeline_->hasTable()) {
         double dt_step = (last_time_sec_ > 0.0) ? (now_sec - last_time_sec_) : 0.0;
         last_time_sec_ = now_sec;
         if (!started_ && drone_altitude_ > this->get_parameter("start_altitude").as_double()) {
@@ -130,7 +148,16 @@ void TestUavCircleNode::timerCallback() {
 
     // Before the start the reference is the first point of the circle (or the first waypoint), at rest
     std::vector<TrajectoryPoint> points;
-    if (!waypoints_.empty()) {
+    if (pipeline_->hasTable()) {
+        const double dt_step = (last_table_time_ > 0.0) ? (now_sec - last_table_time_) : 0.0;
+        last_table_time_ = now_sec;
+        if (started_) {
+            table_time_ += dt_step;
+            points = pipeline_->sampleTable(table_time_, this->get_parameter("ramp_time").as_double(), steps, dt);
+        } else {
+            points = approachPoints(steps, dt, dt_step);
+        }
+    } else if (!waypoints_.empty()) {
         const auto& w = activeWaypoint(waypoints_, t_ref);
         points.assign(steps + 1, TrajectoryPoint{w[1], w[2], w[3], 0.0, 0.0, 0.0});
     } else {
@@ -159,6 +186,70 @@ void TestUavCircleNode::timerCallback() {
     if (px4_offboard_) {
         publishPx4Setpoint(points, dt);
     }
+}
+
+std::vector<TrajectoryPoint> TestUavCircleNode::approachPoints(int steps, double dt, double dt_step) {
+    // The approach point moves at approach_speed towards the first point of the table, climbing first and then
+    // horizontally, but never more than a short leash ahead of the UAV, so that it waits for the takeoff
+    const auto first = pipeline_->firstTablePoint();
+    const std::array<double, 3> goal{first.px, first.py, first.pz};
+    const double speed = this->get_parameter("approach_speed").as_double();
+    constexpr double leash = 1.0;
+    if (!has_drone_odom_) {
+        return std::vector<TrajectoryPoint>(steps + 1, TrajectoryPoint{goal[0], goal[1], goal[2], 0.0, 0.0, 0.0});
+    }
+    // Point of the UAV tracked by the controllers, drone_z_offset above the odometry origin
+    const std::array<double, 3> uav{drone_gt_[0], drone_gt_[1],
+                                    drone_gt_[2] + this->get_parameter("drone_z_offset").as_double()};
+    if (!approach_init_) {
+        approach_ = uav;
+        approach_init_ = true;
+    }
+    // Advances a point by a distance along the approach path; returns the unit direction of motion (zero at the goal)
+    auto advance = [&goal](std::array<double, 3>& p, double dist) {
+        std::array<double, 3> dir{0.0, 0.0, 0.0};
+        const double dz = goal[2] - p[2];
+        if (std::abs(dz) > 1e-6) {
+            const double s = std::min(dist, std::abs(dz));
+            dir[2] = (dz > 0.0) ? 1.0 : -1.0;
+            p[2] += dir[2] * s;
+            dist -= s;
+            if (dist <= 0.0) return dir;
+        }
+        const double ex = goal[0] - p[0], ey = goal[1] - p[1], e = std::hypot(ex, ey);
+        if (e > 1e-6) {
+            const double s = std::min(dist, e);
+            dir = {ex / e, ey / e, 0.0};
+            p[0] += dir[0] * s;
+            p[1] += dir[1] * s;
+        }
+        return dir;
+    };
+    double lead = 0.0;
+    for (int k = 0; k < 3; ++k) lead += (approach_[k] - uav[k]) * (approach_[k] - uav[k]);
+    if (std::sqrt(lead) < leash) advance(approach_, speed * dt_step);
+
+    std::vector<TrajectoryPoint> points;
+    points.reserve(steps + 1);
+    std::array<double, 3> p = approach_;
+    for (int i = 0; i <= steps; ++i) {
+        auto q = p;
+        const auto dir = advance(q, 1e-3);  // direction of motion at this point
+        points.push_back(TrajectoryPoint{p[0], p[1], p[2], speed * dir[0], speed * dir[1], speed * dir[2]});
+        advance(p, speed * dt);
+    }
+
+    double err = 0.0, gap = 0.0;
+    for (int k = 0; k < 3; ++k) {
+        err += (uav[k] - goal[k]) * (uav[k] - goal[k]);
+        gap += (approach_[k] - goal[k]) * (approach_[k] - goal[k]);
+    }
+    if (gap < 1e-6 && std::sqrt(err) < this->get_parameter("start_tolerance").as_double()) {
+        started_ = true;
+        table_time_ = 0.0;
+        RCLCPP_INFO(this->get_logger(), "UAV at the first point of the table. Starting the trajectory.");
+    }
+    return points;
 }
 
 void TestUavCircleNode::publishPx4Setpoint(const std::vector<TrajectoryPoint>& points, double dt) {
