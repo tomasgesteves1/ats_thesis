@@ -2,8 +2,8 @@ import os
 from ament_index_python.packages import get_package_share_directory
 from launch import LaunchDescription
 from launch.actions import DeclareLaunchArgument
-from launch.conditions import UnlessCondition
-from launch.substitutions import LaunchConfiguration
+from launch.conditions import IfCondition, UnlessCondition
+from launch.substitutions import LaunchConfiguration, PythonExpression
 from launch_ros.actions import Node
 from launch_ros.parameter_descriptions import ParameterValue
 
@@ -58,6 +58,8 @@ def generate_launch_description():
                 'wait_for_drone': True,
                 'start_altitude': ParameterValue(LaunchConfiguration('start_altitude'), value_type=float),
                 'waypoints': ParameterValue(LaunchConfiguration('usv_waypoints'), value_type=str),
+                'trajectory_file': ParameterValue(LaunchConfiguration('usv_trajectory_file'), value_type=str),
+                'trajectory_loop': ParameterValue(LaunchConfiguration('usv_trajectory_loop'), value_type=bool),
             }
         ],
         remappings=[
@@ -72,7 +74,8 @@ def generate_launch_description():
         executable='uav_mpc_node',
         name='uav_mpc_node',
         output='screen',
-        condition=UnlessCondition(LaunchConfiguration('px4_baseline')),
+        condition=IfCondition(PythonExpression(["'", LaunchConfiguration('uav_enabled'), "' == 'true' and '",
+                                                LaunchConfiguration('px4_baseline'), "' != 'true'"])),
         parameters=[
             uav_mpc_config,
             {
@@ -98,6 +101,7 @@ def generate_launch_description():
         executable='test_uav_circle_node',
         name='uav_trajectory_circle_node',
         output='screen',
+        condition=IfCondition(LaunchConfiguration('uav_enabled')),
         parameters=[
             {
                 'use_sim_time': True,
@@ -130,6 +134,7 @@ def generate_launch_description():
         executable='test_uav_circle_bootstrap_node',
         name='uav_bootstrap_node',
         output='screen',
+        condition=IfCondition(LaunchConfiguration('uav_enabled')),
         parameters=[{
             'use_sim_time': True,
         }]
@@ -155,6 +160,12 @@ def generate_launch_description():
                               description='UAV periodic trajectory tabulated in a CSV file instead of the circle'),
         DeclareLaunchArgument('uav_trajectory_loop', default_value='true',
                               description='Repeat the UAV trajectory file (false: hold its last point after its end)'),
+        DeclareLaunchArgument('usv_trajectory_file', default_value='',
+                              description='USV trajectory tabulated in a CSV file (t,x,y,psi) instead of the circle'),
+        DeclareLaunchArgument('usv_trajectory_loop', default_value='true',
+                              description='Repeat the USV trajectory file (false: hold its last pose after its end)'),
+        DeclareLaunchArgument('uav_enabled', default_value='true',
+                              description='Launch the UAV controller, reference and bootstrap (false: the UAV stays on the deck)'),
         DeclareLaunchArgument('usv_waypoints', default_value='',
                               description='USV step references "t,x,y,yaw_deg; ..." instead of the circle'),
         DeclareLaunchArgument('disturbance_observer', default_value='true', description='Disturbance observer of the UAV NMPC'),

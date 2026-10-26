@@ -43,6 +43,9 @@ private:
     double boat_yaw_{0.0};
 
     std::vector<std::array<double, 4>> waypoints_;  // [t, x, y, yaw (deg)]
+    bool has_boat_odom_{false};
+    bool table_started_{false};
+    double table_time_{0.0};
 };
 
 } // namespace test_usv_circle

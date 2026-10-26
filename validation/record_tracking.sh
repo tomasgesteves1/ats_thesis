@@ -1,12 +1,15 @@
 #!/bin/bash
 # Runs the cooperative tracking scenario in simulation and records the signals needed to evaluate both controllers.
-# Usage: validation/record_tracking.sh <scenario: crescent|limits|steps> [duration_s=240] [controller=nmpc]
+# Usage: validation/record_tracking.sh <scenario: crescent|limits|usv_track|usv_limits|steps> [duration_s=240] [controller=nmpc]
 #   crescent   - accuracy of the UAV (Section 5.1): the USV holds its position at the origin and the UAV flies the crescent
 #                of validation/uav_tracking/crescent_reference.py (fast arcs at constant distance, slow U-turns), with
 #                d_max 35 m, so that no limit of the vehicle or of the tether is reached
 #   limits     - actuator limits of the UAV (Section 5.1): USV holding at the origin, d_max 35 m, the UAV given the reference
 #                of validation/uav_tracking/limits_reference.py (a lap too fast for the tilt, a lap too fast for the speed
 #                limit, a step up and a step down below z_min), played once
+#   usv_track  - accuracy of the USV (Section 5.1): two laps of the figure-eight of validation/usv_tracking/usv_reference.py,
+#                with the UAV resting on the deck (UAV nodes not launched), played once
+#   usv_limits - actuator limits of the USV: a leg at 3 m/s, a sharp turn, a step astern and a step abeam, played once
 #   steps      - step references (waypoints held fixed over the horizon) for both vehicles, d_max 15 m: the NMPCs plan the
 #                motion within the actuator, tether-length and pay-out limits (UAV jumps 10 m sideways and to a point
 #                beyond the tether reach, then the USV jumps 18 m, then both return to the start)
@@ -21,6 +24,8 @@ case $SCENARIO in
            tether_max_length:=35.0 usv_waypoints:=0,0,0,0";;
   limits) RADIUS=3.0; UAV_ARGS="uav_trajectory_file:=$(cd "$(dirname "$0")/.." && pwd)/mission/test_uav_circle/config/limits.csv \
            uav_trajectory_loop:=false tether_max_length:=35.0 usv_waypoints:=0,0,0,0";;
+  usv_track|usv_limits) RADIUS=3.0; UAV_ARGS="uav_enabled:=false usv_trajectory_loop:=false \
+           usv_trajectory_file:=$(cd "$(dirname "$0")/.." && pwd)/mission/test_usv_circle/config/${SCENARIO}.csv";;
   steps) RADIUS=3.0; UAV_ARGS="start_altitude:=7.0 \
            uav_waypoints:=0,2,0,8;15,12,0,8;35,12,0,20;85,2,0,8 \
            usv_waypoints:=0,0,0,0;60,-15,10,146;85,0,0,-34";;  # no spaces: word-split below

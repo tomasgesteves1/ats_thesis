@@ -51,6 +51,11 @@ TestUsvCircleNode::TestUsvCircleNode()
     // Instead of the circle, a sequence of fixed poses (step references), "t,x,y,yaw_deg; ..."
     this->declare_parameter("waypoints", rclcpp::ParameterValue(std::string("")), desc);
     waypoints_ = parseWaypoints(this->get_parameter("waypoints").as_string());
+    // Instead of the circle, a trajectory tabulated in a CSV file (t,x,y,psi,...), started start_delay seconds after
+    // the first odometry of the boat, without waiting for the drone
+    this->declare_parameter("trajectory_file", rclcpp::ParameterValue(std::string("")), desc);
+    this->declare_parameter("trajectory_loop", rclcpp::ParameterValue(true), desc);
+    this->declare_parameter("start_delay", rclcpp::ParameterValue(20.0), desc);
 
     // Dynamic testing configuration inputs from Dashboard
     this->declare_parameter("mode_step", rclcpp::ParameterValue(false), desc);
@@ -63,6 +68,14 @@ TestUsvCircleNode::TestUsvCircleNode()
     this->declare_parameter("open_loop_N", rclcpp::ParameterValue(0.0), desc);
 
     pipeline_ = std::make_unique<TestUsvCirclePipeline>();
+    const std::string table = this->get_parameter("trajectory_file").as_string();
+    if (!table.empty()) {
+        if (pipeline_->loadTable(table, this->get_parameter("trajectory_loop").as_bool())) {
+            RCLCPP_INFO(this->get_logger(), "USV table mode: %s.", table.c_str());
+        } else {
+            RCLCPP_ERROR(this->get_logger(), "Could not read the trajectory file %s.", table.c_str());
+        }
+    }
 
     // Relative publishers (Rule 4 of CODE_STANDARDS.md)
     path_pub_ = this->create_publisher<nav_msgs::msg::Path>("reference_path", 10);
@@ -194,6 +207,33 @@ void TestUsvCircleNode::timerCallback() {
     double dt_step = (last_time_sec_ > 0.0) ? (now_sec - last_time_sec_) : 0.0;
     last_time_sec_ = now_sec;
 
+    if (pipeline_->hasTable()) {
+        // The trajectory time starts at -start_delay with the first odometry of the boat; before zero the reference
+        // holds the first pose of the table
+        if (has_boat_odom_) {
+            if (!table_started_) {
+                table_time_ = -this->get_double_param("start_delay");
+                table_started_ = true;
+            } else {
+                table_time_ += dt_step;
+            }
+        }
+        auto path_msg = nav_msgs::msg::Path();
+        path_msg.header.frame_id = world_frame;
+        path_msg.header.stamp = this->get_clock()->now();
+        for (const auto& q : pipeline_->sampleTable(table_time_, steps, dt)) {
+            geometry_msgs::msg::PoseStamped pose;
+            pose.header = path_msg.header;
+            pose.pose.position.x = q[0];
+            pose.pose.position.y = q[1];
+            pose.pose.orientation.z = std::sin(0.5 * q[2]);
+            pose.pose.orientation.w = std::cos(0.5 * q[2]);
+            path_msg.poses.push_back(pose);
+        }
+        path_pub_->publish(path_msg);
+        return;
+    }
+
     bool wait_for_drone = this->get_parameter("wait_for_drone").as_bool();
 
     if (wait_for_drone && !drone_started_flying_) {
@@ -289,6 +329,7 @@ void TestUsvCircleNode::droneOdomCallback(const nav_msgs::msg::Odometry::SharedP
 }
 
 void TestUsvCircleNode::boatOdomCallback(const nav_msgs::msg::Odometry::SharedPtr msg) {
+    has_boat_odom_ = true;
     boat_x_ = msg->pose.pose.position.x;
     boat_y_ = msg->pose.pose.position.y;
 
