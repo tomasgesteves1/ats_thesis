@@ -63,6 +63,7 @@ TestUavCircleNode::TestUavCircleNode()
     this->declare_parameter<double>("ramp_time", 8.0);
     this->declare_parameter<double>("approach_speed", 1.0);
     this->declare_parameter<double>("start_tolerance", 0.3);
+    this->declare_parameter<bool>("trajectory_loop", true);  // false: hold the last point of the table after its end
 
     pipeline_ = std::make_unique<TestUavCirclePipeline>();
 
@@ -84,6 +85,7 @@ TestUavCircleNode::TestUavCircleNode()
     }
     const std::string table = this->get_parameter("trajectory_file").as_string();
     if (!table.empty()) {
+        pipeline_->setTableLoop(this->get_parameter("trajectory_loop").as_bool());
         if (pipeline_->loadTable(table)) {
             RCLCPP_INFO(this->get_logger(), "UAV table mode: %s.", table.c_str());
         } else {

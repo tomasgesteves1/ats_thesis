@@ -66,6 +66,10 @@ bool TestUavCirclePipeline::loadTable(const std::string& path)
 TrajectoryPoint TestUavCirclePipeline::interpolate(double tau) const
 {
     const double period = table_dt_ * table_.size();
+    if (!loop_ && tau >= table_dt_ * (table_.size() - 1)) {
+        const auto& last = table_.back();
+        return TrajectoryPoint{last.px, last.py, last.pz, 0.0, 0.0, 0.0};
+    }
     double s = std::fmod(tau, period);
     if (s < 0.0) s += period;
     const size_t i = static_cast<size_t>(s / table_dt_) % table_.size();

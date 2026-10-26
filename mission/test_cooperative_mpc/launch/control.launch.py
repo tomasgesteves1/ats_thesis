@@ -112,6 +112,7 @@ def generate_launch_description():
                 'px4_offboard': ParameterValue(LaunchConfiguration('px4_baseline'), value_type=bool),
                 'waypoints': ParameterValue(LaunchConfiguration('uav_waypoints'), value_type=str),
                 'trajectory_file': ParameterValue(LaunchConfiguration('uav_trajectory_file'), value_type=str),
+                'trajectory_loop': ParameterValue(LaunchConfiguration('uav_trajectory_loop'), value_type=bool),
                 'horizon_stages': 50,
                 'control_period': 0.02,
                 # Published well above the controller rate, so that the reference in use is at most a few ms old
@@ -152,6 +153,8 @@ def generate_launch_description():
                               description='UAV step references "t,x,y,z; ..." instead of the circle'),
         DeclareLaunchArgument('uav_trajectory_file', default_value='',
                               description='UAV periodic trajectory tabulated in a CSV file instead of the circle'),
+        DeclareLaunchArgument('uav_trajectory_loop', default_value='true',
+                              description='Repeat the UAV trajectory file (false: hold its last point after its end)'),
         DeclareLaunchArgument('usv_waypoints', default_value='',
                               description='USV step references "t,x,y,yaw_deg; ..." instead of the circle'),
         DeclareLaunchArgument('disturbance_observer', default_value='true', description='Disturbance observer of the UAV NMPC'),

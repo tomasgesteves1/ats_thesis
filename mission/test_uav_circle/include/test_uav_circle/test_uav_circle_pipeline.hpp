@@ -30,6 +30,8 @@ public:
     // Periodic trajectory tabulated in a CSV file (t,x,y,z,vx,vy,vz,...; one lap, uniform time step). Returns false if
     // the file cannot be read.
     bool loadTable(const std::string& path);
+    // A periodic table repeats; otherwise the reference holds the last point, at rest, after the end of the table
+    void setTableLoop(bool loop) { loop_ = loop; }
     bool hasTable() const { return !table_.empty(); }
     TrajectoryPoint firstTablePoint() const { return table_.front(); }
 
@@ -43,6 +45,7 @@ private:
 
     std::vector<TrajectoryPoint> table_;
     double table_dt_{0.01};
+    bool loop_{true};
 };
 
 } // namespace test_uav_circle
