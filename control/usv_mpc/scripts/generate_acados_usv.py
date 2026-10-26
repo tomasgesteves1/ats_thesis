@@ -10,7 +10,7 @@ sys.path.append(os.path.dirname(os.path.abspath(__file__)))
 import wamv_model
 
 
-def create_usv_dynamic_model() -> AcadosModel:
+def create_usv_dynamic_model(huber_delta: float) -> AcadosModel:
     states, states_dot, controls, params, f_expl, f_impl = wamv_model.get_wamv_casadi_model()
 
     model = AcadosModel()
@@ -23,12 +23,17 @@ def create_usv_dynamic_model() -> AcadosModel:
     model.p = params
 
     # Residuals of the least-squares cost (Eq. usv_mpc_stage_cost):
-    # [x, y, sin((psi-psi_ref)/2), u, v, r, T_L, T_R, alpha_L, alpha_R, dT_L, dT_R, dalpha_L, dalpha_R]
+    # [e_x, e_y, sin((psi-psi_ref)/2), u, v, r, T_L, T_R, alpha_L, alpha_R, dT_L, dT_R, dalpha_L, dalpha_R]
     # q_psi*(1-cos(d)) = 2*q_psi*sin^2(d/2), so the heading term is a squared residual with weight 2*q_psi.
+    # Position error through a pseudo-Huber shaping, as in the UAV: the residual e (1 + |e|^2/delta^2)^(-1/4) gives a
+    # cost equal to the quadratic one near the reference and growing linearly beyond delta, so that a distant or
+    # unreachable reference pulls with a bounded force (its reference in yref is zero; the reference is a parameter)
     psi_ref = params[0]
     heading_res = ca.sin((states[2] - psi_ref) / 2.0)
-    model.cost_y_expr = ca.vertcat(states[0:2], heading_res, states[3:10], controls)
-    model.cost_y_expr_e = ca.vertcat(states[0:2], heading_res, states[3:10])
+    e_p = states[0:2] - params[5:7]
+    pos_res = e_p * (1.0 + ca.dot(e_p, e_p) / huber_delta ** 2) ** (-0.25)
+    model.cost_y_expr = ca.vertcat(pos_res, heading_res, states[3:10], controls)
+    model.cost_y_expr_e = ca.vertcat(pos_res, heading_res, states[3:10])
 
     # Tether: squared distance between the attachment point (x, y, z_t) and the predicted UAV position
     x_a, y_a, z_a, z_t = params[1], params[2], params[3], params[4]
@@ -44,7 +49,7 @@ def generate_acados_ocp():
     with open(os.path.join(script_dir, '../config/acados_generator_config.json'), 'r') as f:
         config = json.load(f)
 
-    model = create_usv_dynamic_model()
+    model = create_usv_dynamic_model(config["weights"]["huber_delta"])
 
     ocp = AcadosOcp()
     ocp.model = model
@@ -65,7 +70,7 @@ def generate_acados_ocp():
     ocp.cost.yref = np.zeros((len(W_state) + len(W_input),))
     ocp.cost.yref_e = np.zeros((len(W_state),))
 
-    # Parameters per node: [psi_ref, x_a, y_a, z_a, z_t]
+    # Parameters per node: [psi_ref, x_a, y_a, z_a, z_t, x_ref, y_ref]
     ocp.parameter_values = np.zeros(wamv_model.NP)
 
     # Thruster range limits (state) and rate limits (input)

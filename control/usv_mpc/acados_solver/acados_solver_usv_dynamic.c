@@ -599,13 +599,13 @@ void usv_dynamic_acados_setup_nlp_in(usv_dynamic_solver_capsule* capsule, const 
     double* zl = zlumem+NS*2;
     double* zu = zlumem+NS*3;
     // change only the non-zero elements:
-    Zl[0] = 4000;
+    Zl[0] = 200000;
     Zl[1] = 10000;
-    Zu[0] = 4000;
+    Zu[0] = 200000;
     Zu[1] = 10000;
-    zl[0] = 200;
+    zl[0] = 100000;
     zl[1] = 500;
-    zu[0] = 200;
+    zu[0] = 100000;
     zu[1] = 500;
 
     for (int i = 1; i < N; i++)
@@ -1231,7 +1231,7 @@ int usv_dynamic_acados_update_params(usv_dynamic_solver_capsule* capsule, int st
 {
     int solver_status = 0;
 
-    int casadi_np = 5;
+    int casadi_np = 7;
     if (casadi_np != np) {
         printf("acados_update_params: trying to set %i parameters for external functions."
             " External function has %i parameters. Exiting.\n", np, casadi_np);

@@ -59,7 +59,7 @@ uav_mpc_node:
     disturbance_gain: 0.03       # beta
     disturbance_max_force: 8.0   # d_bar (N)
     v_xy_max: 10.0               # m/s
-    v_z_max: 10.0                # m/s
+    v_z_max: 3.0                 # m/s, lets the UAV stop within the horizon above z_min (PX4: 1.5 down, 3 up)
     tilt_max: 0.5                # rad, total tilt of the thrust from the vertical (predicted and commanded)
 
     # Tether

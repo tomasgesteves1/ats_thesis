@@ -65,10 +65,10 @@ casadi_real casadi_sign(casadi_real x) { return x<0 ? -1 : x>0 ? 1 : x;}
 
 static const casadi_int casadi_s0[3] = {10, 1, 1};
 static const casadi_int casadi_s1[3] = {4, 1, 1};
-static const casadi_int casadi_s2[3] = {5, 1, 1};
+static const casadi_int casadi_s2[3] = {7, 1, 1};
 static const casadi_int casadi_s3[3] = {14, 1, 1};
 
-/* usv_dynamic_expl_vde_adj:(i0[10],i1[10],i2[4],i3[5])->(o0[14]) */
+/* usv_dynamic_expl_vde_adj:(i0[10],i1[10],i2[4],i3[7])->(o0[14]) */
 static int casadi_f0(const casadi_real** arg, casadi_real** res, casadi_int* iw, casadi_real* w, int mem) {
   casadi_real a00, a01, a02, a03, a04, a05, a06, a07, a08, a09, a10, a11;
   casadi_real a12, a13, a14, a15, a16;

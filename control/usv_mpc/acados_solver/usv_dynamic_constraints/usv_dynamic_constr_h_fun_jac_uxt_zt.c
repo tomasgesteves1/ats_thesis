@@ -59,12 +59,12 @@ casadi_real casadi_sq(casadi_real x) { return x*x;}
 static const casadi_int casadi_s0[3] = {10, 1, 1};
 static const casadi_int casadi_s1[3] = {4, 1, 1};
 static const casadi_int casadi_s2[3] = {0, 1, 1};
-static const casadi_int casadi_s3[3] = {5, 1, 1};
+static const casadi_int casadi_s3[3] = {7, 1, 1};
 static const casadi_int casadi_s4[3] = {1, 1, 1};
 static const casadi_int casadi_s5[6] = {14, 1, 0, 2, 4, 5};
 static const casadi_int casadi_s6[3] = {1, 0, 1};
 
-/* usv_dynamic_constr_h_fun_jac_uxt_zt:(i0[10],i1[4],i2[0],i3[5])->(o0,o1[14x1,2nz],o2[1x0]) */
+/* usv_dynamic_constr_h_fun_jac_uxt_zt:(i0[10],i1[4],i2[0],i3[7])->(o0,o1[14x1,2nz],o2[1x0]) */
 static int casadi_f0(const casadi_real** arg, casadi_real** res, casadi_int* iw, casadi_real* w, int mem) {
   casadi_real a0, a1, a2, a3, a4;
   a0=arg[0]? arg[0][0] : 0;

@@ -39,7 +39,7 @@
 #define USV_DYNAMIC_NX     10
 #define USV_DYNAMIC_NZ     0
 #define USV_DYNAMIC_NU     4
-#define USV_DYNAMIC_NP     5
+#define USV_DYNAMIC_NP     7
 #define USV_DYNAMIC_NP_GLOBAL     0
 #define USV_DYNAMIC_NBX    5
 #define USV_DYNAMIC_NBX0   10

@@ -20,7 +20,7 @@ Y_ARM = 1.027135       # Lateral distance from the centreline
 
 NX = 10                # [x, y, psi, u, v, r, T_L, T_R, alpha_L, alpha_R]
 NU = 4                 # [dT_L, dT_R, dalpha_L, dalpha_R]
-NP = 5                 # [psi_ref, x_a, y_a, z_a, z_t]
+NP = 7                 # [psi_ref, x_a, y_a, z_a, z_t, x_ref, y_ref]
 
 
 def get_wamv_casadi_model():
@@ -48,13 +48,14 @@ def get_wamv_casadi_model():
     da_R = ca.SX.sym('dalpha_R')
     controls = ca.vertcat(dT_L, dT_R, da_L, da_R)
 
-    # Parameters per node: heading reference and UAV predicted position / attachment height
+    # Parameters per node: heading reference, UAV predicted position / attachment height and position reference
     psi_ref = ca.SX.sym('psi_ref')
     x_a = ca.SX.sym('x_a')
     y_a = ca.SX.sym('y_a')
     z_a = ca.SX.sym('z_a')
     z_t = ca.SX.sym('z_t')
-    params = ca.vertcat(psi_ref, x_a, y_a, z_a, z_t)
+    p_ref = ca.SX.sym('p_ref', 2)
+    params = ca.vertcat(psi_ref, x_a, y_a, z_a, z_t, p_ref)
 
     # Thrust allocation (Eqs. usv_mpc_alloc_force / usv_mpc_alloc_moment)
     X_force = T_L * ca.cos(a_L) + T_R * ca.cos(a_R)

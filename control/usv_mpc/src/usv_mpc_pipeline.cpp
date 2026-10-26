@@ -11,7 +11,7 @@ constexpr int NX = 10;       // [x, y, psi, u, v, r, T_L, T_R, alpha_L, alpha_R]
 constexpr int NU = 4;        // [dT_L, dT_R, dalpha_L, dalpha_R]
 constexpr int NY = 14;       // stage residuals
 constexpr int NY_E = 10;     // terminal residuals
-constexpr int NP = 5;        // [psi_ref, x_a, y_a, z_a, z_t]
+constexpr int NP = 7;        // [psi_ref, x_a, y_a, z_a, z_t, x_ref, y_ref]
 constexpr double TS = 0.1;   // Sampling time (must match the generator config)
 constexpr double NO_TETHER = 1.0e6;
 }
@@ -96,7 +96,8 @@ ThrusterCommand UsvMpcPipeline::computeControl() {
         first_run_ = false;
     }
 
-    // 2. Reference over the horizon: yref = [x, y, 0 (heading residual), u, v, r, 0 (T, alpha), 0 (rates)]
+    // 2. Reference over the horizon: yref = [0 (position residual), 0 (heading residual), u, v, r, 0 (T, alpha),
+    // 0 (rates)]; the position and heading references are parameters of each node
     const bool external = (trajectory_type_ == 1 && !external_reference_path_.empty());
     const int path_size = static_cast<int>(external_reference_path_.size());
     for (int i = 0; i <= N; i++) {
@@ -108,13 +109,13 @@ ThrusterCommand UsvMpcPipeline::computeControl() {
             px = current_reference_[0]; py = current_reference_[1]; psi_ref = current_reference_[2];
         }
 
-        double yref[NY] = {px, py, 0.0, u_ref, 0.0, r_ref, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0};
+        double yref[NY] = {0.0, 0.0, 0.0, u_ref, 0.0, r_ref, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0};
         ocp_nlp_cost_model_set(capsule->nlp_config, capsule->nlp_dims, capsule->nlp_in, i, "yref", yref);
 
-        // 3. Parameters: heading reference, UAV predicted position and attachment height
+        // 3. Parameters: heading reference, UAV predicted position, attachment height and position reference
         const bool tether_active = i < static_cast<int>(uav_horizon_.size());
         const auto& pa = tether_active ? uav_horizon_[i] : std::array<double, 3>{0.0, 0.0, z_t_};
-        double p[NP] = {psi_ref, pa[0], pa[1], pa[2], z_t_};
+        double p[NP] = {psi_ref, pa[0], pa[1], pa[2], z_t_, px, py};
         usv_dynamic_acados_update_params(capsule, i, p, NP);
 
         // Tether bound d^2 <= d_max^2 on the nodes covered by the UAV horizon (nodes 1..N_c); inactive elsewhere

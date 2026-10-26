@@ -37,6 +37,7 @@ extern "C" {
 #define casadi_s4 CASADI_PREFIX(s4)
 #define casadi_s5 CASADI_PREFIX(s5)
 #define casadi_s6 CASADI_PREFIX(s6)
+#define casadi_sq CASADI_PREFIX(sq)
 
 /* Symbol visibility in DLLs */
 #ifndef CASADI_SYMBOL_EXPORT
@@ -53,33 +54,90 @@ extern "C" {
   #endif
 #endif
 
+casadi_real casadi_sq(casadi_real x) { return x*x;}
+
 static const casadi_int casadi_s0[3] = {10, 1, 1};
 static const casadi_int casadi_s1[3] = {4, 1, 1};
 static const casadi_int casadi_s2[3] = {0, 1, 1};
 static const casadi_int casadi_s3[3] = {14, 1, 1};
 static const casadi_int casadi_s4[3] = {0, 0, 1};
-static const casadi_int casadi_s5[3] = {5, 1, 1};
-static const casadi_int casadi_s6[18] = 
-  {14, 14, 0, 0, 0, 0, 0, 0,
-  0, 1, 1, 1, 1, 1, 1, 1,
-  1, 6};
+static const casadi_int casadi_s5[3] = {7, 1, 1};
+static const casadi_int casadi_s6[22] = 
+  {14, 14, 0, 0, 0, 0, 0, 2,
+  4, 5, 5, 5, 5, 5, 5, 5,
+  5, 4, 5, 4, 5, 6};
 
-/* usv_dynamic_cost_y_0_hess:(i0[10],i1[4],i2[0],i3[14],i4[],i5[5])->(o0[14x14,1nz]) */
+/* usv_dynamic_cost_y_0_hess:(i0[10],i1[4],i2[0],i3[14],i4[],i5[7])->(o0[14x14,5nz]) */
 static int casadi_f0(const casadi_real** arg, casadi_real** res, casadi_int* iw, casadi_real* w, int mem) {
-  casadi_real a0, a1, a2, a3;
-  a0=5.0000000000000000e-01;
-  a1=arg[3]? arg[3][2] : 0;
-  a2=arg[0]? arg[0][2] : 0;
-  a3=arg[5]? arg[5][0] : 0;
-  a2=(a2-a3);
-  a3=2.;
-  a2=(a2/a3);
-  a2=sin(a2);
-  a2=(a0*a2);
-  a1=(a1*a2);
-  a0=(a0*a1);
-  a0=(-a0);
-  if (res[0]!=0) res[0][0]=a0;
+  casadi_real a00, a01, a02, a03, a04, a05, a06, a07, a08, a09, a10, a11;
+  casadi_real a12;
+  a00=arg[3]? arg[3][0] : 0;
+  a01=-2.5000000000000000e-01;
+  a02=1.;
+  a03=arg[0]? arg[0][0] : 0;
+  a04=arg[5]? arg[5][5] : 0;
+  a03=(a03-a04);
+  a04=casadi_sq(a03);
+  a05=arg[0]? arg[0][1] : 0;
+  a06=arg[5]? arg[5][6] : 0;
+  a05=(a05-a06);
+  a06=casadi_sq(a05);
+  a04=(a04+a06);
+  a02=(a02+a04);
+  a04=-1.2500000000000000e+00;
+  a06=pow(a02,a04);
+  a06=(a01*a06);
+  a07=(a03+a03);
+  a08=(a06*a07);
+  a08=(a00*a08);
+  a09=2.;
+  a10=arg[3]? arg[3][1] : 0;
+  a11=(a05*a10);
+  a03=(a03*a00);
+  a11=(a11+a03);
+  a03=(a06*a11);
+  a03=(a09*a03);
+  a12=-2.2500000000000000e+00;
+  a02=pow(a02,a12);
+  a04=(a04*a02);
+  a02=(a04*a07);
+  a02=(a01*a02);
+  a02=(a11*a02);
+  a12=(a06*a00);
+  a02=(a02+a12);
+  a02=(a07*a02);
+  a02=(a03+a02);
+  a08=(a08+a02);
+  if (res[0]!=0) res[0][0]=a08;
+  a05=(a05+a05);
+  a08=(a06*a05);
+  a00=(a00*a08);
+  a04=(a04*a05);
+  a01=(a01*a04);
+  a11=(a11*a01);
+  a06=(a06*a10);
+  a11=(a11+a06);
+  a07=(a07*a11);
+  a00=(a00+a07);
+  if (res[0]!=0) res[0][1]=a00;
+  if (res[0]!=0) res[0][2]=a00;
+  a10=(a10*a08);
+  a05=(a05*a11);
+  a03=(a03+a05);
+  a10=(a10+a03);
+  if (res[0]!=0) res[0][3]=a10;
+  a10=5.0000000000000000e-01;
+  a03=arg[3]? arg[3][2] : 0;
+  a05=arg[0]? arg[0][2] : 0;
+  a11=arg[5]? arg[5][0] : 0;
+  a05=(a05-a11);
+  a05=(a05/a09);
+  a05=sin(a05);
+  a05=(a10*a05);
+  a03=(a03*a05);
+  a10=(a10*a03);
+  a10=(-a10);
+  if (res[0]!=0) res[0][4]=a10;
   return 0;
 }
 
