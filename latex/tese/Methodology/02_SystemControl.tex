@@ -506,9 +506,9 @@ The terminal cost $\ell_f$ penalises the last predicted state, so that the optim
     \label{eq:uav_mpc_terminal_cost}
 \end{equation}
 
-The \gls{uav}'s operating envelope bounds the altitude, translational velocity, and attitude. To guarantee safe clearance above the water surface and \gls{usv} deck, the \gls{uav} is restricted to $z \ge z_{min}$. Furthermore, because horizontal and vertical velocities are limited by distinct physical factors, the \gls{uav}'s speed and tilt are bounded separately:
+The \gls{uav}'s operating envelope bounds the altitude, translational velocity, and attitude. To guarantee safe clearance above the water surface and \gls{usv} deck, the \gls{uav} is restricted to $z \ge z_{min}$. Furthermore, because horizontal and vertical velocities are limited by distinct physical factors, the \gls{uav}'s horizontal and vertical speeds are bounded separately. The attitude is bounded through the tilt, the angle between the direction of the thrust and the vertical, whose cosine is the vertical component of $\mathbf{n}$ in \eqref{eq:uav_mpc_tilt}, $\cos\phi\cos\theta$. Limiting the tilt as a whole, rather than the roll and pitch about each axis, bounds the inclination of the \gls{uav} equally in every direction, independently of its yaw:
 \begin{equation}
-    z \ge z_{min}, \quad \big\|[\dot x,\dot y]^\top\big\| \le v_{xy,max}, \quad |\dot z| \le v_{z,max}, \quad |\phi| \le \phi_{max}, \quad |\theta| \le \theta_{max}.
+    z \ge z_{min}, \quad \big\|[\dot x,\dot y]^\top\big\| \le v_{xy,max}, \quad |\dot z| \le v_{z,max}, \quad \cos\phi\cos\theta \ge \cos\vartheta_{max}.
     \label{eq:uav_mpc_state_bounds}
 \end{equation}
 Unlike the thruster commands of the \gls{usv}, the velocity and attitude are subject to external disturbances such as wind, which can push the true state past these bounds regardless of what the \gls{nmpc} has commanded. The bounds of \eqref{eq:uav_mpc_state_bounds} are therefore softened as in \eqref{eq:nmpc_soft_constraint}, each with its own slack variable $\sigma_j \ge 0$, $j=1,\dots,5$:
@@ -516,10 +516,10 @@ Unlike the thruster commands of the \gls{usv}, the velocity and attitude are sub
     \underbrace{z_{min} - z}_{h_1(\mathbf{x}_a)} &\le \sigma_1, \label{eq:uav_mpc_slack_z} \\
     \underbrace{\big\|[\dot x,\dot y]^\top\big\| - v_{xy,max}}_{h_2(\mathbf{x}_a)} &\le \sigma_2, \label{eq:uav_mpc_slack_vxy} \\
     \underbrace{|\dot z| - v_{z,max}}_{h_3(\mathbf{x}_a)} &\le \sigma_3, \label{eq:uav_mpc_slack_vz} \\
-    \underbrace{\max\big(|\phi|, |\phi_{\mathrm{cmd}}|\big) - \phi_{max}}_{h_4(\mathbf{x}_a)} &\le \sigma_4, \label{eq:uav_mpc_slack_phi} \\
-    \underbrace{\max\big(|\theta|, |\theta_{\mathrm{cmd}}|\big) - \theta_{max}}_{h_5(\mathbf{x}_a)} &\le \sigma_5. \label{eq:uav_mpc_slack_theta}
+    \underbrace{\cos\vartheta_{max} - \cos\phi\cos\theta}_{h_4(\mathbf{x}_a)} &\le \sigma_4, \label{eq:uav_mpc_slack_tilt} \\
+    \underbrace{\cos\vartheta_{max} - \cos\phi_{\mathrm{cmd}}\cos\theta_{\mathrm{cmd}}}_{h_5(\mathbf{x}_a)} &\le \sigma_5. \label{eq:uav_mpc_slack_tilt_cmd}
 \end{align}
-The tilt limits apply both to the attitude and to its command. The attitude follows the command with a delay and a time constant, so that, with a bound on the attitude alone, the \gls{nmpc} could command a tilt beyond the limit to reach the limit sooner, and the real attitude, if it responds faster than predicted, would follow the command beyond it. Each slack is penalised by $\rho_j(\sigma_j)$ as in \eqref{eq:nmpc_slack_penalty}, with weights $\mu_{1,j}$ and $\mu_{2,j}$.
+The tilt limit applies both to the attitude, $h_4$, and to its command, $h_5$. The attitude follows the command with a delay and a time constant, so that, with a bound on the attitude alone, the \gls{nmpc} could command a tilt beyond the limit to reach the limit sooner, and the real attitude, if it responds faster than predicted, would follow the command beyond it. Each slack is penalised by $\rho_j(\sigma_j)$ as in \eqref{eq:nmpc_slack_penalty}, with weights $\mu_{1,j}$ and $\mu_{2,j}$.
 
 The thrust range acts on the state, since the thrust is a component of $\mathbf{x}_a$, defining the admissible state set
 \begin{equation}
