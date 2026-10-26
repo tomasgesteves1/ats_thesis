@@ -29,7 +29,7 @@ struct WinchConfig
     double target_tension{1.0};   ///< Target tension to maintain [N].
     double kp_tension{1.0};       ///< Proportional gain for tension control [m/s per N].
     double kd_tension{0.1};       ///< Derivative gain to damp oscillations [m/s per (N/s)].
-    double winch_speed_limit{10.0}; ///< Max spooling speed [m/s].
+    double winch_speed_limit{10.0}; ///< Max spooling speed [m/s], in both modes.
 
     // --- Constraints ---
     double min_length{3.0};      ///< Minimum unstretched length [m].
