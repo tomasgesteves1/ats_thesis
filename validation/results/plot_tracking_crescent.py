@@ -7,15 +7,21 @@ Prints the metrics of the section and writes one figure per panel to Results/fig
 """
 import os
 import numpy as np
+from scipy.signal import butter, filtfilt
 import matplotlib.pyplot as plt
 from common import load, interp, rms, set_thesis_style, save_figure, FIGS, HERE, UAV, USV, PX4, REF, LIMIT, UAV_LIM
 
 TABLE = os.path.join(HERE, '..', '..', 'mission', 'test_uav_circle', 'config', 'crescent.csv')
 OUT = os.path.join(FIGS, '01_tracking')
 Z_WINCH = 1.3        # m, height of the winch
-C_D = 0.2065         # N/m, tension of the tether per metre of separation (Section 4.2)
+D_MAX = 35.0         # m, maximum separation in this test
+K_F, W_MIN, W_MAX = 1.11e-5, 150.0, 1000.0   # rotor thrust coefficient and speed range of the x500 (Section 4.1)
+CMD_CUTOFF = 1.0     # Hz, low-pass filter of the plotted commands
 LAPS = 3
-SIZE = (3.1, 2.4)    # one panel; two side by side in the thesis
+# Figures are drawn about 1.7 times larger than they appear in the thesis, as those of Chapter 4, so that their text
+# matches once LaTeX scales them down
+K = 1.7
+SIZE = (3.1 * K, 2.4 * K)    # one panel; two side by side in the thesis
 NAMES = {'NMPC': 'nmpc', 'PX4': 'px4'}
 COLORS = {'NMPC': UAV, 'PX4': PX4}
 
@@ -48,7 +54,14 @@ def analyse(d, tab):
     ma = (d['att'][:, 0] >= t0) & (d['att'][:, 0] <= t1)
     q = d['att'][ma, 1:5]                     # PX4 quaternion [w, x, y, z]
     tilt = np.degrees(np.arccos(np.clip(1 - 2 * (q[:, 1] ** 2 + q[:, 2] ** 2), -1, 1)))
-    return dict(t0=t0, t=t - t0, p=p, r=r, e=e, n=np.linalg.norm(e, axis=1), e_al=e_al, e_cr=e_cr,
+    # Commands sent to the autopilot (same topic for both controllers): tilt of the commanded attitude and thrust,
+    # converted from the normalised throttle with the relation of the rotors used by the NMPC (Section 4.3)
+    ms = (d['att_sp'][:, 0] >= t0) & (d['att_sp'][:, 0] <= t1)
+    qs = d['att_sp'][ms, 1:5]
+    tilt_cmd = np.degrees(np.arccos(np.clip(1 - 2 * (qs[:, 1] ** 2 + qs[:, 2] ** 2), -1, 1)))
+    w = W_MIN + d['att_sp'][ms, 5] * (W_MAX - W_MIN)
+    thrust_cmd = 4 * K_F * w ** 2
+    return dict(t_cmd=d['att_sp'][ms, 0] - t0, tilt_cmd=tilt_cmd, thrust_cmd=thrust_cmd, t0=t0, t=t - t0, p=p, r=r, e=e, n=np.linalg.norm(e, axis=1), e_al=e_al, e_cr=e_cr,
                 sp_ref=np.hypot(vr[:, 0], vr[:, 1]), sp=np.hypot(*np.gradient(p, t, axis=0)[:, :2].T),
                 dist=dist, d_dot=np.gradient(dist, t), t_att=d['att'][ma, 0] - t0, tilt=tilt)
 
@@ -76,6 +89,11 @@ def main():
                                                 1000 * lag))
         print('      speed max %.2f m/s | d %.1f..%.1f m | |d_dot| max %.2f m/s | tilt max %.1f deg' % (
             a['sp'].max(), a['dist'].min(), a['dist'].max(), np.abs(a['d_dot']).max(), a['tilt'].max()))
+    for k, a in res.items():
+        tc = a['t_cmd']
+        print('%-5s command: tilt max %.1f mean %.1f deg, rate rms %.1f deg/s | thrust %.1f..%.1f N, rate rms %.1f N/s' % (
+            k, a['tilt_cmd'].max(), a['tilt_cmd'].mean(), rms(np.gradient(a['tilt_cmd'], tc)),
+            a['thrust_cmd'].min(), a['thrust_cmd'].max(), rms(np.gradient(a['thrust_cmd'], tc))))
     tel = runs['NMPC']['tel']
     a = res['NMPC']
     mt = (tel['t'] >= a['t0']) & (tel['t'] <= a['t0'] + LAPS * period)
@@ -88,32 +106,24 @@ def main():
         s = s[(s[:, 0] >= a['t0']) & (s[:, 0] <= a['t0'] + LAPS * period), 1]
         print('%s solve time mean %.2f max %.2f ms' % (k.upper(), s.mean(), s.max()))
 
-    # --- Scenario: the crescent seen from above, coloured by the speed of the reference, and the tether over a lap ---
-    fig, ax = plt.subplots(figsize=(3.1, 3.4))
+    # --- Scenario: the crescent seen from above, coloured by the speed of the reference -------------------------------
+    # Top views are rotated by 90 deg so that the crescent lies horizontally: y to the left, x upwards
+    fig, ax = plt.subplots(figsize=(4.4 * K, 2.6 * K))
     sp = np.hypot(tab[:, 4], tab[:, 5])
-    sc = ax.scatter(tab[:, 1], tab[:, 2], c=sp, s=1.5, cmap='viridis', rasterized=True)
+    sc = ax.scatter(tab[:, 2], tab[:, 1], c=sp, s=1.5, cmap='viridis', rasterized=True)
     for k in np.linspace(0, len(tab), 9, endpoint=False).astype(int):
         j = (k + 30) % len(tab)
-        ax.annotate('', xy=tab[j, 1:3], xytext=tab[k, 1:3], arrowprops=dict(arrowstyle='->', color='k', lw=0.7))
-    ax.plot(0, 0, 's', color=USV, ms=6, label='USV')
-    fig.colorbar(sc, ax=ax, label='Reference speed (m/s)', shrink=0.85)
-    ax.set_aspect('equal'); ax.set_xlabel('$x$ (m)'); ax.set_ylabel('$y$ (m)')
-    ax.legend(loc='center', bbox_to_anchor=(0.32, 0.5), fontsize=7)
+        ax.annotate('', xy=tab[j, [2, 1]], xytext=tab[k, [2, 1]], arrowprops=dict(arrowstyle='->', color='k', lw=0.7))
+    ax.plot(0, 0, 's', color=USV, ms=6)
+    ax.annotate('USV', (0, 0), xytext=(6, 0), textcoords='offset points', va='center', fontsize=9)
+    fig.colorbar(sc, ax=ax, label='Reference speed (m/s)', shrink=0.7, pad=0.02)
+    ax.set_aspect('equal'); ax.invert_xaxis(); ax.set_xlabel('$y$ (m)'); ax.set_ylabel('$x$ (m)')
     fig.tight_layout()
     save_figure(fig, os.path.join(OUT, 'crescent_top'))
 
-    one = res['NMPC']['t'] <= period
-    fig, ax = panel()
-    ax.plot(res['NMPC']['t'][one], res['NMPC']['dist'][one], color=UAV)
-    ax.set_xlabel('Time (s)'); ax.set_ylabel('Separation $d$ (m)'); ax.set_xlim(0, period)
-    ax2 = ax.twinx()
-    ax2.set_ylim(np.array(ax.get_ylim()) * C_D); ax2.set_ylabel('Tension (N)')
-    fig.tight_layout()
-    save_figure(fig, os.path.join(OUT, 'crescent_separation'))
-
     # --- Overlaid tracking: x, y, z against the reference over the middle lap, and the paths seen from above ---------
     for c, lab in enumerate(('x', 'y', 'z')):
-        fig, ax = plt.subplots(figsize=(2.05, 1.75))   # three side by side in the thesis
+        fig, ax = plt.subplots(figsize=(2.05 * K, 1.75 * K))   # three side by side in the thesis
         ax.grid(True, alpha=0.3)
         a = res['NMPC']
         mid = (a['t'] >= period) & (a['t'] <= 2 * period)
@@ -125,23 +135,46 @@ def main():
         fig.tight_layout()
         save_figure(fig, os.path.join(OUT, 'crescent_track_%s' % lab))
 
-    # Same height as the other panels, narrower (equal axes)
-    fig, ax = plt.subplots(figsize=(2.7, SIZE[1]))
+    # Seen from above, rotated as the scenario figure
+    fig, ax = plt.subplots(figsize=(4.4 * K, 2.4 * K))
     ax.grid(True, alpha=0.3)
-    ax.plot(tab[:, 1], tab[:, 2], color=REF, lw=2.5, alpha=0.45, label='Ref.')
+    ax.plot(tab[:, 2], tab[:, 1], color=REF, lw=2.5, alpha=0.45, label='Ref.')
     for k, a in res.items():
-        ax.plot(a['p'][:, 0], a['p'][:, 1], color=COLORS[k], lw=0.8, label=k)
+        ax.plot(a['p'][:, 1], a['p'][:, 0], color=COLORS[k], lw=0.8, label=k)
     ax.plot(0, 0, 's', color=USV, ms=5)
-    ax.set_aspect('equal'); ax.set_xlabel('$x$ (m)'); ax.set_ylabel('$y$ (m)')
+    ax.annotate('USV', (0, 0), xytext=(6, 0), textcoords='offset points', va='center', fontsize=9)
+    ax.set_aspect('equal'); ax.invert_xaxis(); ax.set_xlabel('$y$ (m)'); ax.set_ylabel('$x$ (m)')
     # The legend, also of the x, y, z panels, to the right of the crescent
-    leg = ax.legend(loc='center left', bbox_to_anchor=(1.02, 0.5), fontsize=7, frameon=False)
+    leg = ax.legend(loc='center left', bbox_to_anchor=(1.0, 0.5), fontsize=7, frameon=False)
     for h in leg.get_lines()[1:]:
         h.set_linewidth(1.5)
     fig.tight_layout()
     save_figure(fig, os.path.join(OUT, 'crescent_track_top'))
 
+    # --- Commands over the middle lap: tilt and thrust sent to the autopilot ----------------------------------------
+    # Both are low-pass filtered (zero phase, CMD_CUTOFF), the same for both controllers, to remove the vibration of
+    # the simulated tether (~1.5 Hz, on the thrust of both) and the sample-to-sample oscillation of the PX4 output
+    # (50 Hz), which hide the commands that the trajectory requires (below ~0.7 Hz)
+    def lowpass(t, x):
+        fs = 1.0 / np.median(np.diff(t))
+        tu = np.arange(t[0], t[-1], 1.0 / fs)
+        b, a_ = butter(2, CMD_CUTOFF / (fs / 2))
+        return tu, filtfilt(b, a_, np.interp(tu, t, x))
+
+    for name, key, ylabel in (('crescent_cmd_tilt', 'tilt_cmd', 'Commanded tilt (deg)'),
+                              ('crescent_cmd_thrust', 'thrust_cmd', 'Commanded thrust (N)')):
+        fig, ax = panel()
+        for k, a in res.items():
+            tf, xf = lowpass(a['t_cmd'], a[key])
+            mid = (tf >= period) & (tf <= 2 * period)
+            ax.plot(tf[mid] - period, xf[mid], color=COLORS[k], lw=0.9, label=k)
+        ax.set_xlabel('Time (s)'); ax.set_ylabel(ylabel); ax.set_xlim(0, period)
+        ax.legend(loc='best', fontsize=7)
+        fig.tight_layout()
+        save_figure(fig, os.path.join(OUT, name))
+
     # --- Error over the three laps, with the reference speed -------------------------------------------------------
-    fig, ax = plt.subplots(figsize=(6.3, 2.4))
+    fig, ax = plt.subplots(figsize=(6.3 * K, 2.4 * K))
     ax.grid(True, alpha=0.3)
     for k, a in res.items():
         ax.plot(a['t'], 100 * a['n'], color=COLORS[k], lw=0.9, label=k)
@@ -154,7 +187,7 @@ def main():
     fig.tight_layout()
     save_figure(fig, os.path.join(OUT, 'crescent_error'))
 
-    # --- Feasibility: speed, separation rate, tilt and thrust of both runs against the limits -----------------------
+    # --- The tether: separation and its rate of change of both runs against the limits of the tether ----------------
     def limits_panel(name, ylabel, series, limits):
         fig, ax = panel()
         for k, (tt, yy) in series.items():
@@ -166,16 +199,10 @@ def main():
         fig.tight_layout()
         save_figure(fig, os.path.join(OUT, name))
 
-    limits_panel('crescent_speed', 'Horizontal speed (m/s)', {k: (a['t'], a['sp']) for k, a in res.items()},
-                 [UAV_LIM['v_max']])
+    limits_panel('crescent_distance', 'Separation $d$ (m)', {k: (a['t'], a['dist']) for k, a in res.items()},
+                 [D_MAX])
     limits_panel('crescent_ddot', r'$\dot d$ (m/s)', {k: (a['t'], a['d_dot']) for k, a in res.items()},
                  [UAV_LIM['d_dot_max'], -UAV_LIM['d_dot_max']])
-    limits_panel('crescent_tilt', 'Tilt (deg)', {k: (a['t_att'], a['tilt']) for k, a in res.items()},
-                 [np.degrees(UAV_LIM['phi_max'])])
-    a = res['NMPC']
-    limits_panel('crescent_thrust', 'Thrust (N)', {'NMPC': (tel['t'][mt] - a['t0'], tel['thrust'][mt])},
-                 [UAV_LIM['T_min'], UAV_LIM['T_max']])
-
 
 if __name__ == '__main__':
     main()

@@ -76,8 +76,10 @@ def main(bag, out):
             ev.append((tb, deserialize_message(raw, msg[tp]).data))
         elif tp in ('/px4_1/fmu/out/vehicle_attitude', '/px4_1/fmu/out/vehicle_attitude_setpoint'):
             m = deserialize_message(raw, msg[tp])
-            q = m.q if tp.endswith('attitude') else m.q_d
-            data['att' if tp.endswith('attitude') else 'att_sp'].append((tb, *q))
+            if tp.endswith('attitude'):
+                data['att'].append((tb, *m.q))
+            else:   # t, q_d [w, x, y, z], normalised throttle (thrust_body[2] is its negative)
+                data['att_sp'].append((tb, *m.q_d, -m.thrust_body[2]))
         elif tp in sc:
             sc[tp].append((tb, deserialize_message(raw, msg[tp]).data))
 
