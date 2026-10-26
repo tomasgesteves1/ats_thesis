@@ -24,15 +24,6 @@ void VirtualWinch::update(MoorDynLine line, const std::array<BodyState, 2> & bod
         const double span = Kinematics::distance3(body_states[0].anchor_pos,
                                                   body_states[1].anchor_pos);
         desired = span * cfg_.slack_factor;
-
-        // Spooling speed limit in both directions (dt = 0 at initialisation sets the length directly)
-        if (dt > 0.0)
-        {
-            double current_length = 0.0;
-            MoorDyn_GetLineUnstretchedLength(line, &current_length);
-            const double max_delta = cfg_.winch_speed_limit * dt;
-            desired = std::clamp(desired, current_length - max_delta, current_length + max_delta);
-        }
     }
     else if (cfg_.mode == WinchMode::TENSION)
     {
