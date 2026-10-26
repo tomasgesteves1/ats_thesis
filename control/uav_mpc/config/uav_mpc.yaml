@@ -44,7 +44,7 @@ uav_mpc_node:
     phi_dot_max: 0.8             # rad/s
     theta_dot_max: 0.8           # rad/s
     psi_dot_max: 1.0             # rad/s
-    thrust_rate_max: 30.0        # T_dot_max (N/s)
+    thrust_rate_max: 100.0       # T_dot_max (N/s): full range in ~0.4 s, within the horizon (the rotors respond in ~20 ms)
     thrust_min: 2.02             # T_min (N) = 0.1 m g
     thrust_max: 39.96            # T_max (N) = 0.9 * 4 k omega_max^2 (k = 1.11e-5 N s^2, omega_max = 1000 rad/s)
 

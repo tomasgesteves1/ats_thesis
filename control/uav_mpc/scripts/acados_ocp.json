@@ -116,7 +116,7 @@
             -0.8,
             -0.8,
             -1.0,
-            -30.0
+            -100.0
         ],
         "lbx": [
             2.0,
@@ -199,7 +199,7 @@
             0.8,
             0.8,
             1.0,
-            30.0
+            100.0
         ],
         "ubx": [
             1000.0,
@@ -1156,7 +1156,7 @@
         "uav_tethered_cost/uav_tethered_cost_y_e_fun_jac_ut_xt.c",
         "uav_tethered_cost/uav_tethered_cost_y_e_hess.c"
     ],
-    "hash": "f65828fcbc38d846046055f267b3f066",
+    "hash": "e22e4d200617a78d7b3697b4cba7f80e",
     "model": {
         "con_h_expr": "SX(@1=(p_0-anchor_0), @2=(p_1-anchor_1), @3=(p_2-anchor_2), @4=((sq(@1)+sq(@2))+sq(@3)), [@4, ((((@1*(v_0-anchor_v_0))+(@2*(v_1-anchor_v_1)))+(@3*(v_2-anchor_v_2)))/sqrt((@4+0.01))), sqrt(((sq(v_0)+sq(v_1))+0.0001)), (cos(phi)*cos(theta)), (cos(phi_cmd)*cos(theta_cmd))])",
         "con_h_expr_0": [],

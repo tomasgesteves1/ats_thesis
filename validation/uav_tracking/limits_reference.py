@@ -3,11 +3,12 @@
 
 The reference asks more than the UAV can do, one limit after the other, while keeping clear of the limits of the tether
 (d_max 35 m, |d_dot| <= 2 m/s), which belong to Section 5.2:
-  1. hover, then a lap of 15 m radius at 10.5 m/s, which needs about 37 deg of tilt (the pull of the tether helps
+  1. hover, then an arc of 15 m radius at 10.5 m/s, which needs about 37 deg of tilt (the pull of the tether helps
      by ~1.5 m/s^2): the tilt and its rate saturate, and the speed limit is close;
-  2. a slow move out to 25 m, then a lap at 11 m/s, which the tilt allows but the horizontal speed limit does not;
+  2. a slow move to 25 m, then an arc at 11 m/s, which the tilt allows but the horizontal speed limit does not;
   3. a slow move out to 30 m and down to 3 m, where a change of height hardly changes the distance to the winch;
   4. a step up of 7 m (maximum thrust and thrust rate) and a step down to the water (minimum thrust, minimum altitude).
+The arcs span 240 deg on the +x side, clear of the radio tower of the inspection missions at (-25, 0).
 The table is not periodic: after its end the reference holds the last point.
 
 Usage: limits_reference.py [--csv out.csv] [--plot out_prefix]
@@ -31,34 +32,38 @@ D_MAX = 35.0          # m, maximum separation in this test
 R_A, R_B, R_C = 15.0, 25.0, 30.0
 H, H_LOW, H_HIGH = 8.0, 3.0, 10.0
 V_ORBIT_A, V_ORBIT_B = 10.5, 11.0
-LAPS = 1
+ARC_DEG = 240.0     # arcs centred on +x, clear of the radio tower at (-25, 0)
 V_MOVE = 1.5
 
 
 def phases():
+    """The orbits are arcs of ARC_DEG centred on +x: the radio tower of the inspection missions stands at (-25, 0)."""
     ph = []
     hold = lambda p: (lambda t: np.array(p, float))
+    a0 = -np.radians(ARC_DEG) / 2
+    on = lambda r, a, z: [r * np.cos(a), r * np.sin(a), z]
 
-    def orbit(r, z, v):
+    def arc(r, z, v):
         w = v / r
-        return lambda t: np.array([r * np.cos(w * t), r * np.sin(w * t), z])
+        return lambda t: np.array(on(r, a0 + w * t, z))
 
     def line(a, b, v):
         a, b = np.array(a, float), np.array(b, float)
         T = np.linalg.norm(b - a) / v
         return T, (lambda t: a + (b - a) * min(t / T, 1.0))
 
-    ph.append(('hover', 6.0, hold([R_A, 0, H])))
-    ph.append(('orbit A (tilt)', LAPS * 2 * np.pi * R_A / V_ORBIT_A, orbit(R_A, H, V_ORBIT_A)))
-    ph.append(('hold', 5.0, hold([R_A, 0, H])))
-    T, f = line([R_A, 0, H], [R_B, 0, H], V_MOVE); ph.append(('move out', T, f))
-    ph.append(('hold', 3.0, hold([R_B, 0, H])))
-    ph.append(('orbit B (speed)', LAPS * 2 * np.pi * R_B / V_ORBIT_B, orbit(R_B, H, V_ORBIT_B)))
-    ph.append(('hold', 5.0, hold([R_B, 0, H])))
-    T, f = line([R_B, 0, H], [R_C, 0, H_LOW], V_MOVE); ph.append(('move out and down', T, f))
-    ph.append(('hold', 5.0, hold([R_C, 0, H_LOW])))
-    ph.append(('step up (thrust max)', 8.0, hold([R_C, 0, H_HIGH])))
-    ph.append(('step down (thrust min, z_min)', 8.0, hold([R_C, 0, 0.0])))
+    arc_time = lambda r, v: np.radians(ARC_DEG) * r / v
+    ph.append(('hover', 6.0, hold(on(R_A, a0, H))))
+    ph.append(('arc A (tilt)', arc_time(R_A, V_ORBIT_A), arc(R_A, H, V_ORBIT_A)))
+    ph.append(('hold', 5.0, hold(on(R_A, -a0, H))))
+    T, f = line(on(R_A, -a0, H), on(R_B, a0, H), V_MOVE); ph.append(('move', T, f))
+    ph.append(('hold', 3.0, hold(on(R_B, a0, H))))
+    ph.append(('arc B (speed)', arc_time(R_B, V_ORBIT_B), arc(R_B, H, V_ORBIT_B)))
+    ph.append(('hold', 5.0, hold(on(R_B, -a0, H))))
+    T, f = line(on(R_B, -a0, H), on(R_C, -a0, H_LOW), V_MOVE); ph.append(('move out and down', T, f))
+    ph.append(('hold', 5.0, hold(on(R_C, -a0, H_LOW))))
+    ph.append(('step up (thrust max)', 8.0, hold(on(R_C, -a0, H_HIGH))))
+    ph.append(('step down (thrust min, z_min)', 8.0, hold(on(R_C, -a0, 0.0))))
     return ph
 
 
@@ -82,7 +87,7 @@ def check(t, p, v, names):
     d = np.linalg.norm(r, axis=1)
     for name in dict.fromkeys(names):
         m = np.array([n == name for n in names])
-        if name.startswith('orbit'):
+        if name.startswith('arc'):
             R = np.hypot(p[m, 0], p[m, 1]).mean(); vv = np.hypot(v[m, 0], v[m, 1]).mean()
             print('  %-30s speed %.1f m/s (limit %.0f), tilt needed %.1f deg (limit %.1f)' % (
                 name, vv, V_XY_MAX, np.degrees(np.arctan(vv ** 2 / R / G)), np.degrees(TILT_MAX)))

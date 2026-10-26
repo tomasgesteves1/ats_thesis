@@ -788,8 +788,8 @@ void uav_tethered_acados_setup_nlp_in(uav_tethered_solver_capsule* capsule, cons
     ubu[1] = 0.8;
     lbu[2] = -1;
     ubu[2] = 1;
-    lbu[3] = -30;
-    ubu[3] = 30;
+    lbu[3] = -100;
+    ubu[3] = 100;
 
     for (int i = 0; i < N; i++)
     {
