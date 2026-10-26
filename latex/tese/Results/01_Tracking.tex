@@ -16,54 +16,107 @@ The controllers of Chapter~\ref{chapter:methodology} play two roles at once. The
 \label{subsec:res_tracking_nominal}
 
 % Which reference, and why this one?
-To measure the tracking accuracy alone, the reference must be one that both vehicles can follow without reaching their limits, while still exposing the \gls{uav} to a tether force that changes as the vehicles move. The \gls{usv} therefore sails a circle of $3\,\text{m}$ radius at $0.15\,\text{m/s}$, while the \gls{uav} flies a circle of $5\,\text{m}$ radius about the same centre at $1.5\,\text{m/s}$, tilted so that its height goes from $21$ to $29\,\text{m}$ along each lap, as shown in Figure~\ref{fig:res_nominal_3d}. Since the two circles are flown at different angular speeds, the \gls{uav} passes alternately above the \gls{usv} and on the opposite side, and the separation between them ranges from $20$ to $29\,\text{m}$. The tension at the \gls{uav} follows this separation, since it carries the weight of a longer or shorter tether, and ranges from $3.9$ to $6.0\,\text{N}$, Figure~\ref{fig:res_nominal_tension}. So that the reach of the tether does not interfere, its maximum separation is raised to $35\,\text{m}$ for this test.
+To measure the tracking accuracy alone, the \gls{usv} holds its position while the \gls{uav} flies the crescent of Figure~\ref{fig:res_crescent_top} around it. On the two arcs the \gls{uav} is fast, up to $5.9\,\text{m/s}$, at a constant distance from the winch, and it slows down in the U-turns that join them, where the distance changes. The tension of the tether follows the distance, between $3.2$ and $5.3\,\text{N}$, Figure~\ref{fig:res_crescent_separation}. The maximum separation is $35\,\text{m}$ in this test.
 
 \begin{figure}[htbp]
     \centering
-    \subfloat[One lap of the \gls{uav} and the path of the \gls{usv}, with the tether drawn as straight lines at four instants.]{
-        \includegraphics[width=0.48\textwidth]{Results/figures/01_tracking/nominal_scenario_3d.pdf}
-        \label{fig:res_nominal_3d}
+    \subfloat[Crescent seen from above, coloured by the speed of the reference.]{
+        \includegraphics[width=0.40\textwidth]{Results/figures/01_tracking/crescent_top.pdf}
+        \label{fig:res_crescent_top}
     }
     \hfill
-    \subfloat[Separation between the vehicles and tension of the tether at the \gls{uav}.]{
-        \includegraphics[width=0.48\textwidth]{Results/figures/01_tracking/nominal_scenario_tension.pdf}
-        \label{fig:res_nominal_tension}
+    \subfloat[Separation and tension of the tether over one lap.]{
+        \includegraphics[width=0.48\textwidth]{Results/figures/01_tracking/crescent_separation.pdf}
+        \label{fig:res_crescent_separation}
     }
-    \caption{Nominal tracking scenario.}
-    \label{fig:res_nominal_scenario}
+    \caption{Crescent reference of the tracking test.}
+    \label{fig:res_crescent_scenario}
 \end{figure}
 
 % What is the NMPC compared with?
-To give these results a reference point, the same circle was also flown by the position controller of PX4, which is the usual way of flying a multirotor along a trajectory. It receives the position, the velocity and the acceleration of the reference at every instant, and follows them through its cascade of position, velocity and attitude loops, with the default gains of the x500. It is not aware of the tether, but it compensates any constant force through the integral action of its velocity loop, much as the disturbance observer does for the \gls{nmpc}. In both cases, the \gls{usv} is driven by its own \gls{nmpc}.
+[Comparison with the position controller of PX4: what each receives, and why the comparison is fair.]
 
-% How closely do the two follow it?
-The tracking error was measured from the ground truth of the simulator, against the reference at the same instant, over $68\,\text{s}$, starting $15\,\text{s}$ after the start of the circle. Table~\ref{tab:res_nominal} and Figure~\ref{fig:res_nominal_error} show that the \gls{nmpc} follows the circle with an error of $4.0\,\text{cm}$, less than half of that of PX4. Neither controller keeps an offset in height, and the force of the tether is compensated by both. The difference lies in the timing. PX4 reacts to the error once it has appeared, and follows the reference about $45\,\text{ms}$ behind it, while the \gls{nmpc} anticipates its motion over the horizon. Most of the remaining error of the \gls{nmpc} is along the path, slightly ahead of the reference, by about $20\,\text{ms}$.
-
-\begin{table}[htbp]
-    \centering
-    \caption{Position error of the \gls{uav} on the nominal circle.}
-    \label{tab:res_nominal}
-    \begin{tabular*}{0.75\linewidth}{@{\extracolsep{\fill}}lrrrrr}
-        \toprule
-        Controller & \gls{rmse} & Maximum & $x$ & $y$ & $z$ \\
-        \midrule
-        \gls{nmpc} & $4.0$ & $5.3$ & $2.6$ & $2.5$ & $1.7$ \\
-        PX4 & $9.0$ & $11.6$ & $5.9$ & $5.9$ & $3.2$ \\
-        \bottomrule
-    \end{tabular*}
-    \\[1mm]
-    {\footnotesize Values in cm; $x$, $y$ and $z$ are the \gls{rmse} of each component.}
-\end{table}
+% Is the reference within the limits of both controllers?
+[The reference stays within every limit of both controllers, Figure~\ref{fig:res_crescent_feasible}.]
 
 \begin{figure}[htbp]
     \centering
-    \includegraphics[width=\textwidth]{Results/figures/01_tracking/nominal_error.pdf}
-    \caption[Tracking error of the UAV on the nominal circle.]{Tracking error of the \gls{uav} on the nominal circle with the \gls{nmpc} and with the position controller of PX4: norm of the position error and its vertical component.}
-    \label{fig:res_nominal_error}
+    \subfloat[Horizontal speed.]{
+        \includegraphics[width=0.48\textwidth]{Results/figures/01_tracking/crescent_speed.pdf}
+        \label{fig:res_crescent_speed}
+    }
+    \hfill
+    \subfloat[Rate of change of the separation.]{
+        \includegraphics[width=0.48\textwidth]{Results/figures/01_tracking/crescent_ddot.pdf}
+        \label{fig:res_crescent_ddot}
+    }
+    \\[2ex]
+    \subfloat[Tilt.]{
+        \includegraphics[width=0.48\textwidth]{Results/figures/01_tracking/crescent_tilt.pdf}
+        \label{fig:res_crescent_tilt}
+    }
+    \hfill
+    \subfloat[Thrust of the \gls{nmpc}.]{
+        \includegraphics[width=0.48\textwidth]{Results/figures/01_tracking/crescent_thrust.pdf}
+        \label{fig:res_crescent_thrust}
+    }
+    \caption{Crescent: motion of the \gls{uav} against the limits of the \gls{nmpc}, over three laps.}
+    \label{fig:res_crescent_feasible}
 \end{figure}
 
-% And the USV, and the time taken by the solvers?
-The \gls{usv} follows its slower circle with an error of $0.6\,\text{cm}$ and a heading error of $0.2^\circ$. Both controllers solve their problem well within their sampling period. The \gls{nmpc} of the \gls{uav} takes $4.8\,\text{ms}$ on average and at most $8.2\,\text{ms}$ of its $20\,\text{ms}$, and that of the \gls{usv} $1.9\,\text{ms}$ on average and at most $6.4\,\text{ms}$ of its $100\,\text{ms}$.
+% How closely do the two follow it?
+[Overlaid tracking, Figure~\ref{fig:res_crescent_track}, and the error, Figure~\ref{fig:res_crescent_error} and Table~\ref{tab:res_crescent}.]
+
+\begin{figure}[htbp]
+    \centering
+    \subfloat[Paths seen from above, with the \gls{usv} (square).]{
+        \includegraphics[width=0.42\textwidth]{Results/figures/01_tracking/crescent_track_top.pdf}
+        \label{fig:res_crescent_track_top}
+    }
+    \\[2ex]
+    \subfloat[Position along $x$.]{
+        \includegraphics[width=0.32\textwidth]{Results/figures/01_tracking/crescent_track_x.pdf}
+        \label{fig:res_crescent_track_x}
+    }
+    \hfill
+    \subfloat[Position along $y$.]{
+        \includegraphics[width=0.32\textwidth]{Results/figures/01_tracking/crescent_track_y.pdf}
+        \label{fig:res_crescent_track_y}
+    }
+    \hfill
+    \subfloat[Height.]{
+        \includegraphics[width=0.32\textwidth]{Results/figures/01_tracking/crescent_track_z.pdf}
+        \label{fig:res_crescent_track_z}
+    }
+    \caption{Crescent: position of the \gls{uav} with the \gls{nmpc} and with PX4 against the reference, over three laps from above and over one lap along each axis.}
+    \label{fig:res_crescent_track}
+\end{figure}
+
+\begin{figure}[htbp]
+    \centering
+    \includegraphics[width=\textwidth]{Results/figures/01_tracking/crescent_error.pdf}
+    \caption{Crescent: position error of the \gls{uav} over three laps, with the speed of the reference shaded.}
+    \label{fig:res_crescent_error}
+\end{figure}
+
+\begin{table}[htbp]
+    \centering
+    \caption{Position error of the \gls{uav} on the crescent, over three laps.}
+    \label{tab:res_crescent}
+    \begin{tabular*}{0.9\linewidth}{@{\extracolsep{\fill}}lrrrrrr}
+        \toprule
+        Controller & \gls{rmse} & Maximum & Horizontal & Vertical & Along the path & Across the path \\
+        \midrule
+        \gls{nmpc} & $6.6$ & $12.3$ & $6.6$ & $0.7$ & $6.2$ & $2.4$ \\
+        PX4 & $29.9$ & $53.8$ & $29.9$ & $1.8$ & $27.0$ & $12.8$ \\
+        \bottomrule
+    \end{tabular*}
+    \\[1mm]
+    {\footnotesize Values in cm; the components are the \gls{rmse} of each part of the error.}
+\end{table}
+
+% Why does the error of PX4 grow with the speed?
+[PX4 lags the reference by about $80\,\text{ms}$ on the fast arcs, the \gls{nmpc} is about $15\,\text{ms}$ ahead.]
 
 \subsection{Tether Constraint}
 \label{subsec:res_tracking_tether}
