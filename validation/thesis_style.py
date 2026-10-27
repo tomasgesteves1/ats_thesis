@@ -118,6 +118,43 @@ def set_thesis_style():
     })
 
 
+# Extended abstract: two columns of 77 mm, Helvetica text with footnotesize (8 pt) captions
+EA_COLUMN_WIDTH = 77.0 / 25.4   # in
+EA_TEXT_WIDTH = 160.0 / 25.4    # in
+
+
+def set_ea_style():
+    """Figures of the extended abstract: drawn at their printed size (column or text width) in Liberation Sans, a free
+    TrueType Arial like the typeface of the document, at the size of its captions, so that they are included without scaling."""
+    set_thesis_style()
+    mpl.rcParams.update({
+        "font.family": "sans-serif",
+        "font.sans-serif": ["Liberation Sans", "DejaVu Sans"],
+        "mathtext.fontset": "custom",
+        "mathtext.rm": "Liberation Sans",
+        "mathtext.it": "Liberation Sans:italic",
+        "mathtext.bf": "Liberation Sans:bold",
+        "font.size": 7.5,
+        "axes.titlesize": 7.5,
+        "axes.labelsize": 7.5,
+        "xtick.labelsize": 6.5,
+        "ytick.labelsize": 6.5,
+        "legend.fontsize": 6.5,
+        "figure.titlesize": 7.5,
+        "lines.linewidth": 0.9,
+        "axes.linewidth": 0.6,
+        "grid.linewidth": 0.4,
+        "xtick.major.width": 0.6,
+        "ytick.major.width": 0.6,
+        "xtick.major.size": 2.5,
+        "ytick.major.size": 2.5,
+        "legend.borderpad": 0.3,
+        "legend.handlelength": 1.5,
+        "savefig.bbox": "standard",   # the figure keeps the size it was drawn at
+        "savefig.pad_inches": 0.0,
+    })
+
+
 def save_figure(fig, output_path, save_png=False, dpi=300):
     """
     Saves the figure in vector (.pdf) for LaTeX inclusion.

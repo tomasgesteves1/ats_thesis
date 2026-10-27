@@ -24,31 +24,50 @@ All results were obtained in simulation, with the default sea of the simulator, 
 
 \subsection{Tracking}
 
-\begin{figure}[tb]
+% How accurately does each controller follow a reference within its limits?
+Each controller was first evaluated on a reference within the limits of its vehicle. The USV sails a figure-eight at the speed of the missions, with the UAV on its deck, and follows it within $5.6\,\text{cm}$. The UAV flies a closed trajectory around the USV, which holds its position, made of two fast arcs at constant distance joined by two slow turns, so that its speed and the force of the tether vary along each lap. As a baseline, the same trajectory was flown by the position controller of PX4, which acts on the error only once it has appeared. The NMPC tracks the trajectory with less than a quarter of the error of PX4, as listed in Table~\ref{tab:uav_accuracy}. The error of PX4 grows with the speed of the reference, which indicates a time delay that the prediction of the NMPC avoids, as shown in Figure~\ref{fig:uav_accuracy}.
+
+\begin{figure}[t]
     \centering
-    \includegraphics[width=\columnwidth]{nominal_error_column.pdf}
-    \caption{Tracking error of the UAV on the tilted circle with the NMPC and with the position controller of PX4: norm of the position error and its vertical component.}
-    \label{fig:nominal}
+    \includegraphics{ea_uav_accuracy.pdf}
+    \caption{Position error of the UAV over three laps, with the speed of the reference shaded.}
+    \label{fig:uav_accuracy}
 \end{figure}
-
-The tracking was first measured on a reference that both vehicles can follow. The USV sails a circle of $3\,\text{m}$ radius at $0.15\,\text{m/s}$, while the UAV flies a circle of $5\,\text{m}$ about the same centre at $1.5\,\text{m/s}$, tilted so that its height goes from $21$ to $29\,\text{m}$. Since the two circles are flown at different angular speeds, the separation varies between $20$ and $29\,\text{m}$, and so does the force of the tether, between $3.9$ and $6.0\,\text{N}$. For comparison, the same circle was also flown by the position controller of PX4, which receives the position, velocity and acceleration of the reference, is not aware of the tether, and compensates constant forces through the integral action of its velocity loop.
-
-Figure~\ref{fig:nominal} and Table~\ref{tab:nominal} show that the NMPC follows the circle with less than half the error of PX4, $4.0$ against $9.0\,\text{cm}$. Neither keeps an offset in height, and the difference lies in the timing: PX4 reacts to the error once it has appeared, and follows the reference about $45\,\text{ms}$ behind it, while the NMPC anticipates its motion over the horizon. The USV follows its circle within $0.6\,\text{cm}$, and the two NMPCs take on average $4.8$ and $1.9\,\text{ms}$, and at most $8.2$ and $6.4\,\text{ms}$, of their sampling periods of $20$ and $100\,\text{ms}$.
 
 \begin{table}[t]
     \centering
-    \caption{Position error of the UAV on the tilted circle (cm), over $68\,\text{s}$.}
-    \label{tab:nominal}
+    \caption{Position error of the UAV (cm).}
+    \label{tab:uav_accuracy}
     \footnotesize
-    \begin{tabular}{@{}lrrrrr@{}}
+    \begin{tabular}{@{}lrrrr@{}}
         \toprule
-        Controller & RMSE & Max. & $x$ & $y$ & $z$ \\
+        Controller & RMSE & Max. & Horizontal & Vertical \\
         \midrule
-        NMPC & $4.0$ & $5.3$ & $2.6$ & $2.5$ & $1.7$ \\
-        PX4 & $9.0$ & $11.6$ & $5.9$ & $5.9$ & $3.2$ \\
+        NMPC & $6.5$ & $12.8$ & $6.4$ & $1.0$ \\
+        PX4 & $29.9$ & $53.8$ & $29.9$ & $1.8$ \\
         \bottomrule
     \end{tabular}
 \end{table}
+
+% What does each controller do when its reference demands more than its vehicle can deliver?
+A second reference for each vehicle demands more than it can deliver. The UAV is given a tight arc that requires more tilt than allowed, a fast arc beyond its speed limit, and two steps in height, the second of which ends below its minimum height, as shown in Figure~\ref{fig:uav_limits}. On each arc, the NMPC brings the UAV onto the limit that makes the reference unattainable and holds it there without oscillation, at the cost of a lag that it recovers once the reference stops. On the way down, it foresees the minimum height within its horizon and decelerates in advance, so that the UAV comes to rest at $2\,\text{m}$ although the reference lies on the water.
+
+\begin{figure}[t]
+    \centering
+    \includegraphics{ea_uav_limits.pdf}
+    \caption{Limits test of the UAV.}
+    \label{fig:uav_limits}
+\end{figure}
+
+% And the USV?
+The USV is given a fast leg, a sharp turn and two steps, astern and abeam, which drive both thrusters to their limits of thrust and angle, as shown in Figure~\ref{fig:usv_limits}. In both vehicles, the limits of the inputs are never exceeded, and those of the states by less than $1\,\%$, so that each controller uses the full capability of its vehicle without driving it beyond its limits.
+
+\begin{figure}[t]
+    \centering
+    \includegraphics{ea_usv_limits.pdf}
+    \caption{Limits test of the USV.}
+    \label{fig:usv_limits}
+\end{figure}
 
 \subsection{Planning}
 

@@ -5,15 +5,18 @@
 %  Figures and references are taken from the thesis (../tese).       %
 %                                                                    %
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-\documentclass[8pt,a4paper,twocolumn]{article}
+\documentclass[10pt,a4paper,twocolumn]{article}
 
 \usepackage{graphicx}
 \graphicspath{{../tese/}{figures/}}
 \usepackage{siunitx}
 
-% Arial-like font, as in the template
+% Arial-like font, as in the template, also for the mathematics, so that numbers and symbols in the text and in the
+% equations share the typeface of the text
 \usepackage{helvet}
 \renewcommand{\familydefault}{\sfdefault}
+\usepackage[helvet]{sfmath}
+\usepackage{microtype}
 
 \usepackage[utf8]{inputenc}
 \usepackage[T1]{fontenc}
@@ -52,8 +55,13 @@
 \setlength{\evensidemargin}{0mm}
 \setlength{\marginparwidth}{0mm}
 \setlength{\marginparsep}{0mm}
+\setlength{\columnsep}{6mm}
 
 \newcommand{\eqnref}[1]{Eq.~(\ref{#1})}
+
+% Compact bibliography: entries without extra space between them
+\usepackage{etoolbox}
+\apptocmd{\thebibliography}{\setlength{\itemsep}{1pt}\setlength{\parsep}{0pt}}{}{}
 
 % Up to two full-width floats at the top of a page, so that they stay close to their text
 \setcounter{dbltopnumber}{2}
@@ -87,7 +95,8 @@
 \input{05_resul}
 \input{06_concl}
 
+{\footnotesize
 \bibliographystyle{abbrv}
-\bibliography{../tese/refs}
+\bibliography{../tese/refs}}
 
 \end{document}
