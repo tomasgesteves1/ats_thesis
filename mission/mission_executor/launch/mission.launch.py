@@ -43,7 +43,7 @@ def generate_launch_description():
                     ('boat_mpc_horizon', '/usv/mpc_horizon'),
                     ('yaw_from_reference', '/uav/yaw_from_reference'),
                     ('low_altitude', '/uav/low_altitude'),
-                    ('boat_prediction', '/uav/boat_prediction'),
+                    ('tether_margin', '/uav/tether_margin'),
                     ('tether_pull', '/moordyn_tether_node/tether_pull')])
 
     executor = Node(
@@ -60,7 +60,7 @@ def generate_launch_description():
                     ('usv/reference_path', '/usv/reference_path'),
                     ('uav/yaw_from_reference', '/uav/yaw_from_reference'),
                     ('uav/low_altitude', '/uav/low_altitude'),
-                    ('uav/boat_prediction', '/uav/boat_prediction'),
+                    ('uav/tether_margin', '/uav/tether_margin'),
                     ('tether/pull', '/moordyn_tether_node/tether_pull')])
 
     # Intruder boat of the interdiction missions

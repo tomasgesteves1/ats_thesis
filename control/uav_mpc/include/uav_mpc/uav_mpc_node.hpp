@@ -31,7 +31,7 @@ private:
     bool yaw_from_reference_{false};  ///< yaw aligned with yaw_ref_ instead of looking at the attachment point
     bool low_altitude_{false};        ///< the lower bound on the height is z_min_low_altitude (takeoff and landing)
     bool tether_pull_{false};         ///< the winch pulls the UAV towards the deck (the disturbance estimate is frozen)
-    bool boat_prediction_{true};      ///< the predicted trajectory of the USV is used (false: the boat is taken as still)
+    double tether_margin_{0.0};       ///< added to d_max (m), so that the UAV does not give way to the USV
     void odomCallback(const nav_msgs::msg::Odometry::SharedPtr msg);
     void targetCallback(const geometry_msgs::msg::Point::SharedPtr msg);
     void trajectoryPathCallback(const nav_msgs::msg::Path::SharedPtr msg);
@@ -55,7 +55,7 @@ private:
     rclcpp::Subscription<std_msgs::msg::Bool>::SharedPtr yaw_mode_sub_;
     rclcpp::Subscription<std_msgs::msg::Bool>::SharedPtr low_altitude_sub_;
     rclcpp::Subscription<std_msgs::msg::Bool>::SharedPtr tether_pull_sub_;
-    rclcpp::Subscription<std_msgs::msg::Bool>::SharedPtr boat_prediction_sub_;
+    rclcpp::Subscription<std_msgs::msg::Float64>::SharedPtr tether_margin_sub_;
     
     // TF Listener
     std::shared_ptr<tf2_ros::Buffer> tf_buffer_;

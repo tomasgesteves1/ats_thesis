@@ -93,10 +93,10 @@ UavMpcNode::UavMpcNode()
 
     low_altitude_sub_ = this->create_subscription<std_msgs::msg::Bool>(
         "low_altitude", 10, [this](std_msgs::msg::Bool::SharedPtr msg) { low_altitude_ = msg->data; });
-    // Without the predicted trajectory of the USV the boat is taken as still over the horizon, so that the UAV does not
-    // anticipate its motion and the USV, which still receives the prediction of the UAV, is the one that adapts
-    boat_prediction_sub_ = this->create_subscription<std_msgs::msg::Bool>(
-        "boat_prediction", 10, [this](std_msgs::msg::Bool::SharedPtr msg) { boat_prediction_ = msg->data; });
+    // Margin added to d_max by the mission: with a bound above that of the USV, the UAV does not give way and the USV
+    // is the vehicle that adapts to the tether
+    tether_margin_sub_ = this->create_subscription<std_msgs::msg::Float64>(
+        "tether_margin", 10, [this](std_msgs::msg::Float64::SharedPtr msg) { tether_margin_ = msg->data; });
 
     tether_pull_sub_ = this->create_subscription<std_msgs::msg::Bool>(
         "tether_pull", 10, [this](std_msgs::msg::Bool::SharedPtr msg) { tether_pull_ = msg->data; });
@@ -227,9 +227,7 @@ void UavMpcNode::boatHorizonCallback(const nav_msgs::msg::Path::SharedPtr msg) {
         boat_horizon.push_back({pose.pose.position.x, pose.pose.position.y});
     }
     latest_boat_horizon_ = boat_horizon;
-    if (boat_prediction_) {
-        pipeline_->updateBoatHorizon(boat_horizon);
-    }
+    pipeline_->updateBoatHorizon(boat_horizon);
 }
 
 void UavMpcNode::hoverThrustCallback(const px4_msgs::msg::HoverThrustEstimate::SharedPtr msg) {
@@ -288,6 +286,7 @@ void UavMpcNode::controlLoop() {
     } else if (tether_max_length_param.get_type() == rclcpp::ParameterType::PARAMETER_DOUBLE) {
         target_tether_max_length = tether_max_length_param.as_double();
     }
+    target_tether_max_length += tether_margin_;
 
     // Rate-limit the tether length adjustments to avoid abrupt control spikes
     if (active_tether_max_length_ < 0.0) {
@@ -312,9 +311,7 @@ void UavMpcNode::controlLoop() {
 
     if (use_tether) {
         // Timeout check for boat predicted horizon
-        if (!boat_prediction_) {
-            pipeline_->updateBoatHorizon(std::vector<std::vector<double>>());
-        } else if (last_boat_horizon_time_.nanoseconds() > 0) {
+        if (last_boat_horizon_time_.nanoseconds() > 0) {
             double elapsed_since_last_horizon = (this->now() - last_boat_horizon_time_).seconds();
             if (elapsed_since_last_horizon > 0.5) {
                 // Clear the boat horizon to fall back to static anchor positioning in the OCP

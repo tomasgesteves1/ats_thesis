@@ -11,6 +11,7 @@
 #include <rclcpp/rclcpp.hpp>
 #include <std_msgs/msg/bool.hpp>
 #include <std_msgs/msg/empty.hpp>
+#include <std_msgs/msg/float64.hpp>
 #include <std_msgs/msg/string.hpp>
 #include <tf2_ros/buffer.h>
 #include <tf2_ros/transform_listener.h>
@@ -69,7 +70,7 @@ private:
     rclcpp::Publisher<std_msgs::msg::Bool>::SharedPtr tether_pull_pub_;
     rclcpp::Publisher<std_msgs::msg::Bool>::SharedPtr yaw_mode_pub_;
     rclcpp::Publisher<std_msgs::msg::Bool>::SharedPtr low_altitude_pub_;
-    rclcpp::Publisher<std_msgs::msg::Bool>::SharedPtr boat_prediction_pub_;
+    rclcpp::Publisher<std_msgs::msg::Float64>::SharedPtr tether_margin_pub_;
     rclcpp::Publisher<std_msgs::msg::String>::SharedPtr events_pub_;
     rclcpp::Publisher<px4_msgs::msg::VehicleCommand>::SharedPtr command_pub_;
     rclcpp::TimerBase::SharedPtr timer_;

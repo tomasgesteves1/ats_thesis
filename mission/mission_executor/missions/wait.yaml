@@ -1,8 +1,7 @@
 # Wait for the UAV (run with tether_max_length:=20.0): the boat is sent along a route while the UAV is held at a point
-# fixed in the world, as if it could not follow (e.g. against a wind it cannot overcome). Meanwhile the UAV does not
-# receive the predicted trajectory of the boat, so it does not anticipate the motion of the boat and holds its point;
-# the boat, which still receives the prediction of the UAV, sails until the tether no longer reaches the UAV and waits
-# there, held by its own tether constraint. As the UAV still cannot follow, the boat then gives up the route and
+# fixed in the world, as if it could not follow (e.g. against a wind it cannot overcome). Meanwhile the tether bound of
+# the UAV is raised above that of the boat, so that the UAV does not give way and holds its point; the boat sails until
+# the tether no longer reaches the UAV and waits there, held by its own tether constraint. As the UAV still cannot follow, the boat then gives up the route and
 # returns below the UAV, which lands on the pad.
 name: "Wait for the UAV"
 description: "The USV waits within the reach of the tether for a UAV that cannot follow it, then returns to collect it."
@@ -13,10 +12,10 @@ uav:
   - {id: takeoff, type: takeoff, vertical_clearance: 1.5, clearance_duration: 5.0, pull_release_height: 1.6,
      offset: [0.0, 0.0, 3.0], duration: 6.0, tolerance: 0.3, arm_timeout: 30.0}
   - {id: held, type: goto_world, position: [0.0, 0.0, 10.0], duration: 4.0, tolerance: 0.5,
-     velocity_tolerance: 0.3, settle: 40.0, timeout: 80.0, boat_prediction: 0}
+     velocity_tolerance: 0.3, settle: 40.0, timeout: 80.0, tether_margin: 1.0}
   # Still held at the same point while the boat comes back
   - {id: stay, type: goto_world, position: [0.0, 0.0, 10.0], duration: 0.0, tolerance: 0.5,
-     velocity_tolerance: 0.3, settle: 1000.0, timeout: 1000.0, boat_prediction: 0, until: usv.return}
+     velocity_tolerance: 0.3, settle: 1000.0, timeout: 1000.0, tether_margin: 1.0, until: usv.return}
   - {id: land, type: land, height: 3.0, approach_duration: 10.0, tolerance: 0.15, velocity_tolerance: 0.15,
      settle: 3.0, track_timeout: 40.0, descent_duration: 12.0, final_height: 0.5, final_speed: 0.15,
      final_ramp: 1.0, depth: 0.2, touch_margin: 0.05, touch_velocity: 0.1, touch_time: 0.5, disarm_timeout: 5.0}

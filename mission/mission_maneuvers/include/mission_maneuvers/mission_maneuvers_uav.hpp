@@ -103,8 +103,8 @@ private:
 /// Minimum-jerk transfer to a point fixed in the world, then waits until the UAV is settled there. With look_at the
 /// heading points to that point (e.g. a structure).
 /// Params: position [m], duration [s], tolerance [m], velocity_tolerance [m/s], settle [s], timeout [s],
-/// fail_on_timeout (0/1), look_at [x, y] (m), boat_prediction (0: the UAV does not receive the predicted trajectory
-/// of the USV, so that it holds its point and the USV is the vehicle that adapts to the tether; default 1).
+/// fail_on_timeout (0/1), look_at [x, y] (m), tether_margin [m] (added to the tether bound of the UAV while the
+/// maneuver runs: above the bound of the USV, the UAV holds its point and the USV adapts to the tether; default 0).
 class GotoWorld : public UavManeuver
 {
 public:
