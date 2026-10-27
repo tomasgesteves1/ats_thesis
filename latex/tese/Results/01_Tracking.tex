@@ -140,7 +140,7 @@ The higher accuracy of the \gls{nmpc} does not result from a larger control effo
 \subsubsection{Operating Limits}
 
 % What does the UAV do with a reference it cannot follow?
-A trajectory within the limits of the \gls{uav} does not show what the controller does when these limits prevent it from following the reference. The \gls{uav} is therefore given a second reference, around the stationary \gls{usv}, in which each part is designed to exceed a different limit, as shown in Figure~\ref{fig:res_uav_limits_top}. A tight arc demands a tilt of about $37^\circ$, beyond the limit of $28.6^\circ$, and a wider arc demands a horizontal speed of $11\,\text{m/s}$, beyond the limit of $10\,\text{m/s}$. Two steps in height follow, the second of which places the reference on the surface of the water, below the minimum height of $2\,\text{m}$.
+A trajectory within the limits of the \gls{uav} does not reveal how the controller behaves when these limits prevent it from following the reference. The controller is therefore evaluated on a second reference around the \gls{usv}, which again holds its position, in which each segment is designed to exceed a different limit, as shown in Figure~\ref{fig:res_uav_limits_top}. The first arc, of smaller radius, requires a tilt of about $37^\circ$, beyond the limit of $28.6^\circ$, and the second requires a horizontal speed of $11\,\text{m/s}$, beyond the limit of $10\,\text{m/s}$. The reference then performs two steps in height, the second of which lies at the surface of the water, below the minimum height of $2\,\text{m}$.
 
 \begin{figure}[htbp]
     \centering
@@ -150,7 +150,7 @@ A trajectory within the limits of the \gls{uav} does not show what the controlle
 \end{figure}
 
 % What happens when the tilt or the horizontal speed cannot follow the reference?
-On each arc, the \gls{nmpc} brings the \gls{uav} onto the limit that makes the reference unattainable and keeps it there for as long as the arc lasts. On the tight arc, the tilt rises to its limit as fast as its rate allows and then remains on it, while on the wide arc the horizontal speed settles on its limit, as shown in Figure~\ref{fig:res_uav_limits_horizontal}. The \gls{uav} neither leaves the limit nor oscillates about it, and thus flies each arc as fast as its limits permit. The cost of the unattainable reference is a growing lag, of about $5\,\text{m}$ by the end of each arc. The \gls{uav} partly compensates for it by moving towards the centre of the arc, the shorter route to a point ahead of it, which is why its path lies inside the reference in Figure~\ref{fig:res_uav_limits_top}. Once the reference stops, the \gls{uav} catches up with it and returns to accurate tracking.
+On each arc, the \gls{nmpc} drives the \gls{uav} to the limit that renders the reference unattainable and maintains it there until the end of the arc. On the first arc, the tilt reaches its limit at the maximum admissible rate, and on the second the horizontal speed converges to its limit, as shown in Figure~\ref{fig:res_uav_limits_horizontal}. In both cases the constrained variable remains at its limit without oscillation, so that each arc is flown at the highest speed the limits allow. The \gls{uav} consequently lags behind the reference, by about $5\,\text{m}$ at the end of each arc, and reduces this lag by moving towards the centre of the arc, which explains why its path lies inside the reference. When the reference comes to rest, the \gls{uav} recovers the lag and resumes accurate tracking.
 
 \begin{figure}[htbp]
     \centering
@@ -173,7 +173,7 @@ On each arc, the \gls{nmpc} brings the \gls{uav} onto the limit that makes the r
 \end{figure}
 
 % How does the prediction help on the steps in height?
-On the steps in height, the benefit of predicting the limits becomes most apparent, as shown in Figure~\ref{fig:res_uav_limits_vertical}. The \gls{uav} climbs and descends at the maximum vertical speed of $3\,\text{m/s}$, reached with the thrust changing at its maximum rate, while the thrust itself remains well within its range. On the way down, the \gls{nmpc} foresees the minimum height within its horizon and begins to brake before reaching it, so that the \gls{uav} stops exactly at $2\,\text{m}$ although the reference lies on the water. A controller that reacts only to the current error would brake only once the limit was reached, too late to avoid crossing it.
+The steps in height illustrate the benefit of predicting the limits, as shown in Figure~\ref{fig:res_uav_limits_vertical}. The \gls{uav} climbs and descends at the maximum vertical speed of $3\,\text{m/s}$, which it attains with the thrust varying at its maximum rate, while the thrust itself remains well within its range. During the descent, the minimum height enters the prediction horizon before the \gls{uav} reaches it, and the \gls{nmpc} decelerates the vehicle in advance, so that it comes to rest at $2\,\text{m}$ even though the reference lies at the surface of the water. A controller that acts only on the current error would respond to this limit only upon reaching it, and could not prevent the vehicle from crossing it.
 
 \begin{figure}[htbp]
     \centering
