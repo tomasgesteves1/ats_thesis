@@ -26,8 +26,10 @@ private:
 
 /// Follows the polyline from the current position through the waypoints (world frame) at a cruise speed reached
 /// and left with minimum-jerk ramps, and stops at the last waypoint. The heading points to a look-ahead point on
-/// the path, so it turns smoothly at the corners.
-/// Params: points [x1, y1, x2, y2, ...] (m), speed [m/s], ramp_time [s], lookahead [m], tolerance [m].
+/// the path, so it turns smoothly at the corners. With step, the reference is instead the next waypoint itself, held
+/// over the horizon with the heading of its leg, and passes to the following one within the tolerance: the NMPC
+/// plans the motion between waypoints, at the speed its limits allow.
+/// Params: points [x1, y1, x2, y2, ...] (m), speed [m/s], ramp_time [s], lookahead [m], tolerance [m], step (0/1).
 class UsvWaypoints : public UsvManeuver
 {
 public:
@@ -43,6 +45,7 @@ private:
     std::vector<double> cumulative_;   ///< path length at each vertex
     TravelProfile travel_;
     double final_yaw_{0.0};
+    size_t next_{1};                   ///< waypoint aimed at in step mode
 };
 
 /// Pursuit of the target: the boat turns towards the target (predicted with constant velocity) with a limited turn

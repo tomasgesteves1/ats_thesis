@@ -44,7 +44,8 @@ private:
 
 /// Minimum-jerk transfer to a point given relative to the winch, in world axes or in the axes of the boat (the
 /// point then turns with the boat: scout ahead of the bow, escort beside it), then waits until the UAV is settled.
-/// Params: offset [m], boat_frame (0/1), duration [s], tolerance [m], velocity_tolerance [m/s], settle [s],
+/// Params: offset [m], boat_frame (0/1), duration [s] (0: the point at once, the NMPC plans the transfer), tolerance [m],
+/// velocity_tolerance [m/s], settle [s],
 /// timeout [s] (after the transfer), fail_on_timeout (0: finishes anyway, 1: fails), yaw_from_reference (0/1).
 class GotoBoat : public UavManeuver
 {

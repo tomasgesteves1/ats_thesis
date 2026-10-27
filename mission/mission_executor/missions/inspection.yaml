@@ -2,7 +2,8 @@
 # tether (d_max 15 m): the boat takes the UAV to the tower with the UAV in formation ahead of the bow; the UAV then
 # circles the whole tower at a fixed height while the boat supports it from the water, keeping it within the reach
 # of the tether, and the UAV lands back on the pad. The circle is given as a reference fixed in the world, entered
-# almost at once: the NMPC plans the transfer to it.
+# almost at once: the NMPC plans the transfer to it. The boat keeps a standoff from the tower beyond the reach of the
+# tether, so that its own tether constraint holds it at the reach of the UAV around the whole tower.
 name: "Inspection"
 description: "The USV takes the UAV to a tower, which the UAV circles while the USV supports it, then it lands."
 
@@ -18,7 +19,6 @@ uav:
 
 usv:
   - {id: wait, type: hold, duration: 0.0}
-  - {id: route, type: waypoints, after: uav.takeoff, points: [[-6.0, 0.0]], speed: 1.0, ramp_time: 5.0,
-     lookahead: 6.0, tolerance: 1.5}
-  - {id: support, type: support, center: [-25.0, 0.0], standoff: 6.0, until: uav.orbit}
+  - {id: route, type: waypoints, after: uav.takeoff, points: [[-6.0, 0.0]], step: 1, tolerance: 1.5}
+  - {id: support, type: support, center: [-25.0, 0.0], standoff: 14.0, until: uav.orbit}
   - {id: stop, type: hold, duration: 0.0}

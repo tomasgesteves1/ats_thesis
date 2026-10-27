@@ -132,7 +132,7 @@ Status GotoBoat::update(const Context & ctx, UavCommand & cmd)
     const double duration = params_.get("duration", 8.0);
     cmd.yaw_from_reference = params_.get("yaw_from_reference", 0.0) > 0.5;
     cmd.path = boatRelativePath(ctx, [&](double t) {
-        return lerp(rel0_, offset, minJerk((t - t0_) / duration));
+        return lerp(rel0_, offset, (duration > 0.0 ? minJerk((t - t0_) / duration) : 1.0));
     }, boat_frame_);
     if (ctx.t - t0_ < duration) {
         return Status::kRunning;
@@ -231,7 +231,7 @@ Status GotoWorld::update(const Context & ctx, UavCommand & cmd)
     const double duration = params_.get("duration", 8.0);
     const auto look_at = params_.getVector("look_at", {});
     cmd.yaw_from_reference = look_at.size() == 2;
-    cmd.path = worldPath(ctx, [&](double t) { return lerp(p0_, target, minJerk((t - t0_) / duration)); }, look_at);
+    cmd.path = worldPath(ctx, [&](double t) { return lerp(p0_, target, (duration > 0.0 ? minJerk((t - t0_) / duration) : 1.0)); }, look_at);
     if (ctx.t - t0_ < duration) {
         return Status::kRunning;
     }

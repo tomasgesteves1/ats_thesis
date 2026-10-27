@@ -21,7 +21,7 @@ uav:
 usv:
   - {id: wait, type: hold, duration: 0.0}
   - {id: route, type: waypoints, after: uav.takeoff, until: uav.orbit, points: [[42.0, 0.0], [42.0, 40.0]],
-     speed: 1.0, ramp_time: 5.0, lookahead: 6.0, tolerance: 1.5}
+     step: 1, tolerance: 3.0}
   - {id: pursuit, type: follow, after: uav.orbit, speed: 2.2, ramp_time: 4.0, turn_rate: 0.3,
      intercept_distance: 6.0, standoff: 4.0, settle: 3.0}
   - {id: stop, type: hold, duration: 0.0}

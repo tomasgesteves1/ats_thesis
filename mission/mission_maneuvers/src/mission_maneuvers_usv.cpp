@@ -47,6 +47,7 @@ void UsvWaypoints::start(const Context & ctx)
         const auto & b = points_.back();
         final_yaw_ = std::atan2(b[1] - a[1], b[0] - a[0]);
     }
+    next_ = 1;
 }
 
 std::array<double, 2> UsvWaypoints::pointAt(double s) const
@@ -66,9 +67,29 @@ std::array<double, 2> UsvWaypoints::pointAt(double s) const
 
 Status UsvWaypoints::update(const Context & ctx, UsvCommand & cmd)
 {
+    const double tolerance = params_.get("tolerance", 1.5);
+    cmd.path.resize(static_cast<size_t>(ctx.usv_horizon.steps));
+    if (params_.get("step", 0.0) > 0.5) {
+        // Step mode: the next waypoint, with the heading of its leg, over the whole horizon
+        if (points_.size() < 2) {
+            return Status::kDone;
+        }
+        while (next_ + 1 < points_.size() &&
+               norm2(ctx.boat.p[0] - points_[next_][0], ctx.boat.p[1] - points_[next_][1]) < tolerance) {
+            ++next_;
+        }
+        const auto & a = points_[next_ - 1];
+        const auto & b = points_[next_];
+        const double yaw = std::atan2(b[1] - a[1], b[0] - a[0]);
+        for (auto & pose : cmd.path) {
+            pose = {b[0], b[1], yaw};
+        }
+        const bool last = next_ + 1 == points_.size();
+        return last && norm2(ctx.boat.p[0] - b[0], ctx.boat.p[1] - b[1]) < tolerance ? Status::kDone
+                                                                                        : Status::kRunning;
+    }
     const double lookahead = params_.get("lookahead", 3.0);
     const double length = cumulative_.back();
-    cmd.path.resize(static_cast<size_t>(ctx.usv_horizon.steps));
     for (size_t k = 0; k < cmd.path.size(); ++k) {
         const double s = travel_.distanceAt(ctx.t - t0_ + static_cast<double>(k) * ctx.usv_horizon.dt);
         const auto p = pointAt(s);
@@ -80,8 +101,7 @@ Status UsvWaypoints::update(const Context & ctx, UsvCommand & cmd)
         cmd.path[k] = {p[0], p[1], yaw};
     }
     const bool finished = ctx.t - t0_ >= travel_.duration() &&
-                          norm2(ctx.boat.p[0] - points_.back()[0], ctx.boat.p[1] - points_.back()[1]) <
-                              params_.get("tolerance", 1.5);
+                          norm2(ctx.boat.p[0] - points_.back()[0], ctx.boat.p[1] - points_.back()[1]) < tolerance;
     return finished ? Status::kDone : Status::kRunning;
 }
 
