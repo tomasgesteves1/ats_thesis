@@ -4,7 +4,7 @@ import yaml
 import casadi as ca
 from acados_template import AcadosOcp, AcadosOcpSolver, AcadosModel
 
-NX = 13   # [x, y, z, vx, vy, vz, phi, theta, psi, phi_cmd, theta_cmd, psi_cmd, T]
+NX = 17   # [x, y, z, vx, vy, vz, phi, theta, psi, phi_cmd, theta_cmd, psi_cmd, T, z_phi, z_theta, z_psi, z_T]
 NU = 4    # [phi_dot_cmd, theta_dot_cmd, psi_dot_cmd, T_dot]
 NP = 16   # [x_v, y_v, z_v, vx_v, vy_v, vz_v, bx, by, tether_on, d_x, d_y, d_z, tether_model, p_ref (3)]
 
@@ -41,7 +41,14 @@ def create_uav_model(prm) -> AcadosModel:
     phi, theta, psi = ca.SX.sym('phi'), ca.SX.sym('theta'), ca.SX.sym('psi')
     phi_c, theta_c, psi_c = ca.SX.sym('phi_cmd'), ca.SX.sym('theta_cmd'), ca.SX.sym('psi_cmd')
     T = ca.SX.sym('T')
-    x = ca.vertcat(p, v, phi, theta, psi, phi_c, theta_c, psi_c, T)
+    # States of the transport delays of the commands (first-order Pade approximation, Section 3.3)
+    z_phi, z_theta, z_psi, z_T = ca.SX.sym('z_phi'), ca.SX.sym('z_theta'), ca.SX.sym('z_psi'), ca.SX.sym('z_T')
+    x = ca.vertcat(p, v, phi, theta, psi, phi_c, theta_c, psi_c, T, z_phi, z_theta, z_psi, z_T)
+    # The commands reach the platform after a transport delay (attitude setpoint T_t, thrust T_T), approximated by the
+    # first-order Pade form c(t - T) ~ 2 z - c, z' = (2 / T)(c - z): unit gain at every frequency and nearly the phase of
+    # the delay, without letting the inputs act instantaneously on the platform
+    T_t, T_T = prm['tilt_transport_delay'], prm['thrust_transport_delay']
+    phi_dl, theta_dl, psi_dl, T_dl = 2 * z_phi - phi_c, 2 * z_theta - theta_c, 2 * z_psi - psi_c, 2 * z_T - T
 
     dphi_c, dtheta_c, dpsi_c, dT = ca.SX.sym('dphi_cmd'), ca.SX.sym('dtheta_cmd'), ca.SX.sym('dpsi_cmd'), ca.SX.sym('T_dot')
     u = ca.vertcat(dphi_c, dtheta_c, dpsi_c, dT)
@@ -66,26 +73,23 @@ def create_uav_model(prm) -> AcadosModel:
     thrust_dir = ca.vertcat(ca.cos(psi_c) * n[0] - ca.sin(psi_c) * n[1],
                             ca.sin(psi_c) * n[0] + ca.cos(psi_c) * n[1], n[2])
     drag = ca.vertcat(d_r * v[0], d_r * v[1], 0.0)
-    acc = T / m * thrust_dir - drag / m + ca.vertcat(0.0, 0.0, -g) \
+    acc = T_dl / m * thrust_dir - drag / m + ca.vertcat(0.0, 0.0, -g) \
           + tether_force(p, anchor, tether_on * tether_model, prm) / m + dist / m
 
-    # The thrust axis of the platform converges to the commanded axis with time constant tau in the inertial frame;
-    # expressed in the rotating frame (rate dpsi_c) its derivative has the extra term -dpsi_c * e_z x n
-    # The tilt command reaches the platform after the transport delay T_t: x_c(t - T_t) ~ x_c - T_t * dx_c, and the
-    # frame in which it was built has rotated by T_t * dpsi_c since then
-    T_t = prm['tilt_transport_delay']
-    n_cd = tilt(phi_c - T_t * dphi_c, theta_c - T_t * dtheta_c)
-    rot = -T_t * dpsi_c
+    # The thrust axis of the platform converges to the delayed commanded axis with time constant tau in the inertial
+    # frame. That axis was built in the frame of the delayed yaw command, rotated by psi_del - psi_c from the frame of the
+    # tilt state; expressed in the rotating frame (rate dpsi_c), the derivative of n has the extra term -dpsi_c e_z x n
+    n_cd = tilt(phi_dl, theta_dl)
+    rot = psi_dl - psi_c
     n_c = ca.vertcat(ca.cos(rot) * n_cd[0] - ca.sin(rot) * n_cd[1], ca.sin(rot) * n_cd[0] + ca.cos(rot) * n_cd[1], n_cd[2])
     n_dot = (n_c - n) / tau - dpsi_c * ca.vertcat(-n[1], n[0], 0.0)
     J = ca.jacobian(n, ca.vertcat(phi, theta))
     phi_dot = ca.dot(J[:, 0], n_dot)
     theta_dot = ca.dot(J[:, 1], n_dot) / ca.cos(phi) ** 2
-    # The yaw command reaches the platform after the transport delay: psi_c(t - T_d) ~ psi_c - T_d * dpsi_c
-    psi_cmd_delayed = psi_c - prm['yaw_transport_delay'] * dpsi_c
 
-    xdot = ca.vertcat(v, acc, phi_dot, theta_dot, (psi_cmd_delayed - psi) / tau_psi,
-                      dphi_c, dtheta_c, dpsi_c, dT)
+    xdot = ca.vertcat(v, acc, phi_dot, theta_dot, (psi_dl - psi) / tau_psi,
+                      dphi_c, dtheta_c, dpsi_c, dT,
+                      2 * (phi_c - z_phi) / T_t, 2 * (theta_c - z_theta) / T_t, 2 * (psi_c - z_psi) / T_t, 2 * (T - z_T) / T_T)
 
     model = AcadosModel()
     model.name = 'uav_tethered'
@@ -172,8 +176,10 @@ def generate_acados_ocp():
 
     # Slack penalties rho(sigma) = mu1*sigma + mu2*sigma^2 (acados: z*s + 0.5*Z*s^2, so Z = 2*mu2).
     # Slack order: bounds (z, vz), then h (d^2, d_dot, |v_xy|, tilt, tilt_cmd)
-    mu1 = np.array([prm['slack_mu1_bounds']] * 2 + [prm['slack_mu1_tether']] * 2 + [prm['slack_mu1_bounds']] * 3)
-    mu2 = np.array([prm['slack_mu2_bounds']] * 2 + [prm['slack_mu2_tether']] * 2 + [prm['slack_mu2_bounds']] * 3)
+    mu1 = np.array([prm['slack_mu1_bounds']] * 2 + [prm['slack_mu1_tether']] * 2 + [prm['slack_mu1_speed']]
+                   + [prm['slack_mu1_tilt']] * 2)
+    mu2 = np.array([prm['slack_mu2_bounds']] * 2 + [prm['slack_mu2_tether']] * 2 + [prm['slack_mu2_speed']]
+                   + [prm['slack_mu2_tilt']] * 2)
     for suffix in ('', '_e'):
         setattr(ocp.cost, 'zl' + suffix, mu1.copy())
         setattr(ocp.cost, 'zu' + suffix, mu1.copy())

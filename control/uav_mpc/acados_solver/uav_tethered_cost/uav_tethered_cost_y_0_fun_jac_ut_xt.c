@@ -57,14 +57,14 @@ extern "C" {
 
 casadi_real casadi_sq(casadi_real x) { return x*x;}
 
-static const casadi_int casadi_s0[3] = {13, 1, 1};
+static const casadi_int casadi_s0[3] = {17, 1, 1};
 static const casadi_int casadi_s1[3] = {4, 1, 1};
 static const casadi_int casadi_s2[3] = {0, 1, 1};
 static const casadi_int casadi_s3[3] = {0, 0, 1};
 static const casadi_int casadi_s4[3] = {16, 1, 1};
 static const casadi_int casadi_s5[3] = {15, 1, 1};
 static const casadi_int casadi_s6[43] = 
-  {17, 15, 0, 3, 6, 9, 10, 11,
+  {21, 15, 0, 3, 6, 9, 10, 11,
   12, 13, 14, 17, 20, 21, 22, 23,
   24, 25, 4, 5, 6, 4, 5, 6,
   4, 5, 6, 7, 8, 9, 10, 11,
@@ -72,7 +72,7 @@ static const casadi_int casadi_s6[43] =
   1, 2, 3};
 static const casadi_int casadi_s7[3] = {15, 0, 1};
 
-/* uav_tethered_cost_y_0_fun_jac_ut_xt:(i0[13],i1[4],i2[0],i3[],i4[16])->(o0[15],o1[17x15,25nz],o2[15x0]) */
+/* uav_tethered_cost_y_0_fun_jac_ut_xt:(i0[17],i1[4],i2[0],i3[],i4[16])->(o0[15],o1[21x15,25nz],o2[15x0]) */
 static int casadi_f0(const casadi_real** arg, casadi_real** res, casadi_int* iw, casadi_real* w, int mem) {
   casadi_real a00, a01, a02, a03, a04, a05, a06, a07, a08, a09, a10, a11;
   casadi_real a12, a13, a14;

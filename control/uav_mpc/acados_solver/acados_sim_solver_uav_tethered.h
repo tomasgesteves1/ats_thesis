@@ -34,7 +34,7 @@
 #include "acados_c/sim_interface.h"
 #include "acados_c/external_function_interface.h"
 
-#define UAV_TETHERED_NX     13
+#define UAV_TETHERED_NX     17
 #define UAV_TETHERED_NZ     0
 #define UAV_TETHERED_NU     4
 #define UAV_TETHERED_NP     16

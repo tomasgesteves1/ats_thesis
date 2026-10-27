@@ -55,17 +55,17 @@ extern "C" {
 
 casadi_real casadi_sq(casadi_real x) { return x*x;}
 
-static const casadi_int casadi_s0[3] = {13, 1, 1};
+static const casadi_int casadi_s0[3] = {17, 1, 1};
 static const casadi_int casadi_s1[3] = {0, 1, 1};
 static const casadi_int casadi_s2[3] = {16, 1, 1};
 static const casadi_int casadi_s3[3] = {5, 1, 1};
 static const casadi_int casadi_s4[23] = 
-  {13, 5, 0, 3, 9, 11, 13, 15,
+  {17, 5, 0, 3, 9, 11, 13, 15,
   0, 1, 2, 0, 1, 2, 3, 4,
   5, 3, 4, 6, 7, 9, 10};
 static const casadi_int casadi_s5[3] = {5, 0, 1};
 
-/* uav_tethered_constr_h_e_fun_jac_uxt_zt:(i0[13],i1[0],i2[0],i3[16])->(o0[5],o1[13x5,15nz],o2[5x0]) */
+/* uav_tethered_constr_h_e_fun_jac_uxt_zt:(i0[17],i1[0],i2[0],i3[16])->(o0[5],o1[17x5,15nz],o2[5x0]) */
 static int casadi_f0(const casadi_real** arg, casadi_real** res, casadi_int* iw, casadi_real* w, int mem) {
   casadi_real a00, a01, a02, a03, a04, a05, a06, a07, a08, a09, a10, a11;
   casadi_real a12, a13, a14, a15, a16, a17, a18, a19, a20, a21, a22;

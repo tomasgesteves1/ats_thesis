@@ -18,10 +18,11 @@ uav_mpc_node:
     mass: 2.06                   # m (kg)
     gravity: 9.81                # g (m/s^2)
     rotor_drag: 0.218            # d_r (N*s/m)
-    tau_roll_pitch: 0.1538       # tau (s) = 1/MC_ROLL_P
+    tau_roll_pitch: 0.08         # tau (s), identified from the PX4 log (attitude setpoint against ground truth)
     tau_yaw: 0.3571              # tau_psi (s) = 1/MC_YAW_P
-    yaw_transport_delay: 0.06    # T_d (s), transport delay of the yaw command (identified from the bags)
-    tilt_transport_delay: 0.04   # T_t (s), transport delay of the roll and pitch commands (identified from the bags)
+    tilt_transport_delay: 0.12   # T_t (s), delay of the attitude setpoint: 0.08 s in PX4 (identified from its log) plus
+                                 # 0.04 s age of the measured attitude
+    thrust_transport_delay: 0.04 # T_T (s), transport delay of the thrust command (identified from the bags)
     tether_density: 0.020        # mu (kg/m)
     tether_slack_ratio: 0.05     # epsilon_0
     tether_deflection_deg: 30.4  # gamma_0 (deg)
@@ -39,7 +40,8 @@ uav_mpc_node:
     weight_q_psi: 20.0
     yaw_epsilon: 4.0             # m^2, regularisation of the bearing: the yaw weight fades within ~2 m of the anchor
     weight_Q_thrust: 0.118                # weight of (T - m g)^2
-    weight_R: [30.0, 30.0, 5.0, 0.01]  # [phi_dot, theta_dot, psi_dot, T_dot]
+    weight_R: [30.0, 30.0, 30.0, 0.01]  # [phi_dot, theta_dot, psi_dot, T_dot]; yaw rate as costly as roll and pitch rates,
+                                        # since rotating the yaw also rotates the commanded thrust axis
 
     # Input limits
     phi_dot_max: 0.8             # rad/s
@@ -72,8 +74,14 @@ uav_mpc_node:
     d_dot_min: -2.0              # m/s, lower bound of the separation rate (-d_dot_max: winch reel-in speed)
 
     # Slack penalties rho(sigma) = mu1*sigma + mu2*sigma^2
-    slack_mu1_bounds: 100000.0    # exact-penalty regime: the bounds give way only when they cannot be met
-    slack_mu2_bounds: 100000.0
+    slack_mu1_bounds: 1000.0      # exact-penalty regime: above the multipliers of the bounds (bounded pull of the
+                                  # pseudo-Huber cost), so they give way only when they cannot be met, yet low enough that
+                                  # an unavoidable excess of a few cm/s does not call for a violent correction
+    slack_mu2_bounds: 1000.0
+    slack_mu1_speed: 300.0        # |v_xy| <= v_xy_max: its multiplier is small (bounded pull of the reference), and a
+    slack_mu2_speed: 300.0        # higher penalty turns an unavoidable excess of a few cm/s into a thrust cut
+    slack_mu1_tilt: 10000.0       # tilt bounds, in cos(tilt): an excess of a degree is only ~0.01, hence the higher weight
+    slack_mu2_tilt: 10000.0
     slack_mu1_tether: 100000.0
     slack_mu2_tether: 100000.0
 

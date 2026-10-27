@@ -423,7 +423,7 @@
                 0.0,
                 0.0,
                 0.0,
-                10.0,
+                100.0,
                 0.0
             ],
             [
@@ -440,7 +440,7 @@
                 0.0,
                 0.0,
                 0.0,
-                10.0
+                100.0
             ]
         ],
         "W_0": [
@@ -649,7 +649,7 @@
                 0.0,
                 0.0,
                 0.0,
-                10.0,
+                100.0,
                 0.0
             ],
             [
@@ -666,7 +666,7 @@
                 0.0,
                 0.0,
                 0.0,
-                10.0
+                100.0
             ]
         ],
         "W_e": [
@@ -954,7 +954,7 @@
         "usv_dynamic_cost/usv_dynamic_cost_y_e_fun_jac_ut_xt.c",
         "usv_dynamic_cost/usv_dynamic_cost_y_e_hess.c"
     ],
-    "hash": "cbd82796f807c48af07b7001f4738b34",
+    "hash": "ca33634d368c87e7ff7fb98c9074849c",
     "model": {
         "con_h_expr": "SX(((sq((x_pos-x_a))+sq((y_pos-y_a)))+sq((z_a-z_t))))",
         "con_h_expr_0": [],

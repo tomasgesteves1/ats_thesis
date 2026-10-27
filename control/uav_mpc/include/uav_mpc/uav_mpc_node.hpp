@@ -96,6 +96,8 @@ private:
 
     bool target_initialized_;
     bool odom_received_;
+    bool com_offset_known_{false};
+    std::array<double, 3> com_offset_{0.0, 0.0, 0.0};  ///< controlled point relative to the odometry origin (body axes)
     bool vehicle_status_received_;
     uint64_t offboard_setpoint_counter_;
     double px4_hover_thrust_;

@@ -237,6 +237,24 @@ void UavMpcNode::vehicleStatusCallback(const px4_msgs::msg::VehicleStatus::Share
 void UavMpcNode::odomCallback(const nav_msgs::msg::Odometry::SharedPtr msg) {
     latest_odom_ = *msg;
     odom_received_ = true;
+
+    // The odometry gives the velocity of the model origin, while the controlled point (drone/base_link, used for the
+    // position) sits at a fixed offset r along the body axes: its velocity is v + omega x r (body axes). Without this
+    // term every attitude rotation would read as a translation of the controlled point
+    if (!com_offset_known_) {
+        try {
+            const auto tr = tf_buffer_->lookupTransform("drone/ground_truth", "drone/base_link", tf2::TimePointZero);
+            com_offset_ = {tr.transform.translation.x, tr.transform.translation.y, tr.transform.translation.z};
+            com_offset_known_ = true;
+        } catch (const tf2::TransformException &) {
+            return;
+        }
+    }
+    const auto & w = msg->twist.twist.angular;
+    const auto & r = com_offset_;
+    latest_odom_.twist.twist.linear.x += w.y * r[2] - w.z * r[1];
+    latest_odom_.twist.twist.linear.y += w.z * r[0] - w.x * r[2];
+    latest_odom_.twist.twist.linear.z += w.x * r[1] - w.y * r[0];
 }
 
 void UavMpcNode::controlLoop() {

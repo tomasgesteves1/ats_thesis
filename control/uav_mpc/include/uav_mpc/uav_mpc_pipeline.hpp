@@ -77,9 +77,9 @@ public:
     std::vector<UavControlOutput> getOpenLoopHorizon(double current_time);
 
 private:
-    void setupOcpSolver(const double x0[13]);
-    void buildInitialState(double x0[13]);
-    void warmStartOnce(const double x0[13]);
+    void setupOcpSolver(const double x0[17]);
+    void buildInitialState(double x0[17]);
+    void warmStartOnce(const double x0[17]);
 
     std::vector<double> current_state_;
     void* acados_ocp_capsule_;
@@ -118,6 +118,7 @@ private:
     double last_theta_cmd_;
     double last_psi_cmd_;
     double last_thrust_cmd_;
+    std::array<double, 4> delayed_cmd_{0.0, 0.0, 0.0, 0.0};  ///< states of the transport delays (Pade): roll, pitch, yaw, thrust
     double yaw_cont_;
     bool first_run_;
 };

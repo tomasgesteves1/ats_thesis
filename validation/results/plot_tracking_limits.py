@@ -92,7 +92,7 @@ def main():
         fig.tight_layout()
         save_figure(fig, os.path.join(OUT, name))
 
-    panel('limits_tilt', 'Tilt (deg)', [(tt, tilt, 'Predicted', UAV), (tt, tilt_cmd, 'Commanded', REF)], [lim_tilt])
+    panel('limits_tilt', 'Tilt (deg)', [(tt, tilt, 'Measured', UAV), (tt, tilt_cmd, 'Commanded', REF)], [lim_tilt])
     panel('limits_tilt_rate', 'Command rate (deg/s)', [(tt[1:], roll_rate, 'Roll', UAV), (tt[1:], pitch_rate, 'Pitch', REF)],
           [lim_rate, -lim_rate])
     panel('limits_thrust', 'Thrust (N)', [(tt, thrust, 'Thrust', UAV)], [UAV_LIM['T_min'], UAV_LIM['T_max']])

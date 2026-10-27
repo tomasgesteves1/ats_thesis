@@ -10,7 +10,7 @@
 namespace uav_mpc {
 
 namespace {
-constexpr int NX = 13;      // [x, y, z, vx, vy, vz, phi, theta, psi, phi_cmd, theta_cmd, psi_cmd, T]
+constexpr int NX = 17;      // [x, y, z, vx, vy, vz, phi, theta, psi, phi_cmd, theta_cmd, psi_cmd, T, z_phi, z_theta, z_psi, z_T]
 constexpr int PREDICTED_ATTITUDE_NODE = 10;  // node of the horizon whose attitude is published (10 T_s = 0.2 s)
 constexpr int NU = 4;       // [phi_dot_cmd, theta_dot_cmd, psi_dot_cmd, T_dot]
 constexpr int NY = 15;      // [p, v, phi, theta, yaw residual (2), T - m g, u (4)]
@@ -118,7 +118,7 @@ void UavMpcPipeline::updateTetherLength(double length) {
     L_tether_ = length;
 }
 
-void UavMpcPipeline::buildInitialState(double x0[13]) {
+void UavMpcPipeline::buildInitialState(double x0[NX]) {
     double roll = 0.0, pitch = 0.0, yaw = 0.0;
     kinematics::quaternionToEuler(qx_, qy_, qz_, qw_, roll, pitch, yaw);
 
@@ -141,6 +141,7 @@ void UavMpcPipeline::buildInitialState(double x0[13]) {
         last_theta_cmd_ = pitch;
         last_psi_cmd_ = yaw;
         last_thrust_cmd_ = params_.mass * params_.gravity;
+        delayed_cmd_ = {roll, pitch, yaw, last_thrust_cmd_};
         first_run_ = false;
     } else {
         yaw_cont_ += wrapAngle(yaw - yaw_cont_);
@@ -161,9 +162,11 @@ void UavMpcPipeline::buildInitialState(double x0[13]) {
     x0[10] = last_theta_cmd_;
     x0[11] = last_psi_cmd_;
     x0[12] = last_thrust_cmd_;
+    // States of the transport delays (Pade), as propagated by the model over the previous step
+    for (int i = 0; i < 4; i++) x0[13 + i] = delayed_cmd_[i];
 }
 
-void UavMpcPipeline::warmStartOnce(const double x0[13]) {
+void UavMpcPipeline::warmStartOnce(const double x0[NX]) {
     auto capsule = (uav_tethered_solver_capsule*)acados_ocp_capsule_;
     const int N = capsule->nlp_solver_plan->N;
     if (target_initialized_) return;
@@ -225,6 +228,7 @@ UavControlOutput UavMpcPipeline::computeControl(double current_time) {
         last_theta_cmd_ = x_step1[10];
         last_psi_cmd_ = x_step1[11];
         last_thrust_cmd_ = x_step1[12];
+        delayed_cmd_ = {x_step1[13], x_step1[14], x_step1[15], x_step1[16]};
         predicted_velocity_ = {x_step1[3], x_step1[4], x_step1[5]};
         has_predicted_velocity_ = true;
     } else {
@@ -345,7 +349,7 @@ std::vector<UavControlOutput> UavMpcPipeline::getOpenLoopHorizon(double current_
     return horizon_outputs;
 }
 
-void UavMpcPipeline::setupOcpSolver(const double x0[13]) {
+void UavMpcPipeline::setupOcpSolver(const double x0[NX]) {
     auto capsule = (uav_tethered_solver_capsule*)acados_ocp_capsule_;
     const int N = capsule->nlp_solver_plan->N;
     auto cfg = capsule->nlp_config; auto dims = capsule->nlp_dims; auto in = capsule->nlp_in; auto out = capsule->nlp_out;
