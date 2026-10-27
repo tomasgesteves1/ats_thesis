@@ -1,14 +1,14 @@
 # Inspection of a tower in the water (radio tower at (-25, 0), base about 12 x 13 m, 43 m above the water) with a
-# long tether (run with tether_max_length:=50.0): the boat takes the UAV to the tower with the UAV in formation ahead
+# long tether (run with tether_max_length:=45.0): the boat takes the UAV to the tower with the UAV in formation ahead
 # of the bow; the UAV then circles the tower three times, at 12, 27 and 42 m, while the boat supports it from the
 # water, and lands back on the pad. Each circle is given as a reference fixed in the world. The boat keeps a standoff
-# of 35 m from the UAV: on the lower circles it is within reach, on the highest one beyond it, so that there the
+# of 22 m from the UAV: on the lower circles it is within reach, on the highest one beyond it, so that there the
 # tether constraint of the boat holds it at the reach of the UAV.
 name: "Inspection"
 description: "The USV takes the UAV to a tower, which the UAV circles at three heights while the USV supports it, then it lands."
 # Options of mission.launch.py needed by this mission (used by the dashboard)
-launch: {tether_max_length: 50.0}
-# Three slow laps take about 10 minutes, beyond the default mission timeout of 5 minutes
+launch: {tether_max_length: 45.0}
+# Three laps take about 7 minutes, beyond the default mission timeout of 5 minutes
 timeout: 900.0
 
 uav:
@@ -16,11 +16,11 @@ uav:
      offset: [0.0, 0.0, 3.0], duration: 6.0, tolerance: 0.3, arm_timeout: 30.0}
   - {id: formation, type: hold, boat_frame: 1, offset: [4.0, 0.0, 8.0], until: usv.route}
   - {id: lap1, type: inspect, center: [-25.0, 0.0], radius: 13.0, angle_start: 0.0, angle_end: 360.0,
-     height_start: 12.0, height_end: 12.0, angular_speed: 0.045, ramp_time: 4.0, entry_duration: 1.0}
+     height_start: 12.0, height_end: 12.0, angular_speed: 0.065, ramp_time: 4.0, entry_duration: 1.0}
   - {id: lap2, type: inspect, center: [-25.0, 0.0], radius: 13.0, angle_start: 0.0, angle_end: 360.0,
-     height_start: 27.0, height_end: 27.0, angular_speed: 0.045, ramp_time: 4.0, entry_duration: 10.0}
+     height_start: 27.0, height_end: 27.0, angular_speed: 0.065, ramp_time: 4.0, entry_duration: 10.0}
   - {id: lap3, type: inspect, center: [-25.0, 0.0], radius: 13.0, angle_start: 0.0, angle_end: 360.0,
-     height_start: 42.0, height_end: 42.0, angular_speed: 0.045, ramp_time: 4.0, entry_duration: 10.0}
+     height_start: 42.0, height_end: 42.0, angular_speed: 0.065, ramp_time: 4.0, entry_duration: 10.0}
   - {id: land, type: land, height: 3.0, approach_duration: 20.0, tolerance: 0.15, velocity_tolerance: 0.15,
      settle: 3.0, track_timeout: 40.0, descent_duration: 12.0, final_height: 0.5, final_speed: 0.15,
      final_ramp: 1.0, depth: 0.2, touch_margin: 0.05, touch_velocity: 0.1, touch_time: 0.5, disarm_timeout: 5.0}
@@ -28,5 +28,5 @@ uav:
 usv:
   - {id: wait, type: hold, duration: 0.0}
   - {id: route, type: waypoints, after: uav.takeoff, points: [[-6.0, 0.0]], step: 1, tolerance: 1.5}
-  - {id: support, type: support, center: [-25.0, 0.0], standoff: 35.0, until: uav.lap3}
+  - {id: support, type: support, center: [-25.0, 0.0], standoff: 22.0, until: uav.lap3}
   - {id: stop, type: hold, duration: 0.0}
