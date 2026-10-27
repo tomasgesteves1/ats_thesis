@@ -8,7 +8,8 @@ import os
 import sys
 import numpy as np
 import matplotlib.pyplot as plt
-from common import load, interp, set_thesis_style, save_figure, FIGS, HERE, UAV, USV, REF, LIMIT, UAV_LIM
+from scipy.signal import medfilt
+from common import load, interp, set_thesis_style, save_figure, FIGS, HERE, UAV, USV, REF, LIMIT, UAV_LIM, COLOR_CYCLE
 
 sys.path.insert(0, os.path.join(HERE, '..', 'uav_tracking'))
 from limits_reference import phases  # noqa: E402
@@ -21,6 +22,8 @@ TS = 0.02            # s, sampling time of the NMPC (rates from consecutive comm
 RAMP = 8.0           # s, entry from hover of the reference (test_uav_circle ramp_time): tau = t - RAMP/2 after it
 K = 1.7
 SIZE = (3.1 * K, 2.4 * K)
+MEDIAN = 9           # samples (0.18 s): removes the fast ripple that the tether force leaves on the command rates while
+                     # keeping their plateaus at the limit (a low-pass filter overshoots the limit at their edges)
 
 
 def phase_marks():
@@ -94,7 +97,8 @@ def main():
         save_figure(fig, os.path.join(OUT, name))
 
     panel('limits_tilt', 'Tilt (deg)', [(tt, tilt, 'Measured', UAV), (tt, tilt_cmd, 'Commanded', REF)], [lim_tilt])
-    panel('limits_tilt_rate', 'Command rate (deg/s)', [(tt[1:], roll_rate, 'Roll', UAV), (tt[1:], pitch_rate, 'Pitch', REF)],
+    panel('limits_tilt_rate', 'Roll and pitch rate (deg/s)',
+          [(tt[1:], medfilt(roll_rate, MEDIAN), 'Roll', UAV), (tt[1:], medfilt(pitch_rate, MEDIAN), 'Pitch', COLOR_CYCLE[1])],
           [lim_rate, -lim_rate])
     panel('limits_thrust', 'Thrust (N)', [(tt, thrust, 'Thrust', UAV)], [UAV_LIM['T_min'], UAV_LIM['T_max']])
     panel('limits_thrust_rate', 'Thrust rate (N/s)', [(tt[1:], thrust_rate, 'Thrust rate', UAV)],
