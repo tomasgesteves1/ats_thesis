@@ -3,7 +3,7 @@
 Section 5.2: one figure per mission, drawn from the extracted mission bag (record_mission.sh, extract.py): a top view
 of both vehicles, with their positions and the tether at a few instants, and a figure with the manoeuvres of each vehicle over
 time, the separation against its limit and the height of the UAV. Prints the metrics of the mission.
-Usage: plot_mission.py <name> [d_max=15]
+Usage: plot_mission.py <name> [d_max=15] [usv_margin=0] (the tether bound of the USV is d_max + usv_margin)
 """
 import os
 import re
@@ -17,7 +17,8 @@ OUT = os.path.join(FIGS, '02_missions')
 Z_ANCHOR = 1.25
 NAMES = {'takeoff': 'Takeoff', 'formation': 'Formation', 'scout': 'Formation', 'watch': 'Formation',
          'orbit': 'Orbit', 'chase': 'Chase', 'land': 'Landing', 'wait': 'Hold', 'route': 'Route', 'stop': 'Hold',
-         'support': 'Support', 'pursuit': 'Pursuit'}
+         'support': 'Support', 'pursuit': 'Chase', 'held': 'Formation', 'stay': 'Formation', 'return': 'Return',
+         'lap1': 'Lap 1', 'lap2': 'Lap 2', 'lap3': 'Lap 3'}
 SHADES = ['#dce6f2', '#b9cde6', '#94b3d9', '#6f99cc', '#4a7fbf']
 
 
@@ -53,7 +54,7 @@ def boat(ax, x, y, yaw, color=USV, alpha=0.9, L=4.9, W=2.4):
                          alpha=alpha, zorder=3))
 
 
-def main(name, d_max):
+def main(name, d_max, usv_margin=0.0):
     set_thesis_style()
     d = load(name)
     dr, b, it = d['drone'], d['boat'], d['intruder']
@@ -108,7 +109,7 @@ def main(name, d_max):
     lab = ['UAV', 'USV']
     if len(it):
         h.append(plt.Line2D([], [], color=TGT, lw=1.0)); lab.append('target')
-    ax.legend(h, lab, loc='best', fontsize=7)
+    ax.legend(h, lab, loc='lower right' if name.startswith('inspection') else 'best', fontsize=7)
 
     fig.tight_layout()
     save_figure(fig, os.path.join(OUT, name + '_paths'))
@@ -124,6 +125,8 @@ def main(name, d_max):
     a0.set_yticks([1, 0]); a0.set_yticklabels(['UAV', 'USV']); a0.set_ylim(-0.6, 1.6); a0.grid(False)
     a1.plot(dr[m, 0] - t0, sep[m], color='#333333', lw=0.9)
     a1.axhline(d_max, color=LIMIT, ls='--', lw=0.9, label='$d_{max}$')
+    if usv_margin > 0.0:
+        a1.axhline(d_max + usv_margin, color=LIMIT, ls=':', lw=0.9, label=r'$d_{max}+\delta_d$')
     a1.set_ylabel('$d$ (m)'); a1.legend(loc='lower right', fontsize=7); a1.set_ylim(0, 1.12 * d_max)
     a2.plot(dr[m, 0] - t0, dr[m, 3], color=UAV, lw=0.9)
     a2.set_ylabel('UAV $z$ (m)'); a2.set_xlabel('time (s)')
@@ -134,4 +137,4 @@ def main(name, d_max):
 
 
 if __name__ == '__main__':
-    main(sys.argv[1], float(sys.argv[2]) if len(sys.argv) > 2 else 15.0)
+    main(sys.argv[1], float(sys.argv[2]) if len(sys.argv) > 2 else 15.0, float(sys.argv[3]) if len(sys.argv) > 3 else 0.0)

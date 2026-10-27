@@ -16,12 +16,12 @@ Before the two vehicles operate together, each controller is evaluated individua
 \label{subsec:res_tracking_usv}
 
 % Under which conditions is the USV controller evaluated?
-The \gls{usv} controller is evaluated with the \gls{uav} resting on the deck, so that the vessel moves alone, without the pull of a suspended tether. Its tests therefore isolate the response of the vessel to its own controller, before the two vehicles are coupled.
+The \gls{usv} controller is evaluated with the \gls{uav} resting on the deck, so that the vessel moves alone and its controller is not coupled to the \gls{uav}. Its tests therefore isolate the response of the vessel to its own controller, before the two vehicles are coupled.
 
 \subsubsection{Tracking Accuracy}
 
 % Which reference, and why this one?
-The tracking accuracy of the \gls{usv} controller is evaluated on a figure-eight, formed by two circles of $12\,\text{m}$ radius joined by two straight legs that cross, and sailed twice, as shown in Figure~\ref{fig:res_usv_scenario}. The reference moves at $1.2\,\text{m/s}$ on the circles and $1.6\,\text{m/s}$ on the legs, and the two circles are turned in opposite directions, so that the vessel turns both ways along each lap. The reference was designed so that the thrust and the azimuth it requires, obtained by inverting the model of the \gls{usv} along it, remain well within the limits of the thrusters, and the result therefore reflects only the accuracy of the controller.
+The tracking accuracy of the \gls{usv} controller is evaluated on a figure-eight, formed by two circles of $12\,\text{m}$ radius joined by two straight legs that cross, and sailed twice, as shown in Figure~\ref{fig:res_usv_scenario}. The reference moves at $1.2\,\text{m/s}$ on the circles and $1.6\,\text{m/s}$ on the legs, and the two circles are turned in opposite directions, so that the vessel turns both ways along each lap. The reference was designed so that the thrust and the azimuth it requires remain well within the limits of the thrusters, and the result therefore reflects only the accuracy of the controller.
 
 \begin{figure}[htbp]
     \centering
@@ -31,7 +31,7 @@ The tracking accuracy of the \gls{usv} controller is evaluated on a figure-eight
 \end{figure}
 
 % How closely does the USV follow it?
-The \gls{usv} follows the figure-eight with a position error of $5.6\,\text{cm}$ (\gls{rmse}), about one percent of its length, and below $13\,\text{cm}$ throughout both laps, while its heading remains within $0.4^\circ$ (\gls{rmse}) of the reference, as shown in Figure~\ref{fig:res_usv_accuracy}. The paths are therefore indistinguishable from the reference at the scale of the figure-eight.
+The \gls{usv} follows the figure-eight with a position error of $5.6\,\text{cm}$ (\gls{rmse}), below $13\,\text{cm}$ throughout both laps, while its heading remains within $0.4^\circ$ (\gls{rmse}) of the reference, as shown in Figure~\ref{fig:res_usv_accuracy}. The paths are therefore indistinguishable from the reference at the scale of the figure-eight.
 
 \begin{figure}[htbp]
     \centering
@@ -49,7 +49,7 @@ The \gls{usv} follows the figure-eight with a position error of $5.6\,\text{cm}$
 \end{figure}
 
 % Does the USV stay within its limits?
-This accuracy is obtained well within the limits of the thrusters. The thrust remains below $350\,\text{N}$, against a maximum of $510\,\text{N}$, and the azimuth within $\pm 7^\circ$, against $\pm 30^\circ$, as shown in Figure~\ref{fig:res_usv_effort}. The \gls{usv} turns mainly through the difference between the thrusts of its two thrusters, which reverses between the two circles, since they are turned in opposite directions, rather than through their azimuth.
+As intended, the thrust remains below $350\,\text{N}$, against a maximum of $510\,\text{N}$, and the azimuth within $\pm 7^\circ$, against $\pm 30^\circ$, as shown in Figure~\ref{fig:res_usv_effort}. The \gls{usv} turns mainly through the difference between the thrusts of its two thrusters, which reverses between the two circles, since they are turned in opposite directions, rather than through their azimuth.
 
 \begin{figure}[htbp]
     \centering
@@ -69,7 +69,7 @@ This accuracy is obtained well within the limits of the thrusters. The thrust re
 \subsubsection{Operating Limits}
 
 % What does the USV do with a reference it cannot follow?
-As for the \gls{uav}, a reference within the limits of the \gls{usv} does not reveal how its controller behaves when these limits prevent it from following the reference. The \gls{usv} is therefore given a second reference, in which each segment is designed to exceed a different limit, as shown in Figure~\ref{fig:res_usv_limits_top}. A straight leg at $3\,\text{m/s}$, beyond the top speed of the vessel, ends in a sharp turn of $90^\circ$ at that speed. The reference then holds a point and finally steps $15\,\text{m}$ astern and $15\,\text{m}$ abeam, two motions that the vessel can make only slowly or indirectly.
+A reference within the limits of the \gls{usv} does not reveal how its controller behaves when these limits prevent it from following the reference. The \gls{usv} is therefore given a second reference, in which each segment is designed to exceed a different limit, as shown in Figure~\ref{fig:res_usv_limits_top}. A straight leg at $3\,\text{m/s}$, beyond the top speed of the vessel, ends in a sharp turn of $90^\circ$ at that speed. The reference then holds a point and finally steps $15\,\text{m}$ astern and $15\,\text{m}$ abeam.
 
 \begin{figure}[htbp]
     \centering
@@ -79,7 +79,7 @@ As for the \gls{uav}, a reference within the limits of the \gls{usv} does not re
 \end{figure}
 
 % What happens on the leg and the turn?
-On the leg, both thrusters reach their maximum thrust and the \gls{usv} settles at its top speed of $2.3\,\text{m/s}$, so that it falls behind the reference. The turn cannot be followed at this speed, since the azimuth of the thrusters is limited to $\pm 30^\circ$ and its rate to $\pm 10^\circ/\text{s}$. The \gls{nmpc} turns the vessel as tightly as the thrusters allow, so that it swings wide of the corner by about $6\,\text{m}$, and then brings it back to the point held by the reference, reversing the thrust of one thruster at its limit to slow down and turn at the same time. Thrust, azimuth and the rate of the azimuth all reach their limits along this manoeuvre without exceeding them, as shown in Figure~\ref{fig:res_usv_limits_inputs}.
+On the leg, both thrusters reach their maximum thrust and the \gls{usv} settles at its top speed of $2.3\,\text{m/s}$, so that it falls behind the reference, as shown in Figure~\ref{fig:res_usv_limits_inputs}. The turn cannot be followed at this speed, since the azimuth of the thrusters is limited to $\pm 30^\circ$ and its rate to $\pm 10^\circ/\text{s}$. The \gls{nmpc} turns the vessel as tightly as the thrusters allow, so that it swings wide of the corner by about $6\,\text{m}$, and then brings it back to the point held by the reference, reversing the thrust of one thruster at its limit to slow down and turn at the same time.
 
 \begin{figure}[htbp]
     \centering
@@ -110,7 +110,7 @@ On the leg, both thrusters reach their maximum thrust and the \gls{usv} settles 
 The two steps ask for the motions in which the vessel has the least authority. Astern, the hull and the thrusters are least effective, and the speed astern is bounded by the soft lower limit on the surge speed. The \gls{usv} reverses in a straight line, with its heading within $5^\circ$ of the reference, at exactly this limit, as shown in Figure~\ref{fig:res_usv_limits_surge}. Abeam, the thrusters at the stern cannot push the vessel sideways without also turning it, so the \gls{nmpc} turns the bow towards the new point, sails to it and turns back to the heading of the reference, rather than drifting sideways.
 
 % Are the limits respected?
-Throughout the test, the limits on the thrust, the azimuth and their rates, which are hard constraints, are never exceeded, and the surge speed reaches its soft lower limit without crossing it. As for the \gls{uav}, the controller therefore uses the full capability of the vessel when the reference demands it, without driving it beyond its limits.
+Throughout the test, the limits on the thrust, the azimuth and their rates, which are hard constraints, are reached but never exceeded, and the surge speed reaches its soft lower limit without crossing it. The controller therefore uses the full capability of the vessel when the reference demands it, without driving it beyond its limits.
 
 \subsection{\texorpdfstring{\gls{uav} Controller}{UAV Controller}}
 \label{subsec:res_tracking_uav}
@@ -121,7 +121,7 @@ The \gls{uav} controller is evaluated in flight, attached to the \gls{usv}, whic
 \subsubsection{Tracking Accuracy}
 
 % Which reference, and why this one?
-The tracking accuracy of the \gls{uav} controller is evaluated on a closed trajectory around the \gls{usv}, which holds its position throughout the test. The trajectory consists of two fast arcs, along which the distance between the vehicles is constant, connected by two slow turns, along which this distance varies. The \gls{uav} is therefore evaluated at both high and low speed, under a tether force that varies along each lap, since it increases with the length of the suspended tether. Figure~\ref{fig:res_uav_scenario} shows the trajectory, coloured by the speed of the reference. The tether is long enough to cover the whole trajectory, so its length does not constrain the motion of the \gls{uav}.
+The tracking accuracy of the \gls{uav} controller is evaluated on a closed trajectory around the \gls{usv}. The trajectory consists of two fast arcs, along which the distance between the vehicles is constant, connected by two slow turns, along which this distance varies. The \gls{uav} is therefore evaluated at both high and low speed, under a tether force that varies along each lap, since it increases with the length of the suspended tether. Figure~\ref{fig:res_uav_scenario} shows the trajectory, coloured by the speed of the reference.
 
 \begin{figure}[htbp]
     \centering
@@ -191,7 +191,7 @@ The higher accuracy of the \gls{nmpc} does not result from a larger control effo
 \subsubsection{Operating Limits}
 
 % What does the UAV do with a reference it cannot follow?
-A trajectory within the limits of the \gls{uav} does not reveal how the controller behaves when these limits prevent it from following the reference. The controller is therefore evaluated on a second reference around the \gls{usv}, which again holds its position, in which each segment is designed to exceed a different limit, as shown in Figure~\ref{fig:res_uav_limits_top}. The first arc, of smaller radius, requires a tilt of about $37^\circ$, beyond the limit of $28.6^\circ$, and the second requires a horizontal speed of $11\,\text{m/s}$, beyond the limit of $10\,\text{m/s}$. The reference then performs two steps in height, the second of which lies at the surface of the water, below the minimum height of $2\,\text{m}$.
+As for the \gls{usv}, the controller is then evaluated on a second reference, in which each segment is designed to exceed a different limit, as shown in Figure~\ref{fig:res_uav_limits_top}. The first arc, of smaller radius, requires a tilt of about $37^\circ$, beyond the limit of $28.6^\circ$, and the second requires a horizontal speed of $11\,\text{m/s}$, beyond the limit of $10\,\text{m/s}$. The reference then performs two steps in height, the second of which lies at the surface of the water, below the minimum height of $2\,\text{m}$.
 
 \begin{figure}[htbp]
     \centering
@@ -252,4 +252,4 @@ The steps in height illustrate the benefit of predicting the limits, as shown in
 \end{figure}
 
 % Are the limits respected?
-Throughout the test, the limits on the inputs, which are hard constraints, are never exceeded. The limits on the states are soft constraints and may be exceeded when no feasible solution exists, but they are exceeded only marginally, by less than $1\,\%$ and only in brief transients. The \gls{nmpc} therefore uses the full capability of the \gls{uav} when the reference demands it, without driving the vehicle beyond its limits and without oscillating when it operates at them.
+Throughout the test, the limits on the inputs, which are hard constraints, are never exceeded. The limits on the states are soft constraints and may be exceeded when no feasible solution exists, but they are exceeded only marginally, by less than $1\,\%$ and only in brief transients. As for the \gls{usv}, the \gls{nmpc} therefore uses the full capability of the \gls{uav} when the reference demands it, without driving the vehicle beyond its limits.

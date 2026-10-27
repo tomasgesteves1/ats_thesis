@@ -26,30 +26,30 @@
         \fill[rosfill!60, rounded corners=4pt] (0,-2.0) rectangle (14.0,-0.65);
         \node[vlabel, text=rosline] at (0.55,0) {\gls{uav}};
         \node[vlabel, text=rosline] at (0.55,-1.2) {\gls{usv}};}
-    \subfloat[Scout.]{
-    \begin{tikzpicture}
-        \missionlanes
-        \missionlane{0}{a}{uavbox}{above}{Takeoff, Formation, Landing}
-            {, route ended}
-        \missionlane{-1.2}{v}{usvbox}{below}{Hold, Route, Hold}
-            {\gls{uav} ahead of the bow, }
-    \end{tikzpicture}}
-    \\[3mm]
     \subfloat[Inspection.]{
     \begin{tikzpicture}
         \missionlanes
-        \missionlane{0}{a}{uavbox}{above}{Takeoff, Formation, Orbit, Landing}
+        \missionlane{0}{a}{uavbox}{above}{Takeoff, Formation, Orbit (3 laps), Landing}
             {, \gls{usv} at the tower, }
         \missionlane{-1.2}{v}{usvbox}{below}{Hold, Route, Support, Hold}
-            {\gls{uav} took off, , lap covered}
+            {\gls{uav} took off, , laps covered}
+    \end{tikzpicture}}
+    \\[3mm]
+    \subfloat[Wait.]{
+    \begin{tikzpicture}
+        \missionlanes
+        \missionlane{0}{a}{uavbox}{above}{Takeoff, Formation, Landing}
+            {, \gls{usv} returned}
+        \missionlane{-1.2}{v}{usvbox}{below}{Hold, Route, Return, Hold}
+            {\gls{uav} took off, wait over, }
     \end{tikzpicture}}
     \\[3mm]
     \subfloat[Patrol.]{
     \begin{tikzpicture}
         \missionlanes
         \missionlane{0}{a}{uavbox}{above}{Takeoff, Orbit, Chase, Landing}
-            {, target detected, }
-        \missionlane{-1.2}{v}{usvbox}{below}{Hold, Route, Pursuit, Hold}
+            {, target detected, chase over}
+        \missionlane{-1.2}{v}{usvbox}{below}{Hold, Route, Chase, Hold}
             {\gls{uav} took off, target detected, }
     \end{tikzpicture}}
     \caption[Missions tested in simulation.]{Missions tested in simulation.}

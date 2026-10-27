@@ -10,40 +10,16 @@
 \label{sec:res_missions}
 
 % What do the missions add to the previous results?
-The missions of Figure~\ref{fig:missions} put the manoeuvres together, with both vehicles moving at once and the manoeuvres of one waiting for the other. They test whether the two controllers, each driven by simple references, keep the system within its limits through a complete operation, from the takeoff to the landing, with the normal tether of $15\,\text{m}$. Each mission is shown in the same way. In the first panel, the paths of both vehicles are seen from above, with their positions and the tether at five instants, the older ones more transparent. In the second, the manoeuvres of each vehicle are shown over time, in their order in Figure~\ref{fig:missions}, together with the separation between the vehicles and the height of the \gls{uav}.
-
-\subsection{Scout}
-\label{subsec:res_scout}
-
-% What does the scout show?
-In the scout, the \gls{usv} sails a route of three legs at $1\,\text{m/s}$, with two turns of $90^\circ$, while the \gls{uav} flies $8\,\text{m}$ ahead of its bow and $5\,\text{m}$ above the winch, in the axes of the \gls{usv}, so that it turns with it and keeps looking ahead. The \gls{usv} sets off once the \gls{uav} is in its place, and the \gls{uav} lands when the route is over.
-
-\begin{figure}[htbp]
-    \centering
-    \subfloat[Paths of both vehicles.]{
-        \includegraphics[width=0.46\textwidth]{Results/figures/02_missions/scout_paths.pdf}
-        \label{fig:res_scout_paths}
-    }
-    \hfill
-    \subfloat[Manoeuvres, separation $d$ and height of the \gls{uav}.]{
-        \includegraphics[width=0.50\textwidth]{Results/figures/02_missions/scout_timeline.pdf}
-        \label{fig:res_scout_timeline}
-    }
-    \caption{Scout mission.}
-    \label{fig:res_scout}
-\end{figure}
-
-% How is the UAV brought ahead of the bow?
-The transfer from the takeoff to the point ahead of the bow is given as a straight line covered in $5\,\text{s}$, rather than as a single point. Right after the takeoff the tether is only $3\,\text{m}$ long, and a single point would ask the separation to grow faster than the winch pays out the tether. As in the first step of Section~\ref{subsec:res_tracking_tether}, the \gls{nmpc} would then keep within the pay-out rate by trading height for it, and bring the \gls{uav} down close to the deck. Covered in $5\,\text{s}$, the transfer climbs smoothly to its height, with a tilt below $14^\circ$, while the separation grows at up to $2.4\,\text{m/s}$, close to the pay-out rate.
-
-% Does the UAV keep ahead of the bow as the USV turns?
-Along the route, the \gls{uav} keeps its place with a mean error of $5\,\text{cm}$, Figure~\ref{fig:res_scout}. The largest errors, of $17\,\text{cm}$, are at the turns, where the point ahead of the bow swings around the \gls{usv} as it turns, and the \gls{uav} follows it on the wide arcs seen in Figure~\ref{fig:res_scout_paths}. The separation stays at $9.5\,\text{m}$, and the \gls{uav} lands on the pad, $3\,\text{cm}$ from its centre, once the route is over.
+The missions of Section~\ref{subsec:missions_coordination} bring the two vehicles together, from the takeoff to the landing, with both moving at once. In the inspection, the two vehicles cooperate to cover a structure, and the separation remains within the reach of the tether by design. In the wait, the \gls{usv} moves away from a \gls{uav} that cannot follow it, and in the patrol, the \gls{uav} chases a target beyond the reach of the tether. Each mission is shown through the paths of both vehicles, seen from above, and through the manoeuvres of each vehicle over time, together with the separation between them and the height of the \gls{uav}.
 
 \subsection{Inspection}
 \label{subsec:res_inspection}
 
 % What does the inspection ask of the two vehicles?
-In the inspection, the \gls{uav} circles a tower standing in the water, $12$ by $13\,\text{m}$ at its base, at a radius of $13\,\text{m}$ from its centre and $12\,\text{m}$ high. A circle of this size is beyond the reach of the tether from any fixed point, so the mission depends on the \gls{usv}. The \gls{uav} takes off and flies in formation ahead of the bow while the \gls{usv} sails to the tower. When the \gls{usv} arrives, the \gls{uav} starts the circle, given as a reference fixed in the world, and the \gls{usv} starts to support it from the water.
+In the inspection, the \gls{uav} circles a tower standing in the water, at a radius of $13\,\text{m}$ from its centre, in three laps at increasing heights, from $12$ to $42\,\text{m}$. The laps are given as references fixed in the world, and the \gls{usv} supports the \gls{uav} from the water, $12\,\text{m}$ further from the tower. With a tether of $45\,\text{m}$, the highest lap cannot be covered from a fixed point of the water, so the mission depends on the support of the \gls{usv}.
+
+% Does the support keep the UAV within reach?
+The \gls{usv} follows the \gls{uav} around each lap, at the same angle about the tower and within $0.6\,\text{m}$ of its intended radius, as shown in Figure~\ref{fig:res_inspection}. The separation therefore depends only on the height of the lap, and reaches $42.7\,\text{m}$ on the highest one, so that the tether constraint of neither controller becomes active. Each lap is flown with a position error of $2\,\text{cm}$ (\gls{rmse}). Together, the two vehicles cover the tower from bottom to top, which neither could cover alone, and the \gls{uav} then lands $1\,\text{cm}$ from the centre of the pad.
 
 \begin{figure}[htbp]
     \centering
@@ -60,32 +36,45 @@ In the inspection, the \gls{uav} circles a tower standing in the water, $12$ by 
     \label{fig:res_inspection}
 \end{figure}
 
-% Does the support keep the UAV within reach?
-Figure~\ref{fig:res_inspection} shows that the \gls{usv} keeps itself on the water below the \gls{uav}, $6\,\text{m}$ further from the tower, and follows it around the whole circle, at a radius that stays within $3\,\text{cm}$ of the intended $19\,\text{m}$. The separation stays at $12.3\,\text{m}$ throughout the lap, so that the \gls{uav} never comes close to the limit of the tether, and follows its circle with an error of $1\,\text{cm}$. The manoeuvres themselves are simple. The \gls{uav} follows a circle fixed in the world, regardless of the \gls{usv}, and the \gls{usv} follows the \gls{uav}, so that the two together cover a circle that neither could cover alone. The lap takes $110\,\text{s}$, after which the \gls{uav} returns to the deck and lands $4\,\text{cm}$ from the centre of the pad.
+\subsection{Wait}
+\label{subsec:res_wait}
+
+% What situation does the wait represent?
+The wait represents a \gls{uav} that cannot follow the \gls{usv}, for instance against a wind it cannot overcome. The \gls{uav} is held at a point fixed in the world, $10\,\text{m}$ high, while the \gls{usv} is sent along a route of $60\,\text{m}$, three times the reach of the tether of $20\,\text{m}$. Since the \gls{uav} is much faster than the vessel, its own tether constraint would otherwise lead it to follow the \gls{usv}. To represent a vehicle that cannot follow, the bound of the \gls{uav} is raised above that of the \gls{usv} during the wait, so that the constraint of the \gls{usv} alone keeps the separation within reach. After a wait of about $40\,\text{s}$, the \gls{usv} abandons the route and returns below the \gls{uav}, which then lands.
+
+% Does the USV stop at the reach of the tether?
+The \gls{usv} sets off at its top speed and brakes as the separation predicted over its horizon approaches its bound, as shown in Figure~\ref{fig:res_wait}. It stops $18\,\text{m}$ from its starting point and waits there with the separation at $20.1\,\text{m}$, within its bound of $d_{max}+\delta_d$. While braking, the separation exceeds this bound by $0.3\,\text{m}$ for about one second, since the \gls{usv} sees the \gls{uav} only over the horizon of the \gls{uav}, which is shorter than the time the vessel needs to stop from its top speed. Throughout the wait, the \gls{uav} stays within $0.2\,\text{m}$ of its point. Once the wait is over, the \gls{usv} turns back and sails below the \gls{uav}, which lands $3\,\text{cm}$ from the centre of the pad.
+
+\begin{figure}[htbp]
+    \centering
+    \includegraphics[width=0.85\textwidth]{Results/figures/02_missions/wait_timeline.pdf}
+    \caption{Manoeuvres, separation $d$ and height of the \gls{uav} in the wait mission.}
+    \label{fig:res_wait}
+\end{figure}
 
 \subsection{Patrol}
 \label{subsec:res_patrol}
 
 % What happens in the patrol?
-In the patrol, the \gls{usv} sails a route while the \gls{uav} orbits it, $7\,\text{m}$ away and $10\,\text{m}$ high, looking down. Near the route, a second vessel patrols a forbidden zone, and flees when either vehicle comes within $15\,\text{m}$ of it. The \gls{uav} detects it once it enters the field of view of its camera, assumed to be $120^\circ$ wide, which at this height reaches about $17\,\text{m}$ to each side, before the target notices it. From then on, the reference of the \gls{uav} is simply the point above the target, wherever it is, and the \gls{usv} pursues it.
+In the patrol, the \gls{usv} sails a route while the \gls{uav} orbits it at a radius of $7\,\text{m}$, $15\,\text{m}$ above the winch, looking down with a camera assumed to cover $120^\circ$. Near the route, a target vessel patrols a forbidden zone and, when either vehicle comes within $15\,\text{m}$ of it, flees at $2\,\text{m/s}$ along a zigzag. Once the \gls{uav} detects the target, its reference becomes the point above the target, wherever it is, and the \gls{usv} chases the target for one minute, keeping $10\,\text{m}$ behind it. The tether is $20\,\text{m}$ long, so the target is beyond its reach when it is detected.
+
+% How does the UAV follow a target beyond the reach of the tether?
+The target is detected $28\,\text{m}$ from the \gls{uav} and $32\,\text{m}$ from the \gls{usv}, as shown in Figure~\ref{fig:res_patrol}. The \gls{uav} flies towards it until the separation reaches $d_{max}$, and then remains at the limit of the tether, as close to the target as the tether allows, while the \gls{usv} closes the distance. About $20\,\text{s}$ after the detection, the \gls{usv} is $10\,\text{m}$ behind the target, the target is within reach, and the \gls{uav} remains above it, within $0.5\,\text{m}$, until the end of the chase. The separation exceeds $d_{max}$ by at most $0.16\,\text{m}$ and never reaches the bound of the \gls{usv}, so the vessel chases the target undisturbed by the tether. The \gls{uav} then lands $1\,\text{cm}$ from the centre of the pad.
 
 \begin{figure}[htbp]
     \centering
     \subfloat[Paths of both vehicles and of the target.]{
-        \includegraphics[width=0.97\textwidth]{Results/figures/02_missions/patrol_paths.pdf}
+        \includegraphics[width=0.46\textwidth]{Results/figures/02_missions/patrol_paths.pdf}
         \label{fig:res_patrol_paths}
     }
-
-    \subfloat[Manoeuvres of each vehicle, separation $d$ and height of the \gls{uav}.]{
-        \includegraphics[width=0.97\textwidth]{Results/figures/02_missions/patrol_timeline.pdf}
+    \hfill
+    \subfloat[Manoeuvres, separation $d$ and height of the \gls{uav}.]{
+        \includegraphics[width=0.50\textwidth]{Results/figures/02_missions/patrol_timeline.pdf}
         \label{fig:res_patrol_timeline}
     }
     \caption{Patrol mission.}
     \label{fig:res_patrol}
 \end{figure}
 
-% How does the UAV reach a target beyond the reach of the tether?
-The target is detected $56\,\text{s}$ after the takeoff, $19\,\text{m}$ from the \gls{uav} and $23\,\text{m}$ from the \gls{usv}, too far for the tether, as shown in Figure~\ref{fig:res_patrol}. The reference above it is therefore brought within reach, along the line from the \gls{usv}, which also lowers it, and the \gls{uav} drops from $10$ to $5\,\text{m}$ as it flies towards the target. The separation reaches $14.7\,\text{m}$, within its limit. The \gls{uav} is above the target $5\,\text{s}$ after the detection, and as the \gls{usv} closes in, at up to $2.2\,\text{m/s}$ against the $1.5\,\text{m/s}$ of the fleeing target, the reference comes within reach and the \gls{uav} climbs back to its height. The \gls{usv} catches up with the target $21\,\text{s}$ after the detection, and the \gls{uav} then lands, $5\,\text{cm}$ off the centre of the pad.
-
-% Are the limits respected?
-The chase starts with the largest jump of the reference in the missions, and the commanded tilt reaches its limit. The roll of the \gls{uav} then reaches $34^\circ$ for $0.4\,\text{s}$, above its limit, while the total tilt of the vehicle stays below that commanded. The roll and the pitch are measured about axes turned by the commanded yaw, and the yaw of the \gls{uav}, which turns towards the target at the same time, lags its command by up to $13^\circ$, so that part of the commanded pitch appears as roll. The same effect, smaller, appears in the inspection while the \gls{usv} turns towards the tower and the point ahead of its bow swings round, with a roll of $32^\circ$ for $0.3\,\text{s}$. Both vehicles otherwise stay within their limits throughout the missions.
+% What do the three missions show together?
+In the three missions, the vehicle that moves where the tether cannot reach is the one whose motion is restrained. The \gls{uav}, much faster, normally keeps the separation within reach by itself, as in the patrol. The constraint of the \gls{usv} acts as a safeguard when the \gls{uav} cannot, as in the wait, and the exchange of predicted trajectories lets the vessel stop before it pulls the tether.
