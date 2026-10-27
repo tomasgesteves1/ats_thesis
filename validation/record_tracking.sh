@@ -16,6 +16,7 @@
 # Controllers: nmpc    - the NMPC of the thesis
 #              px4     - the PX4 position controller (offboard), unaware of the tether
 #              noobs   - the NMPC without the disturbance observer
+#              notether - the NMPC without the tether model, and no tether in the simulation
 # The bag is written to <workspace>/bags/tracking/tracking_<scenario>_<controller>_<timestamp>.
 SCENARIO=${1:-crescent}; DUR=${2:-240}; CTRL=${3:-nmpc}
 UAV_ARGS=""
@@ -30,7 +31,8 @@ case $SCENARIO in
            uav_waypoints:=0,2,0,8;15,12,0,8;35,12,0,20;85,2,0,8 \
            usv_waypoints:=0,0,0,0;60,-15,10,146;85,0,0,-34";;  # no spaces: word-split below
   *) echo "unknown scenario"; exit 1;; esac
-case $CTRL in nmpc) CTRL_ARGS="";; px4) CTRL_ARGS="px4_baseline:=true";; noobs) CTRL_ARGS="disturbance_observer:=false";; *) echo "unknown controller"; exit 1;; esac
+case $CTRL in nmpc) CTRL_ARGS="";; px4) CTRL_ARGS="px4_baseline:=true";; noobs) CTRL_ARGS="disturbance_observer:=false";;
+  notether) CTRL_ARGS="tether_model:=false"; SIM_TETHER=false;; *) echo "unknown controller"; exit 1;; esac
 WS=$(cd "$(dirname "$0")/../.." && pwd)
 source /opt/ros/*/setup.bash; source "$WS/install/setup.bash"
 export ACADOS_SOURCE_DIR=${ACADOS_SOURCE_DIR:-$HOME/acados}; export LD_LIBRARY_PATH=$ACADOS_SOURCE_DIR/lib:$LD_LIBRARY_PATH
@@ -40,7 +42,7 @@ stop_all() {  # stops every simulation/control process by PID (no pkill -f, the 
   for p in $(ps aux | grep -E "install/|[p]x4_sitl|[g]z sim|[M]icroXRCE|parameter_bridge|foxglove_bridge|[r]uby /opt|ros2 launch|ros2 bag" | grep -v "grep\|claude\|record_tracking" | awk '{print $2}'); do kill -9 $p 2>/dev/null; done
 }
 stop_all; sleep 3
-(setsid ros2 launch test_cooperative_mpc sim.launch.py use_tether:=true > /tmp/tracking_sim.log 2>&1 &)
+(setsid ros2 launch test_cooperative_mpc sim.launch.py use_tether:=${SIM_TETHER:-true} > /tmp/tracking_sim.log 2>&1 &)
 sleep 80
 TOPICS="/tf /tf_static /tether_geometry_marker /tether_force_markers /predicted_trajectory /reference_trajectory /mpc_predicted_path /usv/mpc_horizon \
  /mpc_states_and_inputs /drone/ground_truth/odometry /boat/ground_truth/odometry /usv/reference_path /uav/reference_path \
