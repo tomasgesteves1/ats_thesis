@@ -115,6 +115,8 @@ void UsvFollow::start(const Context & ctx)
     v0_ = norm2(ctx.boat.v[0], ctx.boat.v[1]);
     settle_since_ = -1.0;
     hold_ = {ctx.boat.p[0], ctx.boat.p[1], ctx.boat.yaw};
+    ref_ = hold_;
+    t_ref_ = ctx.t;
 }
 
 Status UsvFollow::update(const Context & ctx, UsvCommand & cmd)
@@ -122,6 +124,8 @@ Status UsvFollow::update(const Context & ctx, UsvCommand & cmd)
     cmd.path.resize(static_cast<size_t>(ctx.usv_horizon.steps));
     if (!ctx.target.valid) {
         cmd.path.assign(cmd.path.size(), hold_);
+        ref_ = hold_;
+        t_ref_ = ctx.t;
         return Status::kRunning;
     }
     const double speed = params_.get("speed", 1.5);
@@ -129,22 +133,31 @@ Status UsvFollow::update(const Context & ctx, UsvCommand & cmd)
     const double standoff = params_.get("standoff", 6.0);
     const double turn_rate = params_.get("turn_rate", 0.3);
     const double dt = ctx.usv_horizon.dt;
-    // The reference is a unicycle started at the current pose of the boat that turns towards the target (predicted
-    // with constant velocity) with a limited turn rate and a speed ramped to the pursuit speed, and stops at the
-    // standoff distance: a reference the boat can follow bow first (a jump of the reference heading towards the
-    // target makes the NMPC back towards it instead)
-    double x = ctx.boat.p[0], y = ctx.boat.p[1], yaw = ctx.boat.yaw;
+    // The reference is a unicycle that turns towards the target (predicted with constant velocity) with a limited
+    // turn rate and a speed ramped to the pursuit speed, and stops at the standoff distance: a reference the boat
+    // can follow bow first (a jump of the reference heading towards the target makes the NMPC back towards it
+    // instead). The unicycle starts at the pose of the boat and is then advanced with time on its own: restarted
+    // at the boat every cycle, it would take on any heading error of the boat, which the NMPC trades for position
+    // over its short horizon (with the thrusters at the stern, a turn first pushes the boat to the other side)
+    const auto step = [&](UsvPose & pose, double t, double h) {
+        const Vec3 target = add(ctx.target.p, scale(ctx.target.v, t - ctx.t));
+        const double bearing = std::atan2(target[1] - pose.y, target[0] - pose.x);
+        pose.yaw = wrapAngle(pose.yaw + std::clamp(wrapAngle(bearing - pose.yaw), -turn_rate * h, turn_rate * h));
+        const double d = norm2(target[0] - pose.x, target[1] - pose.y);
+        const double v = d > standoff ? v0_ + (speed - v0_) * minJerk((t - t0_) / ramp) : 0.0;
+        const double ds = std::min(v * h, std::max(0.0, d - standoff));
+        pose.x += ds * std::cos(pose.yaw);
+        pose.y += ds * std::sin(pose.yaw);
+    };
+    while (t_ref_ < ctx.t) {
+        const double h = std::min(dt, ctx.t - t_ref_);
+        step(ref_, t_ref_, h);
+        t_ref_ += h;
+    }
+    UsvPose pose = ref_;
     for (size_t k = 0; k < cmd.path.size(); ++k) {
-        cmd.path[k] = {x, y, yaw};
-        const double tau = static_cast<double>(k) * dt;
-        const Vec3 target = add(ctx.target.p, scale(ctx.target.v, tau));
-        const double bearing = std::atan2(target[1] - y, target[0] - x);
-        yaw += std::clamp(wrapAngle(bearing - yaw), -turn_rate * dt, turn_rate * dt);
-        const double d = norm2(target[0] - x, target[1] - y);
-        const double v = d > standoff ? v0_ + (speed - v0_) * minJerk((ctx.t + tau - t0_) / ramp) : 0.0;
-        const double step = std::min(v * dt, std::max(0.0, d - standoff));
-        x += step * std::cos(yaw);
-        y += step * std::sin(yaw);
+        cmd.path[k] = pose;
+        step(pose, ctx.t + static_cast<double>(k) * dt, dt);
     }
     hold_ = cmd.path.front();
     // With a duration, the boat keeps close to the target for that time instead of intercepting it

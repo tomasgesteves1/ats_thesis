@@ -66,6 +66,8 @@ private:
     double v0_{0.0};
     double settle_since_{-1.0};
     UsvPose hold_;
+    UsvPose ref_;          // pose of the reference at t_ref_ (advanced with time, independent of the boat)
+    double t_ref_{0.0};
 };
 
 /// Support of the UAV around a structure: the reference is the point on the water below the UAV, pushed away from
