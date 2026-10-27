@@ -8,6 +8,8 @@ name: "Inspection"
 description: "The USV takes the UAV to a tower, which the UAV circles at three heights while the USV supports it, then it lands."
 # Options of mission.launch.py needed by this mission (used by the dashboard)
 launch: {tether_max_length: 50.0}
+# Three slow laps take about 10 minutes, beyond the default mission timeout of 5 minutes
+timeout: 900.0
 
 uav:
   - {id: takeoff, type: takeoff, vertical_clearance: 1.5, clearance_duration: 5.0, pull_release_height: 1.6,
