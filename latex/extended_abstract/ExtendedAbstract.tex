@@ -71,9 +71,13 @@
 \renewcommand{\topfraction}{0.85}
 \renewcommand{\bottomfraction}{0.7}
 \renewcommand{\textfraction}{0.1}
-% the figures of the results are all placed before the conclusions (\FloatBarrier), and the columns are not stretched
-% to the bottom of the page when one ends before it
+% the figures of the results are all placed before the conclusions (\FloatBarrier); columns end at the bottom of
+% the page when the text allows it, without stretching the space between paragraphs, and up to three floats share a column
 \raggedbottom
+\setcounter{topnumber}{3}
+\setcounter{bottomnumber}{2}
+\setcounter{totalnumber}{5}
+\renewcommand{\floatpagefraction}{0.75}
 
 % Title, author and address
 \title{Cooperative Control of a Tethered Drone and Surface Vessel for Sustained Presence at Sea}
