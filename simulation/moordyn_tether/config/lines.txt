@@ -12,9 +12,9 @@ ID   Attachment  X       Y     Z        Mass   Volume  CdA    Ca
 ---------------------- LINES ----------------------------------------
 ID   LineType     AttachA  AttachB  UnstrLen  NumSegs  LineOutputs
 (#)  (name)       (ID)     (ID)     (m)       (-)      (-)
-1    MicroTether  1        2        3.0      30       ptv
+1    MicroTether  1        2        3.0      30       -
 ---------------------- OPTIONS -----------------------------------------
-1             writeLog      Write log file
+0             writeLog      Write log file
 2e-5          dtM           time step to use in mooring integration (s): CFL with EA 1e4 and 5 cm segments (1.5 m line)
 3000000       kbot          bottom stiffness (Pa/m)
 300000        cbot          bottom damping (Pa-s/m)

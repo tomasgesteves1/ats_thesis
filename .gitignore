@@ -8,3 +8,7 @@ validation/solver_benchmark/build/
 
 # Signals extracted from the bags for the figures of Chapter 5 (validation/results/extract.py)
 validation/results/data/
+
+# MoorDyn outputs written next to its input file
+simulation/moordyn_tether/config/lines*.out
+simulation/moordyn_tether/config/lines*.log
