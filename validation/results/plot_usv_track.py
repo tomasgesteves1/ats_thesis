@@ -52,11 +52,13 @@ def main():
     print('USV solve time mean %.2f max %.2f ms' % (s.mean(), s.max()))
 
     # --- Paths seen from above ----------------------------------------------------------------------------------
-    fig, ax = plt.subplots(figsize=(3.6 * K, 2.6 * K))
+    # Drawn as the top views of the UAV: x up, y to the left, so that the figure-eight lies across the page
+    fig, ax = plt.subplots(figsize=(4.4 * K, 2.0 * K))
     ax.grid(True, alpha=0.3)
-    ax.plot(r[:, 0], r[:, 1], color=REF, lw=2.5, alpha=0.45, label='Reference')
-    ax.plot(p[:, 0], p[:, 1], color=USV, lw=0.9, label='USV')
-    ax.set_aspect('equal'); ax.set_xlabel('$x$ (m)'); ax.set_ylabel('$y$ (m)'); ax.legend(loc='upper right', fontsize=7)
+    ax.plot(r[:, 1], r[:, 0], color=REF, lw=2.5, alpha=0.45, label='Reference')
+    ax.plot(p[:, 1], p[:, 0], color=USV, lw=0.9, label='USV')
+    ax.set_aspect('equal'); ax.invert_xaxis(); ax.set_xlabel('$y$ (m)'); ax.set_ylabel('$x$ (m)')
+    ax.legend(loc='lower center', bbox_to_anchor=(0.5, 1.0), ncol=2, fontsize=7, frameon=False)
     fig.tight_layout()
     save_figure(fig, os.path.join(OUT, 'usv_track_top'))
 

@@ -21,7 +21,8 @@ Z_MIN = 2.0
 TS = 0.02            # s, sampling time of the NMPC (rates from consecutive commands, see the pipeline notes)
 RAMP = 8.0           # s, entry from hover of the reference (test_uav_circle ramp_time): tau = t - RAMP/2 after it
 K = 1.7
-SIZE = (3.1 * K, 2.4 * K)
+SIZE = (3.1 * K, 2.4 * K)      # two side by side in the thesis
+ROW = (2.05 * K, 1.75 * K)     # three side by side (tilt, its rate and the horizontal speed)
 MEDIAN = 9           # samples (0.18 s): removes the fast ripple that the tether force leaves on the command rates while
                      # keeping their plateaus at the limit (a low-pass filter overshoots the limit at their edges); the
                      # thrust rate has no plateau, and its one-sample peaks (99 N/s) drop to ~73 N/s
@@ -82,8 +83,8 @@ def main():
     for name, ts in marks:
         print('  phase %-30s from %.1f s' % (name, ts))
 
-    def panel(name, ylabel, series, limits):
-        fig, ax = plt.subplots(figsize=SIZE)
+    def panel(name, ylabel, series, limits, size=SIZE):
+        fig, ax = plt.subplots(figsize=size)
         ax.grid(True, alpha=0.3)
         for _, ts in marks[1:]:
             ax.axvline(ts, color=REF, lw=0.6, alpha=0.5)
@@ -97,14 +98,14 @@ def main():
         fig.tight_layout()
         save_figure(fig, os.path.join(OUT, name))
 
-    panel('limits_tilt', 'Tilt (deg)', [(tt, tilt, 'Measured', UAV), (tt, tilt_cmd, 'Commanded', REF)], [lim_tilt])
+    panel('limits_tilt', 'Tilt (deg)', [(tt, tilt, 'Measured', UAV), (tt, tilt_cmd, 'Commanded', REF)], [lim_tilt], ROW)
     panel('limits_tilt_rate', 'Roll and pitch rate (deg/s)',
           [(tt[1:], medfilt(roll_rate, MEDIAN), 'Roll', UAV), (tt[1:], medfilt(pitch_rate, MEDIAN), 'Pitch', COLOR_CYCLE[1])],
-          [lim_rate, -lim_rate])
+          [lim_rate, -lim_rate], ROW)
     panel('limits_thrust', 'Thrust (N)', [(tt, thrust, 'Thrust', UAV)], [UAV_LIM['T_min'], UAV_LIM['T_max']])
     panel('limits_thrust_rate', 'Thrust rate (N/s)', [(tt[1:], medfilt(thrust_rate, MEDIAN), 'Thrust rate', UAV)],
           [UAV_LIM['T_rate_max'], -UAV_LIM['T_rate_max']])
-    panel('limits_speed', 'Horizontal speed (m/s)', [(t, v_xy, 'Speed', UAV)], [UAV_LIM['v_max']])
+    panel('limits_speed', 'Horizontal speed (m/s)', [(t, v_xy, 'Speed', UAV)], [UAV_LIM['v_max']], ROW)
     fig, ax = plt.subplots(figsize=(3.6 * K, 2.6 * K))
     ax.grid(True, alpha=0.3)
     mr = (ref[:, 0] >= t0) & (ref[:, 0] <= t1)

@@ -22,7 +22,7 @@ The tracking accuracy of the \gls{usv} controller is evaluated on a figure-eight
 
 \begin{figure}[htbp]
     \centering
-    \includegraphics[width=0.40\textwidth]{Results/figures/01_tracking/usv_track_top.pdf}
+    \includegraphics[width=0.75\textwidth]{Results/figures/01_tracking/usv_track_top.pdf}
     \caption{Reference figure-eight of the \gls{usv} and path sailed, seen from above.}
     \label{fig:res_usv_scenario}
 \end{figure}
@@ -94,19 +94,17 @@ On the leg, both thrusters reach their maximum thrust and the \gls{usv} settles 
         \includegraphics[width=0.48\textwidth]{Results/figures/01_tracking/usv_limits_azimuth_rate.pdf}
         \label{fig:res_usv_limits_azimuth_rate}
     }
-    \caption{Thrust, azimuth and its rate of both thrusters of the \gls{usv} against their limits.}
+    \hfill
+    \subfloat[Surge speed.]{
+        \includegraphics[width=0.48\textwidth]{Results/figures/01_tracking/usv_limits_surge.pdf}
+        \label{fig:res_usv_limits_surge}
+    }
+    \caption{Thrust, azimuth and its rate of both thrusters of the \gls{usv}, and its surge speed, against their limits.}
     \label{fig:res_usv_limits_inputs}
 \end{figure}
 
 % And on the steps astern and abeam?
 The two steps ask for the motions in which the vessel has the least authority. Astern, the hull and the thrusters are least effective, and the speed astern is bounded by the soft lower limit on the surge speed. The \gls{usv} reverses in a straight line, with its heading within $5^\circ$ of the reference, at exactly this limit, as shown in Figure~\ref{fig:res_usv_limits_surge}. Abeam, the thrusters at the stern cannot push the vessel sideways without also turning it, so the \gls{nmpc} turns the bow towards the new point, sails to it and turns back to the heading of the reference, rather than drifting sideways.
-
-\begin{figure}[htbp]
-    \centering
-    \includegraphics[width=0.48\textwidth]{Results/figures/01_tracking/usv_limits_surge.pdf}
-    \caption{Surge speed of the \gls{usv} against its lower limit.}
-    \label{fig:res_usv_limits_surge}
-\end{figure}
 
 % Are the limits respected?
 Throughout the test, the limits on the thrust, the azimuth and their rates, which are hard constraints, are never exceeded, and the surge speed reaches its soft lower limit without crossing it. As for the \gls{uav}, the controller therefore uses the full capability of the vessel when the reference demands it, without driving it beyond its limits.
@@ -121,7 +119,7 @@ The tracking accuracy of the \gls{uav} controller is evaluated on a closed traje
 
 \begin{figure}[htbp]
     \centering
-    \includegraphics[width=0.65\textwidth]{Results/figures/01_tracking/crescent_top.pdf}
+    \includegraphics[width=0.55\textwidth]{Results/figures/01_tracking/crescent_top.pdf}
     \caption{Reference trajectory of the \gls{uav} around the \gls{usv}, seen from above and coloured by its speed.}
     \label{fig:res_uav_scenario}
 \end{figure}
@@ -153,7 +151,7 @@ Both controllers keep the \gls{uav} on the trajectory, and over a full lap the p
 \begin{figure}[htbp]
     \centering
     \subfloat[Seen from above.]{
-        \includegraphics[width=0.65\textwidth]{Results/figures/01_tracking/crescent_track_top.pdf}
+        \includegraphics[width=0.55\textwidth]{Results/figures/01_tracking/crescent_track_top.pdf}
         \label{fig:res_uav_track_top}
     }
     \\[2ex]
@@ -194,7 +192,7 @@ The error of PX4 is not uniform along the lap. It increases on each fast arc and
 
 \begin{figure}[htbp]
     \centering
-    \includegraphics[width=\textwidth]{Results/figures/01_tracking/crescent_error.pdf}
+    \includegraphics[width=0.85\textwidth]{Results/figures/01_tracking/crescent_error.pdf}
     \caption{Position error of the \gls{uav}, with the speed of the reference shaded.}
     \label{fig:res_uav_error}
 \end{figure}
@@ -224,7 +222,7 @@ A trajectory within the limits of the \gls{uav} does not reveal how the controll
 
 \begin{figure}[htbp]
     \centering
-    \includegraphics[width=0.65\textwidth]{Results/figures/01_tracking/limits_top.pdf}
+    \includegraphics[width=0.50\textwidth]{Results/figures/01_tracking/limits_top.pdf}
     \caption{Reference beyond the limits of the \gls{uav} and path flown, seen from above.}
     \label{fig:res_uav_limits_top}
 \end{figure}
@@ -235,17 +233,17 @@ On each arc, the \gls{nmpc} drives the \gls{uav} to the limits that render the r
 \begin{figure}[htbp]
     \centering
     \subfloat[Tilt.]{
-        \includegraphics[width=0.48\textwidth]{Results/figures/01_tracking/limits_tilt.pdf}
+        \includegraphics[width=0.32\textwidth]{Results/figures/01_tracking/limits_tilt.pdf}
         \label{fig:res_uav_limits_tilt}
     }
     \hfill
     \subfloat[Rate of the commanded roll and pitch.]{
-        \includegraphics[width=0.48\textwidth]{Results/figures/01_tracking/limits_tilt_rate.pdf}
+        \includegraphics[width=0.32\textwidth]{Results/figures/01_tracking/limits_tilt_rate.pdf}
         \label{fig:res_uav_limits_tilt_rate}
     }
-    \\[2ex]
+    \hfill
     \subfloat[Horizontal speed.]{
-        \includegraphics[width=0.48\textwidth]{Results/figures/01_tracking/limits_speed.pdf}
+        \includegraphics[width=0.32\textwidth]{Results/figures/01_tracking/limits_speed.pdf}
         \label{fig:res_uav_limits_speed}
     }
     \caption{Tilt, its rate and horizontal speed of the \gls{uav} against their limits.}
