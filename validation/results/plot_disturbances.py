@@ -103,7 +103,10 @@ def waves():
         t_from = max(runs[g]['t_desc'] - runs[g]['t_td'] for g in GAINS) - 2.0
         axs[0].set_ylabel('winch\nheight (m)'); axs[1].set_ylabel('height above\nthe winch (m)')
         axs[2].set_ylabel('horizontal\noffset (cm)'); axs[2].set_xlabel('time to touchdown (s)')
-        axs[0].legend(loc='lower right', bbox_to_anchor=(1.0, 1.0), ncol=3, fontsize=7, frameon=False, borderaxespad=0.1)
+        leg = axs[0].legend(loc='lower right', bbox_to_anchor=(1.0, 1.0), ncol=3, fontsize=7, frameon=False,
+                            borderaxespad=0.1, handlelength=2.5)
+        for line in leg.get_lines():
+            line.set_linewidth(2.0)
         axs[2].set_xlim(t_from, 3); axs[2].set_ylim(0, 15)
         fig.align_ylabels(axs); fig.tight_layout()
         save_figure(fig, path)
@@ -127,7 +130,7 @@ def wind():
                 w, obs, h, r['centring'], r['offset']))
     d = load(RUN[(12, 'obs')])
     ext, dist = d['ext'], d['dist']
-    t_to = ev_time(d, 'uav.takeoff: done'); t_td = ev_time(d, 'touchdown')
+    t_to = ev_time(d, 'uav.takeoff: done'); t_td = ev_time(d, 'descending')   # until the winch starts to pull
     # offset and force as two figures, side by side in the thesis
     fig, ax = plt.subplots(figsize=(2.9, 2.6))
     axs = [ax]
@@ -144,6 +147,24 @@ def wind():
     axs[0].legend(fontsize=7, loc='upper left')
     fig.tight_layout()
     save_figure(fig, os.path.join(OUT, 'wind_offset'))
+
+    # landing in the strongest wind, with and without the observer: offset from the winch and height above it
+    fig, axs2 = plt.subplots(2, 1, figsize=(6.3, 3.4), sharex=True)
+    for obs, c, lab in (('noobs', COLOR_CYCLE[1], 'without observer'), ('obs', COLOR_CYCLE[0], 'with observer')):
+        dd = load(RUN[(12, obs)]); dr = dd['drone']
+        tl = ev_time(dd, 'uav.land: started'); td = ev_time(dd, 'touchdown')
+        te = td + 3.0 if td is not None else dr[-1, 0]
+        m = (dr[:, 0] >= tl) & (dr[:, 0] <= te)
+        t = dr[m, 0]; rel = dr[m, 1:4] - winch(dd, t)
+        axs2[0].plot(t - tl, 100 * np.hypot(rel[:, 0], rel[:, 1]), color=c, lw=0.9, label=lab)
+        axs2[1].plot(t - tl, rel[:, 2], color=c, lw=0.9)
+        for a in axs2:
+            a.axvline(ev_time(dd, 'descending') - tl, color=c, ls=':', lw=0.8)
+    axs2[0].set_ylim(0, 300); axs2[0].set_ylabel('horizontal\noffset (cm)'); axs2[0].legend(fontsize=7, loc='upper right')
+    axs2[1].set_ylabel('height above\nthe winch (m)'); axs2[1].set_xlabel('time since the landing started (s)')
+    axs2[1].set_xlim(0, None)
+    fig.align_ylabels(axs2); fig.tight_layout()
+    save_figure(fig, os.path.join(OUT, 'wind_landing'))
 
     fig, ax = plt.subplots(figsize=(3.4, 2.6))
     axs = [None, ax]
