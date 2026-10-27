@@ -28,6 +28,8 @@ IntruderSimNode::IntruderSimNode(const rclcpp::NodeOptions & options) : Node("in
         cfg.zone = {zone[0], zone[1], zone[2], zone[3]};
     }
     cfg.zone_margin = declare_parameter<double>("zone_margin", 8.0);
+    cfg.weave_angle = declare_parameter<double>("weave_angle_deg", 0.0) * M_PI / 180.0;
+    cfg.weave_period = declare_parameter<double>("weave_period", 14.0);
     entity_name_ = declare_parameter<std::string>("entity_name", "wamv_intruder");
     world_frame_ = declare_parameter<std::string>("world_frame", "world");
     child_frame_ = declare_parameter<std::string>("child_frame", "intruder/base_link");

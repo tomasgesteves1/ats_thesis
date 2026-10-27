@@ -22,6 +22,8 @@ struct IntruderConfig
     double capture_time{3.0};      ///< s, ... for this time
     std::array<double, 4> zone{0.0, 100.0, -50.0, 50.0};   ///< x_min, x_max, y_min, y_max (m) it does not leave
     double zone_margin{8.0};       ///< m, near the edge of the zone the flight direction is turned inwards
+    double weave_angle{0.0};       ///< rad, while fleeing the heading alternates by +-this angle about the flight
+    double weave_period{14.0};     ///< s, ... direction, with this period (evasive zigzag; 0 angle: straight)
 };
 
 enum class Mode { kPatrol, kFlee, kCaptured };
@@ -56,6 +58,7 @@ private:
     IntruderState state_;
     size_t waypoint_{1};
     double capture_timer_{0.0};
+    double flee_time_{0.0};        ///< s since the intruder started to flee
 };
 
 }  // namespace intruder_sim

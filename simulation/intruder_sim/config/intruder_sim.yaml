@@ -3,9 +3,11 @@ intruder_sim_node:
     # Patrol loop [x1, y1, x2, y2, ...] (m, world); the intruder starts at the first point
     patrol: [55.0, 15.0, 65.0, 15.0, 65.0, 25.0, 55.0, 25.0]
     patrol_speed: 0.6        # m/s
-    flee_speed: 1.5          # m/s (the USV reaches 2.3 m/s)
+    flee_speed: 2.0          # m/s (the USV reaches 2.3 m/s; the zigzag leaves the target about 1.4 m/s of escape)
     acceleration: 0.3        # m/s^2
-    turn_rate: 0.3           # rad/s
+    turn_rate: 0.5           # rad/s
+    weave_angle_deg: 45.0    # deg, evasive zigzag while fleeing: heading alternates by +-45 deg about the escape
+    weave_period: 14.0       # s, ... direction, a turn every 7 s
     waypoint_radius: 2.0     # m
     alert_radius: 15.0       # m, flees when the UAV or the USV gets closer (horizontal distance)
     capture_radius: 6.0      # m, stops when the USV stays closer ...

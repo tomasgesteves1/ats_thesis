@@ -69,7 +69,10 @@ std::string IntruderSimPipeline::step(double dt, const std::array<double, 2> & u
             state_.mode = Mode::kCaptured;
             event = "intercepted by the USV: stopping";
         } else {
-            heading = fleeHeading(usv);
+            // away from the USV, zigzagging about that direction to evade it
+            flee_time_ += dt;
+            const double phase = std::sin(2.0 * M_PI * flee_time_ / std::max(cfg_.weave_period, 1e-3));
+            heading = fleeHeading(usv) + (phase >= 0.0 ? cfg_.weave_angle : -cfg_.weave_angle);
             speed = cfg_.flee_speed;
         }
     }
