@@ -325,9 +325,9 @@ The last constraint couples the vessel to the UAV through the tether, and is the
     d^2 = (x - \hat x_a)^2 + (y - \hat y_a)^2 + (\hat z_a - z_t)^2.
     \label{eq:usv_mpc_tether_distance}
 \end{equation}
-The bound of the vessel is wider than $d_{max}$ by a small margin $\delta_d$. The \gls{uav}, much faster, is the vehicle that normally keeps the separation within $d_{max}$, and its own constraint, being soft, may be exceeded marginally while it pulls at the limit. With the same bound, the vessel would react to these marginal violations. With the margin, its constraint acts only when the \gls{uav} cannot keep within its own. The requirement $d^2 \le (d_{max}+\delta_d)^2$ is enforced as a soft constraint through a slack variable $\sigma \ge 0$,
+The requirement $d^2 \le d_{max}^2$ is enforced as a soft constraint through a slack variable $\sigma \ge 0$,
 \begin{equation}
-    \underbrace{d^2 - (d_{max}+\delta_d)^2}_{h(\mathbf{x}_v)} \le \sigma,
+    \underbrace{d^2 - d_{max}^2}_{h(\mathbf{x}_v)} \le \sigma,
     \label{eq:usv_mpc_tether_constraint}
 \end{equation}
 which is penalized by $\rho(\sigma)$ as in \eqref{eq:nmpc_slack_penalty}, with large weights $\mu_1$ and $\mu_2$ so that violations remain small whenever geometrically feasible.

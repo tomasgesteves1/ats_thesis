@@ -16,8 +16,8 @@ from common import load, interp, set_thesis_style, save_figure, FIGS, UAV, USV, 
 OUT = os.path.join(FIGS, '02_missions')
 Z_ANCHOR = 1.25
 NAMES = {'takeoff': 'Takeoff', 'formation': 'Formation', 'scout': 'Formation', 'watch': 'Formation',
-         'orbit': 'Orbit', 'chase': 'Chase', 'land': 'Landing', 'wait': 'Hold', 'route': 'Route', 'stop': 'Hold',
-         'support': 'Support', 'pursuit': 'Chase', 'held': 'Formation', 'stay': 'Formation', 'return': 'Return',
+         'orbit': 'Orbit', 'chase': 'Follow', 'land': 'Landing', 'wait': 'Hold', 'route': 'Route', 'stop': 'Hold',
+         'support': 'Support', 'pursuit': 'Follow', 'held': 'Formation', 'stay': 'Formation', 'return': 'Return',
          'lap1': 'Lap 1', 'lap2': 'Lap 2', 'lap3': 'Lap 3'}
 SHADES = ['#dce6f2', '#b9cde6', '#94b3d9', '#6f99cc', '#4a7fbf']
 

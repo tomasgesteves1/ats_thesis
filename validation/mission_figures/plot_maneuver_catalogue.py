@@ -107,7 +107,7 @@ top(axs[1], d, b, tev(ev, 'uav.watch: started'), tev(ev, 'uav.watch: done'), n=5
 d, b, tg, ev = load('interdiction')
 t_s0, t_det, t_int = tev(ev, 'uav.orbit: started'), tev(ev, 'target detected'), tev(ev, 'target intercepted')
 top(axs[3], d, b, t_s0, t_det, n=4, tgt=tg, title='(d) Orbit on patrol')
-top(axs[4], d, b, t_det, t_int - 6, n=3, tgt=tg, title='(e) Chase')
+top(axs[4], d, b, t_det, t_int - 6, n=3, tgt=tg, title='(e) Follow')
 
 for ax in axs:
     ax.tick_params(labelsize=7)
