@@ -23,7 +23,8 @@ RAMP = 8.0           # s, entry from hover of the reference (test_uav_circle ram
 K = 1.7
 SIZE = (3.1 * K, 2.4 * K)
 MEDIAN = 9           # samples (0.18 s): removes the fast ripple that the tether force leaves on the command rates while
-                     # keeping their plateaus at the limit (a low-pass filter overshoots the limit at their edges)
+                     # keeping their plateaus at the limit (a low-pass filter overshoots the limit at their edges); the
+                     # thrust rate has no plateau, and its one-sample peaks (99 N/s) drop to ~73 N/s
 
 
 def phase_marks():
@@ -101,7 +102,7 @@ def main():
           [(tt[1:], medfilt(roll_rate, MEDIAN), 'Roll', UAV), (tt[1:], medfilt(pitch_rate, MEDIAN), 'Pitch', COLOR_CYCLE[1])],
           [lim_rate, -lim_rate])
     panel('limits_thrust', 'Thrust (N)', [(tt, thrust, 'Thrust', UAV)], [UAV_LIM['T_min'], UAV_LIM['T_max']])
-    panel('limits_thrust_rate', 'Thrust rate (N/s)', [(tt[1:], thrust_rate, 'Thrust rate', UAV)],
+    panel('limits_thrust_rate', 'Thrust rate (N/s)', [(tt[1:], medfilt(thrust_rate, MEDIAN), 'Thrust rate', UAV)],
           [UAV_LIM['T_rate_max'], -UAV_LIM['T_rate_max']])
     panel('limits_speed', 'Horizontal speed (m/s)', [(t, v_xy, 'Speed', UAV)], [UAV_LIM['v_max']])
     fig, ax = plt.subplots(figsize=(3.6 * K, 2.6 * K))

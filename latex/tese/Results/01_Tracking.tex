@@ -173,7 +173,7 @@ On each arc, the \gls{nmpc} drives the \gls{uav} to the limit that renders the r
 \end{figure}
 
 % How does the prediction help on the steps in height?
-The steps in height illustrate the benefit of predicting the limits, as shown in Figure~\ref{fig:res_uav_limits_vertical}. The \gls{uav} climbs and descends at the maximum vertical speed of $3\,\text{m/s}$, which it attains with the thrust varying at its maximum rate, while the thrust itself remains well within its range. During the descent, the minimum height enters the prediction horizon before the \gls{uav} reaches it, and the \gls{nmpc} decelerates the vehicle in advance, so that it comes to rest at $2\,\text{m}$ even though the reference lies at the surface of the water. A controller that acts only on the current error would respond to this limit only upon reaching it, and could not prevent the vehicle from crossing it.
+The steps in height illustrate the benefit of predicting the limits, as shown in Figure~\ref{fig:res_uav_limits_vertical}. The \gls{uav} climbs and descends at the maximum vertical speed of $3\,\text{m/s}$, which it attains through a rapid change of the thrust, while the thrust and its rate remain within their limits. During the descent, the minimum height enters the prediction horizon before the \gls{uav} reaches it, and the \gls{nmpc} decelerates the vehicle in advance, so that it comes to rest at $2\,\text{m}$ even though the reference lies at the surface of the water. A controller that acts only on the current error would respond to this limit only upon reaching it, and could not prevent the vehicle from crossing it.
 
 \begin{figure}[htbp]
     \centering
