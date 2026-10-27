@@ -104,13 +104,18 @@ bool MoordynTetherPipeline::step(const std::array<BodyState, 2> & body_states,
         return false;
     }
 
-    // Apply virtual winch before the physics step.
-    winch_.update(line_, body_states, dt, last_forces_);
-
     double pos[6];
     double vel[6];
     Kinematics::buildPositionVector(body_states, pos);
     Kinematics::buildVelocityVector(body_states, vel);
+
+    // Apply virtual winch before the physics step: MoorDyn moves the ends from the given positions with the given
+    // velocities, so the length is set for where they arrive at the end of the step
+    std::array<BodyState, 2> arrival = body_states;
+    for (int k = 0; k < 2; ++k) {
+        for (int i = 0; i < 3; ++i) { arrival[k].anchor_pos[i] += vel[3 * k + i] * dt; }
+    }
+    winch_.update(line_, arrival, dt, last_forces_);
 
     out_forces.resize(6);
     double time    = 0.0;
@@ -131,7 +136,7 @@ bool MoordynTetherPipeline::step(const std::array<BodyState, 2> & body_states,
     }
 
     // Apply exponential moving average filter to reduce noise/spikes.
-    force_filter_.apply(out_forces, out_forces);
+    force_filter_.apply(out_forces, dt, out_forces);
     last_forces_ = out_forces;
 
     // Extract cable geometry (Line 1, 1-indexed in MoorDyn)
@@ -162,10 +167,10 @@ void MoordynTetherPipeline::setWinchConfig(const WinchConfig & config)
         ", max: " + std::to_string(config.max_length));
 }
 
-void MoordynTetherPipeline::setFilterAlpha(double alpha)
+void MoordynTetherPipeline::setFilterCutoff(double cutoff_hz)
 {
-    force_filter_.init(alpha);
-    log(LogLevel::kInfo, "Force filter alpha set to: " + std::to_string(alpha));
+    force_filter_.init(cutoff_hz);
+    log(LogLevel::kInfo, "Force filter cutoff set to: " + std::to_string(cutoff_hz) + " Hz");
 }
 
 double MoordynTetherPipeline::getTetherLength() const

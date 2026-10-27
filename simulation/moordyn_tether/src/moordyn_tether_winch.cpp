@@ -67,7 +67,17 @@ void VirtualWinch::update(MoorDynLine line, const std::array<BodyState, 2> & bod
         desired = cfg_.max_length;
     }
 
-    MoorDyn_SetLineUnstretchedLength(line, desired);
+    if (dt <= 0.0) {
+        // Before the initialisation: the line starts at the desired length
+        MoorDyn_SetLineUnstretchedLength(line, desired);
+        MoorDyn_SetLineUnstretchedLengthVel(line, 0.0);
+        return;
+    }
+    // The length is paid out through its rate, so that MoorDyn ramps it over its internal substeps: a jump of the
+    // length at every step of the node strains a stiff line in steps and rings its axial modes
+    double current = 0.0;
+    MoorDyn_GetLineUnstretchedLength(line, &current);
+    MoorDyn_SetLineUnstretchedLengthVel(line, (desired - current) / dt);
 }
 
 }  // namespace moordyn_tether

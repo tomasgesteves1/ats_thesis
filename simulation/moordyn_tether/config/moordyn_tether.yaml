@@ -58,12 +58,12 @@ moordyn_tether_node:
     winch_speed_limit: 2.0    # Max spooling speed [m/s], tension mode only: the geometric winch is ideal, the speed limit of the real winch is imposed by the UAV NMPC (|d_dot| <= 2 m/s)
     
     # Common Constraints:
-    winch_min_length: 1.5      # CFL-safe minimum [m] (CFL≈0.023 with N=30, EA=100, dtM=0.0002)
+    winch_min_length: 1.5      # minimum unstretched length [m]: 5 cm segments (N = 30), CFL-safe with EA = 1e4 and dtM = 2e-5
     winch_max_length: 100.0    # maximum unstretched length [m]
 
-    # Force filter
-    # Reduces high-frequency noise from the physics solver
-    force_filter_alpha: 0.05    # EMA smoothing factor (0.0 = max smoothing, 1.0 = raw signal)
+    # Force filter: second-order Butterworth low-pass, removes the residual axial vibration of the line (a few hertz)
+    # with the delay of the former first-order filter (alpha 0.05 at 50 Hz, ~0.3 s at the wave frequency)
+    force_filter_cutoff_hz: 0.7   # [Hz]
 
     # Limits on the force applied in Gazebo (protect the vehicles from numerical excursions of the cable solver).
     # The raw MoorDyn force is still published on the force magnitude topics.

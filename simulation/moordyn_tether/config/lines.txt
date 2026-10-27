@@ -3,7 +3,7 @@ MoorDyn v2 - X500 Tethered (Missão 30 Metros - Cabo Industrial)
 ---------------------- LINE TYPES ----------------------------------------------------------------------
 TypeName     Diam    Mass/m     EA      BA/-zeta    EI         Cd     Ca     CdAx    CaAx
 (name)       (m)     (kg/m)     (N)     (N-s/-)     (N-m^2)    (-)    (-)    (-)     (-)
-MicroTether  0.004   0.020      100     -0.8        0.00002    1.2    0.0    0.005   0.0
+MicroTether  0.004   0.020      1.0e4   -0.8        0.00002    1.2    0.0    0.005   0.0
 ---------------------- POINTS ---------------------------------------
 ID   Attachment  X       Y     Z        Mass   Volume  CdA    Ca
 (#)  (word/ID)   (m)     (m)   (m)      (kg)   (m^3)   (m^2)  (-)
@@ -15,12 +15,13 @@ ID   LineType     AttachA  AttachB  UnstrLen  NumSegs  LineOutputs
 1    MicroTether  1        2        3.0      30       ptv
 ---------------------- OPTIONS -----------------------------------------
 1             writeLog      Write log file
-0.0002        dtM           time step to use in mooring integration (s)
+2e-5          dtM           time step to use in mooring integration (s): CFL with EA 1e4 and 5 cm segments (1.5 m line)
 3000000       kbot          bottom stiffness (Pa/m)
 300000        cbot          bottom damping (Pa-s/m)
 9.81          g             gravity
 1.225      rho           fluid density (air)
 200.0         WtrDpth       Water depth (seabed far away)
+1.0           TmaxIC        max time of the initial-condition solve (s): the node waits for it, and a stiff line takes ~80 s
 ---------------------- OUTPUTS -----------------------------------------
 FAIRTEN1
 ANCHTEN1

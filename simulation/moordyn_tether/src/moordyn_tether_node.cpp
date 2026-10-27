@@ -88,7 +88,7 @@ MoordynTetherNode::MoordynTetherNode(const rclcpp::NodeOptions & options)
     pull_rate_                = this->declare_parameter("pull_rate", 4.0);
 
     // ---- Filter parameters ----
-    force_filter_alpha_ = this->declare_parameter("force_filter_alpha", 0.2);
+    force_filter_cutoff_hz_ = this->declare_parameter("force_filter_cutoff_hz", 0.7);
 
     // ---- TF2 buffer and listener ----
     tf_buffer_   = std::make_shared<tf2_ros::Buffer>(this->get_clock());
@@ -189,7 +189,7 @@ void MoordynTetherNode::createPipeline()
     pipeline_->setWinchConfig(wcfg);
 
     // Set up filter
-    pipeline_->setFilterAlpha(force_filter_alpha_);
+    pipeline_->setFilterCutoff(force_filter_cutoff_hz_);
 }
 
 // ===========================================================================
@@ -272,30 +272,40 @@ bool MoordynTetherNode::lookupBodyPositions()
     const auto timeout = tf2::durationFromSec(tf_timeout_s_);
 
     try {
+        // Both ends are read at the same instant, the latest one available for both (each frame is updated by its
+        // own odometry, so their latest transforms have different ages)
+        const auto stamp_boat = tf_buffer_->lookupTransform(
+            "world", boat_anchor_frame_, tf2::TimePointZero, timeout).header.stamp;
+        const auto stamp_drone = tf_buffer_->lookupTransform(
+            "world", drone_hook_frame_, tf2::TimePointZero, timeout).header.stamp;
+        const auto common = rclcpp::Time(stamp_boat) < rclcpp::Time(stamp_drone) ? stamp_boat : stamp_drone;
+        const tf2::TimePoint at = tf2_ros::fromMsg(common);
+        ends_stamp_ = rclcpp::Time(common).seconds();
+
         // Boat: anchor attachment point
         auto tf_boat_anchor = tf_buffer_->lookupTransform(
-            "world", boat_anchor_frame_, tf2::TimePointZero, timeout);
+            "world", boat_anchor_frame_, at, timeout);
         body_states_[0].anchor_pos[0] = tf_boat_anchor.transform.translation.x;
         body_states_[0].anchor_pos[1] = tf_boat_anchor.transform.translation.y;
         body_states_[0].anchor_pos[2] = tf_boat_anchor.transform.translation.z;
 
         // Boat: body center (for lever arm computation in pipeline)
         auto tf_boat_base = tf_buffer_->lookupTransform(
-            "world", boat_base_frame_, tf2::TimePointZero, timeout);
+            "world", boat_base_frame_, at, timeout);
         body_states_[0].body_center_pos[0] = tf_boat_base.transform.translation.x;
         body_states_[0].body_center_pos[1] = tf_boat_base.transform.translation.y;
         body_states_[0].body_center_pos[2] = tf_boat_base.transform.translation.z;
 
         // Drone: hook attachment point
         auto tf_drone_hook = tf_buffer_->lookupTransform(
-            "world", drone_hook_frame_, tf2::TimePointZero, timeout);
+            "world", drone_hook_frame_, at, timeout);
         body_states_[1].anchor_pos[0] = tf_drone_hook.transform.translation.x;
         body_states_[1].anchor_pos[1] = tf_drone_hook.transform.translation.y;
         body_states_[1].anchor_pos[2] = tf_drone_hook.transform.translation.z;
 
         // Drone: body center
         auto tf_drone_base = tf_buffer_->lookupTransform(
-            "world", drone_base_frame_, tf2::TimePointZero, timeout);
+            "world", drone_base_frame_, at, timeout);
         body_states_[1].body_center_pos[0] = tf_drone_base.transform.translation.x;
         body_states_[1].body_center_pos[1] = tf_drone_base.transform.translation.y;
         body_states_[1].body_center_pos[2] = tf_drone_base.transform.translation.z;
@@ -338,6 +348,13 @@ void MoordynTetherNode::checkInitialization()
 
     if (pipeline_->initialize(body_states_)) {
         initialized_ = true;
+        // The simulation runs on while MoorDyn initialises: the first step moves the ends from where the line was
+        // initialised to where they are then, over the time elapsed, instead of making them jump there
+        for (int k = 0; k < 2; ++k) {
+            for (int i = 0; i < 3; ++i) { last_end_pos_[k][i] = body_states_[k].anchor_pos[i]; }
+        }
+        last_ends_stamp_ = ends_stamp_;
+        has_last_ends_ = true;
         RCLCPP_INFO(this->get_logger(),
                     "MoorDyn initialized. "
                     "Boat anchor: [%.2f, %.2f, %.2f] | Drone hook: [%.2f, %.2f, %.2f]",
@@ -364,9 +381,32 @@ void MoordynTetherNode::physicsLoop()
         return;
     }
 
+    // MoorDyn starts each end of the step at the position it is given and moves it with the given velocity, and any
+    // mismatch with the position given at the next step (odometry velocities against TF positions, a fixed step
+    // against callbacks that come late or bunched) is a jump of the end, which a stiff line turns into tens of
+    // newtons. Each step therefore spans the time elapsed between two readings of the ends: it starts from the
+    // previous reading and moves the ends to the current one, with the finite differences as velocities.
+    if (has_last_ends_ && ends_stamp_ <= last_ends_stamp_ + 1e-6) {
+        return;   // no new transforms since the last step
+    }
+    const double elapsed = has_last_ends_ ? ends_stamp_ - last_ends_stamp_ : 0.0;
+    const bool continuous = elapsed > 0.0 && elapsed < 1.0;
+    const double dt = continuous ? elapsed : 1.0 / physics_rate_hz_;
+    std::array<BodyState, 2> ends{};
+    for (int k = 0; k < 2; ++k) {
+        for (int i = 0; i < 3; ++i) {
+            const double p = body_states_[k].anchor_pos[i];
+            const double p0 = continuous ? last_end_pos_[k][i] : p;
+            ends[k].anchor_pos[i] = ends[k].body_center_pos[i] = p0;
+            ends[k].lin_vel_body[i] = (p - p0) / dt;   // identity orientation: body axes = world axes
+            last_end_pos_[k][i] = p;
+        }
+    }
+    last_ends_stamp_ = ends_stamp_;
+    has_last_ends_ = true;
+
     std::vector<double> out_forces;
     std::vector<std::vector<double>> cable_nodes;
-    const double dt = 1.0 / physics_rate_hz_;
 
     // Vector from the drone hook to the boat anchor
     const double dx = body_states_[0].anchor_pos[0] - body_states_[1].anchor_pos[0];
@@ -415,7 +455,7 @@ void MoordynTetherNode::physicsLoop()
             {body_states_[1].anchor_pos[0], body_states_[1].anchor_pos[1], body_states_[1].anchor_pos[2]}};
         stepped = true;
     } else {
-        stepped = pipeline_->step(body_states_, dt, out_forces, cable_nodes);
+        stepped = pipeline_->step(ends, dt, out_forces, cable_nodes);
     }
 
     if (stepped) {

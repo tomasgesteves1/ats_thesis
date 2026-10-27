@@ -97,12 +97,18 @@ private:
     double winch_max_length_;
 
     // --- Filter parameters ---
-    double force_filter_alpha_;
+    double force_filter_cutoff_hz_;
 
     // --- Aggregated kinematic state: [0]=boat, [1]=drone ---
     // Positions are filled by lookupBodyPositions() via TF.
     // Velocities and quaternion are filled by odom callbacks.
     std::array<BodyState, 2> body_states_{};
+
+    // --- Ends of the line fed to MoorDyn: read at a common instant, velocities by finite differences ---
+    double ends_stamp_{0.0};       ///< instant of the last reading of the ends (s)
+    double last_ends_stamp_{0.0};  ///< instant of the reading used in the last step (s)
+    bool   has_last_ends_{false};
+    std::array<std::array<double, 3>, 2> last_end_pos_{};
 
     // --- Odometry readiness flags ---
     bool boat_odom_received_{false};

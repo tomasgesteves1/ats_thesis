@@ -38,7 +38,7 @@ public:
 
     void setWinchConfig(const WinchConfig & config);
 
-    void setFilterAlpha(double alpha);
+    void setFilterCutoff(double cutoff_hz);
 
     bool step(const std::array<BodyState, 2> & body_states,
               double dt,
