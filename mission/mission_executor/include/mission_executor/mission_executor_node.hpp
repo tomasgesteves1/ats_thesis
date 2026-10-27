@@ -69,6 +69,7 @@ private:
     rclcpp::Publisher<std_msgs::msg::Bool>::SharedPtr tether_pull_pub_;
     rclcpp::Publisher<std_msgs::msg::Bool>::SharedPtr yaw_mode_pub_;
     rclcpp::Publisher<std_msgs::msg::Bool>::SharedPtr low_altitude_pub_;
+    rclcpp::Publisher<std_msgs::msg::Bool>::SharedPtr boat_prediction_pub_;
     rclcpp::Publisher<std_msgs::msg::String>::SharedPtr events_pub_;
     rclcpp::Publisher<px4_msgs::msg::VehicleCommand>::SharedPtr command_pub_;
     rclcpp::TimerBase::SharedPtr timer_;

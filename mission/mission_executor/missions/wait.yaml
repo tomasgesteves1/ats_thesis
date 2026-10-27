@@ -1,7 +1,9 @@
 # Wait for the UAV (run with tether_max_length:=20.0): the boat is sent along a route while the UAV is held at a point
-# fixed in the world, as if it could not follow. The boat sails until the tether no longer reaches the UAV and waits
-# there, held by its own tether constraint, without dragging the UAV; once the UAV is released and follows the boat
-# again, ahead of its bow, the boat completes the route, and the UAV lands back on the pad.
+# fixed in the world, as if it could not follow (e.g. against a wind it cannot overcome). Meanwhile the UAV does not
+# receive the predicted trajectory of the boat, so it does not anticipate the motion of the boat and holds its point;
+# the boat, which still receives the prediction of the UAV, sails until the tether no longer reaches the UAV and waits
+# there, held by its own tether constraint. Once the UAV is released and follows the boat again, ahead of its bow,
+# the boat completes the route, and the UAV lands back on the pad.
 name: "Wait for the UAV"
 description: "The USV waits within the reach of the tether for a UAV that cannot follow it, then completes its route."
 # Options of mission.launch.py needed by this mission (used by the dashboard)
@@ -11,7 +13,7 @@ uav:
   - {id: takeoff, type: takeoff, vertical_clearance: 1.5, clearance_duration: 5.0, pull_release_height: 1.6,
      offset: [0.0, 0.0, 3.0], duration: 6.0, tolerance: 0.3, arm_timeout: 30.0}
   - {id: held, type: goto_world, position: [0.0, 0.0, 10.0], duration: 4.0, tolerance: 0.5,
-     velocity_tolerance: 0.3, settle: 40.0, timeout: 80.0}
+     velocity_tolerance: 0.3, settle: 40.0, timeout: 80.0, boat_prediction: 0}
   - {id: rejoin, type: goto, boat_frame: 1, offset: [6.0, 0.0, 8.0], duration: 0.0, tolerance: 0.5,
      velocity_tolerance: 0.3, settle: 2.0, timeout: 60.0}
   - {id: escort, type: hold, boat_frame: 1, offset: [6.0, 0.0, 8.0], until: usv.route}

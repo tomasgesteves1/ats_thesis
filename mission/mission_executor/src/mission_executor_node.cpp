@@ -94,6 +94,7 @@ MissionExecutorNode::MissionExecutorNode(const rclcpp::NodeOptions & options)
     tether_pull_pub_ = create_publisher<std_msgs::msg::Bool>("tether/pull", 10);
     yaw_mode_pub_ = create_publisher<std_msgs::msg::Bool>("uav/yaw_from_reference", 10);
     low_altitude_pub_ = create_publisher<std_msgs::msg::Bool>("uav/low_altitude", 10);
+    boat_prediction_pub_ = create_publisher<std_msgs::msg::Bool>("uav/boat_prediction", 10);
     events_pub_ = create_publisher<std_msgs::msg::String>("mission/events", 10);
     command_pub_ = create_publisher<px4_msgs::msg::VehicleCommand>("px4/vehicle_command", 10);
 
@@ -207,6 +208,8 @@ void MissionExecutorNode::publishCommands(const Output & out)
     yaw_mode_pub_->publish(b);
     b.data = out.uav.low_altitude;
     low_altitude_pub_->publish(b);
+    b.data = out.uav.boat_prediction;
+    boat_prediction_pub_->publish(b);
 }
 
 void MissionExecutorNode::sendPx4Commands(const mission_maneuvers::UavCommand & cmd)

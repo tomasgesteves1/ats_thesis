@@ -227,6 +227,7 @@ void GotoWorld::start(const Context & ctx)
 
 Status GotoWorld::update(const Context & ctx, UavCommand & cmd)
 {
+    cmd.boat_prediction = params_.get("boat_prediction", 1.0) > 0.5;
     const Vec3 target = params_.getVec3("position", ctx.uav.p);
     const double duration = params_.get("duration", 8.0);
     const auto look_at = params_.getVector("look_at", {});

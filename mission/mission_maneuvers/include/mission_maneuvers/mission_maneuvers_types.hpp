@@ -98,6 +98,8 @@ struct UavCommand
     bool tether_pull{false};         ///< the winch pulls the UAV towards the deck (takeoff and landing)
     bool yaw_from_reference{false};  ///< the UAV yaw follows the reference heading (the boat heading)
     bool low_altitude{false};        ///< the lower bound on the height is relaxed (takeoff and landing)
+    bool boat_prediction{true};      ///< the UAV NMPC uses the predicted trajectory of the USV (false: the boat is
+                                     ///< taken as still, so that only the USV adapts to the tether)
     std::string message;             ///< event to log (empty if none)
 };
 
