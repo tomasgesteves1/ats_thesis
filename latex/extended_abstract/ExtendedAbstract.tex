@@ -11,18 +11,16 @@
 \graphicspath{{../tese/}{figures/}}
 \usepackage{siunitx}
 
-% Arial-like font, as in the template, also for the mathematics, so that numbers and symbols in the text and in the
-% equations share the typeface of the text
-\usepackage{helvet}
-\renewcommand{\familydefault}{\sfdefault}
-\usepackage[helvet]{sfmath}
+% Latin Modern for the text and the mathematics alike
+\usepackage{lmodern}
 \usepackage{microtype}
 
 \usepackage[utf8]{inputenc}
 \usepackage[T1]{fontenc}
 
-\usepackage[font=footnotesize, skip=1pt, labelfont=bf]{caption}
-\usepackage[font=footnotesize]{subcaption}
+% Captions in the size of the text, centred, with a plain label ("Figure 1: ..."); tables are captioned above
+\usepackage[font=small, skip=4pt, labelsep=colon, justification=centering]{caption}
+\usepackage[font=small]{subcaption}
 
 \usepackage{amsmath}
 \usepackage{amsfonts}
@@ -32,14 +30,17 @@
 \usepackage{booktabs}
 \usepackage{csquotes}
 
-% Section headings of the template: 9 pt, bold, with trailing dots
+% Headings with trailing dots: sections in bold, subsections in the plain text face, both in the size of the text and
+% set apart by space
 \usepackage{sectsty}
-\newcommand{\myFontSize}{\fontsize{9}{0}\selectfont}
-\sectionfont{\myFontSize}
-\subsectionfont{\myFontSize}
+\sectionfont{\normalsize\bfseries}
+\subsectionfont{\normalsize\mdseries}
 \usepackage{titlesec}
-\titlespacing*{\section}{0pt}{10pt}{0pt}
-\titlespacing*{\subsection}{0pt}{10pt}{0pt}
+\titlespacing*{\section}{0pt}{12pt}{6pt}
+\titlespacing*{\subsection}{0pt}{9pt}{5pt}
+
+% Paragraphs separated by space rather than indented
+\usepackage[skip=4pt plus 1pt, indent=0pt]{parskip}
 \usepackage{secdot}
 \sectiondot{subsection}
 \sectionpunct{section}{. }
@@ -75,7 +76,7 @@
 \raggedbottom
 
 % Title, author and address
-\title{\bfseries Cooperative Control of a Tethered Drone and Surface Vessel for Sustained Presence at Sea}
+\title{Cooperative Control of a Tethered Drone and Surface Vessel for Sustained Presence at Sea}
 \date{January 2026}
 \author{Tomás Grossinho Esteves \\ tomasesteves03@gmail.com \\ \\ Instituto Superior Técnico, Lisboa, Portugal}
 

@@ -118,22 +118,31 @@ def set_thesis_style():
     })
 
 
-# Extended abstract: two columns of 77 mm, Helvetica text with footnotesize (8 pt) captions
+# Extended abstract: two columns of 77 mm, Latin Modern text with small (9 pt) captions
 EA_COLUMN_WIDTH = 77.0 / 25.4   # in
 EA_TEXT_WIDTH = 160.0 / 25.4    # in
 
 
+LATIN_MODERN = "/usr/share/texmf/fonts/opentype/public/lm"
+
+
 def set_ea_style():
-    """Figures of the extended abstract: drawn at their printed size (column or text width) in Liberation Sans, a free
-    TrueType Arial like the typeface of the document, at the size of its captions, so that they are included without scaling."""
+    """Figures of the extended abstract: drawn at their printed size (column or text width) in Latin Modern, the typeface
+    of the document, at the size of its captions, so that they are included without scaling."""
     set_thesis_style()
+    from matplotlib import font_manager
+    for name in ("lmroman10-regular", "lmroman10-italic", "lmroman10-bold"):
+        path = os.path.join(LATIN_MODERN, name + ".otf")
+        if os.path.exists(path):
+            font_manager.fontManager.addfont(path)
     mpl.rcParams.update({
-        "font.family": "sans-serif",
-        "font.sans-serif": ["Liberation Sans", "DejaVu Sans"],
+        "font.family": "serif",
+        "font.serif": ["Latin Modern Roman", "DejaVu Serif"],
         "mathtext.fontset": "custom",
-        "mathtext.rm": "Liberation Sans",
-        "mathtext.it": "Liberation Sans:italic",
-        "mathtext.bf": "Liberation Sans:bold",
+        "mathtext.rm": "Latin Modern Roman",
+        "mathtext.it": "Latin Modern Roman:italic",
+        "mathtext.bf": "Latin Modern Roman:bold",
+        "pdf.fonttype": 3,            # OpenType (CFF) outlines are embedded as Type 3, not as TrueType
         "font.size": 7.5,
         "axes.titlesize": 7.5,
         "axes.labelsize": 7.5,
