@@ -9,10 +9,10 @@
 \label{chapter:results}
 
 % What remains to be shown, after everything built in the previous chapters?
-The models developed so far predict the motion of the vehicles and of the tether, and the controllers built on them solve their problems in real time. It remains to be shown that, together, they carry out a maritime operation within the limits of the system. 
+The previous chapters built models of the vehicles and of the tether, and the two controllers that use them. It remains to be shown that the controllers follow their references accurately, that they keep each vehicle within its limits when the references ask for more, and that, together, they carry out a maritime operation within the reach of the tether.
 
 % How will it be shown?
-The evaluation moves gradually closer to a real operation. It starts with each controller individually, measuring how closely it follows a reference and whether it still plans a feasible motion from the simple, and possibly unreachable, references given by the manoeuvres. The two vehicles are then brought together in the three missions of Section~\ref{sec:maneuvers_and_missions}, where they must operate as one system from the takeoff to the landing on the moving deck. Finally, the landing, the manoeuvre most exposed to the sea, is repeated under growing waves and wind, which the models do not describe.
+The evaluation moves gradually closer to a real operation. Each controller is first evaluated on its own vehicle, on a reference within its limits, to measure its accuracy, and on a reference beyond them, to observe how it behaves at these limits. The two vehicles are then brought together in two of the missions of Section~\ref{sec:maneuvers_and_missions}, each of which drives a different vehicle against the reach of the tether, so that the tether constraint of each controller is seen at work. Finally, the landing, the manoeuvre most exposed to the sea, is repeated under growing waves and wind, which the models do not describe.
 
 \input{Results/01_Tracking}
 \input{Results/02_Missions}
