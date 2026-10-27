@@ -18,18 +18,98 @@ Before the two vehicles operate together, each controller is evaluated individua
 \subsubsection{Tracking Accuracy}
 
 % Which reference, and why this one?
-[Figure-eight at the speed of the missions, with the \gls{uav} resting on the deck.]
+The tracking accuracy of the \gls{usv} controller is evaluated on a figure-eight, formed by two circles of $12\,\text{m}$ radius joined by two straight legs that cross, and flown twice, as shown in Figure~\ref{fig:res_usv_scenario}. The reference moves at $1.2\,\text{m/s}$ on the circles and $1.6\,\text{m/s}$ on the legs, and the two circles are turned in opposite directions, so that the vessel turns both ways along each lap. The \gls{uav} rests on the deck throughout the test, so that the \gls{usv} is evaluated alone. The reference was designed so that the thrust and the azimuth it requires, obtained by inverting the model of the \gls{usv} along it, remain well within the limits of the thrusters, and the result therefore reflects only the accuracy of the controller.
+
+\begin{figure}[htbp]
+    \centering
+    \includegraphics[width=0.40\textwidth]{Results/figures/01_tracking/usv_track_top.pdf}
+    \caption{Reference figure-eight of the \gls{usv} and path sailed, seen from above.}
+    \label{fig:res_usv_scenario}
+\end{figure}
 
 % How closely does the USV follow it?
-[Position and heading error.]
+The \gls{usv} follows the figure-eight with a position error of $5.6\,\text{cm}$ (\gls{rmse}), about one percent of its length, and below $13\,\text{cm}$ throughout both laps, while its heading remains within $0.4^\circ$ (\gls{rmse}) of the reference, as shown in Figure~\ref{fig:res_usv_accuracy}. The paths are therefore indistinguishable from the reference at the scale of the figure-eight.
+
+\begin{figure}[htbp]
+    \centering
+    \subfloat[Position error.]{
+        \includegraphics[width=0.48\textwidth]{Results/figures/01_tracking/usv_track_error.pdf}
+        \label{fig:res_usv_error}
+    }
+    \hfill
+    \subfloat[Heading error.]{
+        \includegraphics[width=0.48\textwidth]{Results/figures/01_tracking/usv_track_heading.pdf}
+        \label{fig:res_usv_heading}
+    }
+    \caption{Position and heading errors of the \gls{usv}, with the speed of the reference shaded.}
+    \label{fig:res_usv_accuracy}
+\end{figure}
 
 % Does the USV stay within its limits?
-[Thrust and azimuth of both thrusters against their limits.]
+This accuracy is obtained well within the limits of the thrusters. The thrust remains below $350\,\text{N}$, against a maximum of $510\,\text{N}$, and the azimuth within $\pm 7^\circ$, against $\pm 30^\circ$, as shown in Figure~\ref{fig:res_usv_effort}. The \gls{usv} turns mainly through the difference between the thrusts of its two thrusters, which reverses between the two circles, since they are turned in opposite directions, rather than through their azimuth.
+
+\begin{figure}[htbp]
+    \centering
+    \subfloat[Thrust.]{
+        \includegraphics[width=0.48\textwidth]{Results/figures/01_tracking/usv_track_thrust.pdf}
+        \label{fig:res_usv_thrust}
+    }
+    \hfill
+    \subfloat[Azimuth.]{
+        \includegraphics[width=0.48\textwidth]{Results/figures/01_tracking/usv_track_azimuth.pdf}
+        \label{fig:res_usv_azimuth}
+    }
+    \caption{Thrust and azimuth of both thrusters of the \gls{usv} on the figure-eight, against their limits.}
+    \label{fig:res_usv_effort}
+\end{figure}
 
 \subsubsection{Operating Limits}
 
 % What does the USV do with a reference it cannot follow?
-[Steps backwards and sideways: the thrusters at their limits.]
+As for the \gls{uav}, a reference within the limits of the \gls{usv} does not reveal how its controller behaves when these limits prevent it from following the reference. The \gls{usv} is therefore given a second reference, in which each segment is designed to exceed a different limit, as shown in Figure~\ref{fig:res_usv_limits_top}. A straight leg at $3\,\text{m/s}$, beyond the top speed of the vessel, ends in a sharp turn of $90^\circ$ at that speed. The reference then holds a point and finally steps $15\,\text{m}$ astern and $15\,\text{m}$ abeam, two motions that the vessel can make only slowly or indirectly.
+
+\begin{figure}[htbp]
+    \centering
+    \includegraphics[width=0.55\textwidth]{Results/figures/01_tracking/usv_limits_top.pdf}
+    \caption{Reference beyond the limits of the \gls{usv} and path sailed, seen from above.}
+    \label{fig:res_usv_limits_top}
+\end{figure}
+
+% What happens on the leg and the turn?
+On the leg, both thrusters reach their maximum thrust and the \gls{usv} settles at its top speed of $2.3\,\text{m/s}$, so that it falls behind the reference. The turn cannot be followed at this speed, since the azimuth of the thrusters is limited to $\pm 30^\circ$ and its rate to $\pm 10^\circ/\text{s}$. The \gls{nmpc} turns the vessel as tightly as the thrusters allow, so that it swings wide of the corner by about $6\,\text{m}$, and then brings it back to the point held by the reference, reversing the thrust of one thruster at its limit to slow down and turn at the same time. Thrust, azimuth and the rate of the azimuth all reach their limits along this manoeuvre without exceeding them, as shown in Figure~\ref{fig:res_usv_limits_inputs}.
+
+\begin{figure}[htbp]
+    \centering
+    \subfloat[Thrust.]{
+        \includegraphics[width=0.48\textwidth]{Results/figures/01_tracking/usv_limits_thrust.pdf}
+        \label{fig:res_usv_limits_thrust}
+    }
+    \hfill
+    \subfloat[Azimuth.]{
+        \includegraphics[width=0.48\textwidth]{Results/figures/01_tracking/usv_limits_azimuth.pdf}
+        \label{fig:res_usv_limits_azimuth}
+    }
+    \\[2ex]
+    \subfloat[Rate of the azimuth.]{
+        \includegraphics[width=0.48\textwidth]{Results/figures/01_tracking/usv_limits_azimuth_rate.pdf}
+        \label{fig:res_usv_limits_azimuth_rate}
+    }
+    \caption{Thrust, azimuth and its rate of both thrusters of the \gls{usv} against their limits.}
+    \label{fig:res_usv_limits_inputs}
+\end{figure}
+
+% And on the steps astern and abeam?
+The two steps ask for the motions in which the vessel has the least authority. Astern, the hull and the thrusters are least effective, and the speed astern is bounded by the soft lower limit on the surge speed. The \gls{usv} reverses in a straight line, with its heading within $5^\circ$ of the reference, at exactly this limit, as shown in Figure~\ref{fig:res_usv_limits_surge}. Abeam, the thrusters at the stern cannot push the vessel sideways without also turning it, so the \gls{nmpc} turns the bow towards the new point, sails to it and turns back to the heading of the reference, rather than drifting sideways.
+
+\begin{figure}[htbp]
+    \centering
+    \includegraphics[width=0.48\textwidth]{Results/figures/01_tracking/usv_limits_surge.pdf}
+    \caption{Surge speed of the \gls{usv} against its lower limit.}
+    \label{fig:res_usv_limits_surge}
+\end{figure}
+
+% Are the limits respected?
+Throughout the test, the limits on the thrust, the azimuth and their rates, which are hard constraints, are never exceeded, and the surge speed reaches its soft lower limit without crossing it. As for the \gls{uav}, the controller therefore uses the full capability of the vessel when the reference demands it, without driving it beyond its limits.
 
 \subsection{\texorpdfstring{\gls{uav} Controller}{UAV Controller}}
 \label{subsec:res_tracking_uav}
