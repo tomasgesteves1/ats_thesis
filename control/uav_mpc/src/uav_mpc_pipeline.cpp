@@ -219,6 +219,18 @@ UavControlOutput UavMpcPipeline::computeControl(double current_time) {
     }
 
     int status = uav_tethered_acados_solve(capsule);
+    // A failed QP leaves the iterate unusable for the next warm start: the solver memory is reset, the guess is
+    // re-initialised at the current state and the problem is solved once more (as in the USV pipeline)
+    if (status != 0) {
+        std::cerr << "UavMpcPipeline: ACADOS solver failed with status " << status << ", solver reset" << std::endl;
+        uav_tethered_acados_reset(capsule, 1);
+        double u_zero[NU] = {0.0, 0.0, 0.0, 0.0};
+        for (int i = 0; i <= N; i++) {
+            ocp_nlp_out_set(capsule->nlp_config, capsule->nlp_dims, capsule->nlp_out, capsule->nlp_in, i, "x", x0);
+            if (i < N) ocp_nlp_out_set(capsule->nlp_config, capsule->nlp_dims, capsule->nlp_out, capsule->nlp_in, i, "u", u_zero);
+        }
+        status = uav_tethered_acados_solve(capsule);
+    }
 
     double x_step1[NX] = {0.0};
     if (status == 0) {

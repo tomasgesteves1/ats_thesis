@@ -11,6 +11,10 @@
 
 namespace uav_mpc {
 
+namespace {
+constexpr double MAX_BODY_RATE = 20.0;  // rad/s, beyond any rate of the platform (PX4 limits them to ~4 rad/s)
+}  // namespace
+
 UavMpcNode::UavMpcNode() 
     : Node("uav_mpc_node"), 
       target_initialized_(false), 
@@ -250,7 +254,13 @@ void UavMpcNode::odomCallback(const nav_msgs::msg::Odometry::SharedPtr msg) {
             return;
         }
     }
-    const auto & w = msg->twist.twist.angular;
+    // The odometry differentiates the orientation, and a sample can carry a spurious rate (hundreds of rad/s when the
+    // yaw wraps around +-pi): rates beyond what the platform can reach keep the last valid value
+    const auto & m = msg->twist.twist.angular;
+    if (std::abs(m.x) < MAX_BODY_RATE && std::abs(m.y) < MAX_BODY_RATE && std::abs(m.z) < MAX_BODY_RATE) {
+        body_rate_ = {m.x, m.y, m.z};
+    }
+    struct { double x, y, z; } w{body_rate_[0], body_rate_[1], body_rate_[2]};
     const auto & r = com_offset_;
     latest_odom_.twist.twist.linear.x += w.y * r[2] - w.z * r[1];
     latest_odom_.twist.twist.linear.y += w.z * r[0] - w.x * r[2];

@@ -518,7 +518,7 @@ void usv_dynamic_acados_setup_nlp_in(usv_dynamic_solver_capsule* capsule, const 
     W_0[1+(NY0) * 1] = 150;
     W_0[2+(NY0) * 2] = 300;
     W_0[3+(NY0) * 3] = 2;
-    W_0[4+(NY0) * 4] = 40;
+    W_0[4+(NY0) * 4] = 120;
     W_0[5+(NY0) * 5] = 1;
     W_0[6+(NY0) * 6] = 0.00001;
     W_0[7+(NY0) * 7] = 0.00001;
@@ -544,7 +544,7 @@ void usv_dynamic_acados_setup_nlp_in(usv_dynamic_solver_capsule* capsule, const 
     W[1+(NY) * 1] = 150;
     W[2+(NY) * 2] = 300;
     W[3+(NY) * 3] = 2;
-    W[4+(NY) * 4] = 40;
+    W[4+(NY) * 4] = 120;
     W[5+(NY) * 5] = 1;
     W[6+(NY) * 6] = 0.00001;
     W[7+(NY) * 7] = 0.00001;
@@ -571,7 +571,7 @@ void usv_dynamic_acados_setup_nlp_in(usv_dynamic_solver_capsule* capsule, const 
     W_e[1+(NYN) * 1] = 150;
     W_e[2+(NYN) * 2] = 300;
     W_e[3+(NYN) * 3] = 2;
-    W_e[4+(NYN) * 4] = 40;
+    W_e[4+(NYN) * 4] = 120;
     W_e[5+(NYN) * 5] = 1;
     W_e[6+(NYN) * 6] = 0.00001;
     W_e[7+(NYN) * 7] = 0.00001;

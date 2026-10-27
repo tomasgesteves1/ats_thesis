@@ -35,8 +35,11 @@ def lap_passes(d, tab):
 
 
 def analyse(d, tab):
-    passes = lap_passes(d, tab)
-    t0, t1 = passes[-1 - LAPS], passes[-1]
+    # The window ends at the last pass and spans LAPS periods (a pass can be missed when no published sample falls
+    # exactly on the first point)
+    period = tab[-1, 0] + (tab[1, 0] - tab[0, 0])
+    t1 = lap_passes(d, tab)[-1]
+    t0 = t1 - LAPS * period
     dr, ref, b = d['drone'], d['uav_ref'], d['boat']
     m = (dr[:, 0] >= t0) & (dr[:, 0] <= t1)
     t = dr[m, 0]
