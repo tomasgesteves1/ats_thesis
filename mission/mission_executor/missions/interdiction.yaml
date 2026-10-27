@@ -1,10 +1,10 @@
 # Patrol: the boat patrols while the UAV orbits it, looking down; when the UAV detects the intruder (a boat in a
-# forbidden zone, which flees when approached) it chases it, above the target, and the boat pursues it. The chase
-# reference is the point above the target, wherever it is: the NMPC keeps the UAV within the reach of the tether.
-# When the boat has caught up with the target, the UAV lands back on the pad.
+# forbidden zone, which flees zigzagging when approached) it chases it, above the target, and the boat pursues it,
+# keeping close behind it for a minute. The chase reference is the point above the target, wherever it is: the NMPC
+# keeps the UAV within the reach of the tether. When the pursuit is over, the UAV lands back on the pad.
 # Run with the intruder: ros2 launch mission_executor mission.launch.py mission:=interdiction intruder:=true
 name: "Patrol"
-description: "The USV patrols while the UAV orbits it until it detects a moving target, which the UAV chases while the USV pursues it."
+description: "The USV patrols while the UAV orbits it until it detects a moving target, which the UAV chases while the USV keeps close behind it."
 # Options of mission.launch.py needed by this mission (used by the dashboard)
 launch: {intruder: true}
 
@@ -22,6 +22,6 @@ usv:
   - {id: wait, type: hold, duration: 0.0}
   - {id: route, type: waypoints, after: uav.takeoff, until: uav.orbit, points: [[42.0, 0.0], [42.0, 40.0]],
      step: 1, tolerance: 3.0}
-  - {id: pursuit, type: follow, after: uav.orbit, speed: 2.2, ramp_time: 4.0, turn_rate: 0.3,
-     intercept_distance: 6.0, standoff: 4.0, settle: 3.0}
+  - {id: pursuit, type: follow, after: uav.orbit, speed: 2.2, ramp_time: 4.0, turn_rate: 0.3, standoff: 10.0,
+     duration: 60.0}
   - {id: stop, type: hold, duration: 0.0}

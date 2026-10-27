@@ -52,7 +52,7 @@ private:
 /// rate, at a speed ramped up to the pursuit speed, and stops short of it. Done when the target has stayed within
 /// the intercept distance for the settle time.
 /// Params: speed [m/s], ramp_time [s], turn_rate [rad/s], intercept_distance [m], standoff [m] (distance kept from
-/// the target), settle [s].
+/// the target), settle [s], duration [s] (if given, the boat keeps close to the target for this time instead).
 class UsvFollow : public UsvManeuver
 {
 public:

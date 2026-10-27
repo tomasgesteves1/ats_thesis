@@ -147,6 +147,14 @@ Status UsvFollow::update(const Context & ctx, UsvCommand & cmd)
         y += step * std::sin(yaw);
     }
     hold_ = cmd.path.front();
+    // With a duration, the boat keeps close to the target for that time instead of intercepting it
+    if (params_.has("duration")) {
+        if (ctx.t - t0_ >= params_.get("duration", 0.0)) {
+            cmd.message = "pursuit over";
+            return Status::kDone;
+        }
+        return Status::kRunning;
+    }
     const double d = norm2(ctx.target.p[0] - ctx.boat.p[0], ctx.target.p[1] - ctx.boat.p[1]);
     if (d < params_.get("intercept_distance", 10.0)) {
         if (settle_since_ < 0.0) {
