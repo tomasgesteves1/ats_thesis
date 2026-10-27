@@ -124,21 +124,7 @@ def main():
     fig.tight_layout()
     save_figure(fig, os.path.join(OUT, 'crescent_top'))
 
-    # --- Overlaid tracking: x, y, z against the reference over the middle lap, and the paths seen from above ---------
-    for c, lab in enumerate(('x', 'y', 'z')):
-        fig, ax = plt.subplots(figsize=(2.05 * K, 1.75 * K))   # three side by side in the thesis
-        ax.grid(True, alpha=0.3)
-        a = res['NMPC']
-        mid = (a['t'] >= period) & (a['t'] <= 2 * period)
-        ax.plot(a['t'][mid] - period, a['r'][mid, c], color=REF, lw=2.5, alpha=0.45, label='Reference')
-        for k, a in res.items():
-            mid = (a['t'] >= period) & (a['t'] <= 2 * period)
-            ax.plot(a['t'][mid] - period, a['p'][mid, c], color=COLORS[k], lw=0.9, label=k)
-        ax.set_xlabel('Time (s)'); ax.set_ylabel('$%s$ (m)' % lab); ax.set_xlim(0, period)
-        fig.tight_layout()
-        save_figure(fig, os.path.join(OUT, 'crescent_track_%s' % lab))
-
-    # Seen from above, rotated as the scenario figure
+    # --- Paths over three laps seen from above, rotated as the scenario figure -----------------------------------
     fig, ax = plt.subplots(figsize=(4.4 * K, 2.4 * K))
     ax.grid(True, alpha=0.3)
     ax.plot(tab[:, 2], tab[:, 1], color=REF, lw=2.5, alpha=0.45, label='Ref.')
@@ -147,7 +133,7 @@ def main():
     ax.plot(0, 0, 's', color=USV, ms=5)
     ax.annotate('USV', (0, 0), xytext=(6, 0), textcoords='offset points', va='center', fontsize=9)
     ax.set_aspect('equal'); ax.invert_xaxis(); ax.set_xlabel('$y$ (m)'); ax.set_ylabel('$x$ (m)')
-    # The legend, also of the x, y, z panels, to the right of the crescent
+    # The legend to the right of the crescent
     leg = ax.legend(loc='center left', bbox_to_anchor=(1.0, 0.5), fontsize=7, frameon=False)
     for h in leg.get_lines()[1:]:
         h.set_linewidth(1.5)
@@ -190,22 +176,6 @@ def main():
     fig.tight_layout()
     save_figure(fig, os.path.join(OUT, 'crescent_error'))
 
-    # --- The tether: separation and its rate of change of both runs against the limits of the tether ----------------
-    def limits_panel(name, ylabel, series, limits):
-        fig, ax = panel()
-        for k, (tt, yy) in series.items():
-            ax.plot(tt, yy, color=COLORS[k], lw=0.9, label=k)
-        for y in limits:
-            ax.axhline(y, color=LIMIT, ls='--', lw=0.9)
-        ax.set_xlabel('Time (s)'); ax.set_ylabel(ylabel); ax.set_xlim(0, LAPS * period)
-        ax.legend(loc='best', fontsize=7)
-        fig.tight_layout()
-        save_figure(fig, os.path.join(OUT, name))
-
-    limits_panel('crescent_distance', 'Separation $d$ (m)', {k: (a['t'], a['dist']) for k, a in res.items()},
-                 [D_MAX])
-    limits_panel('crescent_ddot', r'$\dot d$ (m/s)', {k: (a['t'], a['d_dot']) for k, a in res.items()},
-                 [UAV_LIM['d_dot_max'], -UAV_LIM['d_dot_max']])
 
 if __name__ == '__main__':
     main()

@@ -128,48 +128,15 @@ The tracking accuracy of the \gls{uav} controller is evaluated on a closed traje
 As a baseline, the same trajectory is tracked by the position controller of PX4, the standard controller for trajectory tracking on multirotors. At each instant, this controller receives the current point of the trajectory and acts on the error between this point and the current position of the \gls{uav}. The \gls{nmpc} receives the trajectory over a one-second horizon and predicts the response of the \gls{uav} and of the tether. The comparison therefore quantifies the benefit of prediction.
 
 % Is the comparison fair?
-The trajectory lies well within the limits of both controllers. The tether imposes the tightest constraint, and the trajectory respects it, keeping the distance between the vehicles within reach and its rate of change below the speed of the winch, as shown in Figure~\ref{fig:res_uav_feasible}. Since neither controller reaches its limits, the difference between the two results reflects only the tracking performance of each.
-
-\begin{figure}[htbp]
-    \centering
-    \subfloat[Separation.]{
-        \includegraphics[width=0.48\textwidth]{Results/figures/01_tracking/crescent_distance.pdf}
-        \label{fig:res_uav_distance}
-    }
-    \hfill
-    \subfloat[Separation rate.]{
-        \includegraphics[width=0.48\textwidth]{Results/figures/01_tracking/crescent_ddot.pdf}
-        \label{fig:res_uav_ddot}
-    }
-    \caption{Separation between the vehicles and its rate of change, against the limits of the tether and its winch.}
-    \label{fig:res_uav_feasible}
-\end{figure}
+The trajectory lies well within the limits of both controllers. The tether imposes the tightest constraint, and the trajectory keeps clear of it. The separation between the vehicles stays between $16$ and $25\,\text{m}$, against a reach of $35\,\text{m}$, and its rate of change below $1.5\,\text{m/s}$, against the $2\,\text{m/s}$ of the winch. Since neither controller reaches its limits, the difference between the two results reflects only the tracking performance of each.
 
 % How closely do the two follow it?
 Both controllers keep the \gls{uav} on the trajectory, and over a full lap the paths are nearly indistinguishable from the reference, as shown in Figure~\ref{fig:res_uav_track}. The difference between them is of the order of centimetres. Over three laps, the position error of the \gls{nmpc} is more than four times smaller than that of PX4, both on average and at its maximum, as listed in Table~\ref{tab:res_uav}.
 
 \begin{figure}[htbp]
     \centering
-    \subfloat[Seen from above.]{
-        \includegraphics[width=0.55\textwidth]{Results/figures/01_tracking/crescent_track_top.pdf}
-        \label{fig:res_uav_track_top}
-    }
-    \\[2ex]
-    \subfloat[Along $x$.]{
-        \includegraphics[width=0.32\textwidth]{Results/figures/01_tracking/crescent_track_x.pdf}
-        \label{fig:res_uav_track_x}
-    }
-    \hfill
-    \subfloat[Along $y$.]{
-        \includegraphics[width=0.32\textwidth]{Results/figures/01_tracking/crescent_track_y.pdf}
-        \label{fig:res_uav_track_y}
-    }
-    \hfill
-    \subfloat[Height.]{
-        \includegraphics[width=0.32\textwidth]{Results/figures/01_tracking/crescent_track_z.pdf}
-        \label{fig:res_uav_track_z}
-    }
-    \caption{Position of the \gls{uav} with the \gls{nmpc} and with PX4, against the reference.}
+    \includegraphics[width=0.55\textwidth]{Results/figures/01_tracking/crescent_track_top.pdf}
+    \caption{Path of the \gls{uav} with the \gls{nmpc} and with PX4 over one lap, seen from above, against the reference.}
     \label{fig:res_uav_track}
 \end{figure}
 
