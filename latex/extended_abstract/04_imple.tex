@@ -49,16 +49,19 @@ Each controller resamples the latest predicted trajectory of the other at the no
 
 \subsection{Manoeuvres and Missions}
 
-The controllers follow references, but do not decide where each vehicle should go. This is the role of the manoeuvres, which give the reference of one vehicle over the horizon of its controller at every instant. The UAV can take off, fly in formation at a point relative to the USV, in its axes or in fixed axes, orbit the USV or a point in the world, chase a target, and land, and the USV can hold its position, follow a route, pursue a target, and support the UAV from the water, following the point below it pushed away from a structure, so that it gives the UAV the reach of the tether. Since the controllers keep the vehicles within their limits, the references can remain simple, often a single point. Figure~\ref{fig:catalogue} shows the manoeuvres of the UAV as flown in the missions.
+% Who decides where each vehicle goes?
+The controllers follow references, but do not decide where each vehicle should go. This is the role of the manoeuvres, which give the reference of one vehicle over the horizon of its controller at every instant. The UAV can take off, fly in formation with the USV, orbit it or a point in the world, chase a target and land, while the USV can hold its position, follow a route, pursue a target, or support the UAV from the water near a structure, so that the structure stays within the reach of the tether. Since the controllers keep the vehicles within their limits, the references can remain simple, often a single point. Figure~\ref{fig:catalogue} shows the manoeuvres of the UAV as flown in the missions, the takeoff and the landing through the height of the UAV above the winch, and the others from above.
 
 \begin{figure*}[t]
     \centering
     \includegraphics[width=0.85\textwidth]{Implementation/figures/04_maneuvers_and_missions/maneuver_catalogue.pdf}
-    \caption{Manoeuvres of the UAV in simulation: takeoff (a) and landing (f) through the height of the UAV above the winch, with their phases, and formation (b), orbit (c, in the axes of the USV), orbit on patrol (d) and chase (e) from above, with the positions of the vehicles and the tether at several instants.}
+    \caption{Manoeuvres of the UAV in simulation.}
     \label{fig:catalogue}
 \end{figure*}
 
+% Why are the takeoff and the landing special?
 The takeoff and the landing are the manoeuvres in which the UAV is closest to the deck and moves with it. The takeoff starts with a vertical climb while the winch holds the UAV against the deck, so that it does not drift over its edge at low height. In the landing, the UAV first waits above the pad until it is centred and moving with it, then descends with the winch pulling it, and ends with a slow approach towards a point below the deck, so that it touches down even if the deck falls away.
 
+% How are the manoeuvres combined into missions?
 A mission is a file with a sequence of manoeuvres for each vehicle, in which each manoeuvre ends with an event, such as the detection of a target, or with the end of a manoeuvre of the other vehicle. Three missions were tested: a scout, in which the UAV flies ahead of the bow while the USV follows a route, an inspection, in which the UAV circles a tower while the USV supports it, and a patrol, in which the UAV orbits the USV until it detects a target, which it then chases while the USV pursues it.
 

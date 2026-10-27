@@ -1,6 +1,7 @@
 #!/bin/bash
 # Runs the cooperative tracking scenario in simulation and records the signals needed to evaluate both controllers.
 # Usage: validation/record_tracking.sh <scenario: crescent|limits|usv_track|usv_limits|steps> [duration_s=240] [controller=nmpc]
+#        environment: WAVE_GAIN=<gain of the VRX wavefield> (0 = calm sea; unset = default sea)
 #   crescent   - accuracy of the UAV (Section 5.1): the USV holds its position at the origin and the UAV flies the crescent
 #                of validation/uav_tracking/crescent_reference.py (fast arcs at constant distance, slow U-turns), with
 #                d_max 35 m, so that no limit of the vehicle or of the tether is reached
@@ -44,6 +45,10 @@ stop_all() {  # stops every simulation/control process by PID (no pkill -f, the 
 stop_all; sleep 3
 (setsid ros2 launch test_cooperative_mpc sim.launch.py use_tether:=${SIM_TETHER:-true} > /tmp/tracking_sim.log 2>&1 &)
 sleep 80
+if [ -n "$WAVE_GAIN" ]; then   # sea state: gain of the VRX wavefield (default sea = 1)
+  MSG='params {key: "gain" value {type: DOUBLE double_value: '$WAVE_GAIN'}}'
+  for i in 1 2 3 4 5; do gz topic -t /vrx/wavefield/parameters -m gz.msgs.Param -p "$MSG"; sleep 1; done
+fi
 TOPICS="/tf /tf_static /tether_geometry_marker /tether_force_markers /predicted_trajectory /reference_trajectory /mpc_predicted_path /usv/mpc_horizon \
  /mpc_states_and_inputs /drone/ground_truth/odometry /boat/ground_truth/odometry /usv/reference_path /uav/reference_path \
  /boat/thrusters/left/thrust /boat/thrusters/right/thrust /boat/thrusters/left/pos /boat/thrusters/right/pos \
