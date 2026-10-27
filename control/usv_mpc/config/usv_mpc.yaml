@@ -4,3 +4,4 @@ usv_mpc_node:
     use_sim_time: true
     trajectory_type: "hold" # "hold" or "external"
     control_period: 0.1     # Controller time step (s)
+    tether_margin: 0.5      # Bound of the USV = d_max + margin (m): the UAV holds the tether at d_max

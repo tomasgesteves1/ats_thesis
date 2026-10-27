@@ -21,6 +21,9 @@ UsvMpcNode::UsvMpcNode()
     this->declare_parameter<bool>("mode_open_loop", false);
     this->declare_parameter<bool>("use_tether", true);
     this->declare_parameter<double>("tether_max_length", 15.0);   // d_max (m)
+    // The UAV, much faster, holds the tether at d_max; the bound of the USV is wider by this margin, so that it acts
+    // only when the UAV cannot keep within its own (which, soft, it slightly exceeds when it pulls at the limit)
+    this->declare_parameter<double>("tether_margin", 0.5);        // m
     this->declare_parameter<double>("tether_anchor_height", 1.25); // z_t (m): deck height above the inertial zero (water surface)
     this->declare_parameter<double>("uav_horizon_period", 0.02);  // UAV prediction step (s)
     this->declare_parameter<double>("uav_horizon_timeout", 0.5);  // Staleness limit of the UAV horizon (s)
@@ -186,7 +189,8 @@ void UsvMpcNode::controlLoop() {
     } else {
         pipeline_->setUavHorizon({});
     }
-    pipeline_->setTetherParameters(this->get_parameter("tether_max_length").as_double(),
+    pipeline_->setTetherParameters(this->get_parameter("tether_max_length").as_double() +
+                                       this->get_parameter("tether_margin").as_double(),
                                    this->get_parameter("tether_anchor_height").as_double());
 
     const auto t_start = std::chrono::steady_clock::now();
