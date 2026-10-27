@@ -7,7 +7,8 @@ The reference asks more than the UAV can do, one limit after the other, while ke
      by ~1.5 m/s^2): the tilt and its rate saturate, and the speed limit is close;
   2. a slow move to 25 m, then an arc at 11 m/s, which the tilt allows but the horizontal speed limit does not;
   3. a slow move out to 30 m and down to 3 m, where a change of height hardly changes the distance to the winch;
-  4. a step up of 7 m (maximum thrust and thrust rate) and a step down to the water (minimum thrust, minimum altitude).
+  4. a step up of 7 m and a step down to the water: the vertical speed and the thrust rate saturate (the thrust itself
+     does not, within the bound on the vertical speed), and the step down ends on the minimum altitude.
 The arcs span 240 deg on the +x side, clear of the radio tower of the inspection missions at (-25, 0).
 The table is not periodic: after its end the reference holds the last point.
 
@@ -62,8 +63,8 @@ def phases():
     ph.append(('hold', 5.0, hold(on(R_B, -a0, H))))
     T, f = line(on(R_B, -a0, H), on(R_C, -a0, H_LOW), V_MOVE); ph.append(('move out and down', T, f))
     ph.append(('hold', 5.0, hold(on(R_C, -a0, H_LOW))))
-    ph.append(('step up (thrust max)', 8.0, hold(on(R_C, -a0, H_HIGH))))
-    ph.append(('step down (thrust min, z_min)', 8.0, hold(on(R_C, -a0, 0.0))))
+    ph.append(('step up (v_z, thrust rate)', 8.0, hold(on(R_C, -a0, H_HIGH))))
+    ph.append(('step down (v_z, z_min)', 8.0, hold(on(R_C, -a0, 0.0))))
     return ph
 
 

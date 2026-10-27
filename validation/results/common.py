@@ -20,7 +20,7 @@ TEL = {"x": 0, "y": 1, "z": 2, "roll_cmd": 6, "pitch_cmd": 7, "thrust": 8, "roll
 
 # Limits of the controllers (Tables of Section 4.3)
 UAV_LIM = dict(phi_max=0.5, theta_max=0.5, rate_max=0.8, psi_rate_max=1.0, T_min=2.02, T_max=39.96, T_rate_max=100.0,
-               d_dot_max=2.0, v_max=10.0)
+               d_dot_max=2.0, v_max=10.0, vz_max=3.0)
 USV_LIM = dict(T_max=510.0, T_min=-380.0, alpha_max=np.radians(30.0), alpha_rate_max=np.radians(10.0), T_rate_max=500.0)
 
 

@@ -8,7 +8,7 @@ import os
 import sys
 import numpy as np
 import matplotlib.pyplot as plt
-from common import load, interp, set_thesis_style, save_figure, FIGS, HERE, UAV, REF, LIMIT, UAV_LIM
+from common import load, interp, set_thesis_style, save_figure, FIGS, HERE, UAV, USV, REF, LIMIT, UAV_LIM
 
 sys.path.insert(0, os.path.join(HERE, '..', 'uav_tracking'))
 from limits_reference import phases  # noqa: E402
@@ -72,6 +72,7 @@ def main():
     print('thrust %.2f..%.2f N, limits %.2f..%.2f; rate max %.1f N/s, limit %.0f' % (
         thrust.min(), thrust.max(), UAV_LIM['T_min'], UAV_LIM['T_max'], np.abs(thrust_rate).max(), UAV_LIM['T_rate_max']))
     print('horizontal speed max %.2f m/s, limit %.0f' % (v_xy.max(), UAV_LIM['v_max']))
+    print('vertical speed %.2f..%.2f m/s, limit %.0f' % (v[:, 2].min(), v[:, 2].max(), UAV_LIM['vz_max']))
     print('height min %.2f m, limit %.0f' % (p[:, 2].min(), Z_MIN))
     print('tether: separation %.1f..%.1f m, |d_dot| max %.2f m/s' % (dist.min(), dist.max(), np.abs(d_dot).max()))
     for name, ts in marks:
@@ -99,6 +100,19 @@ def main():
     panel('limits_thrust_rate', 'Thrust rate (N/s)', [(tt[1:], thrust_rate, 'Thrust rate', UAV)],
           [UAV_LIM['T_rate_max'], -UAV_LIM['T_rate_max']])
     panel('limits_speed', 'Horizontal speed (m/s)', [(t, v_xy, 'Speed', UAV)], [UAV_LIM['v_max']])
+    fig, ax = plt.subplots(figsize=(3.6 * K, 2.6 * K))
+    ax.grid(True, alpha=0.3)
+    mr = (ref[:, 0] >= t0) & (ref[:, 0] <= t1)
+    ax.plot(ref[mr, 2], ref[mr, 1], color=REF, lw=0.9, ls='--', label='Reference')
+    ax.plot(p[:, 1], p[:, 0], color=UAV, lw=0.9, label='UAV')
+    ax.plot(b[:, 1].mean(), b[:, 0].mean(), 's', color=USV, ms=5, label='USV')
+    ax.set_aspect('equal'); ax.invert_xaxis(); ax.set_xlabel('$y$ (m)'); ax.set_ylabel('$x$ (m)')
+    ax.legend(loc='best', fontsize=7)
+    fig.tight_layout()
+    save_figure(fig, os.path.join(OUT, 'limits_top'))
+
+    panel('limits_vz','Vertical speed (m/s)', [(t, v[:, 2], 'Vertical speed', UAV)],
+          [UAV_LIM['vz_max'], -UAV_LIM['vz_max']])
     panel('limits_height', 'Height (m)', [(t, p[:, 2], 'Height', UAV)], [Z_MIN])
 
 
