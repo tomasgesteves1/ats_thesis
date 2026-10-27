@@ -15,6 +15,8 @@ Before the two vehicles operate together, each controller is evaluated individua
 \subsection{\texorpdfstring{\gls{usv} Controller}{USV Controller}}
 \label{subsec:res_tracking_usv}
 
+\subsubsection{Tracking Accuracy}
+
 % Which reference, and why this one?
 [Figure-eight at the speed of the missions, with the \gls{uav} resting on the deck.]
 
@@ -24,11 +26,15 @@ Before the two vehicles operate together, each controller is evaluated individua
 % Does the USV stay within its limits?
 [Thrust and azimuth of both thrusters against their limits.]
 
+\subsubsection{Operating Limits}
+
 % What does the USV do with a reference it cannot follow?
 [Steps backwards and sideways: the thrusters at their limits.]
 
 \subsection{\texorpdfstring{\gls{uav} Controller}{UAV Controller}}
 \label{subsec:res_tracking_uav}
+
+\subsubsection{Tracking Accuracy}
 
 % Which reference, and why this one?
 The tracking accuracy of the \gls{uav} controller is evaluated on a closed trajectory around the \gls{usv}, which holds its position throughout the test. The trajectory consists of two fast arcs, along which the distance between the vehicles is constant, connected by two slow turns, along which this distance varies. The \gls{uav} is therefore evaluated at both high and low speed, under a tether force that varies along each lap, since it increases with the length of the suspended tether. Figure~\ref{fig:res_uav_scenario} shows the trajectory, coloured by the speed of the reference. The tether is long enough to cover the whole trajectory, so its length does not constrain the motion of the \gls{uav}.
@@ -131,8 +137,10 @@ The higher accuracy of the \gls{nmpc} does not result from a larger control effo
     \label{fig:res_uav_commands}
 \end{figure}
 
+\subsubsection{Operating Limits}
+
 % What does the UAV do with a reference it cannot follow?
-The behaviour of the controller at its limits is evaluated on a second reference, which demands more than the \gls{uav} can deliver, while the \gls{usv} again holds its position. The reference consists of two fast arcs centred on the \gls{usv}, followed by a step up and a step down in height, as shown in Figure~\ref{fig:res_uav_limits_top}. The first arc, with a radius of $15\,\text{m}$ flown at $10.5\,\text{m/s}$, requires a tilt of about $37^\circ$, well beyond the limit of $28.6^\circ$. The second, with a radius of $25\,\text{m}$ flown at $11\,\text{m/s}$, requires a tilt within this limit, but exceeds the limit of $10\,\text{m/s}$ on the horizontal speed. The steps then raise the reference by $7\,\text{m}$ and lower it by $10\,\text{m}$ to the surface of the water, below the minimum height of $2\,\text{m}$. Each phase therefore saturates a different set of constraints, while the separation between the vehicles remains within the reach of the tether.
+A trajectory within the limits of the \gls{uav} does not show what the controller does when these limits prevent it from following the reference. The \gls{uav} is therefore given a second reference, around the stationary \gls{usv}, in which each part is designed to exceed a different limit, as shown in Figure~\ref{fig:res_uav_limits_top}. A tight arc demands a tilt of about $37^\circ$, beyond the limit of $28.6^\circ$, and a wider arc demands a horizontal speed of $11\,\text{m/s}$, beyond the limit of $10\,\text{m/s}$. Two steps in height follow, the second of which places the reference on the surface of the water, below the minimum height of $2\,\text{m}$.
 
 \begin{figure}[htbp]
     \centering
@@ -142,7 +150,7 @@ The behaviour of the controller at its limits is evaluated on a second reference
 \end{figure}
 
 % What happens when the tilt or the horizontal speed cannot follow the reference?
-On both arcs, the \gls{nmpc} keeps the \gls{uav} on the constraint that makes the reference unattainable and follows the reference as closely as this constraint allows. On the first arc, the tilt reaches its limit in about $0.6\,\text{s}$, with its rate at the limit of $45.8^\circ/\text{s}$, and remains there until the end of the arc, as shown in Figure~\ref{fig:res_uav_limits_horizontal}. The horizontal speed settles at about $10\,\text{m/s}$, above the $9\,\text{m/s}$ that this tilt alone would sustain on a radius of $15\,\text{m}$, since the tether pulls the \gls{uav} towards the centre of the arc and adds to the horizontal component of the thrust. On the second arc, the horizontal speed settles on its limit and varies by less than $0.15\,\text{m/s}$ until the end of the arc, while the tilt remains below its limit. In both cases the \gls{uav} falls behind the reference, by $5.9\,\text{m}$ at the end of the first arc and by $4.7\,\text{m}$ at the end of the second. Since the shortest route to a point ahead on an arc lies inside it, the \gls{uav} also moves towards the centre of each arc, by up to $2.5\,\text{m}$ on the second, as seen in Figure~\ref{fig:res_uav_limits_top}. It recovers both the lag and this offset during the hold that follows each arc.
+On each arc, the \gls{nmpc} brings the \gls{uav} onto the limit that makes the reference unattainable and keeps it there for as long as the arc lasts. On the tight arc, the tilt rises to its limit as fast as its rate allows and then remains on it, while on the wide arc the horizontal speed settles on its limit, as shown in Figure~\ref{fig:res_uav_limits_horizontal}. The \gls{uav} neither leaves the limit nor oscillates about it, and thus flies each arc as fast as its limits permit. The cost of the unattainable reference is a growing lag, of about $5\,\text{m}$ by the end of each arc. The \gls{uav} partly compensates for it by moving towards the centre of the arc, the shorter route to a point ahead of it, which is why its path lies inside the reference in Figure~\ref{fig:res_uav_limits_top}. Once the reference stops, the \gls{uav} catches up with it and returns to accurate tracking.
 
 \begin{figure}[htbp]
     \centering
@@ -164,8 +172,8 @@ On both arcs, the \gls{nmpc} keeps the \gls{uav} on the constraint that makes th
     \label{fig:res_uav_limits_horizontal}
 \end{figure}
 
-% What limits the motion of the UAV on the steps in height?
-On the steps in height, the motion is limited by the vertical speed rather than by the thrust, as shown in Figure~\ref{fig:res_uav_limits_vertical}. At the start of each step, the thrust changes at its maximum rate of $100\,\text{N/s}$, after which the \gls{uav} climbs or descends at $3\,\text{m/s}$. Since this speed is reached and lost with moderate accelerations, the thrust remains between $9$ and $38\,\text{N}$, within its limits of $2.0$ and $40.0\,\text{N}$. On the step down, the \gls{uav} decelerates ahead of the minimum height and stops at $2.00\,\text{m}$, although the reference lies $2\,\text{m}$ lower. During each arc, the height deviates from the reference by up to $0.6\,\text{m}$, a deviation that the \gls{nmpc} accepts while the tilt or the horizontal speed is at its limit.
+% How does the prediction help on the steps in height?
+On the steps in height, the benefit of predicting the limits becomes most apparent, as shown in Figure~\ref{fig:res_uav_limits_vertical}. The \gls{uav} climbs and descends at the maximum vertical speed of $3\,\text{m/s}$, reached with the thrust changing at its maximum rate, while the thrust itself remains well within its range. On the way down, the \gls{nmpc} foresees the minimum height within its horizon and begins to brake before reaching it, so that the \gls{uav} stops exactly at $2\,\text{m}$ although the reference lies on the water. A controller that reacts only to the current error would brake only once the limit was reached, too late to avoid crossing it.
 
 \begin{figure}[htbp]
     \centering
@@ -193,7 +201,4 @@ On the steps in height, the motion is limited by the vertical speed rather than 
 \end{figure}
 
 % Are the limits respected?
-The limits on the inputs are hard constraints and are never exceeded. The rates of the commanded roll and pitch reach exactly $45.8^\circ/\text{s}$, and the thrust rate reaches $99.3\,\text{N/s}$. The limits on the states are soft constraints, and the tilt, the horizontal speed and the vertical speed exceed them by at most $0.3^\circ$, $0.17\,\text{m/s}$ and $0.03\,\text{m/s}$, respectively, during brief transients. The minimum height is never crossed. In the holds after the second arc, the tilt varies by about $\pm 1.5^\circ$ around the value that balances the horizontal pull of the tether, whose tension fluctuates between $4.4$ and $5.4\,\text{N}$.
-
-% What does this show about the controller at its limits?
-At each limit, the \gls{nmpc} therefore drives the \gls{uav} onto the constraint, holds it there without oscillation while the reference remains unattainable, and resumes accurate tracking once the reference becomes attainable again.
+Throughout the test, the limits on the inputs, which are hard constraints, are never exceeded. The limits on the states are soft constraints and may be exceeded when no feasible solution exists, but they are exceeded only marginally, by less than $2\,\%$ and only in brief transients. The \gls{nmpc} therefore uses the full capability of the \gls{uav} when the reference demands it, without driving the vehicle beyond its limits and without oscillating when it operates at them.
