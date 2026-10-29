@@ -9,10 +9,10 @@
 \label{chapter:results}
 
 % What remains to be shown, after everything built in the previous chapters?
-The previous chapters built models of the vehicles and of the tether, and the two controllers that use them. It remains to be shown that the controllers follow their references accurately, that they keep each vehicle within its limits when the references ask for more, and that, together, they carry out a maritime operation within the reach of the tether.
+The previous chapters developed models of the two vehicles and of the tether, and a controller for each vehicle that relies on them. Whether these controllers can operate the tethered system at sea can only be judged by operating it, where the limits of each vehicle, the coupling through the tether and the disturbances of the sea all act at once.
 
 % How will it be shown?
-The evaluation moves gradually closer to a real operation. Each controller is first evaluated on its own vehicle. The two vehicles are then brought together in the three missions of Section~\ref{sec:maneuvers_and_missions}, each of which places the tether in a different situation. Finally, the landing, the manoeuvre most exposed to the sea, is repeated under growing waves and wind, which the models do not describe.
+Evaluated all together, these effects would not reveal which of them is responsible for a given behaviour. The evaluation therefore introduces them one at a time, moving gradually closer to a real operation. It begins with each vehicle alone, where only its own dynamics and limits are involved, then couples the two vehicles through the tether in complete missions, and finally exposes the landing on the moving deck, the manoeuvre most sensitive to the sea, to waves and wind that the models do not describe.
 
 \input{Results/01_Tracking}
 \input{Results/02_Missions}

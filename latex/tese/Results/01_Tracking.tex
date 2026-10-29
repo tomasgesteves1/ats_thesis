@@ -10,18 +10,18 @@
 \label{sec:res_tracking}
 
 % What is tested in this section?
-Before the two vehicles operate together, each controller is evaluated individually. The evaluation first measures the accuracy with which the controller tracks a trajectory that is feasible for its vehicle. It then assesses the behaviour of the controller when the trajectory demands more than the vehicle can deliver, and whether the vehicle remains within its limits.
+Evaluated on its own vehicle, each controller faces two distinct questions. The first is how closely it tracks a trajectory that the vehicle can follow, which depends on how well it predicts the motion of the vehicle. The second is how it behaves when the trajectory demands more than the vehicle can deliver, since the controller must then give up following the reference in order to keep the vehicle within its limits.
 
 \subsection{\texorpdfstring{\gls{usv} Controller}{USV Controller}}
 \label{subsec:res_tracking_usv}
 
 % Under which conditions is the USV controller evaluated?
-The \gls{usv} controller is evaluated with the \gls{uav} resting on the deck, so that the vessel moves alone and its controller is not coupled to the \gls{uav}. Its tests therefore isolate the response of the vessel to its own controller, before the two vehicles are coupled.
+The \gls{usv} controller is evaluated with the \gls{uav} resting on the deck, so that the \gls{usv} moves alone and its response depends only on its own controller.
 
 \subsubsection{Tracking Accuracy}
 
 % Which reference, and why this one?
-The tracking accuracy of the \gls{usv} controller is evaluated on a figure-eight, formed by two circles of $12\,\text{m}$ radius joined by two straight legs that cross, and sailed twice, as shown in Figure~\ref{fig:res_usv_scenario}. The reference moves at $1.2\,\text{m/s}$ on the circles and $1.6\,\text{m/s}$ on the legs, and the two circles are turned in opposite directions, so that the vessel turns both ways along each lap. The reference was designed so that the thrust and the azimuth it requires remain well within the limits of the thrusters, and the result therefore reflects only the accuracy of the controller.
+The reference is a figure-eight sailed twice, as shown in Figure~\ref{fig:res_usv_scenario}. Its two circles, of $12\,\text{m}$ radius, are turned in opposite directions and joined by straight segments, so that the \gls{usv} turns both ways and alternates between turning and sailing straight.
 
 \begin{figure}[htbp]
     \centering
@@ -30,26 +30,8 @@ The tracking accuracy of the \gls{usv} controller is evaluated on a figure-eight
     \label{fig:res_usv_scenario}
 \end{figure}
 
-% How closely does the USV follow it?
-The \gls{usv} follows the figure-eight with a position error of $5.6\,\text{cm}$ (\gls{rmse}), below $13\,\text{cm}$ throughout both laps, while its heading remains within $0.4^\circ$ (\gls{rmse}) of the reference, as shown in Figure~\ref{fig:res_usv_accuracy}. The paths are therefore indistinguishable from the reference at the scale of the figure-eight.
-
-\begin{figure}[htbp]
-    \centering
-    \subfloat[Position error.]{
-        \includegraphics[width=0.48\textwidth]{Results/figures/01_tracking/usv_track_error.pdf}
-        \label{fig:res_usv_error}
-    }
-    \hfill
-    \subfloat[Heading error.]{
-        \includegraphics[width=0.48\textwidth]{Results/figures/01_tracking/usv_track_heading.pdf}
-        \label{fig:res_usv_heading}
-    }
-    \caption{Position and heading errors of the \gls{usv}, with the speed of the reference shaded.}
-    \label{fig:res_usv_accuracy}
-\end{figure}
-
-% Does the USV stay within its limits?
-As intended, the thrust remains below $350\,\text{N}$, against a maximum of $510\,\text{N}$, and the azimuth within $\pm 7^\circ$, against $\pm 30^\circ$, as shown in Figure~\ref{fig:res_usv_effort}. The \gls{usv} turns mainly through the difference between the thrusts of its two thrusters, which reverses between the two circles, since they are turned in opposite directions, rather than through their azimuth.
+% Is the reference within the limits of the USV?
+The reference lies within the capability of the \gls{usv}. The thrust and the azimuth computed by the controller remain far from the limits of the thrusters throughout, as shown in Figure~\ref{fig:res_usv_effort}, and neither their rates nor the surge speed approach their own limits. The \gls{usv} turns mainly through the difference between the thrusts of its two thrusters, which reverses between the two circles, while the azimuth changes by only a few degrees. The tracking error therefore reflects the controller alone, and not the limits of the \gls{usv}.
 
 \begin{figure}[htbp]
     \centering
@@ -66,112 +48,98 @@ As intended, the thrust remains below $350\,\text{N}$, against a maximum of $510
     \label{fig:res_usv_effort}
 \end{figure}
 
-\subsubsection{Operating Limits}
-
-% What does the USV do with a reference it cannot follow?
-A reference within the limits of the \gls{usv} does not reveal how its controller behaves when these limits prevent it from following the reference. The \gls{usv} is therefore given a second reference, in which each segment is designed to exceed a different limit, as shown in Figure~\ref{fig:res_usv_limits_top}. A straight leg at $3\,\text{m/s}$, beyond the top speed of the vessel, ends in a sharp turn of $90^\circ$ at that speed. The reference then holds a point and finally steps $15\,\text{m}$ astern and $15\,\text{m}$ abeam.
+% How closely does the USV follow it?
+The heading error of the \gls{usv} reaches about $4^\circ$ at the start of the run, while the \gls{usv} accelerates from rest, and decays within the first seconds, as shown in Figure~\ref{fig:res_usv_accuracy}. Thereafter, the heading error remains below one degree, and the position error is of the order of one percent of the length of the \gls{usv}, as listed in Table~\ref{tab:res_usv}. At the scale of the manoeuvre, the path sailed is therefore indistinguishable from the reference, with which it coincides in Figure~\ref{fig:res_usv_scenario}.
 
 \begin{figure}[htbp]
     \centering
-    \includegraphics[width=0.55\textwidth]{Results/figures/01_tracking/usv_limits_top.pdf}
+    \subfloat[Position error.]{
+        \includegraphics[width=0.48\textwidth]{Results/figures/01_tracking/usv_track_error.pdf}
+        \label{fig:res_usv_error}
+    }
+    \hfill
+    \subfloat[Heading error.]{
+        \includegraphics[width=0.48\textwidth]{Results/figures/01_tracking/usv_track_heading.pdf}
+        \label{fig:res_usv_heading}
+    }
+    \caption{Position and heading errors of the \gls{usv}.}
+    \label{fig:res_usv_accuracy}
+\end{figure}
+
+\begin{table}[htbp]
+    \centering
+    \caption{Tracking error of the \gls{usv}.}
+    \label{tab:res_usv}
+    \begin{tabular*}{0.6\linewidth}{@{\extracolsep{\fill}}lrr}
+        \toprule
+         & \gls{rmse} & Maximum \\
+        \midrule
+        Position (cm) & $5.5$ & $12.4$ \\
+        Heading (deg) & $0.2$ & $0.6$ \\
+        \bottomrule
+    \end{tabular*}
+\end{table}
+
+\subsubsection{Operating Limits}
+
+% Which reference, and why this one?
+The second reference asks the \gls{usv} for motions it cannot perform, as shown in Figure~\ref{fig:res_usv_limits_top}, where the \gls{usv} is drawn at a few instants and the dashed outlines mark the poses held by the reference. It begins with a straight segment at $3\,\text{m/s}$, beyond the top speed of the \gls{usv}, which ends in a sharp turn of $90^\circ$ at that speed. It then comes to rest at a point, which is moved first $15\,\text{m}$ backwards and then $15\,\text{m}$ to the left of the \gls{usv}, keeping the same heading.
+
+\begin{figure}[htbp]
+    \centering
+    \includegraphics[width=0.48\textwidth]{Results/figures/01_tracking/usv_limits_top.pdf}
     \caption{Reference beyond the limits of the \gls{usv} and path sailed, seen from above.}
     \label{fig:res_usv_limits_top}
 \end{figure}
 
-% What happens on the leg and the turn?
-On the leg, both thrusters reach their maximum thrust and the \gls{usv} settles at its top speed of $2.3\,\text{m/s}$, so that it falls behind the reference, as shown in Figure~\ref{fig:res_usv_limits_inputs}. The turn cannot be followed at this speed, since the azimuth of the thrusters is limited to $\pm 30^\circ$ and its rate to $\pm 10^\circ/\text{s}$. The \gls{nmpc} turns the vessel as tightly as the thrusters allow, so that it swings wide of the corner by about $6\,\text{m}$, and then brings it back to the point held by the reference, reversing the thrust of one thruster at its limit to slow down and turn at the same time.
+% What happens on the straight segment and the turn?
+On the straight segment, both thrusters reach their maximum thrust, as shown in Figure~\ref{fig:res_usv_limits_inputs}, and the \gls{usv} settles at its top speed of $2.3\,\text{m/s}$, falling behind the reference. The reference has therefore already turned when the \gls{usv} approaches the corner, and the \gls{nmpc} cuts the corner towards it. The \gls{usv} turns mainly through the difference between the thrusts, with the outer thruster at its maximum and the azimuth below $10^\circ$, and, still close to its top speed, crosses the new segment and goes beyond it by about $6\,\text{m}$. To return to the point held by the reference, the \gls{nmpc} then turns both azimuths towards their limit at the maximum rate and reverses one thruster at its maximum rate, so that the \gls{usv} slows down and turns at the same time.
+
+% What happens when the point moves backwards and to the side?
+When the point moves backwards, the speed is bounded by the soft lower limit on the surge speed, and the \gls{usv} reverses in a straight line at exactly this limit, as shown in the last panel of Figure~\ref{fig:res_usv_limits_inputs}. While the surge speed rests on this limit, the thrust oscillates by a few newtons about the value that holds it there, without any visible effect on the motion of the \gls{usv}. To reach the point on its left, the \gls{nmpc} turns the \gls{usv} towards it, sails to it and turns back to the heading of the reference.
 
 \begin{figure}[htbp]
     \centering
-    \subfloat[Thrust.]{
-        \includegraphics[width=0.48\textwidth]{Results/figures/01_tracking/usv_limits_thrust.pdf}
-        \label{fig:res_usv_limits_thrust}
-    }
-    \hfill
-    \subfloat[Azimuth.]{
-        \includegraphics[width=0.48\textwidth]{Results/figures/01_tracking/usv_limits_azimuth.pdf}
-        \label{fig:res_usv_limits_azimuth}
-    }
-    \\[2ex]
-    \subfloat[Rate of the azimuth.]{
-        \includegraphics[width=0.48\textwidth]{Results/figures/01_tracking/usv_limits_azimuth_rate.pdf}
-        \label{fig:res_usv_limits_azimuth_rate}
-    }
-    \hfill
-    \subfloat[Surge speed.]{
-        \includegraphics[width=0.48\textwidth]{Results/figures/01_tracking/usv_limits_surge.pdf}
-        \label{fig:res_usv_limits_surge}
-    }
-    \caption{Thrust, azimuth and its rate of both thrusters of the \gls{usv}, and its surge speed, against their limits.}
+    \includegraphics[width=\textwidth]{Results/figures/01_tracking/usv_limits_inputs.pdf}
+    \caption{Thrust and azimuth of both thrusters of the \gls{usv}, their rates, and its surge speed, against their limits.}
     \label{fig:res_usv_limits_inputs}
 \end{figure}
 
-% And on the steps astern and abeam?
-The two steps ask for the motions in which the vessel has the least authority. Astern, the hull and the thrusters are least effective, and the speed astern is bounded by the soft lower limit on the surge speed. The \gls{usv} reverses in a straight line, with its heading within $5^\circ$ of the reference, at exactly this limit, as shown in Figure~\ref{fig:res_usv_limits_surge}. Abeam, the thrusters at the stern cannot push the vessel sideways without also turning it, so the \gls{nmpc} turns the bow towards the new point, sails to it and turns back to the heading of the reference, rather than drifting sideways.
 
 % Are the limits respected?
-Throughout the test, the limits on the thrust, the azimuth and their rates, which are hard constraints, are reached but never exceeded, and the surge speed reaches its soft lower limit without crossing it. The controller therefore uses the full capability of the vessel when the reference demands it, without driving it beyond its limits.
+Throughout the test, the limits of the \gls{usv} are reached but never exceeded, including the soft limit on the surge speed. The controller therefore gives up following the reference only as far as the limits of the \gls{usv} require, and uses its full capability in doing so.
 
 \subsection{\texorpdfstring{\gls{uav} Controller}{UAV Controller}}
 \label{subsec:res_tracking_uav}
 
 % Under which conditions is the UAV controller evaluated?
-The \gls{uav} controller is evaluated in flight, attached to the \gls{usv}, which holds its position at the centre of each test. The tether therefore acts on the \gls{uav} throughout, while the motion of the vessel does not interfere with the results.
+The \gls{uav} controller is evaluated with the \gls{uav} tethered to the \gls{usv}, which holds its position at the centre of each reference, so that the response of the \gls{uav} depends only on its own controller and on the force of the tether.
 
 \subsubsection{Tracking Accuracy}
 
 % Which reference, and why this one?
-The tracking accuracy of the \gls{uav} controller is evaluated on a closed trajectory around the \gls{usv}. The trajectory consists of two fast arcs, along which the distance between the vehicles is constant, connected by two slow turns, along which this distance varies. The \gls{uav} is therefore evaluated at both high and low speed, under a tether force that varies along each lap, since it increases with the length of the suspended tether. Figure~\ref{fig:res_uav_scenario} shows the trajectory, coloured by the speed of the reference.
+The reference is a closed trajectory around the \gls{usv}, as shown in Figure~\ref{fig:res_uav_scenario}. It consists of two fast arcs, along which the separation between the vehicles is constant, joined by two slow turns, along which this separation varies. The \gls{uav} therefore flies at both high and low speed, under a tether force that changes along each lap, since this force grows with the length of tether suspended between the vehicles.
 
 \begin{figure}[htbp]
     \centering
-    \includegraphics[width=0.55\textwidth]{Results/figures/01_tracking/crescent_top.pdf}
-    \caption{Reference trajectory of the \gls{uav} around the \gls{usv}, seen from above and coloured by its speed.}
-    \label{fig:res_uav_scenario}
+    \subfloat[Reference, coloured by its speed.]{
+        \includegraphics[width=0.48\textwidth]{Results/figures/01_tracking/crescent_top.pdf}
+        \label{fig:res_uav_scenario}
+    }
+    \hfill
+    \subfloat[Paths with the \gls{nmpc} and with PX4 over one lap.]{
+        \includegraphics[width=0.48\textwidth]{Results/figures/01_tracking/crescent_track_top.pdf}
+        \label{fig:res_uav_track}
+    }
+    \caption{Reference trajectory of the \gls{uav} around the \gls{usv} and paths flown, seen from above.}
+    \label{fig:res_uav_crescent}
 \end{figure}
 
 % What is the NMPC compared with?
-As a baseline, the same trajectory is tracked by the position controller of PX4, the standard controller for trajectory tracking on multirotors. At each instant, this controller receives the current point of the trajectory and acts on the error between this point and the current position of the \gls{uav}. The \gls{nmpc} receives the trajectory over a one-second horizon and predicts the response of the \gls{uav} and of the tether. The comparison therefore quantifies the benefit of prediction.
+As a baseline, the same trajectory is tracked by the position controller supplied with PX4. At each instant, this controller receives the current point of the trajectory and acts on the error between this point and the current position of the \gls{uav}, whereas the \gls{nmpc} receives the trajectory over a one-second horizon and predicts the response of the \gls{uav} and of the tether. The comparison therefore quantifies the benefit of prediction.
 
-% Is the comparison fair?
-The trajectory lies well within the limits of both controllers. The tether imposes the tightest constraint, and the trajectory keeps clear of it. The separation between the vehicles stays between $16$ and $25\,\text{m}$, against a reach of $35\,\text{m}$, and its rate of change below $1.5\,\text{m/s}$, against the $2\,\text{m/s}$ of the winch. Since neither controller reaches its limits, the difference between the two results reflects only the tracking performance of each.
-
-% How closely do the two follow it?
-Both controllers keep the \gls{uav} on the trajectory, and over a full lap the paths are nearly indistinguishable from the reference, as shown in Figure~\ref{fig:res_uav_track}. The difference between them is of the order of centimetres. Over three laps, the position error of the \gls{nmpc} is more than four times smaller than that of PX4, both on average and at its maximum, as listed in Table~\ref{tab:res_uav}.
-
-\begin{figure}[htbp]
-    \centering
-    \includegraphics[width=0.55\textwidth]{Results/figures/01_tracking/crescent_track_top.pdf}
-    \caption{Path of the \gls{uav} with the \gls{nmpc} and with PX4 over one lap, seen from above, against the reference.}
-    \label{fig:res_uav_track}
-\end{figure}
-
-\begin{table}[htbp]
-    \centering
-    \caption{Position error of the \gls{uav} (cm).}
-    \label{tab:res_uav}
-    \begin{tabular*}{0.7\linewidth}{@{\extracolsep{\fill}}lrrrr}
-        \toprule
-        Controller & \gls{rmse} & Maximum & Horizontal & Vertical \\
-        \midrule
-        \gls{nmpc} & $6.5$ & $12.8$ & $6.4$ & $1.0$ \\
-        PX4 & $29.9$ & $53.8$ & $29.9$ & $1.8$ \\
-        \bottomrule
-    \end{tabular*}
-\end{table}
-
-% Why does the error of PX4 grow with the speed?
-The error of PX4 is not uniform along the lap. It increases on each fast arc and decreases on the slow turns, as shown in Figure~\ref{fig:res_uav_error}, which suggests a time delay, since a constant delay produces an error proportional to the speed. Such a delay is expected from a controller that corrects the error only after it occurs, whereas the \gls{nmpc} predicts the response of the \gls{uav} and anticipates it.
-
-\begin{figure}[htbp]
-    \centering
-    \includegraphics[width=0.85\textwidth]{Results/figures/01_tracking/crescent_error.pdf}
-    \caption{Position error of the \gls{uav}, with the speed of the reference shaded.}
-    \label{fig:res_uav_error}
-\end{figure}
-
-% Does the NMPC need a larger effort to track more closely?
-The higher accuracy of the \gls{nmpc} does not result from a larger control effort. Both controllers command nearly the same tilt and thrust along the lap, since both must produce the accelerations that the trajectory requires, as shown in Figure~\ref{fig:res_uav_commands}.
+% Is the reference within the limits of the UAV?
+The trajectory keeps both controllers well within the limits of the \gls{uav}, as shown in Figure~\ref{fig:res_uav_commands}. The commanded tilt stays below $9^\circ$, against a limit of $28.6^\circ$, and the commanded thrust varies by less than $2\,\text{N}$ about its value in hover. Both controllers command nearly the same tilt and thrust along the lap, since both must produce the accelerations that the trajectory requires. The difference between the two results therefore reflects only the tracking performance of each controller, and not a larger control effort or the limits of the \gls{uav}.
 
 \begin{figure}[htbp]
     \centering
@@ -188,10 +156,38 @@ The higher accuracy of the \gls{nmpc} does not result from a larger control effo
     \label{fig:res_uav_commands}
 \end{figure}
 
+% How closely do the two follow it?
+Over a full lap, the paths of both controllers are nearly indistinguishable from the reference, as shown in Figure~\ref{fig:res_uav_track}. Their errors are of the order of centimetres, and over three laps the error of the \gls{nmpc} is more than four times smaller than that of PX4, both on average and at its maximum, as listed in Table~\ref{tab:res_uav}.
+
+\begin{table}[htbp]
+    \centering
+    \caption{Position error of the \gls{uav} (cm).}
+    \label{tab:res_uav}
+    \begin{tabular*}{0.7\linewidth}{@{\extracolsep{\fill}}lrrrr}
+        \toprule
+        Controller & \gls{rmse} & Maximum & Horizontal & Vertical \\
+        \midrule
+        \gls{nmpc} & $6.5$ & $12.8$ & $6.4$ & $1.0$ \\
+        PX4 & $29.9$ & $53.8$ & $29.9$ & $1.8$ \\
+        \bottomrule
+    \end{tabular*}
+\end{table}
+
+\newpage
+% Why does the error of PX4 grow with the speed?
+The error of PX4 is not uniform along the lap. It increases on each fast arc and decreases on the slow turns, as shown in Figure~\ref{fig:res_uav_error}, and lies mostly along the path. On the fast arcs, PX4 trails the reference by about $80\,\text{ms}$, and a constant lag produces an error proportional to the speed. The \gls{nmpc}, which receives the trajectory ahead and predicts the response of the \gls{uav}, shows no such lag.
+
+\begin{figure}[htbp]
+    \centering
+    \includegraphics[width=0.85\textwidth]{Results/figures/01_tracking/crescent_error.pdf}
+    \caption{Position error of the \gls{uav}, with the speed of the reference shaded.}
+    \label{fig:res_uav_error}
+\end{figure}
+
 \subsubsection{Operating Limits}
 
-% What does the UAV do with a reference it cannot follow?
-As for the \gls{usv}, the controller is then evaluated on a second reference, in which each segment is designed to exceed a different limit, as shown in Figure~\ref{fig:res_uav_limits_top}. The first arc, of smaller radius, requires a tilt of about $37^\circ$, beyond the limit of $28.6^\circ$, and the second requires a horizontal speed of $11\,\text{m/s}$, beyond the limit of $10\,\text{m/s}$. The reference then performs two steps in height, the second of which lies at the surface of the water, below the minimum height of $2\,\text{m}$.
+% Which reference, and why this one?
+As for the \gls{usv}, the second reference asks the \gls{uav} for motions it cannot perform, with each manoeuvre designed to exceed a different limit, as shown in Figure~\ref{fig:res_uav_limits_top}. The first arc, of $15\,\text{m}$ radius at $10.5\,\text{m/s}$, requires a tilt of about $37^\circ$, beyond the limit of $28.6^\circ$, and the second requires a horizontal speed of $11\,\text{m/s}$, beyond the limit of $10\,\text{m/s}$. After moving away from the \gls{usv} and down, the reference performs two steps in height, the first up to $10\,\text{m}$ and the second down to the surface of the water, below the minimum height of $2\,\text{m}$.
 
 \begin{figure}[htbp]
     \centering
@@ -201,55 +197,27 @@ As for the \gls{usv}, the controller is then evaluated on a second reference, in
 \end{figure}
 
 % What happens when the tilt or the horizontal speed cannot follow the reference?
-On each arc, the \gls{nmpc} drives the \gls{uav} to the limits that render the reference unattainable and maintains it there until the end of the arc, as shown in Figure~\ref{fig:res_uav_limits_horizontal}. On the first arc, the tilt reaches its limit at the maximum admissible rate, and the horizontal speed soon reaches its own limit as well, since the tether pulls the \gls{uav} towards the centre of the arc and supplies part of the centripetal force. The speed then remains on its limit, while the tilt stays close to its own. On the second arc, the horizontal speed converges to its limit, while the tilt remains well below its own. In both cases the constrained variables settle on their limits without oscillation, so that each arc is flown at the highest speed the limits allow. The \gls{uav} consequently lags behind the reference, by up to about $5\,\text{m}$ at the end of the second arc, and reduces this lag by moving towards the centre of the arc, which explains why its path lies inside the reference. When the reference comes to rest, the \gls{uav} recovers the lag and resumes accurate tracking.
+On each arc, the \gls{nmpc} drives the \gls{uav} to the limits that make the reference unattainable and holds it there until the end of the arc, as shown in Figure~\ref{fig:res_uav_limits_horizontal}. On the first arc, the tilt reaches its limit at the maximum rate of the commanded roll and pitch, and the horizontal speed soon reaches its own limit as well. The tether, attached to the \gls{usv} at the centre of the arc, pulls the \gls{uav} inwards and adds to the horizontal force of the rotors. The centripetal acceleration therefore reaches about $7\,\text{m/s}^2$, against the $5.4\,\text{m/s}^2$ that the rotors provide with the tilt on its limit, so that the \gls{uav} holds $10\,\text{m/s}$ on this arc. On the second arc, the tilt reaches its limit only while the \gls{uav} accelerates, and the horizontal speed then settles on its limit with the tilt well below its own. In both cases the horizontal speed stays on its limit without oscillation, so that each arc is flown as fast as the limits allow.
+
+% How far does the UAV fall behind the reference?
+The \gls{uav} therefore falls behind the reference, by up to about $5\,\text{m}$ at the end of the second arc. Since the reference lies ahead along the arc, the \gls{nmpc} steers the \gls{uav} towards it across the inside of the arc, so that the \gls{uav} flies inside the reference, as shown in Figure~\ref{fig:res_uav_limits_top}. When the reference comes to rest, the \gls{uav} recovers this lag within about two seconds.
 
 \begin{figure}[htbp]
     \centering
-    \subfloat[Tilt.]{
-        \includegraphics[width=0.32\textwidth]{Results/figures/01_tracking/limits_tilt.pdf}
-        \label{fig:res_uav_limits_tilt}
-    }
-    \hfill
-    \subfloat[Rate of the commanded roll and pitch.]{
-        \includegraphics[width=0.32\textwidth]{Results/figures/01_tracking/limits_tilt_rate.pdf}
-        \label{fig:res_uav_limits_tilt_rate}
-    }
-    \hfill
-    \subfloat[Horizontal speed.]{
-        \includegraphics[width=0.32\textwidth]{Results/figures/01_tracking/limits_speed.pdf}
-        \label{fig:res_uav_limits_speed}
-    }
+    \includegraphics[width=\textwidth]{Results/figures/01_tracking/limits_horizontal.pdf}
     \caption{Tilt, its rate and horizontal speed of the \gls{uav} against their limits.}
     \label{fig:res_uav_limits_horizontal}
 \end{figure}
 
-% How does the prediction help on the steps in height?
-The steps in height illustrate the benefit of predicting the limits, as shown in Figure~\ref{fig:res_uav_limits_vertical}. The \gls{uav} climbs and descends at the maximum vertical speed of $3\,\text{m/s}$, which it attains through a rapid change of the thrust, while the thrust and its rate remain within their limits. During the descent, the minimum height enters the prediction horizon before the \gls{uav} reaches it, and the \gls{nmpc} decelerates the vehicle in advance, so that it comes to rest at $2\,\text{m}$ even though the reference lies at the surface of the water. A controller that acts only on the current error would respond to this limit only upon reaching it, and could not prevent the vehicle from crossing it.
+% What happens on the steps in height?
+On the steps in height, the \gls{uav} climbs and descends at the maximum vertical speed of $3\,\text{m/s}$, as shown in Figure~\ref{fig:res_uav_limits_vertical}, which it reaches through a rapid change of the thrust, with the thrust and its rate within their limits. During the descent, the minimum height enters the prediction horizon before the \gls{uav} reaches it, and the \gls{nmpc} begins to decelerate at about $3.3\,\text{m}$, so that the \gls{uav} comes to rest at $2\,\text{m}$ even though the reference lies at the surface of the water. Since stopping from $3\,\text{m/s}$ takes about $1.3\,\text{m}$, a controller that reacts to this limit only upon reaching it would cross it.
 
 \begin{figure}[htbp]
     \centering
-    \subfloat[Height.]{
-        \includegraphics[width=0.48\textwidth]{Results/figures/01_tracking/limits_height.pdf}
-        \label{fig:res_uav_limits_height}
-    }
-    \hfill
-    \subfloat[Vertical speed.]{
-        \includegraphics[width=0.48\textwidth]{Results/figures/01_tracking/limits_vz.pdf}
-        \label{fig:res_uav_limits_vz}
-    }
-    \\[2ex]
-    \subfloat[Thrust.]{
-        \includegraphics[width=0.48\textwidth]{Results/figures/01_tracking/limits_thrust.pdf}
-        \label{fig:res_uav_limits_thrust}
-    }
-    \hfill
-    \subfloat[Thrust rate.]{
-        \includegraphics[width=0.48\textwidth]{Results/figures/01_tracking/limits_thrust_rate.pdf}
-        \label{fig:res_uav_limits_thrust_rate}
-    }
+    \includegraphics[width=\textwidth]{Results/figures/01_tracking/limits_vertical.pdf}
     \caption{Height, vertical speed, thrust and thrust rate of the \gls{uav} against their limits.}
     \label{fig:res_uav_limits_vertical}
 \end{figure}
 
 % Are the limits respected?
-Throughout the test, the limits on the inputs, which are hard constraints, are never exceeded. The limits on the states are soft constraints and may be exceeded when no feasible solution exists, but they are exceeded only marginally, by less than $1\,\%$ and only in brief transients. As for the \gls{usv}, the \gls{nmpc} therefore uses the full capability of the \gls{uav} when the reference demands it, without driving the vehicle beyond its limits.
+Throughout the test, the limits on the inputs, which are hard constraints, are reached but never exceeded. The limits on the states targeted by the reference are soft constraints, which the \gls{nmpc} may exceed when no feasible solution exists, and are exceeded by less than $1\,\%$ and only in brief transients. As for the \gls{usv}, the controller therefore gives up following the reference only as far as the limits of the \gls{uav} require, and uses its full capability in doing so.

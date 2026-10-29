@@ -1,7 +1,8 @@
 #!/usr/bin/env python3
 """
 Section 5.1: actuator limits of the UAV (limits scenario of record_tracking.sh). Data: data/tracking_limits_nmpc.npz
-(extract.py). Prints how close each limit comes and writes one figure per panel to Results/figures/01_tracking.
+(extract.py). Prints how close each limit comes and writes the top view and two stacks
+(horizontal and vertical motion) to Results/figures/01_tracking.
 The time axis starts when the reference leaves its first point; the phases of the reference are marked.
 """
 import os
@@ -21,11 +22,10 @@ Z_MIN = 2.0
 TS = 0.02            # s, sampling time of the NMPC (rates from consecutive commands, see the pipeline notes)
 RAMP = 8.0           # s, entry from hover of the reference (test_uav_circle ramp_time): tau = t - RAMP/2 after it
 K = 1.7
-SIZE = (3.1 * K, 2.4 * K)      # two side by side in the thesis
-ROW = (2.05 * K, 1.75 * K)     # three side by side (tilt, its rate and the horizontal speed)
-MEDIAN = 9           # samples (0.18 s): removes the fast ripple that the tether force leaves on the command rates while
-                     # keeping their plateaus at the limit (a low-pass filter overshoots the limit at their edges); the
-                     # thrust rate has no plateau, and its one-sample peaks (99 N/s) drop to ~73 N/s
+MEDIAN = 9           # samples (0.18 s): removes the fast ripple that the tether force leaves on the roll and pitch rates
+                     # while keeping their plateaus at the limit (a low-pass filter overshoots the limit at their edges);
+                     # the thrust rate is left unfiltered, since it touches its limit for only 2-3 samples on each step
+                     # and has little ripple there
 
 
 def phase_marks():
@@ -83,43 +83,51 @@ def main():
     for name, ts in marks:
         print('  phase %-30s from %.1f s' % (name, ts))
 
-    def panel(name, ylabel, series, limits, size=SIZE):
-        fig, ax = plt.subplots(figsize=size)
-        ax.grid(True, alpha=0.3)
-        for _, ts in marks[1:]:
-            ax.axvline(ts, color=REF, lw=0.6, alpha=0.5)
-        for (tx, yx, lab, col) in series:
-            ax.plot(tx, yx, color=col, lw=0.9, label=lab)
-        for y in limits:
-            ax.axhline(y, color=LIMIT, ls='--', lw=0.9)
-        ax.set_xlabel('Time (s)'); ax.set_ylabel(ylabel); ax.set_xlim(0, t_end)
-        if len(series) > 1:
-            ax.legend(loc='best', fontsize=7)
-        fig.tight_layout()
+    # Stacked on a shared time axis, so that the limits reached at the same instant line up
+    def stack(name, rows, size, xlim):
+        fig, axs = plt.subplots(len(rows), 1, figsize=size, sharex=True)
+        for ax, (ylabel, series, limits) in zip(axs, rows):
+            ax.grid(True, alpha=0.3)
+            for _, ts in marks[1:]:
+                ax.axvline(ts, color=REF, lw=0.6, alpha=0.5)
+            for (tx, yx, lab, col) in series:
+                ax.plot(tx, yx, color=col, lw=0.9, label=lab)
+            for i, y in enumerate(limits):
+                ax.axhline(y, color=LIMIT, ls='--', lw=0.9, label='Limit' if i == 0 else None)
+            ax.set_ylabel(ylabel)
+            if len(series) > 1:
+                ax.legend(loc='best', fontsize=7, ncol=3)
+        axs[-1].set_xlabel('Time (s)'); axs[-1].set_xlim(*xlim)
+        fig.align_ylabels(axs); fig.tight_layout()
         save_figure(fig, os.path.join(OUT, name))
 
-    panel('limits_tilt', 'Tilt (deg)', [(tt, tilt, 'Measured', UAV), (tt, tilt_cmd, 'Commanded', REF)], [lim_tilt], ROW)
-    panel('limits_tilt_rate', 'Roll and pitch rate (deg/s)',
-          [(tt[1:], medfilt(roll_rate, MEDIAN), 'Roll', UAV), (tt[1:], medfilt(pitch_rate, MEDIAN), 'Pitch', COLOR_CYCLE[1])],
-          [lim_rate, -lim_rate], ROW)
-    panel('limits_thrust', 'Thrust (N)', [(tt, thrust, 'Thrust', UAV)], [UAV_LIM['T_min'], UAV_LIM['T_max']])
-    panel('limits_thrust_rate', 'Thrust rate (N/s)', [(tt[1:], medfilt(thrust_rate, MEDIAN), 'Thrust rate', UAV)],
-          [UAV_LIM['T_rate_max'], -UAV_LIM['T_rate_max']])
-    panel('limits_speed', 'Horizontal speed (m/s)', [(t, v_xy, 'Speed', UAV)], [UAV_LIM['v_max']], ROW)
+    # Each stack spans only its manoeuvres: the arcs, then the move down and the steps in height
+    t_split = dict(marks)['move out and down']
+    stack('limits_horizontal', [
+        ('Tilt\n(deg)', [(tt, tilt, 'Measured', UAV), (tt, tilt_cmd, 'Commanded', REF)], [lim_tilt]),
+        ('Roll and pitch\nrate (deg/s)', [(tt[1:], medfilt(roll_rate, MEDIAN), 'Roll', UAV),
+                                         (tt[1:], medfilt(pitch_rate, MEDIAN), 'Pitch', COLOR_CYCLE[1])],
+         [lim_rate, -lim_rate]),
+        ('Horizontal\nspeed (m/s)', [(t, v_xy, 'Speed', UAV)], [UAV_LIM['v_max']])], (6.3, 3.9), (0, t_split))
+    stack('limits_vertical', [
+        ('Height\n(m)', [(t, p[:, 2], 'Height', UAV)], [Z_MIN]),
+        ('Vertical\nspeed (m/s)', [(t, v[:, 2], 'Vertical speed', UAV)], [UAV_LIM['vz_max'], -UAV_LIM['vz_max']]),
+        ('Thrust\n(N)', [(tt, thrust, 'Thrust', UAV)], [UAV_LIM['T_min'], UAV_LIM['T_max']]),
+        ('Thrust rate\n(N/s)', [(tt[1:], thrust_rate, 'Thrust rate', UAV)],
+         [UAV_LIM['T_rate_max'], -UAV_LIM['T_rate_max']])], (6.3, 5.0), (t_split - 2.0, t_end))
+
     fig, ax = plt.subplots(figsize=(3.6 * K, 2.6 * K))
     ax.grid(True, alpha=0.3)
     mr = (ref[:, 0] >= t0) & (ref[:, 0] <= t1)
     ax.plot(ref[mr, 2], ref[mr, 1], color=REF, lw=0.9, ls='--', label='Reference')
     ax.plot(p[:, 1], p[:, 0], color=UAV, lw=0.9, label='UAV')
     ax.plot(b[:, 1].mean(), b[:, 0].mean(), 's', color=USV, ms=5, label='USV')
+    ax.annotate('Start', (p[0, 1], p[0, 0]), xytext=(-9, 0), textcoords='offset points', ha='right', va='center', fontsize=7)
+    ax.annotate('End', (p[-1, 1], p[-1, 0]), xytext=(9, 0), textcoords='offset points', ha='left', va='center', fontsize=7)
     ax.set_aspect('equal'); ax.invert_xaxis(); ax.set_xlabel('$y$ (m)'); ax.set_ylabel('$x$ (m)')
     ax.legend(loc='best', fontsize=7)
     fig.tight_layout()
     save_figure(fig, os.path.join(OUT, 'limits_top'))
-
-    panel('limits_vz','Vertical speed (m/s)', [(t, v[:, 2], 'Vertical speed', UAV)],
-          [UAV_LIM['vz_max'], -UAV_LIM['vz_max']])
-    panel('limits_height', 'Height (m)', [(t, p[:, 2], 'Height', UAV)], [Z_MIN])
 
 
 if __name__ == '__main__':

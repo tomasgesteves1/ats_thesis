@@ -54,6 +54,9 @@ def boat(ax, x, y, yaw, color=USV, alpha=0.9, L=4.9, W=2.4):
                          alpha=alpha, zorder=3))
 
 
+FIG_NAMES = {'wait': 'recovery'}   # wait.yaml is the recovery mission of the thesis
+
+
 def main(name, d_max, usv_margin=0.0):
     set_thesis_style()
     d = load(name)
@@ -112,7 +115,7 @@ def main(name, d_max, usv_margin=0.0):
     ax.legend(h, lab, loc='lower right' if name.startswith('inspection') else 'best', fontsize=7)
 
     fig.tight_layout()
-    save_figure(fig, os.path.join(OUT, name + '_paths'))
+    save_figure(fig, os.path.join(OUT, FIG_NAMES.get(name, name) + '_paths'))
 
     fig, (a0, a1, a2) = plt.subplots(3, 1, figsize=(6.3, 2.6) if wide else (3.3, 3.2), sharex=True,
                                      gridspec_kw={'height_ratios': [0.45, 0.8, 0.8] if wide else [0.8, 1.0, 1.0]})
@@ -133,7 +136,7 @@ def main(name, d_max, usv_margin=0.0):
     a0.set_xlim(0, t_end - t0)
     fig.align_ylabels([a0, a1, a2])
     fig.tight_layout(h_pad=0.4)
-    save_figure(fig, os.path.join(OUT, name + '_timeline'))
+    save_figure(fig, os.path.join(OUT, FIG_NAMES.get(name, name) + '_timeline'))
 
 
 if __name__ == '__main__':

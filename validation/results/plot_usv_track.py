@@ -8,11 +8,13 @@ and writes one figure per panel to Results/figures/01_tracking.
 import os
 import numpy as np
 import matplotlib.pyplot as plt
-from common import load, interp, rms, set_thesis_style, save_figure, FIGS, USV, REF, LIMIT, USV_LIM
+from common import load, interp, rms, set_thesis_style, save_figure, FIGS, USV, REF, LIMIT, USV_LIM, COLOR_CYCLE
 
 OUT = os.path.join(FIGS, '01_tracking')
 K = 1.7
 SIZE = (3.1 * K, 2.4 * K)
+ALIGNED = 5.0           # s, end of the initial heading alignment, left out of the metrics
+RIGHT = COLOR_CYCLE[5]   # right thruster, apart from the gray of the references
 
 
 def wrap(a):
@@ -35,10 +37,11 @@ def main():
     psi_ref = np.interp(b[m, 0], ref[:, 0], np.unwrap(ref[:, 4]))
     e_psi = np.degrees(wrap(b[m, 4] - psi_ref))
     speed = np.hypot(*np.gradient(p, b[m, 0], axis=0).T)
-    speed_ref = np.hypot(*np.gradient(r, b[m, 0], axis=0).T)
-    print('=== USV tracking over %.0f s ===' % (t1 - t0))
+    # Metrics of the table: after the USV has aligned its heading with the reference (the plots show the whole run)
+    k = t >= ALIGNED
+    print('=== USV tracking over %.0f s, metrics from %.0f s ===' % (t1 - t0, ALIGNED))
     print('position RMSE %.1f cm, max %.1f cm | heading RMSE %.2f deg, max %.2f deg | speed max %.2f m/s' % (
-        100 * rms(e), 100 * e.max(), rms(e_psi), np.abs(e_psi).max(), speed.max()))
+        100 * rms(e[k]), 100 * e[k].max(), rms(e_psi[k]), np.abs(e_psi[k]).max(), speed.max()))
 
     th = {}
     for side in ('left', 'right'):
@@ -62,17 +65,13 @@ def main():
     fig.tight_layout()
     save_figure(fig, os.path.join(OUT, 'usv_track_top'))
 
-    # --- Position and heading error, with the speed of the reference --------------------------------------------
+    # --- Position and heading error ---------------------------------------------------------------------------
     for name, y, ylabel, scale in (('usv_track_error', 100 * e, 'Position error (cm)', 1),
                                    ('usv_track_heading', e_psi, 'Heading error (deg)', 1)):
         fig, ax = plt.subplots(figsize=SIZE)
         ax.grid(True, alpha=0.3)
         ax.plot(t, y, color=USV, lw=0.9)
         ax.set_xlabel('Time (s)'); ax.set_ylabel(ylabel); ax.set_xlim(0, t[-1])
-        ax2 = ax.twinx()
-        ax2.fill_between(t, speed_ref, color=REF, alpha=0.15, lw=0)
-        ax2.set_ylabel('Reference speed (m/s)'); ax2.set_ylim(0, 4)
-        ax.set_zorder(ax2.get_zorder() + 1); ax.patch.set_visible(False)
         fig.tight_layout()
         save_figure(fig, os.path.join(OUT, name))
 
@@ -83,10 +82,10 @@ def main():
                                          np.degrees(1.0))):
         fig, ax = plt.subplots(figsize=SIZE)
         ax.grid(True, alpha=0.3)
-        for side, col in (('left', USV), ('right', REF)):
+        for side, col in (('left', USV), ('right', RIGHT)):
             ax.plot(th[side][k - 1], conv * th[side][k], color=col, lw=0.9, label=side.capitalize())
-        for y in lims:
-            ax.axhline(y, color=LIMIT, ls='--', lw=0.9)
+        for i, y in enumerate(lims):
+            ax.axhline(y, color=LIMIT, ls='--', lw=0.9, label='Limit' if i == 0 else None)
         ax.set_xlabel('Time (s)'); ax.set_ylabel(ylabel); ax.set_xlim(0, t[-1]); ax.legend(loc='best', fontsize=7)
         fig.tight_layout()
         save_figure(fig, os.path.join(OUT, name))
