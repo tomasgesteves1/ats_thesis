@@ -9,6 +9,9 @@
 \section{Software Architecture and Mission Control}
 \label{sec:software_architecture_and_dashboard}
 
+% What does this section present?
+The models, controllers and manoeuvres of the previous sections are implemented as independent software components, integrated with the simulator and with the autopilot of the \gls{uav}. This section describes the architecture that connects these components and the interface through which an operator executes the missions. The code of the system is publicly available at \url{https://github.com/tomasgesteves1/tethered-usv-uav-nmpc}.
+
 \subsection{Architecture}
 \label{subsec:integrated_software_architecture}
 
@@ -39,7 +42,7 @@ The Mission Control Centre is a web page, shown in Figure~\ref{fig:mission_contr
 
 \begin{figure}[H]
     \centering
-    \includegraphics[width=0.8\textwidth]{Implementation/figures/05_software_architecture/mission_control_centre.png}
+    \includegraphics[width=1.0\textwidth]{Implementation/figures/05_software_architecture/mission_control_centre.png}
     \caption{Mission Control Centre during the scout mission.}
     \label{fig:mission_control_centre}
 \end{figure}
