@@ -51,7 +51,7 @@ The catamaran has an overall length of $4.90\,\text{m}$ and a beam of $2.40\,\te
 
 \input{Implementation/figures/01_simulation_environment/wamv_layout.tex}
 
-The behaviour of the \gls{usv} on the water is determined by how the simulator reproduces the forces that the water exerts on it. The hulls are kept afloat by a buoyancy force, which is calculated from the volume of each hull below the water surface. When waves are present, this volume changes along the hulls and the catamaran pitches and rolls accordingly. As the \gls{usv} moves, the water also resists its motion through drag forces and moments applied in the six \glspl{dof}. For a velocity $\nu_i$ along or about each degree of freedom, the drag is
+The behaviour of the \gls{usv} on the water is determined by how the simulator reproduces the forces that the water exerts on it. The hulls are kept afloat by a buoyancy force, which is calculated from the volume of each hull below the water surface. When waves are present, this volume changes along the hulls and the catamaran pitches and rolls accordingly. As the \gls{usv} moves, the water also resists its motion through drag forces and moments applied in the six degrees of freedom. For a velocity $\nu_i$ along or about each degree of freedom, the drag is
 \begin{equation}
     D_i = -\left(d_i^{\text{lin}} + d_i^{\text{quad}}\,|\nu_i|\right)\nu_i,
     \label{eq:usv_drag}
@@ -240,12 +240,12 @@ To evaluate the effect of the slack ratio, the same $60\,\text{s}$ trajectory of
 \begin{figure}[!htbp]
     \centering
     \subfloat[Distance and tether length.]{
-        \includegraphics[width=0.48\textwidth]{Implementation/figures/01_simulation_environment/slack_geometry.pdf}
+        \includegraphics{Implementation/figures/01_simulation_environment/slack_geometry.pdf}
         \label{fig:winch_geometry}
     }
     \hfill
     \subfloat[Tension at the \gls{uav}.]{
-        \includegraphics[width=0.48\textwidth]{Implementation/figures/01_simulation_environment/slack_tension.pdf}
+        \includegraphics{Implementation/figures/01_simulation_environment/slack_tension.pdf}
         \label{fig:winch_tension}
     }
     \caption{Tether length and tension for different slack ratios.}

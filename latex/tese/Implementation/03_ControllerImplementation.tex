@@ -15,14 +15,14 @@
 % With the simulator built and the models validated, what comes next?
 With the simulation environment of Section~\ref{sec:simulation_environment} developed and the models validated against it in Section~\ref{sec:model_validation}, the next step is to implement the controllers of Chapter~\ref{chapter:methodology}, which use these models to drive both vehicles.
 
-\subsection{Optimization Framework}
+\subsection{Optimisation Framework}
 \label{subsec:nmpc_solver_framework}
 
 % Which tools implement the NMPC?
 The controllers of Chapter~\ref{chapter:methodology} must solve an optimisation problem at every sampling instant, within the time available before the next one. To make this possible, they are implemented with two complementary tools. The problem is first written in CasADi~\cite{anderssonCasADiSoftwareFramework2019}, which describes the models, the cost, and the constraints as symbolic expressions and obtains their derivatives automatically. From this description, acados~\cite{verschueren2022acados} generates a solver in C dedicated to that specific problem, which is compiled once, before operation. During operation, each controller only runs this compiled solver, which is much faster than a general-purpose optimiser.
 
 % How is the problem discretised and solved?
-The prediction model requires integrating the vehicle models over each sampling interval, which is done with the fourth-order Runge--Kutta method~\cite{kutta1901}. Since the models are nonlinear, the resulting problem cannot be solved directly, and acados approaches the solution iteratively, solving at each iteration a simpler, quadratic approximation of the problem~\cite{frison2020hpipm}. More iterations bring the result closer to the solution, but take more time.
+The prediction model requires integrating the vehicle models over each sampling interval, which is done with the fourth-order Runge--Kutta method~\cite{kutta1901}. Since the models are non-linear, the resulting problem cannot be solved directly, and acados approaches the solution iteratively, solving at each iteration a simpler, quadratic approximation of the problem~\cite{frison2020hpipm}. More iterations bring the result closer to the solution, but take more time.
 
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -83,11 +83,11 @@ Since the solver approaches the solution iteratively, its settings trade the qua
 \begin{figure}[htbp]
     \centering
     \subfloat[Computation time.]{
-        \includegraphics[width=0.48\textwidth]{Implementation/figures/03_controller_implementation/usv_solver_time.pdf}
+        \includegraphics{Implementation/figures/03_controller_implementation/usv_solver_time.pdf}
         \label{fig:usv_solver_time}
     }
     \subfloat[Optimality residual.]{
-        \includegraphics[width=0.48\textwidth]{Implementation/figures/03_controller_implementation/usv_solver_residual.pdf}
+        \includegraphics{Implementation/figures/03_controller_implementation/usv_solver_residual.pdf}
         \label{fig:usv_solver_residual}
     }
     \caption{\Gls{usv} \gls{nmpc} computation time and optimality residual for different solver settings.}
@@ -192,11 +192,11 @@ The same comparison was made for the \gls{uav}, close to its limits, between ite
 \begin{figure}[htbp]
     \centering
     \subfloat[Computation time.]{
-        \includegraphics[width=0.48\textwidth]{Implementation/figures/03_controller_implementation/uav_solver_time.pdf}
+        \includegraphics{Implementation/figures/03_controller_implementation/uav_solver_time.pdf}
         \label{fig:uav_solver_time}
     }
     \subfloat[Optimality residual.]{
-        \includegraphics[width=0.48\textwidth]{Implementation/figures/03_controller_implementation/uav_solver_residual.pdf}
+        \includegraphics{Implementation/figures/03_controller_implementation/uav_solver_residual.pdf}
         \label{fig:uav_solver_residual}
     }
     \caption{\Gls{uav} \gls{nmpc} computation time and optimality residual for different solver settings.}

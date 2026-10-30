@@ -45,11 +45,11 @@ To compare the model with the simulator, the \gls{usv} was driven in open loop f
 \begin{figure}[htbp]
     \centering
     \subfloat[Thrust commands.]{
-        \includegraphics[width=0.48\textwidth]{Implementation/figures/02_model_validation/usv_actuator_inputs_thrust.pdf}
+        \includegraphics{Implementation/figures/02_model_validation/usv_actuator_inputs_thrust.pdf}
         \label{fig:usv_actuator_inputs_thrust}
     }
     \subfloat[Azimuth angle commands.]{
-        \includegraphics[width=0.48\textwidth]{Implementation/figures/02_model_validation/usv_actuator_inputs_azimuth.pdf}
+        \includegraphics{Implementation/figures/02_model_validation/usv_actuator_inputs_azimuth.pdf}
         \label{fig:usv_actuator_inputs_azimuth}
     }
     \caption{\Gls{usv} thruster inputs.}
@@ -61,15 +61,15 @@ The dynamics of the model are first tested over the whole run, in a single conti
 \begin{figure}[htbp]
     \centering
     \subfloat[Surge velocity $u$.]{
-        \includegraphics[width=0.32\textwidth]{Implementation/figures/02_model_validation/usv_velocity_u_validation.pdf}
+        \includegraphics{Implementation/figures/02_model_validation/usv_velocity_u_validation.pdf}
         \label{fig:usv_velocity_u_validation}
     }
     \subfloat[Sway velocity $v$.]{
-        \includegraphics[width=0.32\textwidth]{Implementation/figures/02_model_validation/usv_velocity_v_validation.pdf}
+        \includegraphics{Implementation/figures/02_model_validation/usv_velocity_v_validation.pdf}
         \label{fig:usv_velocity_v_validation}
     }
     \subfloat[Yaw rate $r$.]{
-        \includegraphics[width=0.32\textwidth]{Implementation/figures/02_model_validation/usv_velocity_r_validation.pdf}
+        \includegraphics{Implementation/figures/02_model_validation/usv_velocity_r_validation.pdf}
         \label{fig:usv_velocity_r_validation}
     }
     \caption{\Gls{usv} body-fixed velocities validation.}
@@ -80,7 +80,7 @@ The \gls{nmpc} does not use the model over the whole run, but over a prediction 
 
 \begin{figure}[htbp]
     \centering
-    \includegraphics[width=0.50\textwidth]{Implementation/figures/02_model_validation/usv_prediction_trajectory.pdf}
+    \includegraphics{Implementation/figures/02_model_validation/usv_prediction_trajectory.pdf}
     \caption{\Gls{usv} trajectory and $2.0\,\text{s}$ predictions.}
     \label{fig:usv_trajectory_validation}
 \end{figure}
@@ -90,19 +90,19 @@ The error of these predictions grows with how far ahead they are made. Figure~\r
 \begin{figure}[htbp]
     \centering
     \subfloat[Position error $e_p$.\label{fig:usv_prediction_error_pos}]{
-        \includegraphics[width=0.48\textwidth]{Implementation/figures/02_model_validation/usv_prediction_error_pos.pdf}
+        \includegraphics{Implementation/figures/02_model_validation/usv_prediction_error_pos.pdf}
     }
     \hfill
     \subfloat[Heading error $e_\psi$.\label{fig:usv_prediction_error_psi}]{
-        \includegraphics[width=0.48\textwidth]{Implementation/figures/02_model_validation/usv_prediction_error_psi.pdf}
+        \includegraphics{Implementation/figures/02_model_validation/usv_prediction_error_psi.pdf}
     }
     \\[2ex]
     \subfloat[Linear velocity error $e_v$.\label{fig:usv_prediction_error_vel}]{
-        \includegraphics[width=0.48\textwidth]{Implementation/figures/02_model_validation/usv_prediction_error_vel.pdf}
+        \includegraphics{Implementation/figures/02_model_validation/usv_prediction_error_vel.pdf}
     }
     \hfill
     \subfloat[Yaw rate error $e_r$.\label{fig:usv_prediction_error_r}]{
-        \includegraphics[width=0.48\textwidth]{Implementation/figures/02_model_validation/usv_prediction_error_r.pdf}
+        \includegraphics{Implementation/figures/02_model_validation/usv_prediction_error_r.pdf}
     }
     \caption{\Gls{usv} prediction errors as a function of the prediction horizon.}
     \label{fig:usv_prediction_error}
@@ -178,15 +178,15 @@ To compare the model with the simulator, the \gls{uav} flew for $126\,\text{s}$ 
 \begin{figure}[!htbp]
     \centering
     \subfloat[Roll and pitch commands.]{
-        \includegraphics[width=0.32\textwidth]{Implementation/figures/02_model_validation/uav_actuator_inputs_attitude.pdf}
+        \includegraphics{Implementation/figures/02_model_validation/uav_actuator_inputs_attitude.pdf}
         \label{fig:uav_actuator_inputs_attitude}
     }
     \subfloat[Yaw command.]{
-        \includegraphics[width=0.32\textwidth]{Implementation/figures/02_model_validation/uav_actuator_inputs_yaw.pdf}
+        \includegraphics{Implementation/figures/02_model_validation/uav_actuator_inputs_yaw.pdf}
         \label{fig:uav_actuator_inputs_yaw}
     }
     \subfloat[Thrust command.]{
-        \includegraphics[width=0.32\textwidth]{Implementation/figures/02_model_validation/uav_actuator_inputs_thrust.pdf}
+        \includegraphics{Implementation/figures/02_model_validation/uav_actuator_inputs_thrust.pdf}
         \label{fig:uav_actuator_inputs_thrust}
     }
     \caption{\Gls{uav} attitude and thrust commands during the validation flight.}
@@ -199,15 +199,15 @@ The attitude of the vehicle does not reach the commanded attitude instantly, so 
 \begin{figure}[!htbp]
     \centering
     \subfloat[Roll.]{
-        \includegraphics[width=0.32\textwidth]{Implementation/figures/02_model_validation/uav_attitude_roll_validation.pdf}
+        \includegraphics{Implementation/figures/02_model_validation/uav_attitude_roll_validation.pdf}
         \label{fig:uav_attitude_roll_validation}
     }
     \subfloat[Pitch.]{
-        \includegraphics[width=0.32\textwidth]{Implementation/figures/02_model_validation/uav_attitude_pitch_validation.pdf}
+        \includegraphics{Implementation/figures/02_model_validation/uav_attitude_pitch_validation.pdf}
         \label{fig:uav_attitude_pitch_validation}
     }
     \subfloat[Yaw.]{
-        \includegraphics[width=0.32\textwidth]{Implementation/figures/02_model_validation/uav_attitude_yaw_validation.pdf}
+        \includegraphics{Implementation/figures/02_model_validation/uav_attitude_yaw_validation.pdf}
         \label{fig:uav_attitude_yaw_validation}
     }
     \caption{\Gls{uav} attitude tracking. Simulation and model with the nominal attitude response.}
@@ -220,15 +220,15 @@ The model is first compared with the simulator on the inertial acceleration of t
 \begin{figure}[!htbp]
     \centering
     \subfloat[Along $x$.]{
-        \includegraphics[width=0.32\textwidth]{Implementation/figures/02_model_validation/uav_acceleration_x_validation.pdf}
+        \includegraphics{Implementation/figures/02_model_validation/uav_acceleration_x_validation.pdf}
         \label{fig:uav_acceleration_x_validation}
     }
     \subfloat[Along $y$.]{
-        \includegraphics[width=0.32\textwidth]{Implementation/figures/02_model_validation/uav_acceleration_y_validation.pdf}
+        \includegraphics{Implementation/figures/02_model_validation/uav_acceleration_y_validation.pdf}
         \label{fig:uav_acceleration_y_validation}
     }
     \subfloat[Along $z$.]{
-        \includegraphics[width=0.32\textwidth]{Implementation/figures/02_model_validation/uav_acceleration_z_validation.pdf}
+        \includegraphics{Implementation/figures/02_model_validation/uav_acceleration_z_validation.pdf}
         \label{fig:uav_acceleration_z_validation}
     }
     \caption{\Gls{uav} inertial acceleration.}
@@ -240,7 +240,7 @@ The \gls{nmpc} does not use the model over the whole flight, but over a predicti
 
 \begin{figure}[!htbp]
     \centering
-    \includegraphics[width=0.50\textwidth]{Implementation/figures/02_model_validation/uav_prediction_trajectory.pdf}
+    \includegraphics{Implementation/figures/02_model_validation/uav_prediction_trajectory.pdf}
     \caption{\Gls{uav} trajectory and $1.0\,\text{s}$ predictions.}
     \label{fig:uav_prediction_trajectory}
 \end{figure}
@@ -250,12 +250,12 @@ The error of these predictions grows with how far ahead they are made. Figure~\r
 \begin{figure}[!htbp]
     \centering
     \subfloat[Position error.]{
-        \includegraphics[width=0.48\textwidth]{Implementation/figures/02_model_validation/uav_prediction_error_pos.pdf}
+        \includegraphics{Implementation/figures/02_model_validation/uav_prediction_error_pos.pdf}
         \label{fig:uav_prediction_error_pos}
     }
     \hfill
     \subfloat[Velocity error.]{
-        \includegraphics[width=0.48\textwidth]{Implementation/figures/02_model_validation/uav_prediction_error_vel.pdf}
+        \includegraphics{Implementation/figures/02_model_validation/uav_prediction_error_vel.pdf}
         \label{fig:uav_prediction_error_vel}
     }
     \caption{\Gls{uav} prediction errors as a function of the prediction horizon.}
@@ -333,7 +333,7 @@ Figure~\ref{fig:model_fit_comparison} compares the tension of the model with tha
 
 \begin{figure}[htbp]
     \centering
-    \includegraphics[width=0.55\textwidth]{Implementation/figures/02_model_validation/model_fit_comparison.pdf}
+    \includegraphics{Implementation/figures/02_model_validation/model_fit_comparison.pdf}
     \caption{Tether tension of the model and of the simulator.}
     \label{fig:model_fit_comparison}
 \end{figure}
@@ -341,11 +341,11 @@ Figure~\ref{fig:model_fit_comparison} compares the tension of the model with tha
 \begin{figure}[htbp]
     \centering
     \subfloat[Force along $x$.]{
-        \includegraphics[width=0.48\textwidth]{Implementation/figures/02_model_validation/model_fit_fx.pdf}
+        \includegraphics{Implementation/figures/02_model_validation/model_fit_fx.pdf}
         \label{fig:model_fit_fx}
     }
     \subfloat[Force along $z$.]{
-        \includegraphics[width=0.48\textwidth]{Implementation/figures/02_model_validation/model_fit_fz.pdf}
+        \includegraphics{Implementation/figures/02_model_validation/model_fit_fz.pdf}
         \label{fig:model_fit_fz}
     }
     \caption{Tether force components at the \gls{uav}.}
@@ -357,7 +357,7 @@ Figure~\ref{fig:model_fit_residuals} shows, for each model, the error of the for
 
 \begin{figure}[htbp]
     \centering
-    \includegraphics[width=0.55\textwidth]{Implementation/figures/02_model_validation/model_fit_residuals.pdf}
+    \includegraphics{Implementation/figures/02_model_validation/model_fit_residuals.pdf}
     \caption{Error of the force vector of the tether models.}
     \label{fig:model_fit_residuals}
 \end{figure}

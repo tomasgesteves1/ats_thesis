@@ -19,8 +19,10 @@ The models, controllers and manoeuvres of the previous sections are implemented 
 The software is built on \gls{ros}~2~\cite{macenski2022ros2}, in which each component runs as an independent node, and the nodes exchange messages through named topics. The controllers therefore do not depend on whether their data comes from the simulation or from the real vehicles.
 
 % How are the components connected?
-Figure~\ref{fig:architecture} shows the components and the main data exchanged between them. Gazebo simulates the vehicles and the waves, while PX4 runs as the autopilot of the \gls{uav}, in lockstep with the simulation. Each is connected to \gls{ros}~2 by a bridge, the ROS--Gazebo bridge~\cite{ros_gz} and the Micro XRCE-DDS agent~\cite{micro_xrce_dds}. The tether node applies in Gazebo the force of the tether, computed by MoorDyn~\cite{hall2015moordyn} for the length set by the winch. The two \gls{nmpc} controllers send their commands to the thrusters of the \gls{usv} and to the autopilot of the \gls{uav} while exchanging their predicted trajectories, and the mission executor produces the references of both. A web server connects \gls{ros}~2 to a Mission Control Centre.
+Figure~\ref{fig:architecture} shows the components and the main data exchanged between them. Gazebo simulates the vehicles and the waves, while PX4 runs as the autopilot of the \gls{uav}, in lockstep with the simulation. Each is connected to \gls{ros}~2 by a bridge, the \gls{ros}--Gazebo bridge~\cite{ros_gz} and the Micro XRCE-DDS agent~\cite{micro_xrce_dds}. The tether node applies in Gazebo the force of the tether, computed by MoorDyn~\cite{hall2015moordyn} for the length set by the winch. The two \gls{nmpc} controllers send their commands to the thrusters of the \gls{usv} and to the autopilot of the \gls{uav} while exchanging their predicted trajectories, and the mission executor produces the references of both. A web server connects \gls{ros}~2 to a Mission Control Centre.
 
+% acronyms that appear only in the figure, listed in the list of acronyms
+\glsadd{sitl}\glsadd{uorb}\glsadd{dds}
 \begin{figure}[htbp]
     \centering
     \includegraphics[width=0.85\textwidth]{Implementation/figures/05_software_architecture/architecture.pdf}

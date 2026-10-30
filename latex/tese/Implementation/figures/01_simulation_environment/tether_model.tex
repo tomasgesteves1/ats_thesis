@@ -1,5 +1,6 @@
 \begin{figure}[!htbp]
     \centering
+    \definecolor{okiVermillion}{rgb}{0.835,0.369,0.0}
     \subfloat[Tether divided into nodes and segments.]{
         \begin{tikzpicture}[
             node/.style={circle, fill=black, inner sep=1.6pt},
@@ -39,7 +40,7 @@
     \subfloat[Forces on a node.]{
         \begin{tikzpicture}[
             node/.style={circle, fill=black, inner sep=1.6pt},
-            force/.style={-{Stealth[length=6pt]}, very thick, red!70!black},
+            force/.style={-{Stealth[length=4pt]}, very thick, okiVermillion},
             lab/.style={font=\scriptsize}
         ]
             \coordinate (c) at (0,0);
@@ -59,7 +60,7 @@
             \draw[force] (c) -- ($(c)!1.5cm!(b)$) node[lab, midway, above, sloped, black, inner sep=2pt] {$\mathbf{T}_{i}$};
             \draw[force] (c) -- (0,-1.1) node[lab, below, black] {$m_i\mathbf{g}$};
             % Velocity and drag
-            \draw[-{Stealth[length=5pt]}, thin, gray, dashed] (c) -- (0.75,0.8) node[lab, right, black] {$\mathbf{v}_i$};
+            \draw[-{Stealth[length=4pt]}, thin, gray, dashed] (c) -- (0.75,0.8) node[lab, right, black] {$\mathbf{v}_i$};
             \draw[force] (c) -- (-0.75,-0.8) node[lab, left, black] {$\mathbf{F}^{\text{drag}}_i$};
         \end{tikzpicture}
         \label{fig:tether_forces}
