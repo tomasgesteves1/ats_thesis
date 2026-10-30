@@ -189,7 +189,7 @@ def wind():
     # landing in the strongest wind, with and without the estimate: height above the winch and offset from it (same
     # order as the landing without waves and wind)
     fig, axs2 = plt.subplots(2, 1, figsize=fig_size('wind_landing'), sharex=True)
-    for obs, c, lab in (('noobs', COLOR_CYCLE[1], 'without estimate'), ('obs', COLOR_CYCLE[0], 'with estimate')):
+    for obs, c, lab in (('noobs', COLOR_CYCLE[1], 'without observer'), ('obs', COLOR_CYCLE[0], 'with observer')):
         dd = load(RUN.get((WIND_FIG, obs), 'landing_wind%d_%s' % (WIND_FIG, obs))); dr = dd['drone']
         tl = ev_time(dd, 'uav.land: started'); td = ev_time(dd, 'touchdown')
         te = td + 3.0 if td is not None else dr[-1, 0]

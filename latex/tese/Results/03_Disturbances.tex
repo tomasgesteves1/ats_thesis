@@ -21,8 +21,8 @@ Without waves and wind, each phase of the landing completes as intended, as show
 % How does the landing change with the waves?
 The landing is then repeated in two seas, with significant wave heights of $0.6$ and $1.2\,\text{m}$. Since the descent is referenced to the mean height of the winch, the \gls{uav} descends as it does without waves, and is centred, touches down within $4\,\text{cm}$ of the centre of the pad and completes the landing in the same time, as listed in Table~\ref{tab:res_landing}. What the waves change is the contact. Since the final approach descends slowly towards a point below the deck, the speed of the contact is set by the motion of the deck, and grows from $0.15\,\text{m/s}$ without waves to $0.39\,\text{m/s}$ in the higher sea, still below the default landing speed of PX4, of $0.7\,\text{m/s}$~\cite{px4_parameters}.
 
-% How does the wind affect the landing without the estimate of the unmodelled force?
-The wind acts on the \gls{uav} as a horizontal drag force along a fixed direction, with gusts of $\pm 30\,\%$, and is applied with the waves of $0.6\,\text{m}$ at $5$ and $8\,\text{m/s}$, the stronger producing a mean force of $2.3\,\text{N}$, about a ninth of the weight of the \gls{uav}. Without the estimate of the unmodelled force of Section~\ref{sec:ctrl_uav_mpc}, the wind holds the \gls{uav} away from the pad, and it is never centred above it, as shown in Figure~\ref{fig:res_wind_landing} for the stronger wind. The descent then starts only when the wait for the centring times out, so that the landing takes more than twice as long and ends away from the centre of the pad.
+% How does the wind affect the landing without the disturbance observer?
+The wind acts on the \gls{uav} as a horizontal drag force along a fixed direction, with gusts of $\pm 30\,\%$, and is applied with the waves of $0.6\,\text{m}$ at $5$ and $8\,\text{m/s}$, the stronger producing a mean force of $2.3\,\text{N}$, about a ninth of the weight of the \gls{uav}. Without the disturbance observer of Section~\ref{sec:ctrl_uav_mpc}, the wind holds the \gls{uav} away from the pad, and it is never centred above it, as shown in Figure~\ref{fig:res_wind_landing} for the stronger wind. The descent then starts only when the wait for the centring times out, so that the landing takes more than twice as long and ends away from the centre of the pad.
 
 \begin{figure}[htbp]
     \centering
@@ -31,7 +31,7 @@ The wind acts on the \gls{uav} as a horizontal drag force along a fixed directio
         \label{fig:res_landing_nominal}
     }
     \hfill
-    \subfloat[Wind of $8\,\text{m/s}$, with and without the estimate of the unmodelled force.]{
+    \subfloat[Wind of $8\,\text{m/s}$, with and without the disturbance observer.]{
         \includegraphics{Results/figures/03_disturbances/wind_landing.pdf}
         \label{fig:res_wind_landing}
     }
@@ -39,8 +39,8 @@ The wind acts on the \gls{uav} as a horizontal drag force along a fixed directio
     \label{fig:res_landing}
 \end{figure}
 
-% What does the estimate change?
-With the estimate, the \gls{uav} is centred soon after it arrives, and the landing takes the same time as without wind, as listed in Table~\ref{tab:res_landing}. In both winds, it touches down within $2\,\text{cm}$ of the centre of the pad.
+% What does the observer change?
+With the observer, the \gls{uav} is centred soon after it arrives, and the landing takes the same time as without wind, as listed in Table~\ref{tab:res_landing}. In both winds, it touches down within $2\,\text{cm}$ of the centre of the pad.
 
 \begin{table}[htbp]
     \centering
@@ -54,7 +54,7 @@ With the estimate, the \gls{uav} is centred soon after it arrives, and the landi
         Waves of $0.6\,\text{m}$ & $3.8$ & $2$ & $0.26$ & $25.2$ \\
         Waves of $1.2\,\text{m}$ & $1.3$ & $4$ & $0.39$ & $26.9$ \\
         \midrule
-        \multicolumn{5}{l}{\textit{Wind, without / with the estimate of the unmodelled force}} \\
+        \multicolumn{5}{l}{\textit{Wind, without / with the disturbance observer}} \\
         $5\,\text{m/s}$  & $18.3$ / $4.3$  & $7$ / $1$ & $0.73$ / $0.26$ & $63.2$ / $27.7$ \\
         $8\,\text{m/s}$  & $44.1$ / $6.4$  & $7$ / $2$ & $0.17$ / $0.25$ & $64.2$ / $26.1$ \\
         \bottomrule

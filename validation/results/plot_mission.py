@@ -18,7 +18,7 @@ Z_ANCHOR = 1.25
 D_DOT_MAX = 2.0   # m/s, maximum rate of change of the separation (speed of the winch)
 NAMES = {'takeoff': 'Takeoff', 'formation': 'Formation', 'scout': 'Formation', 'watch': 'Formation',
          'orbit': 'Orbit', 'chase': 'Follow', 'land': 'Landing', 'wait': 'Hold', 'route': 'Route', 'stop': 'Hold',
-         'support': 'Support', 'pursuit': 'Follow', 'held': 'Formation', 'stay': 'Formation', 'return': 'Return',
+         'support': 'Support', 'pursuit': 'Follow', 'held': 'Formation', 'stay': 'Formation', 'return': 'Route ',   # a second route (trailing space: not merged with the first)
          'lap1': 'Lap 1', 'lap2': 'Lap 2', 'lap3': 'Lap 3'}
 SHADES = ['#dce6f2', '#b9cde6', '#94b3d9', '#6f99cc', '#4a7fbf']
 LAP_COLORS = ['#9ecae1', '#4292c6', '#08306b']   # inspection laps, from the lowest to the highest
