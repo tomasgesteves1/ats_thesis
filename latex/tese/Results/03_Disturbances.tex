@@ -6,64 +6,57 @@
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 % ==============================================================================
-\section{Disturbances}
+\section{Landing on the Moving Deck}
 \label{sec:res_disturbances}
 
-% What is tested in this section?
-The models of the controllers describe neither the waves nor the wind, and the previous results were obtained with the default sea and without wind. This section tests whether the landing on the deck of the moving \gls{usv}, the manoeuvre that depends most on these disturbances, remains accurate as they grow. In each run, the \gls{uav} takes off while the \gls{usv} starts a route at $0.75\,\text{m/s}$, moves away from the \gls{usv} and lands back on the pad, in the phases described in Section~\ref{subsec:maneuver_primitives}.
+% What is evaluated in this section, and why before the missions?
+With the tracking of each controller established, the evaluation turns to the landing on the deck of the moving \gls{usv}, the manoeuvre that closes every mission. Unlike the other manoeuvres, which reduce to following a reference, the landing brings the \gls{uav} into contact with a deck that moves with the waves, and it is therefore the manoeuvre that depends most on the sea.
 
-\subsection{Waves}
-\label{subsec:res_waves}
+% How is the landing evaluated?
+In each run, the \gls{uav} takes off while the \gls{usv} starts a route at $0.75\,\text{m/s}$, moves away from it and then lands back on the pad, in the phases described in Section~\ref{subsec:maneuver_primitives}. A landing is judged by four criteria. The \gls{uav} must be centred above the pad when the descent starts, touch down close to the centre of the pad, which is $0.40\,\text{m}$ wide, meet the deck at a low speed, and complete the landing without delay.
 
-% How rough is the sea?
-The sea is set by a gain applied to the wave field of the simulator, and three seas are tested, a calm sea, the default sea of the previous results and a sea twice as rough. In the roughest, the winch rises and falls by $0.44\,\text{m}$ about its mean height, with a period of about $5\,\text{s}$, and the deck also rolls and pitches, which moves the winch sideways, as shown in Figure~\ref{fig:res_waves}.
+% Does each phase of the landing do what it is meant to?
+Without waves and wind, each phase of the landing completes as intended, as shown in Figure~\ref{fig:res_landing_nominal}. The \gls{uav} moves above the winch in about $7\,\text{s}$ and, once centred within $3\,\text{cm}$ of it, descends with the winch pulling it towards the deck. The final approach then brings it into contact with the pad at $0.15\,\text{m/s}$, less than $1\,\text{cm}$ from its centre, $26\,\text{s}$ after the landing started.
+
+% How does the landing change with the waves?
+The landing is then repeated in two seas, with significant wave heights of $0.6$ and $1.2\,\text{m}$. Since the descent is referenced to the mean height of the winch, the \gls{uav} descends as it does without waves, and is centred, touches down within $4\,\text{cm}$ of the centre of the pad and completes the landing in the same time, as listed in Table~\ref{tab:res_landing}. What the waves change is the contact. Since the final approach descends slowly towards a point below the deck, the speed of the contact is set by the motion of the deck, and grows from $0.15\,\text{m/s}$ without waves to $0.39\,\text{m/s}$ in the higher sea, still below the default landing speed of PX4, of $0.7\,\text{m/s}$~\cite{px4_parameters}.
+
+% How does the wind affect the landing without the estimate of the unmodelled force?
+The wind acts on the \gls{uav} as a horizontal drag force along a fixed direction, with gusts of $\pm 30\,\%$, and is applied with the waves of $0.6\,\text{m}$ at $5$ and $8\,\text{m/s}$, the stronger producing a mean force of $2.3\,\text{N}$, about a ninth of the weight of the \gls{uav}. Without the estimate of the unmodelled force of Section~\ref{sec:ctrl_uav_mpc}, the wind holds the \gls{uav} away from the pad, and it is never centred above it, as shown in Figure~\ref{fig:res_wind_landing} for the stronger wind. The descent then starts only when the wait for the centring times out, so that the landing takes more than twice as long and ends away from the centre of the pad.
 
 \begin{figure}[htbp]
     \centering
-    \includegraphics{Results/figures/03_disturbances/waves_landing.pdf}
-    \caption{Landing with waves, for the three gains of the wave field.}
-    \label{fig:res_waves}
-\end{figure}
-
-% Does the UAV stay above the pad while the deck moves?
-The waves do not change the descent. Its reference is taken above the mean height of the winch, so the \gls{uav} descends in the same way and in the same time in the three seas, without following the deck up and down. As the deck rolls under it, the \gls{uav} stays within $10\,\text{cm}$ of the winch horizontally, and touches down at most $4\,\text{cm}$ from the centre of the pad.
-
-% What do the waves change, then?
-What the waves change is the contact. The final approach aims at a point below the deck, so that the \gls{uav} touches down even if the deck falls away from it, and the speed of the contact is then set by the motion of the deck. This speed grows from $0.15\,\text{m/s}$ on a calm sea to $0.39\,\text{m/s}$ in the roughest. In every case, the winch then holds the \gls{uav} against the pad while the deck keeps moving.
-
-\subsection{Wind}
-\label{subsec:res_wind}
-
-% How is the wind applied?
-The wind acts on the \gls{uav} as a horizontal drag force along a fixed direction, with gusts of $\pm 30\,\%$. Winds of $5$, $8$ and $12\,\text{m/s}$ are tested, the strongest producing a mean force of $5.3\,\text{N}$, a quarter of the weight of the \gls{uav}. Since this force is not part of the model of the \gls{nmpc}, each wind is flown with and without the disturbance observer of Chapter~\ref{chapter:control}, which estimates it in flight.
-
-% What happens without the observer?
-Without the observer, the wind pushes the \gls{uav} away from its reference until the position error balances it. In the strongest wind, the \gls{uav} remains about $85\,\text{cm}$ downwind of the winch, as shown in Figure~\ref{fig:res_wind_landing}, where the dotted lines mark the start of each descent. The landing waits for the \gls{uav} to be centred above the pad before it descends, which never happens, so the descent starts only when this wait times out. The \gls{uav} then reaches the deck at the edge of the pad and is blown off it into the water. In the other run at this wind, the \gls{uav} was already pushed off the deck as it took off.
-
-\begin{figure}[!htb]
-    \centering
-    \includegraphics{Results/figures/03_disturbances/wind_landing.pdf}
-    \caption{Landing in a wind of $12\,\text{m/s}$, with and without the disturbance observer.}
-    \label{fig:res_wind_landing}
-\end{figure}
-
-% And with the observer?
-With the observer, the \gls{uav} is centred above the pad as soon as it arrives there, and lands $8\,\text{cm}$ from its centre, in the same time as without wind. The estimate follows the force of the wind, gusts included, about $0.7\,\text{s}$ behind it, so that the \gls{nmpc} plans with a force close to the real one, as shown in Figure~\ref{fig:res_wind_force}. Over the three winds, the observer reduces the offset above the pad when the descent starts to less than a quarter, as shown in Figure~\ref{fig:res_wind_offset}.
-
-\begin{figure}[!htb]
-    \centering
-    \subfloat[Offset above the pad when the descent starts.]{
-        \includegraphics{Results/figures/03_disturbances/wind_offset.pdf}
-        \label{fig:res_wind_offset}
+    \subfloat[Without waves and without wind, with the four phases shaded.]{
+        \includegraphics{Results/figures/03_disturbances/landing_nominal.pdf}
+        \label{fig:res_landing_nominal}
     }
     \hfill
-    \subfloat[Applied and estimated force, $12\,\text{m/s}$.]{
-        \includegraphics{Results/figures/03_disturbances/wind_force.pdf}
-        \label{fig:res_wind_force}
+    \subfloat[Wind of $8\,\text{m/s}$, with and without the estimate of the unmodelled force.]{
+        \includegraphics{Results/figures/03_disturbances/wind_landing.pdf}
+        \label{fig:res_wind_landing}
     }
-    \caption{Landing with wind.}
-    \label{fig:res_wind}
+    \caption{Landing on the moving deck.}
+    \label{fig:res_landing}
 \end{figure}
 
-% Where is the system most exposed to the wind?
-In the strongest wind, the most exposed moment is the takeoff rather than the landing. While the \gls{uav} lifts off the pad, still held by the winch, the wind can tip it against the rim of the pad before it is clear of the deck, when the controller can do little to prevent it.
+% What does the estimate change?
+With the estimate, the \gls{uav} is centred soon after it arrives, and the landing takes the same time as without wind, as listed in Table~\ref{tab:res_landing}. In both winds, it touches down within $2\,\text{cm}$ of the centre of the pad.
+
+\begin{table}[htbp]
+    \centering
+    \caption{Landing under waves and wind.}
+    \label{tab:res_landing}
+    \begin{tabular}{lcccc}
+        \toprule
+         & \textbf{Centring} (cm) & \textbf{Touchdown} (cm) & \textbf{Contact} (m/s) & \textbf{Duration} (s) \\
+        \midrule
+        Without waves & $2.7$ & $0$ & $0.15$ & $26.3$ \\
+        Waves of $0.6\,\text{m}$ & $3.8$ & $2$ & $0.26$ & $25.2$ \\
+        Waves of $1.2\,\text{m}$ & $1.3$ & $4$ & $0.39$ & $26.9$ \\
+        \midrule
+        \multicolumn{5}{l}{\textit{Wind, without / with the estimate of the unmodelled force}} \\
+        $5\,\text{m/s}$  & $18.3$ / $4.3$  & $7$ / $1$ & $0.73$ / $0.26$ & $63.2$ / $27.7$ \\
+        $8\,\text{m/s}$  & $44.1$ / $6.4$  & $7$ / $2$ & $0.17$ / $0.25$ & $64.2$ / $26.1$ \\
+        \bottomrule
+    \end{tabular}
+\end{table}

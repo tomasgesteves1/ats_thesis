@@ -96,17 +96,17 @@ FIG_SIZES = {
     'usv_track_top': (0.65, 50),
     'usv_track_thrust': (0.48, 50), 'usv_track_azimuth': (0.48, 50),
     'usv_track_error': (0.48, 50), 'usv_track_heading': (0.48, 50),
-    'usv_limits_top': (0.65, 60), 'usv_limits_inputs': (1.0, 140),
+    'usv_limits_top': (0.65, 60), 'usv_limits_inputs': (1.0, 110),
     'crescent_top': (0.48, 45), 'crescent_track_top': (0.48, 45),
     'crescent_cmd_tilt': (0.48, 50), 'crescent_cmd_thrust': (0.48, 50),
     'crescent_error': (0.65, 52),
-    'limits_top': (0.65, 65), 'limits_horizontal': (1.0, 95), 'limits_vertical': (1.0, 120),
+    'limits_top': (0.65, 65), 'limits_horizontal': (1.0, 80), 'limits_vertical': (1.0, 95),
     # 5.2 Missions
-    'inspection_paths': (0.48, 70), 'inspection_timeline': (0.48, 78),
+    'inspection_paths': (0.48, 62), 'inspection_timeline': (0.48, 78), 'inspection_error': (0.48, 62),
     'recovery_timeline': (0.65, 60),
     'patrol_paths': (0.48, 60), 'patrol_timeline': (0.48, 78),
     # 5.3 Disturbances
-    'waves_landing': (0.65, 80), 'wind_landing': (0.65, 65),
+    'landing_nominal': (0.48, 65), 'waves_landing': (0.65, 80), 'wind_landing': (0.48, 65),
     'wind_offset': (0.48, 60), 'wind_force': (0.48, 60),
 }
 

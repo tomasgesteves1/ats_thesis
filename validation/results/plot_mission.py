@@ -11,15 +11,17 @@ import sys
 import numpy as np
 import matplotlib.pyplot as plt
 from matplotlib.patches import Polygon, Rectangle
-from common import load, interp, set_thesis_style, save_figure, fig_size, FIGS, UAV, USV, TGT, LIMIT
+from common import load, interp, set_thesis_style, save_figure, fig_size, legend_above, FIGS, UAV, USV, TGT, LIMIT
 
 OUT = os.path.join(FIGS, '02_missions')
 Z_ANCHOR = 1.25
+D_DOT_MAX = 2.0   # m/s, maximum rate of change of the separation (speed of the winch)
 NAMES = {'takeoff': 'Takeoff', 'formation': 'Formation', 'scout': 'Formation', 'watch': 'Formation',
          'orbit': 'Orbit', 'chase': 'Follow', 'land': 'Landing', 'wait': 'Hold', 'route': 'Route', 'stop': 'Hold',
          'support': 'Support', 'pursuit': 'Follow', 'held': 'Formation', 'stay': 'Formation', 'return': 'Return',
          'lap1': 'Lap 1', 'lap2': 'Lap 2', 'lap3': 'Lap 3'}
 SHADES = ['#dce6f2', '#b9cde6', '#94b3d9', '#6f99cc', '#4a7fbf']
+LAP_COLORS = ['#9ecae1', '#4292c6', '#08306b']   # inspection laps, from the lowest to the highest
 
 
 def phases(d, vehicle, t_first):
@@ -132,12 +134,51 @@ def main(name, d_max, usv_margin=0.0):
     if usv_margin > 0.0:
         a1.axhline(d_max + usv_margin, color=LIMIT, ls=':', lw=0.9, label=r'$d_{max}+\delta_d$')
     a1.set_ylabel('$d$ (m)'); a1.legend(loc='best', fontsize=7); a1.set_ylim(0, 1.12 * d_max)
-    a2.plot(dr[m, 0] - t0, dr[m, 3], color=UAV, lw=0.9)
-    a2.set_ylabel('UAV $z$ (m)'); a2.set_xlabel('time (s)')
+    if name.startswith('patrol'):   # the UAV holds the tether: rate of change of the separation against its limit
+        a2.plot(v[mv, 0] - t0, v[mv, 1], color='#333333', lw=0.9)
+        for sgn in (1, -1):
+            a2.axhline(sgn * D_DOT_MAX, color=LIMIT, ls='--', lw=0.9, label=r'$\pm\dot d_{max}$' if sgn > 0 else None)
+        a2.set_ylabel(r'$\dot d$ (m/s)'); a2.set_ylim(-1.4 * D_DOT_MAX, 1.4 * D_DOT_MAX); a2.legend(loc='best', fontsize=7)
+    else:
+        h = dr[:, 3] - (np.interp(dr[:, 0], b[:, 0], b[:, 3]) + Z_ANCHOR)   # height of the UAV above the winch
+        a2.plot(dr[m, 0] - t0, h[m], color=UAV, lw=0.9)
+        a2.set_ylabel('Height above\nthe winch (m)')
+    a2.set_xlabel('time (s)')
     a0.set_xlim(0, t_end - t0)
     fig.align_ylabels([a0, a1, a2])
     fig.tight_layout(h_pad=0.4)
     save_figure(fig, os.path.join(OUT, FIG_NAMES.get(name, name) + '_timeline'))
+
+    if name.startswith('inspection'):
+        inspection_error(d, pu)
+
+
+def inspection_error(d, pu, centre=(-25.0, 0.0), heights=(12, 27, 42)):
+    """Position error of the UAV along each lap of the inspection, against the angle about the tower. Each lap starts
+    with an entry towards its height, after which the UAV is on the arc (error below 10 cm from then on)."""
+    dr, ref = d['drone'], d['uav_ref']
+    t = dr[:, 0]
+    e = np.linalg.norm(dr[:, 1:4] - interp(ref, t, (1, 2, 3)), axis=1)
+    f = d['s_tether_force_drone_mag']
+    fig, ax = plt.subplots(figsize=fig_size('inspection_error'))
+    laps = [p for p in pu if p[0].startswith('Lap')]
+    for k, ((n, ts, te), h) in enumerate(zip(laps, heights)):
+        entry = (t > ts) & (t < ts + 40.0) & (e > 0.1)
+        t_arc = t[np.flatnonzero(entry)[-1]] if entry.any() else ts
+        m = (t > t_arc) & (t < te)
+        ml = (t >= ts) & (t < te)   # the angle is measured from the start of the lap
+        ang = np.degrees(np.unwrap(np.arctan2(dr[ml, 2] - centre[1], dr[ml, 1] - centre[0])))
+        ang = np.abs(ang - ang[0])[t[ml] > t_arc]
+        mf = (f[:, 0] > t_arc) & (f[:, 0] < te)
+        print('  %s (%d m): on the arc %.1f s after its start | error RMS %.1f cm, max %.1f cm | tension mean %.2f N'
+              % (n, h, t_arc - ts, 100 * np.sqrt(np.mean(e[m] ** 2)), 100 * e[m].max(), f[mf, 1].mean()))
+        ax.plot(ang, 100 * e[m], color=LAP_COLORS[k], lw=0.9,
+                label='%s, %d m' % (n, h))
+    ax.set_xlabel('Angle about the tower (deg)'); ax.set_ylabel('Position error (cm)')
+    ax.set_xlim(0, 360); ax.set_xticks(range(0, 361, 90)); ax.set_ylim(bottom=0)
+    legend_above(ax, ncol=3)
+    fig.tight_layout()
+    save_figure(fig, os.path.join(OUT, 'inspection_error'))
 
 
 if __name__ == '__main__':

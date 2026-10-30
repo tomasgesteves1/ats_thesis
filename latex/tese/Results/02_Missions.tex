@@ -9,57 +9,87 @@
 \section{Missions}
 \label{sec:res_missions}
 
-% What do the missions add to the previous results?
-The missions of Section~\ref{subsec:missions_coordination} bring the two vehicles together, from the takeoff to the landing, with both moving at once. In the inspection, the two vehicles cooperate to cover a structure, and the separation remains within the reach of the tether by design. In the recovery, the \gls{usv} moves away from a \gls{uav} that cannot follow it and returns to collect it, and in the patrol, the \gls{uav} follows a target beyond the reach of the tether. Each mission is shown through the paths of both vehicles, seen from above, and through the manoeuvres of each vehicle over time, together with the separation between them and the height of the \gls{uav}.
+% What do the missions evaluate?
+With the tracking of each controller and the landing on the moving deck established, the evaluation proceeds to the system as a whole. In the missions defined in Section~\ref{subsec:missions_coordination}, both controllers operate simultaneously, coupled by the tether, and each executes the sequence of manoeuvres assigned to its vehicle. Three missions are evaluated, each forming a complete operation, from the takeoff of the \gls{uav} to its landing on the deck.
 
 \subsection{Inspection}
 \label{subsec:res_inspection}
 
 % What does the inspection ask of the two vehicles?
-In the inspection, the \gls{uav} circles a tower standing in the water, at a radius of $13\,\text{m}$ from its centre, in three laps at increasing heights, from $12$ to $42\,\text{m}$. The laps are given as references fixed in the world, and the \gls{usv} supports the \gls{uav} from the water, $12\,\text{m}$ further from the tower. With a tether of $45\,\text{m}$, the highest lap cannot be covered from a fixed point of the water, so the mission depends on the support of the \gls{usv}.
-
-% Does the support keep the UAV within reach?
-The \gls{usv} follows the \gls{uav} around each lap, at the same angle about the tower and within $0.6\,\text{m}$ of its intended radius, as shown in Figure~\ref{fig:res_inspection}. The separation therefore depends only on the height of the lap, and reaches $42.7\,\text{m}$ on the highest one, so that the tether constraint of neither controller becomes active. Each lap is flown with a position error of $2\,\text{cm}$ (\gls{rmse}). Together, the two vehicles cover the tower from bottom to top, which neither could cover alone, and the \gls{uav} then lands $1\,\text{cm}$ from the centre of the pad.
+The inspection represents the survey of a structure standing in the water, here a tower $43\,\text{m}$ high. The \gls{uav} circles the tower at $13\,\text{m}$ from its centre, in three laps at heights of $12$, $27$ and $42\,\text{m}$, with its heading pointed at the tower, so that a camera on board covers it from bottom to top, as shown in Figure~\ref{fig:res_inspection_laps}. To reach the top of the tower, the mission is executed with a tether of $45\,\text{m}$.
 
 \begin{figure}[htbp]
     \centering
-    \subfloat[Paths of both vehicles around the tower.]{
+    \subfloat[First lap, $12\,\text{m}$.]{
+        \includegraphics[width=0.27\textwidth]{Results/figures/02_missions/inspection_lap1.png}
+        \label{fig:res_inspection_lap1}
+    }
+    \hfill
+    \subfloat[Second lap, $27\,\text{m}$.]{
+        \includegraphics[width=0.27\textwidth]{Results/figures/02_missions/inspection_lap2.png}
+        \label{fig:res_inspection_lap2}
+    }
+    \hfill
+    \subfloat[Third lap, $42\,\text{m}$.]{
+        \includegraphics[width=0.27\textwidth]{Results/figures/02_missions/inspection_lap3.png}
+        \label{fig:res_inspection_lap3}
+    }
+    \caption{Inspection of the tower on each lap.}
+    \label{fig:res_inspection_laps}
+\end{figure}
+
+% How does the USV support the UAV around the tower?
+The \gls{usv} supports the \gls{uav} from the water, following it around each lap at the same angle about the tower and $12\,\text{m}$ further out, as shown in Figure~\ref{fig:res_inspection_paths}. The tether therefore runs outwards from the tower on every lap, without crossing it, and the separation between the vehicles depends only on the height of the lap, remaining within the reach of the tether even on the highest one.
+
+% Does the UAV hold its laps under the longer tether?
+With the longer tether, the force on the \gls{uav} grows with the height of the lap, and its tension more than doubles from the lowest to the highest one. The position error of the \gls{uav} nevertheless remains of about $2\,\text{cm}$ on all three laps, as shown in Figure~\ref{fig:res_inspection_error}, so that the two vehicles survey the tower from bottom to top at a constant distance, which neither could achieve alone. After the last lap, the \gls{uav} returns to the \gls{usv} and lands on the centre of the pad.
+
+\begin{figure}[htbp]
+    \centering
+    \subfloat[Paths of both vehicles, seen from above.]{
         \includegraphics{Results/figures/02_missions/inspection_paths.pdf}
         \label{fig:res_inspection_paths}
     }
     \hfill
-    \subfloat[Manoeuvres, separation $d$ and height of the \gls{uav}.]{
-        \includegraphics{Results/figures/02_missions/inspection_timeline.pdf}
-        \label{fig:res_inspection_timeline}
+    \subfloat[Position error of the \gls{uav} along each lap.]{
+        \includegraphics{Results/figures/02_missions/inspection_error.pdf}
+        \label{fig:res_inspection_error}
     }
-    \caption{Inspection mission.}
+    \caption{Inspection of the tower.}
     \label{fig:res_inspection}
-\end{figure}
-
-\subsection{Recovery}
-\label{subsec:res_recovery}
-
-% What situation does the recovery represent?
-The recovery represents a \gls{uav} that cannot follow the \gls{usv}, for instance against a wind it cannot overcome. The \gls{uav} is held at a point fixed in the world, $10\,\text{m}$ high, while the \gls{usv} is sent along a route of $60\,\text{m}$, three times the reach of the tether of $20\,\text{m}$. Since the \gls{uav} is much faster than the \gls{usv}, its own tether constraint would otherwise lead it to follow the \gls{usv}. To represent a vehicle that cannot follow, the tether constraint of the \gls{uav} is relaxed during the recovery, so that the constraint of the \gls{usv} alone keeps the separation within reach. After a wait of about $40\,\text{s}$, the \gls{usv} abandons the route and returns below the \gls{uav}, which then lands.
-
-% Does the USV stop at the reach of the tether?
-The \gls{usv} sets off at its top speed and brakes as the separation predicted over its horizon approaches $d_{max}$, as shown in Figure~\ref{fig:res_recovery}. It stops $18\,\text{m}$ from its starting point and waits there at the reach of the tether. While braking, the separation exceeds $d_{max}$ by up to $0.8\,\text{m}$ for about two seconds, since the \gls{usv} sees the \gls{uav} only over the horizon of the \gls{uav}, which is shorter than the time the \gls{usv} needs to stop from its top speed. Throughout the wait, the \gls{uav} stays within $0.2\,\text{m}$ of its point. Once the wait is over, the \gls{usv} turns back and sails below the \gls{uav}, which lands $3\,\text{cm}$ from the centre of the pad.
-
-\begin{figure}[htbp]
-    \centering
-    \includegraphics{Results/figures/02_missions/recovery_timeline.pdf}
-    \caption{Manoeuvres, separation $d$ and height of the \gls{uav} in the recovery mission.}
-    \label{fig:res_recovery}
 \end{figure}
 
 \subsection{Patrol}
 \label{subsec:res_patrol}
 
-% What happens in the patrol?
-In the patrol, the \gls{usv} sails a route while the \gls{uav} orbits it at a radius of $7\,\text{m}$, $15\,\text{m}$ above the winch, looking down with a camera assumed to cover $120^\circ$. Near the route, a moving target patrols a forbidden zone and, when either vehicle comes within $15\,\text{m}$ of it, flees at $2\,\text{m/s}$ along a zigzag. Once the \gls{uav} detects the target, its reference becomes the point above the target, wherever it is, and the \gls{usv} follows it for one minute, keeping $10\,\text{m}$ behind it. The tether is $20\,\text{m}$ long, so the target is beyond its reach when it is detected.
+% What does the patrol represent?
+The patrol represents the surveillance of an area, in which the \gls{uav} acts as a lookout for the \gls{usv}. The \gls{usv} sails a route while the \gls{uav} orbits it, $15\,\text{m}$ above the winch, looking down with a camera assumed to cover $120^\circ$. Near the route, a moving target patrols a forbidden zone and flees when either vehicle approaches it. Once the \gls{uav} detects the target, both vehicles pursue it for one minute. The mission is executed with a tether of $20\,\text{m}$. Figure~\ref{fig:res_patrol_shots} shows the system at three moments of the pursuit.
 
-% How does the UAV follow a target beyond the reach of the tether?
-The target is detected $28\,\text{m}$ from the \gls{uav} and $32\,\text{m}$ from the \gls{usv}, as shown in Figure~\ref{fig:res_patrol}. The \gls{uav} flies towards it until the separation reaches $d_{max}$, and then remains at the limit of the tether, as close to the target as the tether allows, while the \gls{usv} closes the distance. About $20\,\text{s}$ after the detection, the \gls{usv} is $10\,\text{m}$ behind the target, the target is within reach, and the \gls{uav} remains above it, within $0.5\,\text{m}$, until the end of the manoeuvre. The separation exceeds $d_{max}$ by at most $0.16\,\text{m}$, and the \gls{usv} follows the target undisturbed by the tether. The \gls{uav} then lands $1\,\text{cm}$ from the centre of the pad.
+\begin{figure}[htbp]
+    \centering
+    \subfloat[Detection of the target.]{
+        \includegraphics[width=0.27\textwidth]{Results/figures/02_missions/patrol_detection.png}
+        \label{fig:res_patrol_detection}
+    }
+    \hfill
+    \subfloat[\Gls{uav} at the limit of the tether.]{
+        \includegraphics[width=0.27\textwidth]{Results/figures/02_missions/patrol_limit.png}
+        \label{fig:res_patrol_limit}
+    }
+    \hfill
+    \subfloat[\Gls{uav} above the target.]{
+        \includegraphics[width=0.27\textwidth]{Results/figures/02_missions/patrol_above.png}
+        \label{fig:res_patrol_above}
+    }
+    \caption{Patrol at three moments of the pursuit.}
+    \label{fig:res_patrol_shots}
+\end{figure}
+
+% Is the target kept in view?
+The target is detected at the edge of the view of the camera, beyond the reach of the tether, as shown in Figure~\ref{fig:res_patrol_paths}. The \gls{uav} flies towards it until the separation reaches $d_{max}$, and then remains at the limit of the tether while the \gls{usv} closes the distance. Once the target is within reach, the \gls{uav} keeps above it until the end of the pursuit, so that the target never leaves the view of the camera.
+
+% Does the UAV respect the tether?
+Throughout the mission, the \gls{uav} keeps within both limits of the tether, as shown in Figure~\ref{fig:res_patrol_timeline}. Besides the separation at $d_{max}$, its rate of change reaches the speed of the winch, $\pm\dot d_{max}$, as the \gls{uav} climbs to its orbit, sets off after the target and descends to land, and the two exceed these soft limits by at most $0.1\,\%$ and $6\,\%$, respectively. The \gls{uav} then lands $1\,\text{cm}$ from the centre of the pad.
 
 \begin{figure}[htbp]
     \centering
@@ -68,7 +98,7 @@ The target is detected $28\,\text{m}$ from the \gls{uav} and $32\,\text{m}$ from
         \label{fig:res_patrol_paths}
     }
     \hfill
-    \subfloat[Manoeuvres, separation $d$ and height of the \gls{uav}.]{
+    \subfloat[Manoeuvres, separation $d$ and its rate of change $\dot d$.]{
         \includegraphics{Results/figures/02_missions/patrol_timeline.pdf}
         \label{fig:res_patrol_timeline}
     }
@@ -76,5 +106,21 @@ The target is detected $28\,\text{m}$ from the \gls{uav} and $32\,\text{m}$ from
     \label{fig:res_patrol}
 \end{figure}
 
-% What do the three missions show together?
-In the three missions, the vehicle that moves where the tether cannot reach is the one whose motion is restrained. The \gls{uav}, much faster, normally keeps the separation within reach by itself, as in the patrol. The constraint of the \gls{usv} acts as a safeguard when the \gls{uav} cannot, as in the recovery, and the exchange of predicted trajectories lets the \gls{usv} stop before it pulls the tether.
+\subsection{Recovery}
+\label{subsec:res_recovery}
+
+% What situation does the recovery represent?
+The recovery represents the rescue of a \gls{uav} that cannot follow the \gls{usv}, for instance against a wind it cannot overcome. The \gls{uav} is held at a point fixed in the world, while the \gls{usv} is sent along a route of $60\,\text{m}$, three times the reach of the tether, with $d_{max} = 20.5\,\text{m}$ in this mission. After a wait, the \gls{usv} abandons the route and returns below the \gls{uav}, which then lands.
+
+% Does the USV stop at the reach of the tether?
+The \gls{usv} sets off at its top speed and brakes as the separation predicted over its horizon approaches $d_{max}$, and then waits at the reach of the tether, as shown in Figure~\ref{fig:res_recovery}. While braking, the separation briefly exceeds $d_{max}$ by less than $0.5\,\text{m}$, since the \gls{usv} sees the \gls{uav} only over the horizon of the \gls{uav}, which is shorter than the time the \gls{usv} needs to stop from its top speed.
+
+% Is the UAV recovered?
+The \gls{uav} holds its point throughout the wait. Once the wait is over, the \gls{usv} turns back and sails below the \gls{uav}, which lands $3\,\text{cm}$ from the centre of the pad. The mission thus shows that, when the \gls{uav} cannot follow, the \gls{usv} moves no further than the tether allows, and can return to rescue it.
+
+\begin{figure}[htbp]
+    \centering
+    \includegraphics{Results/figures/02_missions/recovery_timeline.pdf}
+    \caption{Manoeuvres, separation $d$ and height of the \gls{uav} in the recovery mission.}
+    \label{fig:res_recovery}
+\end{figure}
