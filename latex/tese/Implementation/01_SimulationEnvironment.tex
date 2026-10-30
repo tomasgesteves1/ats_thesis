@@ -11,7 +11,7 @@
 
 Simulation is the natural first step in the development of the controllers, since it allows them to be tested and adjusted before being used on the real vehicles. The simulations in this work are run in Gazebo \cite{koenig2004gazebo}, a robotics simulator. A simulator is a program that creates a virtual environment, places robots in it, and calculates how they would behave in reality. At each step, it receives the commands sent to the robots, computes the forces acting on them, updates their positions accordingly, and returns the measurements that their sensors would produce. To the controller, the simulated robot behaves like a real one.
 
-This allows controllers to be developed through many fast iterations, and different scenarios to be repeated under the same conditions, which makes the comparison between controllers and parameter choices fair. Sensor noise and estimation error can also be included in simulation, but they can be left out during development, so that the behaviour of the controllers is analysed on its own.
+This allows controllers to be developed through many fast iterations, and different scenarios to be repeated under the same conditions, which makes the comparison between controllers and parameter choices fair. Sensor noise and estimation error can also be included in simulation, but they can be left out during development, so that the behaviour of the controllers is first analysed on its own.
 
 \subsection{World}
 \label{sec:world}
@@ -168,7 +168,7 @@ where $m_i$ and $\mathbf{p}_i$ are the mass and the position of the node, $\math
     \qquad \eta = \frac{\ell - \ell_0}{\ell_0},
     \label{eq:tether_tension}
 \end{equation}
-where $\ell$ and $\ell_0$ are the current and the unstretched lengths of the segment, $EA$ is the axial stiffness, and $BA$ is the damping coefficient, which is defined through the damping ratio given in Table~\ref{tab:tether_parameters}. A segment that is shorter than its unstretched length carries no tension, so the tether can go slack. The accelerations are then integrated in time to obtain the new position and velocity of every node. The end nodes are not integrated, since their motion is imposed by the vehicles, and the forces at these nodes are the forces that the tether exerts on them.
+where $\ell = \|\mathbf{p}_i - \mathbf{p}_{i-1}\|$ is the current length of the segment, the distance between its two nodes, $\ell_0$ is its unstretched length, $EA$ is the axial stiffness, and $BA$ is the damping coefficient, which is defined through the damping ratio given in Table~\ref{tab:tether_parameters}. A segment that is shorter than its unstretched length carries no tension, so the tether can go slack. The accelerations are then integrated in time to obtain the new position and velocity of every node. The end nodes are not integrated, since their motion is imposed by the vehicles, and the forces at these nodes are the forces that the tether exerts on them.
 
 \input{Implementation/figures/01_simulation_environment/tether_model.tex}
 
@@ -215,7 +215,7 @@ At each step, the virtual winch reads the distance $d$ between the winch and the
 which it then applies as the length of the tether in MoorDyn.
 A real system cannot follow the variations of the length instantly, because of the speed of the winch and the delay in the measurement of the distance. To account for this limitation, the rate of change of the length is limited to $v_{\text{winch}} = 2\,\text{m/s}$, which makes the slack deviate from $\varepsilon_0$ when the distance changes faster than the system can follow.
 
-To evaluate the effect of the slack ratio, the \gls{uav} flew the same $60\,\text{s}$ trajectory with $\varepsilon_0 = 2\%$, $5\%$, and $10\%$, moving along $x$ up to $10\,\text{m}$ to each side of the \gls{usv}, which held its position, so that the distance between the winch and the \gls{uav} varied between about $5$ and $14\,\text{m}$. Figure~\ref{fig:winch_shape} shows the shape of the tether for each value, and a larger slack naturally makes the tether sag more between the vehicles. Figure~\ref{fig:winch_geometry} shows the distance between the winch and the \gls{uav} (dashed) and the length of the tether (solid) along the trajectory. The length follows the distance, staying above it by a margin that grows with $\varepsilon_0$. Figure~\ref{fig:winch_tension} shows the tension at the \gls{uav} along the same trajectory. The tension follows the distance, with its peaks coinciding with the largest distances, since the weight of the tether that the \gls{uav} supports increases with it. The tension also decreases as the slack increases. Table~\ref{tab:winch_slack} quantifies these results. From $\varepsilon_0 = 2\%$ to $10\%$, the mean tension decreases from $2.07\,\text{N}$ to $1.62\,\text{N}$, a reduction of $22\%$, and the maximum from $3.38\,\text{N}$ to $2.88\,\text{N}$.
+To evaluate the effect of the slack ratio, the \gls{uav} flew the same $60\,\text{s}$ trajectory with $\varepsilon_0 = 2\%$, $5\%$, and $10\%$, moving along $x$ up to $10\,\text{m}$ to each side of the \gls{usv}, which held its position, so that the distance between the winch and the \gls{uav} varied between about $5$ and $14\,\text{m}$. Figure~\ref{fig:winch_shape} shows the shape of the tether for each value, and a larger slack naturally makes the tether sag more between the vehicles. Figure~\ref{fig:winch_tension} shows the tension at the \gls{uav} as a function of the distance between the winch and the \gls{uav}, averaged over intervals of $1\,\text{m}$, with the band showing its spread along the trajectory. For every slack ratio, the tension grows almost linearly with the distance, since the weight of the tether that the \gls{uav} supports increases with it. A larger slack lowers the whole curve, since a tether that sags more needs less tension to hold its own weight. Table~\ref{tab:winch_slack} quantifies these results. From $\varepsilon_0 = 2\%$ to $10\%$, the mean tension decreases from $2.07\,\text{N}$ to $1.62\,\text{N}$, a reduction of $22\%$, and the maximum from $3.38\,\text{N}$ to $2.88\,\text{N}$.
 
 \begin{figure}[!htbp]
     \centering
@@ -239,17 +239,9 @@ To evaluate the effect of the slack ratio, the \gls{uav} flew the same $60\,\tex
 
 \begin{figure}[!htbp]
     \centering
-    \subfloat[Distance and tether length.]{
-        \includegraphics{Implementation/figures/01_simulation_environment/slack_geometry.pdf}
-        \label{fig:winch_geometry}
-    }
-    \hfill
-    \subfloat[Tension at the \gls{uav}.]{
-        \includegraphics{Implementation/figures/01_simulation_environment/slack_tension.pdf}
-        \label{fig:winch_tension}
-    }
-    \caption{Tether length and tension for different slack ratios.}
-    \label{fig:winch_sweep}
+    \includegraphics{Implementation/figures/01_simulation_environment/slack_tension_distance.pdf}
+    \caption{Tension at the \gls{uav} as a function of the distance, for different slack ratios.}
+    \label{fig:winch_tension}
 \end{figure}
 
 \begin{table}[!htbp]

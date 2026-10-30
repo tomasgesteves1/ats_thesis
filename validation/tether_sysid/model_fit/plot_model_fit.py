@@ -400,10 +400,10 @@ def main():
     fig_3d, (ax_fx, ax_fy, ax_fz) = plt.subplots(3, 1, figsize=(6.2, 5.8), sharex=True)
 
     # Fx Subplot
-    l_gt, = ax_fx.plot(t_grid, fx_true, color=c_gt, linewidth=SIMULATION_LINEWIDTH, label="MoorDyn")
-    l_cat, = ax_fx.plot(t_grid, F_cat[:, 0], color=c_cat, linewidth=MODEL_LINEWIDTH, label="Catenary Model")
-    l_chord, = ax_fx.plot(t_grid, F_chord[:, 0], color=c_chord, linewidth=1.0, linestyle="--", label="Pointing to USV")
-    l_z, = ax_fx.plot(t_grid, F_pure_z[:, 0], color=c_z, linewidth=1.0, linestyle="-.", label="Pure Vertical")
+    l_gt, = ax_fx.plot(t_grid, fx_true, color=c_gt, linewidth=SIMULATION_LINEWIDTH, label="Simulator")
+    l_cat, = ax_fx.plot(t_grid, F_cat[:, 0], color=c_cat, linewidth=MODEL_LINEWIDTH, label="Catenary model")
+    l_chord, = ax_fx.plot(t_grid, F_chord[:, 0], color=c_chord, linewidth=1.0, linestyle="--", label="Taut model")
+    l_z, = ax_fx.plot(t_grid, F_pure_z[:, 0], color=c_z, linewidth=1.0, linestyle="-.", label="Vertical model")
     ax_fx.set_ylabel(r"$F_x$ [N]")
     ax_fx.set_ylim([-2.3, 2.3])
 
@@ -427,7 +427,7 @@ def main():
     # Shared top legend above all subplots: zero overlap with any curve!
     fig_3d.legend(
         [l_gt, l_cat, l_chord, l_z],
-        ["MoorDyn", "Catenary Model", "Pointing to USV", "Pure Vertical"],
+        ["Simulator", "Catenary model", "Taut model", "Vertical model"],
         loc="upper center",
         bbox_to_anchor=(0.5, 0.99),
         ncol=4,
@@ -451,10 +451,10 @@ def main():
     ]
     for name, i, f_gt, ylim in comp_cfg:
         fig_c, ax_c = plt.subplots(figsize=fig_size(f"model_fit_f{name}", (3.5, 2.7)))
-        ax_c.plot(t_grid, f_gt, color=c_gt, linewidth=SIMULATION_LINEWIDTH, label="MoorDyn")
-        ax_c.plot(t_grid, F_cat[:, i], color=c_cat, linewidth=MODEL_LINEWIDTH, label="Catenary Model")
-        ax_c.plot(t_grid, F_chord[:, i], color=c_chord, linewidth=1.0, linestyle="--", label="Pointing to USV")
-        ax_c.plot(t_grid, F_pure_z[:, i], color=c_z, linewidth=1.0, linestyle="-.", label="Pure Vertical")
+        ax_c.plot(t_grid, f_gt, color=c_gt, linewidth=SIMULATION_LINEWIDTH, label="Simulator")
+        ax_c.plot(t_grid, F_cat[:, i], color=c_cat, linewidth=MODEL_LINEWIDTH, label="Catenary model")
+        ax_c.plot(t_grid, F_chord[:, i], color=c_chord, linewidth=1.0, linestyle="--", label="Taut model")
+        ax_c.plot(t_grid, F_pure_z[:, i], color=c_z, linewidth=1.0, linestyle="-.", label="Vertical model")
         ax_c.set_xlabel("Time [s]")
         ax_c.set_ylabel(rf"$F_{name}$ [N]")
         ax_c.set_ylim(ylim)
@@ -472,8 +472,8 @@ def main():
     for size, dirs, fname in ((fig_size("model_fit_comparison", (6.0, 3.0)), out_dirs, "model_fit_comparison"),
                               ((EA_COLUMN_WIDTH, 42 * MM), [os.path.abspath(os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "..", "..", "latex", "extended_abstract", "figures"))], "ea_model_fit_comparison")):
         fig_time, ax_time = plt.subplots(figsize=size)
-        ax_time.plot(t_grid, f_true, label="MoorDyn", color=c_gt, linewidth=SIMULATION_LINEWIDTH)
-        ax_time.plot(t_grid, T_pred, label="Catenary Model", color=c_cat, linewidth=MODEL_LINEWIDTH)
+        ax_time.plot(t_grid, f_true, label="Simulator", color=c_gt, linewidth=SIMULATION_LINEWIDTH)
+        ax_time.plot(t_grid, T_pred, label="Catenary model", color=c_cat, linewidth=MODEL_LINEWIDTH)
         ax_time.set_xlabel("Time [s]")
         ax_time.set_ylabel(r"$T_{\mathrm{tether}}$ [N]")
         ax_time.set_ylim(bottom=0.0, top=4.0)
@@ -491,9 +491,9 @@ def main():
     # Plot 3: 3D Residuals & Error Benchmark
     # -------------------------------------------------------------
     fig_res, ax_res = plt.subplots(figsize=fig_size("model_fit_residuals", (6.0, 3.0)))
-    ax_res.plot(t_grid, cat_err_3d, label="Catenary Model", color=c_cat, linewidth=MODEL_LINEWIDTH)
-    ax_res.plot(t_grid, chord_err_3d, label="Pointing to USV", color=c_chord, linewidth=1.0, linestyle="--")
-    ax_res.plot(t_grid, z_err_3d, label="Pure Vertical", color=c_z, linewidth=1.0, linestyle="-.")
+    ax_res.plot(t_grid, cat_err_3d, label="Catenary model", color=c_cat, linewidth=MODEL_LINEWIDTH)
+    ax_res.plot(t_grid, chord_err_3d, label="Taut model", color=c_chord, linewidth=1.0, linestyle="--")
+    ax_res.plot(t_grid, z_err_3d, label="Vertical model", color=c_z, linewidth=1.0, linestyle="-.")
     ax_res.set_xlabel("Time [s]")
     ax_res.set_ylabel(r"$\|\mathbf{F}_{\mathrm{sim}} - \mathbf{F}_{\mathrm{model}}\|$ [N]")
     ax_res.set_ylim(bottom=0.0, top=2.6)

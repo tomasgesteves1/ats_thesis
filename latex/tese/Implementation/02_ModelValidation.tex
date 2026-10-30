@@ -303,7 +303,7 @@ The last model to be validated is the tether force model of Section~\ref{subsec:
 \begin{equation}
     c_d = \frac{\mu g}{1-\varepsilon_0} = \frac{0.020 \times 9.81}{1-0.05} = 0.2065\,\text{N/m}.
 \end{equation}
-The deflection of the force is largest when the chord is horizontal and decreases as it approaches the vertical. For a horizontal chord, the weight bends the tether into a catenary~\cite{irvine1981cable}, and the deflection $\gamma_0$ is the angle that the tether makes with the chord at its ends. For a tether of length $L$ between two points at distance $d$, it is given by
+The deflection of the force is largest when the chord is horizontal and decreases as it approaches the vertical. For a horizontal chord, the weight bends the tether into a catenary~\cite{irvine1981cable}, and the deflection $\gamma_0$ is the angle that the tether makes with the chord at the \gls{uav}. For a tether of length $L$ between two points at distance $d$, it is given by
 \begin{equation}
     \gamma_0 = \arctan\left(\sinh u\right), \qquad \frac{\sinh u}{u} = \frac{L}{d} = \frac{1}{1-\varepsilon_0},
 \end{equation}
@@ -326,10 +326,10 @@ where $u$ is the positive solution of the second equation, obtained iteratively.
 \end{table}
 
 % como é feita a comparação
-The tether force was recorded in the simulator during a flight of $60.5\,\text{s}$, in which the \gls{uav} moved along $x$, and the distance between the two vehicles varied between $4.6\,\text{m}$ and $14.0\,\text{m}$. The winch regulated the slack to $\varepsilon_0$. The reference is the force computed by MoorDyn and applied on the \gls{uav} in Gazebo described in Section~\ref{sec:simulation_environment}. At each instant, the model receives the positions of the two vehicles and computes the force, which is compared with the reference in tension and in its components in the inertial frame. The comparison is also made for two simpler descriptions of the force, which differ from the model only in its direction: the tether hangs from the \gls{uav} as a vertical load, or it is taut along the chord. Since the models give the force directly from the positions, there is no initial state and no error accumulates, so the whole flight is compared instant by instant.
+The tether force was recorded in the simulator during a flight of $60.5\,\text{s}$, in which the \gls{uav} moved along $x$, and the distance between the two vehicles varied between $4.6\,\text{m}$ and $14.0\,\text{m}$. The winch regulated the slack to $\varepsilon_0$. The reference is the force computed by MoorDyn and applied on the \gls{uav} in Gazebo described in Section~\ref{sec:simulation_environment}. At each instant, the model receives the positions of the two vehicles and computes the force, which is compared with the reference in tension and in its components in the inertial frame. The comparison is also made for two simpler models of the force, which differ from the catenary model only in its direction: the taut model, in which the tether is taut and the force points along the chord, and the vertical model, in which the tether hangs from the \gls{uav} as a vertical load. Since the models give the force directly from the positions, there is no initial state and no error accumulates, so the whole flight is compared instant by instant.
 
 % quão perto está o modelo do simulador
-Figure~\ref{fig:model_fit_comparison} compares the tension of the model with that of the simulator along the flight, and Figure~\ref{fig:model_fit_3d} compares the components of the force on the \gls{uav} along $x$ and $z$. The model follows the tension and the components, with errors between $4\%$ and $11\%$ of their range, as listed in Table~\ref{tab:tether_model_benchmark}.
+Figure~\ref{fig:model_fit_comparison} compares the tension of the model with that of the simulator along the flight, and Figure~\ref{fig:model_fit_3d} compares the components of the force on the \gls{uav} along $x$ and $z$. The catenary model follows the tension and the components, with errors between $4\%$ and $11\%$ of their range, as listed in Table~\ref{tab:tether_model_benchmark}. The two simpler models fail in opposite ways. The vertical model gives no force along $x$ and places the whole tension along $z$, while the taut model, which keeps the force along the chord, overestimates it along $x$ and underestimates it along $z$.
 
 \begin{figure}[htbp]
     \centering
@@ -353,7 +353,7 @@ Figure~\ref{fig:model_fit_comparison} compares the tension of the model with tha
 \end{figure}
 
 % o erro é aceitável?
-Figure~\ref{fig:model_fit_residuals} shows, for each model, the error of the force vector along the flight, combining its components, and Table~\ref{tab:tether_model_benchmark} lists the corresponding errors. Since the three models use the same tension, their errors differ only through the direction of the force. The model reduces the error of the force by $72\%$ relative to the taut tether and by $76\%$ relative to the vertical load, and its error of $0.25\,\text{N}$ represents $1.2\%$ of the weight of the \gls{uav}, which is $20.2\,\text{N}$.
+Figure~\ref{fig:model_fit_residuals} shows, for each model, the error of the force vector along the flight, combining its components, and Table~\ref{tab:tether_model_benchmark} lists the corresponding errors. Since the three models use the same tension, their errors differ only through the direction of the force. The catenary model reduces the error of the force by $72\%$ relative to the taut model and by $76\%$ relative to the vertical model, and its error of $0.25\,\text{N}$ represents $1.2\%$ of the weight of the \gls{uav}, which is $20.2\,\text{N}$.
 
 \begin{figure}[htbp]
     \centering
@@ -370,15 +370,15 @@ Figure~\ref{fig:model_fit_residuals} shows, for each model, the error of the for
         \toprule
         \textbf{Quantity} & \textbf{Unit} & \textbf{RMSE} & \textbf{NRMSE (\%)} \\
         \midrule
-        \multicolumn{4}{l}{\textit{Model}} \\
+        \multicolumn{4}{l}{\textit{Catenary model}} \\
         Tension $T_{\mathrm{tether}}$ & N & $0.2031$ & $8.79$ \\
         Force $F_x$ & N & $0.1080$ & $3.85$ \\
         Force $F_z$ & N & $0.2259$ & $10.50$ \\
         \midrule
         \multicolumn{4}{l}{\textit{Error of the force vector}} \\
-        Model & N & $0.2505$ & $10.84$ \\
-        Taut tether ($\gamma_0 = 0^\circ$) & N & $0.8991$ & $38.91$ \\
-        Vertical load & N & $1.0332$ & $44.72$ \\
+        Catenary model & N & $0.2505$ & $10.84$ \\
+        Taut model & N & $0.8991$ & $38.91$ \\
+        Vertical model & N & $1.0332$ & $44.72$ \\
         \bottomrule
     \end{tabular}
 \end{table}

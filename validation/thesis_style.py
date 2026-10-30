@@ -69,7 +69,7 @@ MM = 1 / 25.4                        # in
 # Width classes: 0.32 (three side by side), 0.48 (two side by side), 0.65 (alone), 1.0 (stacked / catalogue).
 FIG_SIZES = {
     # 4.1 Simulation environment
-    'slack_geometry': (0.48, 50), 'slack_tension': (0.48, 50),
+    'slack_tension_distance': (0.5, 55),
     # 4.2 Model validation
     'usv_actuator_inputs_thrust': (0.48, 50), 'usv_actuator_inputs_azimuth': (0.48, 50),
     'usv_velocity_u_validation': (0.32, 40), 'usv_velocity_v_validation': (0.32, 40),

@@ -304,72 +304,37 @@ def main():
     size_default = (4.5, 2.9)
 
     # -------------------------------------------------------------
-    # 1. Individual Plot: Tether Tension Magnitude
+    # Tension versus distance, averaged over 1 m bins of d (the raw samples form
+    # crossing loops, since the tension differs when the UAV moves away or back)
     # -------------------------------------------------------------
-    fig_tension, ax_tension = plt.subplots(figsize=fig_size("slack_tension", size_default))
+    edges = np.arange(4.5, 14.6, 1.0)
+    centres = 0.5 * (edges[1:] + edges[:-1])
+    fig, ax = plt.subplots(figsize=fig_size("slack_tension_distance", size_default))
     for item in dataset:
         d = item["data"]
-        if len(d["force_time"]) > 0:
-            ax_tension.plot(
-                d["force_time"],
-                d["force_mag"],
-                label=item["label"],
-                color=item["color"],
-                linewidth=1.2,
-            )
-    ax_tension.set_xlabel("Time [s]")
-    ax_tension.set_ylabel(r"$T_{\mathrm{tether}}$ [N]")
-    legend_above(ax_tension, ncol=3)
-    ax_tension.set_ylim(bottom=0.0)
+        if len(d["force_time"]) == 0 or len(d["dist_time"]) == 0:
+            continue
+        dist = np.interp(d["force_time"], d["dist_time"], d["distance"])
+        idx = np.digitize(dist, edges) - 1
+        mean = np.array([d["force_mag"][idx == i].mean() for i in range(len(centres))])
+        std = np.array([d["force_mag"][idx == i].std() for i in range(len(centres))])
+        ax.fill_between(centres, mean - std, mean + std, color=item["color"], alpha=0.2, linewidth=0)
+        ax.plot(centres, mean, color=item["color"], linewidth=1.2, marker="o", markersize=2.5, label=item["label"])
+    ax.set_xlabel(r"$d$ [m]")
+    ax.set_ylabel(r"$T_{\mathrm{tether}}$ [N]")
+    ax.set_ylim(bottom=0.0)
+    legend_above(ax, ncol=3)
     plt.tight_layout()
 
-    tension_path = os.path.join(args.output_dir, "slack_tension")
-    save_figure(fig_tension, tension_path, save_png=False)
+    out_path = os.path.join(args.output_dir, "slack_tension_distance")
+    save_figure(fig, out_path, save_png=False)
     if args.thesis_dir and os.path.exists(args.thesis_dir):
-        thesis_tension_path = os.path.join(args.thesis_dir, "slack_tension")
-        save_figure(fig_tension, thesis_tension_path, save_png=False)
-        print(f"Updated thesis tension figure: {thesis_tension_path}.pdf")
-    plt.close(fig_tension)
+        thesis_path = os.path.join(args.thesis_dir, "slack_tension_distance")
+        save_figure(fig, thesis_path, save_png=False)
+        print(f"Updated thesis figure: {thesis_path}.pdf")
+    plt.close(fig)
 
-    # -------------------------------------------------------------
-    # 2. Individual Plot: Distance vs. Winch Length
-    # -------------------------------------------------------------
-    fig_geom, ax_geom = plt.subplots(figsize=fig_size("slack_geometry", size_default))
-    for item in dataset:
-        d = item["data"]
-        # Distance (dashed, same color as slack, no label)
-        if len(d["dist_time"]) > 0:
-            ax_geom.plot(
-                d["dist_time"],
-                d["distance"],
-                color=item["color"],
-                linestyle="--",
-                linewidth=1.1,
-            )
-        # Winch unstretched length (solid, same color as slack, labeled with epsilon)
-        if len(d["length_time"]) > 0:
-            ax_geom.plot(
-                d["length_time"],
-                d["length"],
-                label=item["label"],
-                color=item["color"],
-                linestyle="-",
-                linewidth=1.2,
-            )
-    ax_geom.set_xlabel("Time [s]")
-    ax_geom.set_ylabel("Length [m]")
-    legend_above(ax_geom, ncol=3)
-    plt.tight_layout()
-
-    geom_path = os.path.join(args.output_dir, "slack_geometry")
-    save_figure(fig_geom, geom_path, save_png=False)
-    if args.thesis_dir and os.path.exists(args.thesis_dir):
-        thesis_geom_path = os.path.join(args.thesis_dir, "slack_geometry")
-        save_figure(fig_geom, thesis_geom_path, save_png=False)
-        print(f"Updated thesis geometry figure: {thesis_geom_path}.pdf")
-    plt.close(fig_geom)
-
-    print("\nIndividual thesis figures exported successfully!")
+    print("\nThesis figure exported successfully!")
 
 
 if __name__ == "__main__":
