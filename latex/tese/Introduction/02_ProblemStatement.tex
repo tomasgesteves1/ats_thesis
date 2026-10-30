@@ -13,13 +13,7 @@
 This work addresses the control of a \gls{usv}, the \gls{wamv}, and a \gls{uav}, the x500, connected by a tether, so that they carry out maritime missions autonomously as a single system. Each vehicle must follow its reference within its own limits, while the distance between them stays within the reach of the tether, also under waves and wind, and the \gls{uav} must take off from and land on the moving deck of the \gls{usv}.
 
 % What does the work set out to achieve?
-To address this problem, the work pursues four objectives:
-\begin{itemize}
-    \item to model both vehicles and the force of the tether on the \gls{uav} accurately enough to predict their motion over the horizon of a controller, and to validate these models;
-    \item to design a controller for each vehicle that respects its limits and anticipates the motion of the other vehicle, so that the two keep the tether within its reach together;
-    \item to develop the manoeuvres of both vehicles, including the takeoff from and the landing on the moving deck, and missions that chain them into a complete operation;
-    \item to evaluate the system in tracking and planning, in complete missions, and under waves and wind.
-\end{itemize}
+To address this problem, the work pursues four objectives. The first is to model both vehicles and the force of the tether on the \gls{uav} accurately enough to predict their motion over the horizon of a controller, and to validate these models. The second is to design a controller for each vehicle that respects its limits and anticipates the motion of the other vehicle, so that the two keep the tether within its reach together. The third is to develop the manoeuvres of both vehicles, including the takeoff from and the landing on the moving deck, together with missions that chain them into a complete operation, and the fourth is to evaluate the system in tracking and planning, in complete missions, and under waves and wind.
 
 % Under which conditions is it studied?
 The system is studied in simulation, in an environment that reproduces the dynamics of both vehicles, the waves, the autopilot of the \gls{uav} and a tether that hangs and goes slack. The state of both vehicles is taken from the simulator, so that the results measure the performance of the models and the controllers, and not that of the estimation of the state. The tests with the real vehicles are left for future work.

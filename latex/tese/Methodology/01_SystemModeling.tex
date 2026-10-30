@@ -23,13 +23,13 @@ The reference frames and notation are fixed first, followed by the kinematic and
 Deriving the equations of motion requires specifying the frames against which positions, orientations, and velocities are measured. Since the \gls{usv} and the \gls{uav} move both with respect to the world and with respect to each other, a common frame of reference is required to describe their motion. Figure~\ref{fig:coordinate_frames} illustrates these frames.
 
 \paragraph{Inertial Reference Frame $\{\mathcal{I}\}$}
-This frame establishes the global coordinate system following the East-North-Up (\gls{enu}) convention, aligned with the standard \gls{ros} convention. Its origin $\mathcal{O}_I$ is fixed at an arbitrary point on the water surface within the operating area, following the usual flat-Earth convention. The axis $\mathbf{x}^{\mathcal{I}}$ points East, $\mathbf{y}^{\mathcal{I}}$ points North, and $\mathbf{z}^{\mathcal{I}}$ points upward, opposite to gravity.
+This frame establishes the global coordinate system following the East-North-Up convention, aligned with the standard \gls{ros} convention. Its origin $\mathcal{O}_I$ is fixed at an arbitrary point on the water surface within the operating area, following the usual flat-Earth convention. The axis $\mathbf{x}^{\mathcal{I}}$ points East, $\mathbf{y}^{\mathcal{I}}$ points North, and $\mathbf{z}^{\mathcal{I}}$ points upward, opposite to gravity.
 
 \paragraph{\gls{usv} Body-Fixed Reference Frame $\{\mathcal{B}_v\}$}
-This frame is rigidly attached to the \gls{usv}, with origin $\mathcal{O}_v$ at its centre of gravity. This choice decouples the linear and rotational momentum equations. The forward-pointing axis $\mathbf{x}^{\mathcal{B}_v}$ defines surge, $\mathbf{y}^{\mathcal{B}_v}$ points to port (sway), and $\mathbf{z}^{\mathcal{B}_v}$ points upward (heave).
+This frame is rigidly attached to the \gls{usv}, with origin $\mathcal{O}_v$ at its \gls{cg}. This choice decouples the linear and rotational momentum equations. The forward-pointing axis $\mathbf{x}^{\mathcal{B}_v}$ defines surge, $\mathbf{y}^{\mathcal{B}_v}$ points to port (sway), and $\mathbf{z}^{\mathcal{B}_v}$ points upward (heave).
 
 \paragraph{\gls{uav} Body-Fixed Reference Frame $\{\mathcal{B}_a\}$}
-Similarly, this frame attaches to the \gls{uav}, with origin $\mathcal{O}_a$ at its centre of gravity, decoupling the translational and rotational dynamics in the same way. The longitudinal axis $\mathbf{x}^{\mathcal{B}_a}$ points forward, the lateral axis $\mathbf{y}^{\mathcal{B}_a}$ points to the left, and the vertical axis $\mathbf{z}^{\mathcal{B}_a}$ points upward, aligning with the collective thrust direction.
+Similarly, this frame attaches to the \gls{uav}, with origin $\mathcal{O}_a$ at its \gls{cg}, decoupling the translational and rotational dynamics in the same way. The longitudinal axis $\mathbf{x}^{\mathcal{B}_a}$ points forward, the lateral axis $\mathbf{y}^{\mathcal{B}_a}$ points to the left, and the vertical axis $\mathbf{z}^{\mathcal{B}_a}$ points upward, aligning with the collective thrust direction.
 
 \begin{figure}[H]
     \centering
@@ -40,7 +40,7 @@ Similarly, this frame attaches to the \gls{uav}, with origin $\mathcal{O}_a$ at 
     \definecolor{okiVermillion}{rgb}{0.835,0.369,0.0} % Anchor / coupling point
     
     \begin{tikzpicture}[
-        >=stealth,
+        >={Stealth[length=4pt]},
         scale=1.0,
         axis/.style={->,okiBlue,thick,line width=1.2pt},
         bodyaxis/.style={->,okiGreen,thick,line width=1.2pt},
@@ -277,13 +277,13 @@ The thruster allocation maps the physical actuator commands, the left and right 
     \definecolor{okiVermillion}{rgb}{0.835,0.369,0.0} % Raw thruster forces T_L, T_R
     
     \begin{tikzpicture}[
-        >=stealth,
+        >={Stealth[length=4pt]},
         scale=1.45,
         every node/.style={font=\small},
         axisV/.style={->, black!60, line width=1.3pt},
         forceVec/.style={->, okiVermillion, line width=1.4pt},
         resForce/.style={->, okiBlue, line width=1.3pt},
-        dimLine/.style={<->, >=stealth, black!75, line width=0.6pt, font=\footnotesize},
+        dimLine/.style={<->, >={Stealth[length=4pt]}, black!75, line width=0.6pt, font=\footnotesize},
         guideLine/.style={dashed, black!35, line width=0.5pt}
     ]
         % Geometrical Parameters
@@ -400,7 +400,7 @@ Summing the components of both thrusters along $\mathbf{x}^{\mathcal{B}}$ and $\
     \label{eq:usv_thruster_force_sum}
 \end{equation}
 
-Both thrusters are mounted behind $\mathcal{O}_v$, at the same longitudinal distance $x_{\mathrm{arm}}$, and symmetrically on either side of the centerline, at a lateral distance $y_{\mathrm{arm}}$. Expressed in $\{\mathcal{B}_v\}$, the left (port) thruster is located at $(-x_{\mathrm{arm}}, y_{\mathrm{arm}})$ and the right (starboard) thruster at $(-x_{\mathrm{arm}}, -y_{\mathrm{arm}})$. 
+Both thrusters are mounted behind $\mathcal{O}_v$, at the same longitudinal distance $x_{\mathrm{arm}}$, and symmetrically on either side of the centreline, at a lateral distance $y_{\mathrm{arm}}$. Expressed in $\{\mathcal{B}_v\}$, the left (port) thruster is located at $(-x_{\mathrm{arm}}, y_{\mathrm{arm}})$ and the right (starboard) thruster at $(-x_{\mathrm{arm}}, -y_{\mathrm{arm}})$. 
 
 The yaw moment produced by a planar force $(f_x, f_y)$ applied at $(r_x, r_y)$ is given by the two-dimensional cross product $r_x f_y - r_y f_x$. Applying this to each thruster and summing gives the resultant yaw moment about $\mathcal{O}_v$:
 \begin{equation}
@@ -408,7 +408,7 @@ The yaw moment produced by a planar force $(f_x, f_y)$ applied at $(r_x, r_y)$ i
     \label{eq:usv_thruster_moment}
 \end{equation}
 
-Equations~\eqref{eq:usv_thruster_force_sum} and~\eqref{eq:usv_thruster_moment} complete the mapping from the four physical actuator commands $T_L, T_R, \alpha_L, \alpha_R$ to the control input $\mathbf{u}_v = [X, Y, N]^\top$ used by the dynamic model.
+Equations~\eqref{eq:usv_thruster_force_sum} and~\eqref{eq:usv_thruster_moment} complete the mapping from the four physical actuator commands $T_L$, $T_R$, $\alpha_L$, $\alpha_R$ to the control input $\mathbf{u}_v = [X, Y, N]^\top$ used by the dynamic model.
 
 
 % ==============================================================================
@@ -510,7 +510,7 @@ Figure~\ref{fig:uav_thrust_vectoring} illustrates this projection in the longitu
     \definecolor{okiVermillion}{rgb}{0.835,0.369,0.0} % Thrust vector T
     
     \begin{tikzpicture}[
-        >=stealth,
+        >={Stealth[length=4pt]},
         scale=1.5,
         every node/.style={font=\small},
         inertialAxis/.style={->, black!75, line width=0.9pt},
@@ -689,7 +689,7 @@ Figure~\ref{fig:uav_tether_plane} illustrates this construction within the caten
     \definecolor{okiVermillion}{rgb}{0.835,0.369,0.0}
     
     \begin{tikzpicture}[
-        >=stealth,
+        >={Stealth[length=4pt]},
         scale=1.2,
         every node/.style={font=\small},
         chordLine/.style={dashed, okiBlue, line width=1.0pt},

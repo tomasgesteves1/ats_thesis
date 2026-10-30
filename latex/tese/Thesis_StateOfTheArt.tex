@@ -22,25 +22,23 @@ Understanding how a system evolves is a prerequisite for any control design. Mod
 
 \subsection{White-Box, Grey-Box, and Black-Box Modelling}
 \label{subsec:sota_modeling_types}
-Depending on the available physical knowledge and data, modelling methodologies are classified into three main groups:
-\begin{itemize}
-    \item \textbf{White-Box Modelling:} Based on first principles and physical laws that govern system behaviour. By expressing the dynamics through analytical formulations, often derived from Newtonian mechanics, hydrodynamics, or aerodynamics, this approach provides clear insight into stability, controllability, and energy transfer. To preserve analytical tractability, simplifying assumptions such as linearisation or the neglect of higher-order effects are commonly introduced. 
-    \item \textbf{Grey-Box Modelling:} Lies between purely analytical and purely data-driven approaches. The structure of the model is defined using physical insight, while parameters that are difficult to determine analytically, such as hydrodynamic or aerodynamic coefficients, are estimated from experimental data. This combination preserves a clear physical interpretation while improving accuracy through calibration.
-    \item \textbf{Black-Box Modelling:} Relies entirely on measured input--output data to describe system behaviour. Rather than using explicit physical laws, this approach identifies mathematical relationships that best fit the observed data. Typical examples include linear parametric models, state-space representations obtained from data, and learning-based methods.
-\end{itemize}
+% How are models classified by the knowledge they rely on?
+Modelling methodologies are classified into three main groups, according to how much they rely on physical knowledge and on data. White-box models are built from first principles, expressing the dynamics through analytical formulations derived from Newtonian mechanics, hydrodynamics or aerodynamics. They provide clear insight into stability, controllability and energy transfer, and simplifying assumptions, such as linearisation or the neglect of higher-order effects, are commonly introduced to keep them tractable.
+
+% How do grey-box and black-box models differ from white-box ones?
+Grey-box models lie between purely analytical and purely data-driven approaches. Their structure follows from physical insight, while the parameters that are difficult to determine analytically, such as hydrodynamic or aerodynamic coefficients, are estimated from experimental data, which preserves a clear physical interpretation while improving accuracy. Black-box models, in contrast, rely entirely on measured input--output data and identify the mathematical relationships that best fit them, as in linear parametric models, state-space representations obtained from data, and learning-based methods.
 
 \subsection{Tether Dynamics Modelling}
 \label{subsec:sota_tether_modeling}
-Modelling flexible tethers is critical since they introduce highly non-linear forces and kinematic constraints on the vehicles:
-\begin{itemize}
-    \item \textbf{Quasistatic Catenary Models:} Describe the steady-state profile of a heavy tether suspended between two points. These models use catenary equations to resolve tether sag and tension analytically, assuming the tether is in static equilibrium at each step. While computationally efficient, they neglect dynamic effects such as transverse wave propagation and drag forces, making them unsuitable for rapid aerial manoeuvres.
-    \item \textbf{Lumped-Mass Models:} Discretise the tether into a finite chain of nodes, or "lumped masses", connected by spring-damper segments. Each segment models axial elasticity, damping, and hydrodynamic drag, while the nodes resolve gravitational and buoyancy forces. This formulation, implemented in solvers such as MoorDyn, offers a high-fidelity representation of transient tether whip, slackness, and hydrodynamic drag under dynamic boundary conditions.
-    \item \textbf{Finite-Segment and Multi-Body Models:} Formulate the tether as a chain of rigid cylinders connected by spherical joints. This approach computes bending and torsional moments accurately, but requires solving high-index differential-algebraic equations, which increases the computational burden.
-\end{itemize}
+% Why does the tether need a model of its own, and what is the simplest one?
+A flexible tether introduces highly non-linear forces and kinematic constraints on the vehicles, and three families of models describe it with increasing detail. Quasistatic catenary models describe the steady-state profile of a heavy tether suspended between two points, and resolve its sag and tension analytically by assuming static equilibrium at each instant. They are computationally efficient, but neglect dynamic effects such as transverse wave propagation and drag, which makes them unsuitable for rapid aerial manoeuvres.
+
+% Which models capture the dynamics of the tether?
+Lumped-mass models discretise the tether into a chain of nodes connected by spring--damper segments. The segments model axial elasticity, damping and hydrodynamic drag, while the nodes carry the gravitational and buoyancy forces, so that this formulation, implemented in solvers such as MoorDyn~\cite{hall2015moordyn}, represents transient whipping, slackness and drag with high fidelity. Finite-segment and multi-body models instead treat the tether as a chain of rigid cylinders connected by spherical joints, which captures bending and torsional moments accurately but requires solving high-index differential-algebraic equations, at a higher computational cost.
 
 \subsection{Optimisation-Based Estimation}
 \label{subsec:sota_estimation}
-System identification offers an alternative path by constructing models directly from measured input--output data when physical knowledge is incomplete. Optimisation-based estimation focuses on identifying model parameters offline by minimising the mismatch between measured and predicted system outputs. This is typically achieved through cost functions based on least-squares formulations, including weighted least-squares and prediction-error methods (\gls{pem}) \cite{tangirala2013principles}. For non-linear or constrained problems, advanced optimisation schemes such as trust-region methods and constrained least-squares are often employed, allowing grey-box models to be calibrated while enforcing physical bounds and regularisation.
+System identification offers an alternative path by constructing models directly from measured input--output data when physical knowledge is incomplete. Optimisation-based estimation focuses on identifying model parameters offline by minimising the mismatch between measured and predicted system outputs. This is typically achieved through cost functions based on least-squares formulations, including weighted least-squares and prediction-error methods \cite{tangirala2013principles}. For non-linear or constrained problems, advanced optimisation schemes such as trust-region methods and constrained least-squares are often employed, allowing grey-box models to be calibrated while enforcing physical bounds and regularisation.
 
 \subsection{Related Work on Tethered Vehicle Modelling}
 \label{subsec:sota_sysid_related}
@@ -61,24 +59,23 @@ Control theory provides the mathematical framework for designing systems that re
 
 \subsection{Classical and Modern Control}
 \label{subsec:sota_classical_modern}
-Classical control is based on the representation of systems through transfer functions in the Laplace or frequency domain, under the assumption of linear time-invariant (\gls{lti}) dynamics. Within this framework, feedback laws are typically implemented through proportional--integral--derivative (\gls{pid}) controllers and frequency-domain compensators designed to shape the closed-loop response. 
+Classical control is based on the representation of systems through transfer functions in the Laplace or frequency domain, under the assumption of linear time-invariant dynamics. Within this framework, feedback laws are typically implemented through \gls{pid} controllers and frequency-domain compensators designed to shape the closed-loop response. 
 
-Modern control theory generalises these principles to systems that are multivariable, time-varying, or subject to strong coupling between states and inputs. It is formulated in the \textit{state-space} domain, where the internal dynamics of a system are described by sets of first-order differential equations. This representation enables systematic analysis of controllability, observability, and stability. Within this framework, optimal control theory defines feedback laws that minimise a performance index, such as the linear quadratic regulator (\gls{lqr}) or robust control methods such as $H_{\infty}$ \cite{andersonOptimalControlLinear1990,zhouRobustOptimalControl1996}.
+Modern control theory generalises these principles to systems that are multivariable, time-varying, or subject to strong coupling between states and inputs. It is formulated in the \textit{state-space} domain, where the internal dynamics of a system are described by sets of first-order differential equations. This representation enables systematic analysis of controllability, observability, and stability. Within this framework, optimal control theory defines feedback laws that minimise a performance index, such as the linear quadratic regulator or robust control methods such as $H_{\infty}$ \cite{andersonOptimalControlLinear1990,zhouRobustOptimalControl1996}.
 
 \subsection{Predictive and Optimisation-Based Control}
 \label{subsec:sota_mpc}
 Predictive and optimisation-based control methods determine control actions by solving an optimisation problem that predicts the system behaviour over a finite horizon. At each sampling instant, the controller minimises a cost function subject to system dynamics and operational constraints, typically penalising deviations from reference trajectories and excessive control effort. Only the first control action is applied, and the process repeats at the next time step, forming the receding-horizon principle that defines \gls{mpc} \cite{camachoModelPredictiveControl2007}.
 
-Extensions to non-linear systems led to the development of \gls{nmpc}, which replaces linear models with non-linear formulations and uses numerical optimisation techniques to compute control inputs in real time \cite{gruneNonlinearModelPredictive2011,rawlingsModelPredictiveControl2020}. To enable real-time embedded execution on high-rate systems (e.g. \gls{uav} flight control), modern applications rely on symbolic framework code generators (such as CasADi) that export native C solvers. These solvers utilise highly efficient \gls{qp} kernels such as \gls{hpipm} and execution frameworks like the sequential quadratic programming real-time iteration (\gls{sqp}--\gls{rti}) scheme, which performs a single optimisation iteration per time step to minimise solver latency.
+Extensions to non-linear systems led to the development of \gls{nmpc}, which replaces linear models with non-linear formulations and uses numerical optimisation techniques to compute control inputs in real time \cite{gruneNonlinearModelPredictive2011,rawlingsModelPredictiveControl2020}. To enable real-time embedded execution on high-rate systems (e.g. \gls{uav} flight control), modern applications rely on symbolic framework code generators (such as CasADi) that export native C solvers. These solvers utilise highly efficient quadratic programming kernels such as \gls{hpipm} and execution frameworks like the \gls{sqp}--\gls{rti} scheme, which performs a single optimisation iteration per time step to minimise solver latency.
 
 \subsection{Active Winch and Tension Control}
 \label{subsec:sota_winch_control}
-In tethered \gls{uav} operations, winch design is a core element:
-\begin{itemize}
-    \item \textbf{Passive Tension Tethers:} Rely on spring-loaded spools or constant-torque slip rings. While simple and requiring no electrical control, they cannot adapt to fast \gls{usv} manoeuvres, leading to large tension spikes or excessive slack.
-    \item \textbf{Active Spooling Winches:} Utilise motorised actuators regulated by microcontrollers. The winch dynamically adjusts the tether length based on geometric tracking (distance between platforms) or force-feedback algorithms.
-    \item \textbf{Tension-Feedback and Active Heave Compensation (\gls{ahc}):} Read force telemetry from a load cell. A closed-loop proportional--derivative (\gls{pd}) controller regulates the winch spooling speed to maintain a target tension. In maritime environments, this functions as \gls{ahc}, isolating the flying \gls{uav} from wave-induced \gls{usv} heave.
-\end{itemize}
+% How does a winch manage the tether, in its simplest form?
+In tethered \gls{uav} operations, the winch that manages the tether is a core element, and three designs are common. Passive tension tethers rely on spring-loaded spools or constant-torque slip rings. They are simple and require no electrical control, but cannot adapt to fast \gls{usv} manoeuvres, which leads to large tension spikes or excessive slack.
+
+% How do active winches improve on passive ones?
+Active spooling winches use motorised actuators regulated by microcontrollers, and adjust the length of the tether from the distance between the platforms or from force feedback. In tension-feedback designs, a load cell measures the force and a closed-loop proportional--derivative controller regulates the spooling speed to maintain a target tension. At sea, this scheme acts as active heave compensation, isolating the \gls{uav} in flight from the heave of the \gls{usv} caused by the waves.
 
 \subsection{Related Work on Tethered Vehicle Control}
 \label{subsec:sota_tether_control_related}
@@ -95,26 +92,25 @@ Cooperative coordination refers to the control and organisation of multiple agen
 
 \subsection{Centralised vs. Distributed Coordination}
 \label{subsec:sota_coord_architectures}
-Depending on how information is exchanged and the control authority is structured, cooperative architectures are broadly categorised as centralised or distributed:
-\begin{itemize}
-    \item \textbf{Centralised Coordination:} A single decision node aggregates global information and computes control commands for all agents. This architecture facilitates global optimisation and ensures consistency of mission-level objectives, since the planner has access to full system states and constraints. However, centralised control scales poorly with team size and is vulnerable to communication delays or single-point failures.
-    \item \textbf{Distributed Coordination:} Eliminates the need for a central planner by allowing each agent to make decisions based on locally available information and limited communication. Agents exchange state or intent data to achieve group-level objectives. Distributed coordination provides scalability and robustness to communication losses and agent failures, though it faces challenges related to synchronisation and network stability.
-\end{itemize}
+% How can the decisions of a team be organised?
+Depending on how information is exchanged and how the control authority is structured, cooperative architectures are broadly classified as centralised or distributed. In centralised coordination, a single decision node aggregates global information and computes the commands of all agents. Since it has access to the full state and constraints of the system, it facilitates global optimisation and keeps the mission-level objectives consistent, but it scales poorly with the size of the team and is vulnerable to communication delays and single-point failures.
+
+% What does distributed coordination offer instead?
+Distributed coordination removes the central planner, and each agent decides from locally available information and limited communication, exchanging its state or intent with the others to achieve group-level objectives. This provides scalability and robustness to communication losses and agent failures, at the cost of challenges related to synchronisation and network stability.
 
 \subsection{\texorpdfstring{\gls{uav}--\gls{usv} Cooperative Systems}{UAV--USV Cooperative Systems}}
 \label{subsec:sota_uav_usv_coop}
-Cooperative deployments of \glspl{uav} and \glspl{usv} combine the speed and altitude of aerial sensing with the weight-bearing capability and range of marine hulls:
-\begin{itemize}
-    \item \textbf{Autonomous Landing on Moving Surfaces:} Focuses on landing a \gls{uav} on a moving deck (helideck) in waves. This requires precise relative state estimation (visual markers, \gls{rtk}--\gls{gps}) and predictive control to synchronise the \gls{uav}’s landing velocity with the sea-state pitch/roll profile of the \gls{usv} deck.
-    \item \textbf{Mobile Recharging Stations:} The \gls{usv} acts as a mothership. \Glspl{uav} fly reconnaissance sweeps, return to land on the \gls{usv} deck to swap or recharge batteries, and take off again, enabling long-term persistence at sea.
-    \item \textbf{Cooperative Target Tracking:} Cooperative path-following algorithms steer the \gls{usv} planar trajectory to intercept a target, while the \gls{uav} orbits above to provide continuous visual tracking and image feedback.
-\end{itemize}
+% What do UAV--USV teams already do together, starting with the landing?
+Cooperative deployments of \glspl{uav} and \glspl{usv} combine the speed and altitude of aerial sensing with the load-carrying capability and range of a hull, and three applications are common. The first is the autonomous landing of the \gls{uav} on the moving deck of the \gls{usv} in waves. It requires a precise estimate of the relative state, from visual markers or real-time kinematic satellite positioning, and predictive control to synchronise the landing velocity of the \gls{uav} with the pitch and roll of the deck.
+
+% Which other applications combine the two vehicles?
+In the second application, the \gls{usv} acts as a mobile recharging station. The \glspl{uav} fly reconnaissance sweeps and return to its deck to swap or recharge their batteries, which extends their persistence at sea. In the third, cooperative target tracking, path-following algorithms steer the \gls{usv} to intercept a target, while the \gls{uav} orbits above it to provide continuous visual tracking.
 
 \subsection{Related Work on Maritime Cooperative Robotics}
 \label{subsec:sota_coop_related}
 In \cite{liNMPCbasedUAVUSVCooperative2023}, cooperation is based on a tracking strategy in which the \gls{uav} is controlled to follow and land on a moving \gls{usv}. Only the \gls{uav} is actively controlled, while the \gls{usv} moves independently and provides its state as a reference. The interaction is therefore unidirectional, with the \gls{uav} adapting its motion to the \gls{usv}.
 
-In contrast, \cite{novakCollaborativeObjectManipulation2024} proposes a centralised model predictive control approach in which the \gls{uav} and the \gls{usv} are controlled jointly. A single optimisation problem computes the control inputs for both vehicles, explicitly accounting for the coupling introduced by the tether. This approach focuses on cooperative object manipulation rather than on mission-level coordination between the vehicles.
+In contrast, \cite{novakCollaborativeObjectManipulation2024} proposes a centralised \gls{mpc} approach in which the \gls{uav} and the \gls{usv} are controlled jointly. A single optimisation problem computes the control inputs for both vehicles, explicitly accounting for the coupling introduced by the tether. This approach focuses on cooperative object manipulation rather than on mission-level coordination between the vehicles.
 
 In \cite{zhangCooperativeControlFramework2025}, coordination is achieved through a leader--follower structure. The \gls{usv} acts as the leader and follows a predefined path, while the \gls{uav} adjusts its motion to maintain a desired relative configuration with respect to the \gls{usv}. Coordination is therefore based on reference sharing and relative motion constraints, without joint optimisation or centralised decision-making.
 
@@ -125,11 +121,11 @@ Path and trajectory planning address the problem of generating feasible, collisi
 
 \subsection{Offline and Online Planning}
 \label{subsec:sota_planning_methods}
-Methods are broadly divided into offline and online approaches, depending on when the plan is computed and how environmental information is handled:
-\begin{itemize}
-    \item \textbf{Offline Planning:} Performed before execution, assuming full or near-complete knowledge of the operating environment. Classical approaches include graph-search methods (Dijkstra’s, A*), sampling-based methods (\gls{rrt}, \gls{prm}), and trajectory optimisation. While generating globally optimal paths, they are computationally demanding and cannot adapt to dynamic changes.
-    \item \textbf{Online Planning:} Addresses the generation and adaptation of trajectories in real time under dynamic or uncertain conditions. Reactive techniques such as potential field methods and dynamic window approaches provide fast obstacle avoidance but can suffer from local minima. Optimisation-based \gls{mpc} frameworks integrate vehicle dynamics into the planning loop, generating dynamically consistent collision-free paths online.
-\end{itemize}
+% When can the motion be planned before execution?
+Planning methods are broadly divided into offline and online approaches, depending on when the plan is computed and how information about the environment is handled. Offline planning is performed before execution and assumes full or near-complete knowledge of the environment. Classical approaches include graph-search methods, such as Dijkstra's algorithm and A*, sampling-based methods, such as rapidly-exploring random trees and probabilistic roadmaps, and trajectory optimisation. They generate globally optimal paths, but are computationally demanding and cannot adapt to changes in the environment.
+
+% How is the motion planned while the vehicle operates?
+Online planning generates and adapts the trajectories in real time, under dynamic or uncertain conditions. Reactive techniques, such as potential fields and dynamic window approaches, avoid obstacles quickly but can be trapped in local minima. Optimisation-based \gls{mpc} frameworks instead integrate the dynamics of the vehicle into the planning loop, and generate dynamically consistent, collision-free paths online.
 
 \subsection{Related Work on Trajectory Planning}
 \label{subsec:sota_planning_related}
@@ -137,4 +133,4 @@ A centralised predictive planning approach is presented in \cite{novakCollaborat
 
 Planning is addressed from a different perspective in \cite{zhangCooperativeControlFramework2025}, where cooperative behaviour is achieved through coordinated path following. A predefined path is assigned to the \gls{usv}, while the \gls{uav} generates its motion online as part of the control process to maintain coordination. In this framework, planning is limited to the online generation of the \gls{uav} motion, and no cooperative path planning between the two vehicles is performed.
 
-Overall, existing works typically adopt one of two approaches to planning in \gls{uav}--\gls{usv} systems: either a predefined path is assigned to one vehicle while the other generates its motion online to follow or support it, or both vehicles generate their motion online as part of a predictive control framework.
+Overall, existing works typically adopt one of two approaches to planning in \gls{uav}--\gls{usv} systems. Either a predefined path is assigned to one vehicle while the other generates its motion online to follow or support it, or both vehicles generate their motion online as part of a predictive control framework.
