@@ -183,7 +183,7 @@ The inertial velocity $\dot{\mathbf{p}}$ of $\mathcal{O}_v$, expressed in the bo
 \end{equation}
 where the cross terms $-vr$ and $ur$ are Coriolis/centripetal terms arising because $\{\mathcal{B}_v\}$ is a rotating, non-inertial frame.
 
-Let $F_x, F_y$ denote the resultant surge and sway forces applied at $\mathcal{O}_v$, so that $\mathbf{F} = F_x\,\mathbf{x}^{\mathcal{B}} + F_y\,\mathbf{y}^{\mathcal{B}}$. By Newton's second law, $\mathbf{F} = m\,\ddot{\mathbf{p}}$, and comparing with \eqref{eq:usv_pddot_body_frame},
+Let $F_x, F_y$ denote the resultant surge and sway forces applied at $\mathcal{O}_v$, so that $\mathbf{F} = F_x\,\mathbf{x}^{\mathcal{B}} + F_y\,\mathbf{y}^{\mathcal{B}}$. By Newton's second law, $\mathbf{F} = m\,\ddot{\mathbf{p}}$, where $m$ is the mass of the \gls{usv}, and comparing with \eqref{eq:usv_pddot_body_frame},
 \begin{equation}
     F_x = m(\dot{u} - vr), \qquad F_y = m(\dot{v} + ur).
     \label{eq:usv_newton_linear}
@@ -566,6 +566,7 @@ Gravity, unlike the thrust, is already naturally expressed in $\{\mathcal{I}\}$:
     \mathbf{F}_{\mathrm{grav}}^{\mathcal{I}} = \begin{bmatrix} 0 \\ 0 \\ -mg \end{bmatrix}.
     \label{eq:uav_gravity}
 \end{equation}
+where $m$ is the mass of the \gls{uav} and $g$ the gravitational acceleration.
 
 During translational flight, the vehicle is also subject to aerodynamic drag opposing its planar motion, arising primarily from the relative airflow across the spinning rotor disks (rotor drag). This force is naturally expressed in $\{\mathcal{B}_a\}$ as a linear damping $\mathbf{D} = \mathrm{diag}(d_r, d_r, 0)$ of the velocity along $\mathbf{x}^{\mathcal{B}}$ and $\mathbf{y}^{\mathcal{B}}$, which in $\{\mathcal{I}\}$ gives
 \begin{equation}
@@ -618,7 +619,7 @@ Denoting by $L \geq d$ the tether length at a given instant, its slack is conven
 \end{equation}
 with $\varepsilon = 0$ corresponding to a taut tether, and $\varepsilon$ increasing as more slack is introduced.
 
-Under its own weight, a tether of linear mass density $\mu$ suspended between its two ends takes the shape of a catenary, contained in the vertical plane defined by the two endpoints. Due to the geometric self-similarity of the catenary curve at a given slack ratio $\varepsilon$ and chord inclination, the tension magnitude scales proportionally with the length $d$ of the chord (or with the unstretched length $L$), while the tension direction is governed by the angular deflection $\gamma$ by which the tension vector at $\mathcal{O}_a$ deviates from $\hat{\mathbf{d}}_0$ towards the vertical.
+Under its own weight, a tether of linear mass density $\mu$ suspended between its two ends takes the shape of a catenary, contained in the vertical plane defined by the two endpoints. Due to the geometric self-similarity of the catenary curve at a given slack ratio $\varepsilon$ and chord inclination, the tension magnitude $T_{\mathrm{tether}}$ at $\mathcal{O}_a$ scales proportionally with the length $d$ of the chord (or with the unstretched length $L$), while the tension direction is governed by the angular deflection $\gamma$ by which the tension vector at $\mathcal{O}_a$ deviates from $\hat{\mathbf{d}}_0$ towards the vertical.
 
 The exact relations governing the deflection angle $\gamma_{\mathrm{exact}}(\varepsilon,\alpha)$ and the normalised tension coefficient $c_d^{\mathrm{exact}}(\varepsilon,\alpha) = T_{\mathrm{tether}}/d$ do not admit a closed-form analytical solution, requiring numerical root-finding algorithms at every control cycle.
 
