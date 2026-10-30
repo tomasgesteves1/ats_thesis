@@ -9,7 +9,7 @@ import os
 import numpy as np
 from scipy.signal import butter, filtfilt
 import matplotlib.pyplot as plt
-from common import load, interp, rms, set_thesis_style, save_figure, FIGS, HERE, UAV, USV, PX4, REF, LIMIT, UAV_LIM
+from common import load, interp, rms, set_thesis_style, save_figure, fig_size, legend_above, FIGS, HERE, UAV, USV, PX4, REF, LIMIT, UAV_LIM
 
 TABLE = os.path.join(HERE, '..', '..', 'mission', 'test_uav_circle', 'config', 'crescent.csv')
 OUT = os.path.join(FIGS, '01_tracking')
@@ -69,8 +69,8 @@ def analyse(d, tab):
                 dist=dist, d_dot=np.gradient(dist, t), t_att=d['att'][ma, 0] - t0, tilt=tilt)
 
 
-def panel():
-    fig, ax = plt.subplots(figsize=SIZE)
+def panel(name=None):
+    fig, ax = plt.subplots(figsize=fig_size(name, SIZE))
     ax.grid(True, alpha=0.3)
     return fig, ax
 
@@ -111,27 +111,27 @@ def main():
 
     # --- Scenario: the crescent seen from above, coloured by the speed of the reference -------------------------------
     # Top views are rotated by 90 deg so that the crescent lies horizontally: y to the left, x upwards
-    fig, ax = plt.subplots(figsize=(4.4 * K, 2.6 * K))
+    fig, ax = plt.subplots(figsize=fig_size('crescent_top'))
     sp = np.hypot(tab[:, 4], tab[:, 5])
     sc = ax.scatter(tab[:, 2], tab[:, 1], c=sp, s=1.5, cmap='viridis', rasterized=True)
     for k in np.linspace(0, len(tab), 9, endpoint=False).astype(int):
         j = (k + 30) % len(tab)
         ax.annotate('', xy=tab[j, [2, 1]], xytext=tab[k, [2, 1]], arrowprops=dict(arrowstyle='->', color='k', lw=0.7))
     ax.plot(0, 0, 's', color=USV, ms=6)
-    ax.annotate('USV', (0, 0), xytext=(6, 0), textcoords='offset points', va='center', fontsize=9)
+    ax.annotate('USV', (0, 0), xytext=(6, 0), textcoords='offset points', va='center', fontsize=8)
     fig.colorbar(sc, ax=ax, label='Reference speed (m/s)', shrink=0.7, pad=0.02)
     ax.set_aspect('equal'); ax.invert_xaxis(); ax.set_xlabel('$y$ (m)'); ax.set_ylabel('$x$ (m)')
     fig.tight_layout()
     save_figure(fig, os.path.join(OUT, 'crescent_top'))
 
     # --- Paths over three laps seen from above, rotated as the scenario figure -----------------------------------
-    fig, ax = plt.subplots(figsize=(4.4 * K, 2.4 * K))
+    fig, ax = plt.subplots(figsize=fig_size('crescent_track_top'))
     ax.grid(True, alpha=0.3)
-    ax.plot(tab[:, 2], tab[:, 1], color=REF, lw=2.5, alpha=0.45, label='Ref.')
+    ax.plot(tab[:, 2], tab[:, 1], color=REF, lw=2.5, alpha=0.45, label='Reference')
     for k, a in res.items():
         ax.plot(a['p'][:, 1], a['p'][:, 0], color=COLORS[k], lw=0.8, label=k)
     ax.plot(0, 0, 's', color=USV, ms=5)
-    ax.annotate('USV', (0, 0), xytext=(6, 0), textcoords='offset points', va='center', fontsize=9)
+    ax.annotate('USV', (0, 0), xytext=(6, 0), textcoords='offset points', va='center', fontsize=8)
     ax.set_aspect('equal'); ax.invert_xaxis(); ax.set_xlabel('$y$ (m)'); ax.set_ylabel('$x$ (m)')
     # The legend to the right of the crescent
     leg = ax.legend(loc='center left', bbox_to_anchor=(1.0, 0.5), fontsize=7, frameon=False)
@@ -152,18 +152,18 @@ def main():
 
     for name, key, ylabel in (('crescent_cmd_tilt', 'tilt_cmd', 'Commanded tilt (deg)'),
                               ('crescent_cmd_thrust', 'thrust_cmd', 'Commanded thrust (N)')):
-        fig, ax = panel()
+        fig, ax = panel(name)
         for k, a in res.items():
             tf, xf = lowpass(a['t_cmd'], a[key])
             mid = (tf >= period) & (tf <= 2 * period)
             ax.plot(tf[mid] - period, xf[mid], color=COLORS[k], lw=0.9, label=k)
         ax.set_xlabel('Time (s)'); ax.set_ylabel(ylabel); ax.set_xlim(0, period)
-        ax.legend(loc='best', fontsize=7)
+        legend_above(ax, ncol=2)
         fig.tight_layout()
         save_figure(fig, os.path.join(OUT, name))
 
     # --- Error over the three laps, with the reference speed -------------------------------------------------------
-    fig, ax = plt.subplots(figsize=(6.3 * K, 2.4 * K))
+    fig, ax = plt.subplots(figsize=fig_size('crescent_error'))
     ax.grid(True, alpha=0.3)
     for k, a in res.items():
         ax.plot(a['t'], 100 * a['n'], color=COLORS[k], lw=0.9, label=k)
@@ -172,7 +172,7 @@ def main():
     ax2.fill_between(res['NMPC']['t'], res['NMPC']['sp_ref'], color=REF, alpha=0.15, lw=0)
     ax2.set_ylabel('Reference speed (m/s)'); ax2.set_ylim(0, 12)
     ax.set_zorder(ax2.get_zorder() + 1); ax.patch.set_visible(False)
-    ax.legend(loc='upper left', fontsize=7)
+    legend_above(ax, ncol=2)
     fig.tight_layout()
     save_figure(fig, os.path.join(OUT, 'crescent_error'))
 

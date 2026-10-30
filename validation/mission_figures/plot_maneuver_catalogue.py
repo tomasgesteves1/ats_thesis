@@ -5,7 +5,7 @@ import os, sys, numpy as np, matplotlib.pyplot as plt
 from matplotlib.patches import Polygon
 HERE = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, os.path.dirname(HERE))
-from thesis_style import set_thesis_style, COLOR_CYCLE
+from thesis_style import set_thesis_style, fig_size, normalise_labels, COLOR_CYCLE
 set_thesis_style()
 OUT = os.path.join(HERE, '..', '..', 'latex', 'tese', 'Implementation', 'figures', '04_maneuvers_and_missions',
                    'maneuver_catalogue.pdf')
@@ -54,10 +54,10 @@ def top(ax, d, b, t0, t1, n=4, tgt=None, title=''):
     if tgt is not None and len(tgt):
         faded(ax, win(tgt, t0, t1), t0, t1, TGT)
     snapshots(ax, d, b, np.linspace(t0, t1, n), win(tgt, t0 - 1, t1 + 1) if tgt is not None and len(tgt) else None)
-    ax.set_aspect('equal', adjustable='datalim'); ax.set_title(title, fontsize=9)
+    ax.set_aspect('equal', adjustable='datalim'); ax.set_title(title, fontsize=8)
     ax.set_xlabel('$x$ (m)', fontsize=8); ax.set_ylabel('$y$ (m)', fontsize=8)
 
-fig, axs = plt.subplots(2, 3, figsize=(6.3, 4.5))
+fig, axs = plt.subplots(2, 3, figsize=fig_size('maneuver_catalogue'))
 axs = axs.ravel()
 
 # showcase: takeoff, goto, orbit, land
@@ -78,7 +78,7 @@ def side(ax, t0, t1, phases, title):
     bb = win(b, t0, t1); ax.plot(bb[:, 0] - t0, bb[:, 3] + WINCH_H - z0, color=USV, lw=1.0)
     ax.set_xlim(0, t1 - t0)
     ax.set_xlabel('$t$ (s)', fontsize=8); ax.set_ylabel('height above winch (m)', fontsize=8)
-    ax.set_title(title, fontsize=9, pad=12)
+    ax.set_title(title, fontsize=8, pad=12)
 
 side(axs[0], t_arm - 1, t_to + 2, [(t_arm, t_arm + 5, '1'), (t_arm + 5, t_to, '2')], '(a) Takeoff')
 side(axs[5], t_land, t_td + 4, [(t_land, t_land + 8, '1'), (t_land + 8, t_cent, '2'),
@@ -96,7 +96,7 @@ for k, t in enumerate(np.linspace(t_away, t_orb, 5)):
     px, py = np.interp(t, rel[:, 0], rel[:, 1]), np.interp(t, rel[:, 0], rel[:, 2])
     ax.plot([0, px], [0, py], color=TETHER, lw=0.6, alpha=a, zorder=4)
     ax.plot(px, py, 'o', ms=3.5, mfc=UAV, mec='k', mew=0.4, alpha=a, zorder=5)
-ax.set_aspect('equal', adjustable='datalim'); ax.set_title('(c) Orbit', fontsize=9)
+ax.set_aspect('equal', adjustable='datalim'); ax.set_title('(c) Orbit', fontsize=8)
 ax.set_xlabel('$x$ in the USV axes (m)', fontsize=8); ax.set_ylabel('$y$ in the USV axes (m)', fontsize=8)
 
 # scout: transfer to a point kept in the axes of the boat, ahead of the bow
@@ -118,5 +118,6 @@ fig.legend(handles, ['UAV', 'USV', 'Moving target', 'Tether'], loc='upper center
            frameon=False, fontsize=8, bbox_to_anchor=(0.5, 1.0))
 fig.tight_layout(rect=(0, 0, 1, 0.97))
 os.makedirs(os.path.dirname(OUT), exist_ok=True)
+normalise_labels(fig)
 fig.savefig(OUT)
 print('saved', os.path.normpath(OUT))

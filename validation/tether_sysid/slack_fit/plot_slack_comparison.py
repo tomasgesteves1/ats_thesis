@@ -22,7 +22,7 @@ sys_id_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), "../.."))
 if sys_id_dir not in sys.path:
     sys.path.append(sys_id_dir)
 
-from thesis_style import set_thesis_style, save_figure, THESIS_COLORS
+from thesis_style import set_thesis_style, save_figure, fig_size, legend_above, THESIS_COLORS
 
 try:
     import rosbag2_py
@@ -301,12 +301,12 @@ def main():
     set_thesis_style()
 
     # Dimensions tuned for a standalone figure or LaTeX subfigure (e.g. 0.49\textwidth)
-    fig_size = (4.5, 2.9)
+    size_default = (4.5, 2.9)
 
     # -------------------------------------------------------------
     # 1. Individual Plot: Tether Tension Magnitude
     # -------------------------------------------------------------
-    fig_tension, ax_tension = plt.subplots(figsize=fig_size)
+    fig_tension, ax_tension = plt.subplots(figsize=fig_size("slack_tension", size_default))
     for item in dataset:
         d = item["data"]
         if len(d["force_time"]) > 0:
@@ -319,7 +319,7 @@ def main():
             )
     ax_tension.set_xlabel("Time [s]")
     ax_tension.set_ylabel(r"$T_{\mathrm{tether}}$ [N]")
-    ax_tension.legend(loc="upper right")
+    legend_above(ax_tension, ncol=3)
     ax_tension.set_ylim(bottom=0.0)
     plt.tight_layout()
 
@@ -334,7 +334,7 @@ def main():
     # -------------------------------------------------------------
     # 2. Individual Plot: Distance vs. Winch Length
     # -------------------------------------------------------------
-    fig_geom, ax_geom = plt.subplots(figsize=fig_size)
+    fig_geom, ax_geom = plt.subplots(figsize=fig_size("slack_geometry", size_default))
     for item in dataset:
         d = item["data"]
         # Distance (dashed, same color as slack, no label)
@@ -358,7 +358,7 @@ def main():
             )
     ax_geom.set_xlabel("Time [s]")
     ax_geom.set_ylabel("Length [m]")
-    ax_geom.legend(loc="upper right")
+    legend_above(ax_geom, ncol=3)
     plt.tight_layout()
 
     geom_path = os.path.join(args.output_dir, "slack_geometry")

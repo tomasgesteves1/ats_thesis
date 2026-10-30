@@ -35,12 +35,15 @@ if SYSID_DIR not in sys.path:
     sys.path.append(SYSID_DIR)
 
 from thesis_style import (
+    fig_size,
+    legend_above,
     set_thesis_style,
     save_figure,
     GROUND_TRUTH_COLOR,
     SIMULATION_COLOR,
     COLOR_CYCLE,
 )
+LIMIT_COLOR = '#d62728'   # limits, as in Chapter 5
 
 # ==============================================================================
 # NOMINAL PHYSICAL AND CONTROL PARAMETERS (THESIS SECTION 3.2)
@@ -432,53 +435,53 @@ def plot_actuator_inputs(data, out_dirs):
     if data.get('include_tether', False):
         axs[2].plot(t, MASS * G + data['f_tether_pull'], color='gray', linestyle='--', linewidth=1.0,
                     alpha=0.8, label=r'Hover balance $mg + F_{\mathrm{tether},z}$')
-    axs[2].axhline(MASS * G, color='r', linestyle=':', alpha=0.7, label=f'Nominal weight $mg={MASS*G:.2f}$ N')
+    axs[2].axhline(MASS * G, color=LIMIT_COLOR, linestyle='--', label=f'Nominal weight $mg={MASS*G:.2f}$ N')
     axs[2].set_ylabel('Thrust [N]')
     axs[2].set_xlabel('Time [s]')
     axs[2].set_ylim([15.5, 30.5])
     axs[2].legend(loc='upper right', framealpha=0.9, ncol=3)
 
     for ax in axs:
-        ax.grid(True, linestyle=':', alpha=0.6)
+        ax.grid(True)
     plt.tight_layout()
     for d in out_dirs:
         save_figure(fig, os.path.join(d, 'uav_actuator_inputs'), save_png=True)
     plt.close(fig)
 
     # Individual plots (side by side in LaTeX)
-    fig_a, ax_a = plt.subplots(figsize=(3.5, 2.7))
+    fig_a, ax_a = plt.subplots(figsize=fig_size('uav_actuator_inputs_attitude', (3.5, 2.7)))
     ax_a.plot(t, np.rad2deg(data['roll_c']), color=COLOR_CYCLE[0], label=r'Roll $\phi_c$', linewidth=1.15)
     ax_a.plot(t, np.rad2deg(data['pitch_c']), color=COLOR_CYCLE[1], label=r'Pitch $\theta_c$', linewidth=1.15)
     ax_a.set_ylabel('Attitude cmd [deg]')
     ax_a.set_xlabel('Time [s]')
     ax_a.set_ylim([-32.0, 50.0])
-    ax_a.grid(True, linestyle=':', alpha=0.6)
-    ax_a.legend(loc='upper right', framealpha=0.9, ncol=2, fontsize=7.5)
+    ax_a.grid(True)
+    legend_above(ax_a)
     plt.tight_layout()
     for d in out_dirs:
         save_figure(fig_a, os.path.join(d, 'uav_actuator_inputs_attitude'), save_png=True)
     plt.close(fig_a)
 
-    fig_y, ax_y = plt.subplots(figsize=(3.5, 2.7))
+    fig_y, ax_y = plt.subplots(figsize=fig_size('uav_actuator_inputs_yaw', (3.5, 2.7)))
     ax_y.plot(t, np.rad2deg(data['yaw_c']), color=COLOR_CYCLE[2], label=r'Yaw $\psi_c$', linewidth=1.15)
     ax_y.set_ylabel('Yaw cmd [deg]')
     ax_y.set_xlabel('Time [s]')
     ax_y.set_ylim([-90.0, 100.0])
-    ax_y.grid(True, linestyle=':', alpha=0.6)
-    ax_y.legend(loc='upper right', framealpha=0.9, fontsize=7.5)
+    ax_y.grid(True)
+    legend_above(ax_y)
     plt.tight_layout()
     for d in out_dirs:
         save_figure(fig_y, os.path.join(d, 'uav_actuator_inputs_yaw'), save_png=True)
     plt.close(fig_y)
 
-    fig_t, ax_t = plt.subplots(figsize=(3.5, 2.7))
+    fig_t, ax_t = plt.subplots(figsize=fig_size('uav_actuator_inputs_thrust', (3.5, 2.7)))
     ax_t.plot(t, data['T'], color=COLOR_CYCLE[0], linewidth=1.15, label='Commanded thrust $T$')
-    ax_t.axhline(MASS * G, color='r', linestyle=':', alpha=0.7, label=f'Weight $mg={MASS*G:.2f}$ N')
+    ax_t.axhline(MASS * G, color=LIMIT_COLOR, linestyle='--', label=f'Weight $mg={MASS*G:.2f}$ N')
     ax_t.set_ylabel('Thrust [N]')
     ax_t.set_xlabel('Time [s]')
     ax_t.set_ylim([15.5, 30.5])
-    ax_t.grid(True, linestyle=':', alpha=0.6)
-    ax_t.legend(loc='upper right', framealpha=0.9, fontsize=7.5)
+    ax_t.grid(True)
+    legend_above(ax_t)
     plt.tight_layout()
     for d in out_dirs:
         save_figure(fig_t, os.path.join(d, 'uav_actuator_inputs_thrust'), save_png=True)
@@ -500,7 +503,7 @@ def plot_attitude_tracking(data, out_dirs):
         l_mod, = ax.plot(t, np.rad2deg(data[mod_k]), color=COLOR_CYCLE[0], linewidth=1.0,
                          linestyle='-', label='Prediction Model')
         ax.set_ylabel(f'{name} [deg]')
-        ax.grid(True, linestyle=':', alpha=0.6)
+        ax.grid(True)
 
     axs[0].set_ylim([-28.0, 30.0])
     axs[1].set_ylim([-28.0, 25.0])
@@ -517,14 +520,14 @@ def plot_attitude_tracking(data, out_dirs):
 
     ylims = {'roll': [-28.0, 34.0], 'pitch': [-28.0, 30.0], 'yaw': [-85.0, 105.0]}
     for meas_k, mod_k, name in keys:
-        fig_i, ax_i = plt.subplots(figsize=(3.5, 2.7))
+        fig_i, ax_i = plt.subplots(figsize=fig_size(f'uav_attitude_{meas_k}_validation', (3.5, 2.7)))
         ax_i.plot(t, np.rad2deg(data[meas_k]), color=SIMULATION_COLOR, linewidth=1.25, label='Simulation')
         ax_i.plot(t, np.rad2deg(data[mod_k]), color=COLOR_CYCLE[0], linewidth=1.0, label='Prediction Model')
         ax_i.set_ylabel(f'{name} [deg]')
         ax_i.set_xlabel('Time [s]')
         ax_i.set_ylim(ylims[meas_k])
-        ax_i.grid(True, linestyle=':', alpha=0.6)
-        ax_i.legend(loc='upper right', framealpha=0.9, fontsize=7.5)
+        ax_i.grid(True)
+        legend_above(ax_i)
         plt.tight_layout()
         for d in out_dirs:
             save_figure(fig_i, os.path.join(d, f'uav_attitude_{meas_k}_validation'), save_png=True)
@@ -541,7 +544,7 @@ def plot_acceleration(data, a_meas, a_model, out_dirs):
         l_mod, = ax.plot(t, a_model[:, i], color=COLOR_CYCLE[0], linewidth=1.0, linestyle='-',
                          label='Prediction Model')
         ax.set_ylabel(f'$\\ddot{{{name}}}$ [m/s$^2$]')
-        ax.grid(True, linestyle=':', alpha=0.6)
+        ax.grid(True)
     axs[0].set_ylim([-7.5, 7.5])
     axs[1].set_ylim([-7.5, 7.5])
     axs[2].set_ylim([-2.5, 3.5])
@@ -557,14 +560,14 @@ def plot_acceleration(data, a_meas, a_model, out_dirs):
 
     ylims = [[-7.5, 10.0], [-7.5, 10.0], [-2.5, 4.5]]
     for i, name in enumerate(('x', 'y', 'z')):
-        fig_i, ax_i = plt.subplots(figsize=(3.5, 2.7))
+        fig_i, ax_i = plt.subplots(figsize=fig_size(f'uav_acceleration_{name}_validation', (3.5, 2.7)))
         ax_i.plot(t, a_meas[:, i], color=SIMULATION_COLOR, linewidth=1.25, label='Simulation')
         ax_i.plot(t, a_model[:, i], color=COLOR_CYCLE[0], linewidth=1.0, label='Prediction Model')
         ax_i.set_ylabel(f'$\\ddot{{{name}}}$ [m/s$^2$]')
         ax_i.set_xlabel('Time [s]')
         ax_i.set_ylim(ylims[i])
-        ax_i.grid(True, linestyle=':', alpha=0.6)
-        ax_i.legend(loc='upper right', framealpha=0.9, fontsize=7.5)
+        ax_i.grid(True)
+        legend_above(ax_i)
         plt.tight_layout()
         for d in out_dirs:
             save_figure(fig_i, os.path.join(d, f'uav_acceleration_{name}_validation'), save_png=True)
@@ -574,11 +577,11 @@ def plot_acceleration(data, a_meas, a_model, out_dirs):
 def plot_prediction_error(horizon_t, pos_rmse, vel_rmse, out_dirs):
     set_thesis_style()
     # 1. Position error RMSE vs Prediction horizon
-    fig_pos, ax_pos = plt.subplots(figsize=(5.4, 3.4))
+    fig_pos, ax_pos = plt.subplots(figsize=fig_size('uav_prediction_error_pos', (5.4, 3.4)))
     ax_pos.plot(horizon_t, pos_rmse, color=COLOR_CYCLE[0], linewidth=1.2, label='Prediction Model')
     ax_pos.set_xlabel('Prediction horizon [s]')
     ax_pos.set_ylabel('Position error RMSE [m]')
-    ax_pos.grid(True, linestyle=':', alpha=0.6)
+    ax_pos.grid(True)
     ax_pos.legend(loc='upper left', framealpha=0.9)
     plt.tight_layout()
     for d in out_dirs:
@@ -587,11 +590,11 @@ def plot_prediction_error(horizon_t, pos_rmse, vel_rmse, out_dirs):
     plt.close(fig_pos)
 
     # 2. Velocity error RMSE vs Prediction horizon
-    fig_vel, ax_vel = plt.subplots(figsize=(5.4, 3.4))
+    fig_vel, ax_vel = plt.subplots(figsize=fig_size('uav_prediction_error_vel', (5.4, 3.4)))
     ax_vel.plot(horizon_t, vel_rmse, color=COLOR_CYCLE[0], linewidth=1.2, label='Prediction Model')
     ax_vel.set_xlabel('Prediction horizon [s]')
     ax_vel.set_ylabel('Velocity error RMSE [m/s]')
-    ax_vel.grid(True, linestyle=':', alpha=0.6)
+    ax_vel.grid(True)
     ax_vel.legend(loc='upper left', framealpha=0.9)
     plt.tight_layout()
     for d in out_dirs:
@@ -602,7 +605,7 @@ def plot_prediction_error(horizon_t, pos_rmse, vel_rmse, out_dirs):
 def plot_prediction_examples(data, windows, out_dirs):
     set_thesis_style()
     # 1. 2D Spatial trajectory with prediction chords (1:1 aspect ratio)
-    fig_traj, ax_traj = plt.subplots(figsize=(4.6, 4.2))
+    fig_traj, ax_traj = plt.subplots(figsize=fig_size('uav_prediction_trajectory', (4.6, 4.2)))
     ax_traj.plot(data['p'][:, 0], data['p'][:, 1], color=SIMULATION_COLOR,
                 linewidth=1.2, label='Simulation')
     for j, (k0, s) in enumerate(windows):
@@ -613,7 +616,7 @@ def plot_prediction_examples(data, windows, out_dirs):
     ax_traj.set_ylabel('$y$ [m]')
     ax_traj.margins(0.12)
     ax_traj.axis('equal')
-    ax_traj.grid(True, linestyle=':', alpha=0.6)
+    ax_traj.grid(True)
     ax_traj.legend(loc='upper right', framealpha=0.9)
     plt.tight_layout()
     for d in out_dirs:
@@ -633,7 +636,7 @@ def plot_prediction_examples(data, windows, out_dirs):
                     label=f'Prediction ${name}$')
     ax_det.set_xlabel('Time since window start [s]')
     ax_det.set_ylabel('Displacement [m]')
-    ax_det.grid(True, linestyle=':', alpha=0.6)
+    ax_det.grid(True)
     ax_det.legend(loc='best', framealpha=0.9)
     plt.tight_layout()
     for d in out_dirs:
@@ -656,7 +659,7 @@ def plot_tether_force_validation(data, f_nominal_tether, out_dirs):
         axs[i].plot(t, f_nominal_tether[:, i], color=COLOR_CYCLE[i], linewidth=1.0, linestyle='-',
                     label=f'Prediction Model ({labels[i]})')
         axs[i].set_ylabel(f'{labels[i]} [N]')
-        axs[i].grid(True, linestyle=':', alpha=0.6)
+        axs[i].grid(True)
         loc = 'lower right' if i == 2 else 'upper right'
         axs[i].legend(loc=loc, framealpha=0.9, ncol=2)
 
@@ -665,7 +668,7 @@ def plot_tether_force_validation(data, f_nominal_tether, out_dirs):
                 label=r'Prediction Model $\|\mathbf{F}\|$')
     axs[3].set_ylabel(r'$\|\mathbf{F}\|$ [N]')
     axs[3].set_xlabel('Time [s]')
-    axs[3].grid(True, linestyle=':', alpha=0.6)
+    axs[3].grid(True)
     axs[3].legend(loc='upper right', framealpha=0.9, ncol=2)
 
     plt.tight_layout()

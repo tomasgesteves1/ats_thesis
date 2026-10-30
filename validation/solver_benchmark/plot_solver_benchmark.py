@@ -6,7 +6,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-from thesis_style import set_thesis_style, COLOR_CYCLE
+from thesis_style import set_thesis_style, fig_size, normalise_labels, COLOR_CYCLE
 
 LIMIT_COLOR = "#d62728"
 SIZE = (3.3, 2.6)  # one subfloat of 0.48\textwidth
@@ -18,6 +18,7 @@ Y_LIMITS = {"usv": (0.05, 300.0), "uav": (0.8, 150.0)}
 def _save(fig, fig_dir, name):
     os.makedirs(fig_dir, exist_ok=True)
     fig.subplots_adjust(**MARGINS)
+    normalise_labels(fig)
     path = os.path.join(fig_dir, f"{name}.pdf")
     fig.savefig(path, format="pdf")
     print("saved", path)
@@ -49,7 +50,7 @@ def _time_axis(r):
 def plot_scheme(results, fig_dir, vehicle, Ts):
     runs = [(_load(results, vehicle, n), label) for n, label in SCHEMES[vehicle]]
     # Computation time per sampling instant
-    fig, ax = plt.subplots(figsize=SIZE)
+    fig, ax = plt.subplots(figsize=fig_size(f"{vehicle}_solver_time", SIZE))
     for i, (r, label) in reversed(list(enumerate(runs))):
         ax.plot(_time_axis(r), r["time_ms"], color=COLOR_CYCLE[i], lw=0.7, label=label)
     ax.axhline(1e3 * Ts, color=LIMIT_COLOR, ls="--", lw=1.0, label=rf"$T_s = {1e3 * Ts:.0f}$ ms")
@@ -63,7 +64,7 @@ def plot_scheme(results, fig_dir, vehicle, Ts):
     _save(fig, fig_dir, f"{vehicle}_solver_time")
     plt.close(fig)
     # Optimality residual of the applied solution
-    fig, ax = plt.subplots(figsize=SIZE)
+    fig, ax = plt.subplots(figsize=fig_size(f"{vehicle}_solver_residual", SIZE))
     for i, (r, label) in reversed(list(enumerate(runs))):
         ax.plot(_time_axis(r), r["kkt"], color=COLOR_CYCLE[i], lw=0.7, label=label)
     ax.set_yscale("log")

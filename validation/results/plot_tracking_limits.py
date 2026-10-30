@@ -10,7 +10,7 @@ import sys
 import numpy as np
 import matplotlib.pyplot as plt
 from scipy.signal import medfilt
-from common import load, interp, set_thesis_style, save_figure, FIGS, HERE, UAV, USV, REF, LIMIT, UAV_LIM, COLOR_CYCLE
+from common import load, interp, set_thesis_style, save_figure, fig_size, FIGS, HERE, UAV, USV, REF, LIMIT, UAV_LIM, COLOR_CYCLE
 
 sys.path.insert(0, os.path.join(HERE, '..', 'uav_tracking'))
 from limits_reference import phases  # noqa: E402
@@ -108,15 +108,15 @@ def main():
         ('Roll and pitch\nrate (deg/s)', [(tt[1:], medfilt(roll_rate, MEDIAN), 'Roll', UAV),
                                          (tt[1:], medfilt(pitch_rate, MEDIAN), 'Pitch', COLOR_CYCLE[1])],
          [lim_rate, -lim_rate]),
-        ('Horizontal\nspeed (m/s)', [(t, v_xy, 'Speed', UAV)], [UAV_LIM['v_max']])], (6.3, 3.9), (0, t_split))
+        ('Horizontal\nspeed (m/s)', [(t, v_xy, 'Speed', UAV)], [UAV_LIM['v_max']])], fig_size('limits_horizontal'), (0, t_split))
     stack('limits_vertical', [
         ('Height\n(m)', [(t, p[:, 2], 'Height', UAV)], [Z_MIN]),
         ('Vertical\nspeed (m/s)', [(t, v[:, 2], 'Vertical speed', UAV)], [UAV_LIM['vz_max'], -UAV_LIM['vz_max']]),
         ('Thrust\n(N)', [(tt, thrust, 'Thrust', UAV)], [UAV_LIM['T_min'], UAV_LIM['T_max']]),
         ('Thrust rate\n(N/s)', [(tt[1:], thrust_rate, 'Thrust rate', UAV)],
-         [UAV_LIM['T_rate_max'], -UAV_LIM['T_rate_max']])], (6.3, 5.0), (t_split - 2.0, t_end))
+         [UAV_LIM['T_rate_max'], -UAV_LIM['T_rate_max']])], fig_size('limits_vertical'), (t_split - 2.0, t_end))
 
-    fig, ax = plt.subplots(figsize=(3.6 * K, 2.6 * K))
+    fig, ax = plt.subplots(figsize=fig_size('limits_top'))
     ax.grid(True, alpha=0.3)
     mr = (ref[:, 0] >= t0) & (ref[:, 0] <= t1)
     ax.plot(ref[mr, 2], ref[mr, 1], color=REF, lw=0.9, ls='--', label='Reference')

@@ -31,6 +31,10 @@ if sys_id_dir not in sys.path:
     sys.path.append(sys_id_dir)
 
 from thesis_style import (
+    fig_size,
+    EA_COLUMN_WIDTH,
+    MM,
+    legend_above,
     set_thesis_style,
     save_figure,
     SIMULATION_COLOR,
@@ -427,7 +431,7 @@ def main():
         loc="upper center",
         bbox_to_anchor=(0.5, 0.99),
         ncol=4,
-        fontsize=8.5,
+        fontsize=7,
         frameon=True,
     )
     plt.tight_layout(rect=[0.0, 0.0, 1.0, 0.94])
@@ -446,7 +450,7 @@ def main():
         ("z", 2, fz_true, [-3.0, 1.0]),
     ]
     for name, i, f_gt, ylim in comp_cfg:
-        fig_c, ax_c = plt.subplots(figsize=(3.5, 2.7))
+        fig_c, ax_c = plt.subplots(figsize=fig_size(f"model_fit_f{name}", (3.5, 2.7)))
         ax_c.plot(t_grid, f_gt, color=c_gt, linewidth=SIMULATION_LINEWIDTH, label="MoorDyn")
         ax_c.plot(t_grid, F_cat[:, i], color=c_cat, linewidth=MODEL_LINEWIDTH, label="Catenary Model")
         ax_c.plot(t_grid, F_chord[:, i], color=c_chord, linewidth=1.0, linestyle="--", label="Pointing to USV")
@@ -454,8 +458,8 @@ def main():
         ax_c.set_xlabel("Time [s]")
         ax_c.set_ylabel(rf"$F_{name}$ [N]")
         ax_c.set_ylim(ylim)
-        ax_c.grid(True, linestyle=":", alpha=0.6)
-        ax_c.legend(loc="upper center", ncol=2, fontsize=6.5, framealpha=0.9)
+        ax_c.grid(True)
+        legend_above(ax_c, ncol=2)
         plt.tight_layout()
         for d in out_dirs:
             save_figure(fig_c, os.path.join(d, f"model_fit_f{name}"), save_png=args.save_png)
@@ -464,33 +468,36 @@ def main():
     # -------------------------------------------------------------
     # Plot 2: Magnitude Comparison (Time)
     # -------------------------------------------------------------
-    fig_time, ax_time = plt.subplots(figsize=(6.0, 3.0))
-    ax_time.plot(t_grid, f_true, label="MoorDyn", color=c_gt, linewidth=SIMULATION_LINEWIDTH)
-    ax_time.plot(t_grid, T_pred, label="Catenary Model", color=c_cat, linewidth=MODEL_LINEWIDTH)
-    ax_time.set_xlabel("Time [s]")
-    ax_time.set_ylabel(r"$T_{\mathrm{tether}}$ [N]")
-    ax_time.set_ylim(bottom=0.0, top=4.0)
-    ax_time.legend(loc="upper right", fontsize=8.5)  # t=50-60s is low (y < 1.9), top right is completely free
-    plt.tight_layout()
-    for d in out_dirs:
-        save_figure(
-            fig_time,
-            os.path.join(d, "model_fit_comparison"),
-            save_png=args.save_png,
-        )
-    plt.close(fig_time)
+    # thesis, and a column of the extended abstract
+    for size, dirs, fname in ((fig_size("model_fit_comparison", (6.0, 3.0)), out_dirs, "model_fit_comparison"),
+                              ((EA_COLUMN_WIDTH, 42 * MM), [os.path.abspath(os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "..", "..", "latex", "extended_abstract", "figures"))], "ea_model_fit_comparison")):
+        fig_time, ax_time = plt.subplots(figsize=size)
+        ax_time.plot(t_grid, f_true, label="MoorDyn", color=c_gt, linewidth=SIMULATION_LINEWIDTH)
+        ax_time.plot(t_grid, T_pred, label="Catenary Model", color=c_cat, linewidth=MODEL_LINEWIDTH)
+        ax_time.set_xlabel("Time [s]")
+        ax_time.set_ylabel(r"$T_{\mathrm{tether}}$ [N]")
+        ax_time.set_ylim(bottom=0.0, top=4.0)
+        ax_time.legend(loc="upper right", fontsize=7)  # t=50-60s is low (y < 1.9), top right is completely free
+        plt.tight_layout()
+        for d in dirs:
+            save_figure(
+                fig_time,
+                os.path.join(d, fname),
+                save_png=args.save_png,
+            )
+        plt.close(fig_time)
 
     # -------------------------------------------------------------
     # Plot 3: 3D Residuals & Error Benchmark
     # -------------------------------------------------------------
-    fig_res, ax_res = plt.subplots(figsize=(6.0, 3.0))
+    fig_res, ax_res = plt.subplots(figsize=fig_size("model_fit_residuals", (6.0, 3.0)))
     ax_res.plot(t_grid, cat_err_3d, label="Catenary Model", color=c_cat, linewidth=MODEL_LINEWIDTH)
     ax_res.plot(t_grid, chord_err_3d, label="Pointing to USV", color=c_chord, linewidth=1.0, linestyle="--")
     ax_res.plot(t_grid, z_err_3d, label="Pure Vertical", color=c_z, linewidth=1.0, linestyle="-.")
     ax_res.set_xlabel("Time [s]")
     ax_res.set_ylabel(r"$\|\mathbf{F}_{\mathrm{sim}} - \mathbf{F}_{\mathrm{model}}\|$ [N]")
     ax_res.set_ylim(bottom=0.0, top=2.6)
-    ax_res.legend(loc="upper center", ncol=3, fontsize=8.5)  # Horizontal top center has zero curve overlap
+    ax_res.legend(loc="upper center", ncol=3, fontsize=7)  # Horizontal top center has zero curve overlap
     plt.tight_layout()
     for d in out_dirs:
         save_figure(

@@ -8,7 +8,7 @@ import os
 import re
 import numpy as np
 import matplotlib.pyplot as plt
-from common import load, interp, rms, set_thesis_style, save_figure, FIGS, EA_FIGS, UAV, USV, LIMIT, COLOR_CYCLE
+from common import load, interp, rms, set_thesis_style, save_figure, fig_size, FIGS, EA_FIGS, UAV, USV, LIMIT, COLOR_CYCLE
 
 OUT = os.path.join(FIGS, '03_disturbances')
 ANCHOR = 1.3        # height of the winch above the origin of the boat (m)
@@ -92,7 +92,7 @@ def waves():
               '%.2f m | contact speed %.2f m/s' % (g, r['heave'], r['heave_std'], r['duration'], r['centring'],
                                                   r['offset'], r['contact']))
     # thesis, and a column of the extended abstract
-    for size, path in (((6.3, 4.2), os.path.join(OUT, 'waves_landing')),
+    for size, path in ((fig_size('waves_landing'), os.path.join(OUT, 'waves_landing')),
                        ((3.1, 3.6), os.path.join(EA_FIGS, 'waves_landing_column'))):
         fig, axs = plt.subplots(3, 1, figsize=size, sharex=True)
         for k, g in enumerate(GAINS):
@@ -132,7 +132,7 @@ def wind():
     ext, dist = d['ext'], d['dist']
     t_to = ev_time(d, 'uav.takeoff: done'); t_td = ev_time(d, 'descending')   # until the winch starts to pull
     # offset and force as two figures, side by side in the thesis
-    fig, ax = plt.subplots(figsize=(2.9, 2.6))
+    fig, ax = plt.subplots(figsize=fig_size('wind_offset'))
     axs = [ax]
     x = np.arange(len(WINDS))
     for k, (obs, lab) in enumerate((('noobs', 'without observer'), ('obs', 'with observer'))):
@@ -141,7 +141,7 @@ def wind():
     for k, w in enumerate(WINDS):
         if np.isnan(table[(w, 'noobs')][2]):   # no touchdown: the bar is the offset when the descent started
             axs[0].text(k - 0.18, min(100 * table[(w, 'noobs')][1], 85) + 1.0, 'no\nlanding', ha='center',
-                        va='bottom', fontsize=6.5, color=COLOR_CYCLE[1])
+                        va='bottom', fontsize=7, color=COLOR_CYCLE[1])
     axs[0].set_xticks(x); axs[0].set_xticklabels(['%d' % w for w in WINDS]); axs[0].set_xlabel('wind (m/s)')
     axs[0].set_ylabel('offset at the descent (cm)'); axs[0].set_ylim(0, 100)
     axs[0].legend(fontsize=7, loc='upper left')
@@ -149,7 +149,7 @@ def wind():
     save_figure(fig, os.path.join(OUT, 'wind_offset'))
 
     # landing in the strongest wind, with and without the observer: offset from the winch and height above it
-    fig, axs2 = plt.subplots(2, 1, figsize=(6.3, 3.4), sharex=True)
+    fig, axs2 = plt.subplots(2, 1, figsize=fig_size('wind_landing'), sharex=True)
     for obs, c, lab in (('noobs', COLOR_CYCLE[1], 'without observer'), ('obs', COLOR_CYCLE[0], 'with observer')):
         dd = load(RUN[(12, obs)]); dr = dd['drone']
         tl = ev_time(dd, 'uav.land: started'); td = ev_time(dd, 'touchdown')
@@ -160,19 +160,19 @@ def wind():
         axs2[1].plot(t - tl, rel[:, 2], color=c, lw=0.9)
         for a in axs2:
             a.axvline(ev_time(dd, 'descending') - tl, color=c, ls=':', lw=0.8)
-    axs2[0].set_ylim(0, 300); axs2[0].set_ylabel('horizontal\noffset (cm)'); axs2[0].legend(fontsize=7, loc='upper right')
+    axs2[0].set_ylim(0, 300); axs2[0].set_ylabel('horizontal\noffset (cm)'); axs2[0].legend(fontsize=7, loc='upper center')
     axs2[1].set_ylabel('height above\nthe winch (m)'); axs2[1].set_xlabel('time since the landing started (s)')
     axs2[1].set_xlim(0, None)
     fig.align_ylabels(axs2); fig.tight_layout()
     save_figure(fig, os.path.join(OUT, 'wind_landing'))
 
-    fig, ax = plt.subplots(figsize=(3.4, 2.6))
+    fig, ax = plt.subplots(figsize=fig_size('wind_force'))
     axs = [None, ax]
     me = (ext[:, 0] >= t_to) & (ext[:, 0] <= t_td); md = (dist[:, 0] >= t_to) & (dist[:, 0] <= t_td)
     t0 = t_to
     axs[1].plot(ext[me, 0] - t0, np.hypot(ext[me, 1], ext[me, 2]), color='#333333', lw=0.9, label='applied')
     axs[1].plot(dist[md, 0] - t0, np.hypot(dist[md, 1], dist[md, 2]), color=UAV, lw=0.9, label='estimated')
-    axs[1].set_xlabel('time (s)'); axs[1].set_ylabel('horizontal force (N)'); axs[1].legend(fontsize=7)
+    axs[1].set_xlabel('time (s)'); axs[1].set_ylabel('horizontal force (N)'); axs[1].legend(fontsize=7, loc='upper center')
     fig.tight_layout()
     save_figure(fig, os.path.join(OUT, 'wind_force'))
 

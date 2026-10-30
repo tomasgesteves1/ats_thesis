@@ -8,7 +8,7 @@ and writes one figure per panel to Results/figures/01_tracking.
 import os
 import numpy as np
 import matplotlib.pyplot as plt
-from common import load, interp, rms, set_thesis_style, save_figure, FIGS, USV, REF, LIMIT, USV_LIM, COLOR_CYCLE
+from common import load, interp, rms, set_thesis_style, save_figure, fig_size, FIGS, USV, REF, LIMIT, USV_LIM, COLOR_CYCLE
 
 OUT = os.path.join(FIGS, '01_tracking')
 K = 1.7
@@ -56,7 +56,7 @@ def main():
 
     # --- Paths seen from above ----------------------------------------------------------------------------------
     # Drawn as the top views of the UAV: x up, y to the left, so that the figure-eight lies across the page
-    fig, ax = plt.subplots(figsize=(4.4 * K, 2.0 * K))
+    fig, ax = plt.subplots(figsize=fig_size('usv_track_top'))
     ax.grid(True, alpha=0.3)
     ax.plot(r[:, 1], r[:, 0], color=REF, lw=2.5, alpha=0.45, label='Reference')
     ax.plot(p[:, 1], p[:, 0], color=USV, lw=0.9, label='USV')
@@ -68,7 +68,7 @@ def main():
     # --- Position and heading error ---------------------------------------------------------------------------
     for name, y, ylabel, scale in (('usv_track_error', 100 * e, 'Position error (cm)', 1),
                                    ('usv_track_heading', e_psi, 'Heading error (deg)', 1)):
-        fig, ax = plt.subplots(figsize=SIZE)
+        fig, ax = plt.subplots(figsize=fig_size(name))
         ax.grid(True, alpha=0.3)
         ax.plot(t, y, color=USV, lw=0.9)
         ax.set_xlabel('Time (s)'); ax.set_ylabel(ylabel); ax.set_xlim(0, t[-1])
@@ -80,7 +80,7 @@ def main():
                                         ('usv_track_azimuth', 3, 'Azimuth (deg)',
                                          [-np.degrees(USV_LIM['alpha_max']), np.degrees(USV_LIM['alpha_max'])],
                                          np.degrees(1.0))):
-        fig, ax = plt.subplots(figsize=SIZE)
+        fig, ax = plt.subplots(figsize=fig_size(name))
         ax.grid(True, alpha=0.3)
         for side, col in (('left', USV), ('right', RIGHT)):
             ax.plot(th[side][k - 1], conv * th[side][k], color=col, lw=0.9, label=side.capitalize())

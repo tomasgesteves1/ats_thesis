@@ -8,7 +8,7 @@ import os
 import numpy as np
 import matplotlib.pyplot as plt
 from plot_mission import boat
-from common import load, interp, set_thesis_style, save_figure, FIGS, USV, REF, LIMIT, USV_LIM, COLOR_CYCLE
+from common import load, interp, set_thesis_style, save_figure, fig_size, FIGS, USV, REF, LIMIT, USV_LIM, COLOR_CYCLE
 
 OUT = os.path.join(FIGS, '01_tracking')
 K = 1.7
@@ -57,7 +57,7 @@ def main():
             ('Azimuth rate\n(deg/s)', [(L[2][1:], np.diff(L[3]) / TS, USV), (R[2][1:], np.diff(R[3]) / TS, RIGHT)],
              [-np.degrees(USV_LIM['alpha_rate_max']), np.degrees(USV_LIM['alpha_rate_max'])]),
             ('Surge speed\n(m/s)', [(t, surge, 'k')], [U_MIN])]
-    fig, axs = plt.subplots(len(rows), 1, figsize=(6.3, 6.0), sharex=True)
+    fig, axs = plt.subplots(len(rows), 1, figsize=fig_size('usv_limits_inputs'), sharex=True)
     for ax, (ylabel, data, limits) in zip(axs, rows):
         ax.grid(True, alpha=0.3)
         for _, ts in PHASES[1:]:
@@ -75,7 +75,7 @@ def main():
     fig.align_ylabels(axs); fig.tight_layout()
     save_figure(fig, os.path.join(OUT, 'usv_limits_inputs'))
 
-    fig, ax = plt.subplots(figsize=(3.6 * K, 2.6 * K))
+    fig, ax = plt.subplots(figsize=fig_size('usv_limits_top'))
     ax.grid(True, alpha=0.3)
     mr = (ref[:, 0] >= t0) & (ref[:, 0] <= t0 + END)
     ax.plot(ref[mr, 1], ref[mr, 2], 'o', color=REF, ms=3, alpha=0.5, label='Reference')

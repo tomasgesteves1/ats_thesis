@@ -7,7 +7,8 @@ limits (5.1.3). Data: data/tracking_steps.npz (extract.py). Prints the metrics a
 import os
 import numpy as np
 import matplotlib.pyplot as plt
-from common import (load, interp, set_thesis_style, save_figure, FIGS, UAV, USV, REF, LIMIT, UAV_LIM, USV_LIM)
+from common import (load, interp, set_thesis_style, save_figure, FIGS, EA_FIGS, UAV, USV, REF, LIMIT, UAV_LIM, USV_LIM)
+from thesis_style import EA_COLUMN_WIDTH, MM
 
 OUT = os.path.join(FIGS, '01_tracking')
 D_MAX = 15.0
@@ -77,22 +78,25 @@ def main():
     fig.tight_layout()
     save_figure(fig, os.path.join(OUT, 'steps_paths'))
 
-    fig, (a1, a2) = plt.subplots(2, 1, figsize=(3.3, 3.0), sharex=True)
-    a1.plot(dr[m, 0] - t0, sep[m], color='#333333', lw=1.0, label='$d$')
-    a1.axhline(D_MAX, color=LIMIT, ls='--', lw=0.9, label='$d_{max}$')
-    a1.set_ylabel('$d$ (m)'); a1.legend(loc='lower right', fontsize=7); a1.set_ylim(top=1.08 * D_MAX)
-    a2.plot(v[mv, 0] - t0, v[mv, 1], color='#333333', lw=0.9, label=r'$\dot d$')
-    a2.axhline(UAV_LIM['d_dot_max'], color=LIMIT, ls='--', lw=0.9, label=r'$\dot d_{max}$')
-    a2.set_ylabel(r'$\dot d$ (m/s)'); a2.set_xlabel('time (s)'); a2.legend(loc='lower right', fontsize=7)
-    for a in (a1, a2):
-        for t in tu:
-            a.axvline(t - t0, color=UAV, lw=0.5, alpha=0.5)
-        for t in tb:
-            a.axvline(t - t0, color=USV, lw=0.5, alpha=0.5, ls=':')
-    a1.set_xlim(0, t1 - t0)
-    fig.align_ylabels([a1, a2])
-    fig.tight_layout()
-    save_figure(fig, os.path.join(OUT, 'steps_separation'))
+    # thesis, and a column of the extended abstract
+    for size, path in (((3.3, 3.0), os.path.join(OUT, 'steps_separation')),
+                       ((EA_COLUMN_WIDTH, 52 * MM), os.path.join(EA_FIGS, 'ea_steps_separation'))):
+        fig, (a1, a2) = plt.subplots(2, 1, figsize=size, sharex=True)
+        a1.plot(dr[m, 0] - t0, sep[m], color='#333333', lw=1.0, label='$d$')
+        a1.axhline(D_MAX, color=LIMIT, ls='--', lw=0.9, label='$d_{max}$')
+        a1.set_ylabel('$d$ (m)'); a1.legend(loc='lower right', fontsize=7); a1.set_ylim(top=1.08 * D_MAX)
+        a2.plot(v[mv, 0] - t0, v[mv, 1], color='#333333', lw=0.9, label=r'$\dot d$')
+        a2.axhline(UAV_LIM['d_dot_max'], color=LIMIT, ls='--', lw=0.9, label=r'$\dot d_{max}$')
+        a2.set_ylabel(r'$\dot d$ (m/s)'); a2.set_xlabel('time (s)'); a2.legend(loc='lower right', fontsize=7)
+        for a in (a1, a2):
+            for t in tu:
+                a.axvline(t - t0, color=UAV, lw=0.5, alpha=0.5)
+            for t in tb:
+                a.axvline(t - t0, color=USV, lw=0.5, alpha=0.5, ls=':')
+        a1.set_xlim(0, t1 - t0)
+        fig.align_ylabels([a1, a2])
+        fig.tight_layout()
+        save_figure(fig, path)
 
     # ---- 5.1.3: actuators --------------------------------------------------------------------------------------
     att = d['att']; ma = att[:, 0] >= t0

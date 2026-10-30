@@ -24,12 +24,14 @@ if SYSID_DIR not in sys.path:
     sys.path.append(SYSID_DIR)
 
 from thesis_style import (
+    fig_size,
     set_thesis_style,
     save_figure,
     GROUND_TRUTH_COLOR,
     SIMULATION_COLOR,
     COLOR_CYCLE,
 )
+LIMIT_COLOR = '#d62728'   # limits, as in Chapter 5
 
 # Nominal physical parameters directly from Thesis (Table 4.1 / model.sdf)
 # Total Mass: Base (227 kg) + 2 Engines (30 kg) + Sensors/Props (2.1 kg) = 259.10 kg
@@ -280,21 +282,21 @@ def plot_actuator_inputs(data, out_dirs):
     fig, axs = plt.subplots(2, 1, figsize=(7.2, 4.4), sharex=True)
     axs[0].plot(t, data['T_L'], color=COLOR_CYCLE[0], label='Port ($T_L$)', linewidth=1.15)
     axs[0].plot(t, data['T_R'], color=COLOR_CYCLE[1], label='Starboard ($T_R$)', linewidth=1.15)
-    axs[0].axhline(510.0, color='r', linestyle=':', alpha=0.6, label='Fwd Limit ($510\\,\\mathrm{N}$)')
-    axs[0].axhline(-380.0, color='r', linestyle=':', alpha=0.6, label='Rev Limit ($-380\\,\\mathrm{N}$)')
+    axs[0].axhline(510.0, color=LIMIT_COLOR, linestyle='--', label='Fwd Limit ($510\\,\\mathrm{N}$)')
+    axs[0].axhline(-380.0, color=LIMIT_COLOR, linestyle='--', label='Rev Limit ($-380\\,\\mathrm{N}$)')
     axs[0].set_ylabel('Thrust [N]')
     axs[0].set_ylim([-450.0, 800.0])
-    axs[0].grid(True, linestyle=':', alpha=0.6)
+    axs[0].grid(True)
     axs[0].legend(loc='upper right', framealpha=0.9, ncol=2)
     
     axs[1].plot(t, np.rad2deg(data['alpha_L']), color=COLOR_CYCLE[0], label=r'Port ($\alpha_L$)', linewidth=1.15)
     axs[1].plot(t, np.rad2deg(data['alpha_R']), color=COLOR_CYCLE[1], label=r'Starboard ($\alpha_R$)', linewidth=1.15)
-    axs[1].axhline(30.0, color='r', linestyle=':', alpha=0.6, label=r'Limit ($\pm 30^\circ$)')
-    axs[1].axhline(-30.0, color='r', linestyle=':', alpha=0.6)
+    axs[1].axhline(30.0, color=LIMIT_COLOR, linestyle='--', label=r'Limit ($\pm 30^\circ$)')
+    axs[1].axhline(-30.0, color=LIMIT_COLOR, linestyle='--')
     axs[1].set_ylabel('Azimuth [deg]')
     axs[1].set_xlabel('Time [s]')
     axs[1].set_ylim([-36.0, 58.0])
-    axs[1].grid(True, linestyle=':', alpha=0.6)
+    axs[1].grid(True)
     axs[1].legend(loc='upper right', framealpha=0.9, ncol=2)
     plt.tight_layout()
     for d in out_dirs:
@@ -302,32 +304,32 @@ def plot_actuator_inputs(data, out_dirs):
     plt.close(fig)
 
     # 2. Individual Thrust Plot (side-by-side in LaTeX)
-    fig_th, ax_th = plt.subplots(figsize=(4.8, 3.2))
+    fig_th, ax_th = plt.subplots(figsize=fig_size('usv_actuator_inputs_thrust', (4.8, 3.2)))
     ax_th.plot(t, data['T_L'], color=COLOR_CYCLE[0], label='Port ($T_L$)', linewidth=1.15)
     ax_th.plot(t, data['T_R'], color=COLOR_CYCLE[1], label='Starboard ($T_R$)', linewidth=1.15)
-    ax_th.axhline(510.0, color='r', linestyle=':', alpha=0.7, label=r'Limits ($\pm 510/-380\,\mathrm{N}$)')
-    ax_th.axhline(-380.0, color='r', linestyle=':', alpha=0.7)
+    ax_th.axhline(510.0, color=LIMIT_COLOR, linestyle='--', label=r'Limits ($\pm 510/-380\,\mathrm{N}$)')
+    ax_th.axhline(-380.0, color=LIMIT_COLOR, linestyle='--')
     ax_th.set_ylabel('Thrust [N]')
     ax_th.set_xlabel('Time [s]')
     ax_th.set_ylim([-450.0, 750.0])
-    ax_th.grid(True, linestyle=':', alpha=0.6)
-    ax_th.legend(loc='upper right', framealpha=0.9, fontsize=8.0)
+    ax_th.grid(True)
+    ax_th.legend(loc='upper right', framealpha=0.9, fontsize=7)
     plt.tight_layout()
     for d in out_dirs:
         save_figure(fig_th, os.path.join(d, 'usv_actuator_inputs_thrust'), save_png=True)
     plt.close(fig_th)
 
     # 3. Individual Azimuth Plot (side-by-side in LaTeX)
-    fig_az, ax_az = plt.subplots(figsize=(4.8, 3.2))
+    fig_az, ax_az = plt.subplots(figsize=fig_size('usv_actuator_inputs_azimuth', (4.8, 3.2)))
     ax_az.plot(t, np.rad2deg(data['alpha_L']), color=COLOR_CYCLE[0], label=r'Port ($\alpha_L$)', linewidth=1.15)
     ax_az.plot(t, np.rad2deg(data['alpha_R']), color=COLOR_CYCLE[1], label=r'Starboard ($\alpha_R$)', linewidth=1.15)
-    ax_az.axhline(30.0, color='r', linestyle=':', alpha=0.7, label=r'Limits ($\pm 30^\circ$)')
-    ax_az.axhline(-30.0, color='r', linestyle=':', alpha=0.7)
+    ax_az.axhline(30.0, color=LIMIT_COLOR, linestyle='--', label=r'Limits ($\pm 30^\circ$)')
+    ax_az.axhline(-30.0, color=LIMIT_COLOR, linestyle='--')
     ax_az.set_ylabel('Azimuth [deg]')
     ax_az.set_xlabel('Time [s]')
     ax_az.set_ylim([-36.0, 55.0])
-    ax_az.grid(True, linestyle=':', alpha=0.6)
-    ax_az.legend(loc='upper right', framealpha=0.9, fontsize=8.0)
+    ax_az.grid(True)
+    ax_az.legend(loc='upper right', framealpha=0.9, fontsize=7)
     plt.tight_layout()
     for d in out_dirs:
         save_figure(fig_az, os.path.join(d, 'usv_actuator_inputs_azimuth'), save_png=True)
@@ -352,20 +354,20 @@ def plot_velocities_validation(data, sim_res, out_dirs):
     l_mod, = axs[0].plot(t, sim_res['u_sim'], color=COLOR_CYCLE[0], label='Prediction Model', linewidth=1.0, linestyle='-')
     axs[0].set_ylabel('$u$ [m/s]')
     axs[0].set_ylim(auto_ylim(data['u_gt'], sim_res['u_sim']))
-    axs[0].grid(True, linestyle=':', alpha=0.6)
+    axs[0].grid(True)
     
     axs[1].plot(t, data['v_gt'], color=SIMULATION_COLOR, label='Simulation', linewidth=1.25)
     axs[1].plot(t, sim_res['v_sim'], color=COLOR_CYCLE[0], label='Prediction Model', linewidth=1.0, linestyle='-')
     axs[1].set_ylabel('$v$ [m/s]')
     axs[1].set_ylim(auto_ylim(data['v_gt'], sim_res['v_sim']))
-    axs[1].grid(True, linestyle=':', alpha=0.6)
+    axs[1].grid(True)
     
     axs[2].plot(t, np.rad2deg(data['r_gt']), color=SIMULATION_COLOR, label='Simulation', linewidth=1.25)
     axs[2].plot(t, np.rad2deg(sim_res['r_sim']), color=COLOR_CYCLE[0], label='Prediction Model', linewidth=1.0, linestyle='-')
     axs[2].set_ylabel('$r$ [deg/s]')
     axs[2].set_xlabel('Time [s]')
     axs[2].set_ylim(auto_ylim(np.rad2deg(data['r_gt']), np.rad2deg(sim_res['r_sim'])))
-    axs[2].grid(True, linestyle=':', alpha=0.6)
+    axs[2].grid(True)
 
     fig.legend([l_sim, l_mod], ['Simulation', 'Prediction Model'],
                loc='upper center', bbox_to_anchor=(0.5, 0.99), ncol=2, frameon=True)
@@ -381,14 +383,14 @@ def plot_velocities_validation(data, sim_res, out_dirs):
         ('r', 'deg/s', np.rad2deg(data['r_gt']), np.rad2deg(sim_res['r_sim']), [-12.0, 38.0])
     ]
     for var, unit, y_gt, y_sim, ylim in vel_configs:
-        fig_v, ax_v = plt.subplots(figsize=(3.5, 2.7))
+        fig_v, ax_v = plt.subplots(figsize=fig_size(f'usv_velocity_{var}_validation', (3.5, 2.7)))
         ax_v.plot(t, y_gt, color=SIMULATION_COLOR, label='Simulation', linewidth=1.25)
         ax_v.plot(t, y_sim, color=COLOR_CYCLE[0], label='Prediction Model', linewidth=1.0)
         ax_v.set_ylabel(f'${var}$ [{unit}]')
         ax_v.set_xlabel('Time [s]')
         ax_v.set_ylim(auto_ylim(y_gt, y_sim))
-        ax_v.grid(True, linestyle=':', alpha=0.6)
-        ax_v.legend(loc='upper right', framealpha=0.9, fontsize=7.5)
+        ax_v.grid(True)
+        ax_v.legend(loc='upper right', framealpha=0.9)
         plt.tight_layout()
         for d in out_dirs:
             save_figure(fig_v, os.path.join(d, f'usv_velocity_{var}_validation'), save_png=True)
@@ -398,11 +400,11 @@ def plot_velocities_validation(data, sim_res, out_dirs):
 def plot_prediction_error(horizon_t, pos_rmse, psi_rmse, vel_rmse, r_rmse, out_dirs):
     set_thesis_style()
     # 1. Position error RMSE vs Prediction horizon
-    fig_pos, ax_pos = plt.subplots(figsize=(5.4, 3.4))
+    fig_pos, ax_pos = plt.subplots(figsize=fig_size('usv_prediction_error_pos', (5.4, 3.4)))
     ax_pos.plot(horizon_t, pos_rmse, color=COLOR_CYCLE[0], linewidth=1.2, label='Prediction Model')
     ax_pos.set_xlabel('Prediction horizon [s]')
     ax_pos.set_ylabel('Position error RMSE [m]')
-    ax_pos.grid(True, linestyle=':', alpha=0.6)
+    ax_pos.grid(True)
     ax_pos.legend(loc='upper left', framealpha=0.9)
     plt.tight_layout()
     for d in out_dirs:
@@ -411,11 +413,11 @@ def plot_prediction_error(horizon_t, pos_rmse, psi_rmse, vel_rmse, r_rmse, out_d
     plt.close(fig_pos)
 
     # 2. Heading error RMSE vs Prediction horizon
-    fig_psi, ax_psi = plt.subplots(figsize=(5.4, 3.4))
+    fig_psi, ax_psi = plt.subplots(figsize=fig_size('usv_prediction_error_psi', (5.4, 3.4)))
     ax_psi.plot(horizon_t, psi_rmse, color=COLOR_CYCLE[0], linewidth=1.2, label='Prediction Model')
     ax_psi.set_xlabel('Prediction horizon [s]')
     ax_psi.set_ylabel('Heading error RMSE [deg]')
-    ax_psi.grid(True, linestyle=':', alpha=0.6)
+    ax_psi.grid(True)
     ax_psi.legend(loc='upper left', framealpha=0.9)
     plt.tight_layout()
     for d in out_dirs:
@@ -423,11 +425,11 @@ def plot_prediction_error(horizon_t, pos_rmse, psi_rmse, vel_rmse, r_rmse, out_d
     plt.close(fig_psi)
 
     # 3. Velocity error RMSE vs Prediction horizon
-    fig_vel, ax_vel = plt.subplots(figsize=(5.4, 3.4))
+    fig_vel, ax_vel = plt.subplots(figsize=fig_size('usv_prediction_error_vel', (5.4, 3.4)))
     ax_vel.plot(horizon_t, vel_rmse, color=COLOR_CYCLE[0], linewidth=1.2, label='Prediction Model')
     ax_vel.set_xlabel('Prediction horizon [s]')
     ax_vel.set_ylabel('Velocity error RMSE [m/s]')
-    ax_vel.grid(True, linestyle=':', alpha=0.6)
+    ax_vel.grid(True)
     ax_vel.legend(loc='upper left', framealpha=0.9)
     plt.tight_layout()
     for d in out_dirs:
@@ -435,11 +437,11 @@ def plot_prediction_error(horizon_t, pos_rmse, psi_rmse, vel_rmse, r_rmse, out_d
     plt.close(fig_vel)
 
     # 4. Yaw rate error RMSE vs Prediction horizon
-    fig_r, ax_r = plt.subplots(figsize=(5.4, 3.4))
+    fig_r, ax_r = plt.subplots(figsize=fig_size('usv_prediction_error_r', (5.4, 3.4)))
     ax_r.plot(horizon_t, r_rmse, color=COLOR_CYCLE[0], linewidth=1.2, label='Prediction Model')
     ax_r.set_xlabel('Prediction horizon [s]')
     ax_r.set_ylabel('Yaw rate error RMSE [deg/s]')
-    ax_r.grid(True, linestyle=':', alpha=0.6)
+    ax_r.grid(True)
     ax_r.legend(loc='upper left', framealpha=0.9)
     plt.tight_layout()
     for d in out_dirs:
@@ -450,21 +452,21 @@ def plot_prediction_error(horizon_t, pos_rmse, psi_rmse, vel_rmse, r_rmse, out_d
     fig_all, axs_all = plt.subplots(2, 2, figsize=(7.2, 5.0), sharex=True)
     axs_all[0, 0].plot(horizon_t, pos_rmse, color=COLOR_CYCLE[0], linewidth=1.2)
     axs_all[0, 0].set_ylabel('Position error RMSE [m]')
-    axs_all[0, 0].grid(True, linestyle=':', alpha=0.6)
+    axs_all[0, 0].grid(True)
 
     axs_all[0, 1].plot(horizon_t, psi_rmse, color=COLOR_CYCLE[0], linewidth=1.2)
     axs_all[0, 1].set_ylabel('Heading error RMSE [deg]')
-    axs_all[0, 1].grid(True, linestyle=':', alpha=0.6)
+    axs_all[0, 1].grid(True)
 
     axs_all[1, 0].plot(horizon_t, vel_rmse, color=COLOR_CYCLE[0], linewidth=1.2)
     axs_all[1, 0].set_ylabel('Velocity error RMSE [m/s]')
     axs_all[1, 0].set_xlabel('Prediction horizon [s]')
-    axs_all[1, 0].grid(True, linestyle=':', alpha=0.6)
+    axs_all[1, 0].grid(True)
 
     axs_all[1, 1].plot(horizon_t, r_rmse, color=COLOR_CYCLE[0], linewidth=1.2)
     axs_all[1, 1].set_ylabel('Yaw rate error RMSE [deg/s]')
     axs_all[1, 1].set_xlabel('Prediction horizon [s]')
-    axs_all[1, 1].grid(True, linestyle=':', alpha=0.6)
+    axs_all[1, 1].grid(True)
 
     plt.tight_layout()
     for d in out_dirs:
@@ -475,7 +477,7 @@ def plot_prediction_error(horizon_t, pos_rmse, psi_rmse, vel_rmse, r_rmse, out_d
 def plot_prediction_examples(data, windows, out_dirs):
     set_thesis_style()
     # 1. 2D Spatial trajectory with prediction chords (1:1 aspect ratio)
-    fig_traj, ax_traj = plt.subplots(figsize=(4.6, 4.2))
+    fig_traj, ax_traj = plt.subplots(figsize=fig_size('usv_prediction_trajectory', (4.6, 4.2)))
     ax_traj.plot(data['x_gt'], data['y_gt'], color=SIMULATION_COLOR, linewidth=1.2, label='Simulation')
     for j, (k0, s) in enumerate(windows):
         ax_traj.plot(s[:, 0], s[:, 1], color=COLOR_CYCLE[0], linewidth=1.4,
@@ -486,7 +488,7 @@ def plot_prediction_examples(data, windows, out_dirs):
     ax_traj.set_ylabel('$y$ [m]')
     ax_traj.margins(0.12)
     ax_traj.axis('equal')
-    ax_traj.grid(True, linestyle=':', alpha=0.6)
+    ax_traj.grid(True)
     ax_traj.legend(loc='lower left', framealpha=0.9)
     plt.tight_layout()
     for d in out_dirs:
@@ -513,7 +515,7 @@ def plot_prediction_examples(data, windows, out_dirs):
     
     ax_det.set_xlabel('Time since window start [s]')
     ax_det.set_ylabel('Displacement [m]')
-    ax_det.grid(True, linestyle=':', alpha=0.6)
+    ax_det.grid(True)
     ax_det.legend(loc='upper left', framealpha=0.9)
     plt.tight_layout()
     for d in out_dirs:

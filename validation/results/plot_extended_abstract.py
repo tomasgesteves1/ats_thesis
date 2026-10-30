@@ -10,7 +10,7 @@ import os
 import numpy as np
 import matplotlib.pyplot as plt
 from common import load, interp, EA_FIGS, UAV, USV, PX4, REF, LIMIT, UAV_LIM, USV_LIM
-from thesis_style import EA_COLUMN_WIDTH, set_ea_style
+from thesis_style import EA_COLUMN_WIDTH, set_ea_style, normalise_labels
 import plot_tracking_crescent as C
 import plot_tracking_limits as L
 import plot_usv_limits as U
@@ -21,6 +21,7 @@ MM = 1 / 25.4
 def save(fig, name):
     os.makedirs(EA_FIGS, exist_ok=True)
     path = os.path.join(EA_FIGS, name + '.pdf')
+    normalise_labels(fig)
     fig.savefig(path)              # drawn at its printed size: included without scaling
     plt.close(fig)
     print('saved', path)
@@ -82,7 +83,7 @@ def uav_limits():
         ax.set_ylabel(label); ax.set_ylim(*ylim)
     for txt, x0, x1 in spans:
         axs[0].text((x0 + x1) / 2, 1.02, txt, transform=axs[0].get_xaxis_transform(), ha='center', va='bottom',
-                    fontsize=6.5, color='#555555')
+                    fontsize=7, color='#555555')
     axs[-1].set_xlabel('Time (s)'); axs[-1].set_xlim(0, t_end)
     save(fig, 'ea_uav_limits')
 
@@ -108,7 +109,7 @@ def usv_limits():
             ax.axhline(lim, color=LIMIT, ls='--', lw=0.8)
         ax.set_ylabel(label)
     for name, ts in U.PHASES:
-        axs[0].annotate(name.capitalize(), (ts + 1.0, 560), fontsize=6.0, color='#555555', va='bottom')
+        axs[0].annotate(name.capitalize(), (ts + 1.0, 560), fontsize=7, color='#555555', va='bottom')
     axs[0].set_ylim(-450, 650)
     axs[1].set_ylim(-36, 36)
     axs[1].legend(loc='upper right', frameon=False)

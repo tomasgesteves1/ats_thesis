@@ -11,7 +11,7 @@ import sys
 import numpy as np
 import matplotlib.pyplot as plt
 from matplotlib.patches import Polygon, Rectangle
-from common import load, interp, set_thesis_style, save_figure, FIGS, UAV, USV, TGT, LIMIT
+from common import load, interp, set_thesis_style, save_figure, fig_size, FIGS, UAV, USV, TGT, LIMIT
 
 OUT = os.path.join(FIGS, '02_missions')
 Z_ANCHOR = 1.25
@@ -89,7 +89,8 @@ def main(name, d_max, usv_margin=0.0):
     # thesis, the others side by side
     xs = np.concatenate([dr[m, 1], b[mb, 1]]); ys = np.concatenate([dr[m, 2], b[mb, 2]])
     wide = np.ptp(xs) > 2.0 * np.ptp(ys)
-    fig, ax = plt.subplots(figsize=(6.3, min(3.2, 0.9 + 5.4 * np.ptp(ys) / np.ptp(xs))) if wide else (3.0, 3.2))
+    fig, ax = plt.subplots(figsize=fig_size(FIG_NAMES.get(name, name) + '_paths',
+                                          (6.3, min(3.2, 0.9 + 5.4 * np.ptp(ys) / np.ptp(xs))) if wide else (3.0, 3.2)))
     if name.startswith('inspection'):
         ax.add_patch(Rectangle((-25 - 5.9, -6.7), 11.8, 13.4, fc='#bbbbbb', ec='#555555', lw=0.6, zorder=1))
         ax.annotate('tower', (-25, 0), ha='center', va='center', fontsize=7, zorder=2)
@@ -117,20 +118,20 @@ def main(name, d_max, usv_margin=0.0):
     fig.tight_layout()
     save_figure(fig, os.path.join(OUT, FIG_NAMES.get(name, name) + '_paths'))
 
-    fig, (a0, a1, a2) = plt.subplots(3, 1, figsize=(6.3, 2.6) if wide else (3.3, 3.2), sharex=True,
+    fig, (a0, a1, a2) = plt.subplots(3, 1, figsize=fig_size(FIG_NAMES.get(name, name) + '_timeline', (6.3, 2.6) if wide else (3.3, 3.2)), sharex=True,
                                      gridspec_kw={'height_ratios': [0.45, 0.8, 0.8] if wide else [0.8, 1.0, 1.0]})
     for row, (ph, label) in enumerate(((pu, 'UAV'), (pv, 'USV'))):
         y = 1 - row
         for k, (n, ts, te) in enumerate(ph):
             a0.add_patch(Rectangle((ts - t0, y - 0.4), te - ts, 0.8, fc=SHADES[k % len(SHADES)], ec='white', lw=0.8))
-            if te - ts > 0.016 * len(n) * (t_end - t0):   # only where the name fits
-                a0.text(0.5 * (ts + te) - t0, y, n, ha='center', va='center', fontsize=6.5)
+            if te - ts > 0.024 * len(n) * (t_end - t0):   # only where the name fits (7 pt text, half-width panel)
+                a0.text(0.5 * (ts + te) - t0, y, n, ha='center', va='center', fontsize=7)
     a0.set_yticks([1, 0]); a0.set_yticklabels(['UAV', 'USV']); a0.set_ylim(-0.6, 1.6); a0.grid(False)
     a1.plot(dr[m, 0] - t0, sep[m], color='#333333', lw=0.9)
     a1.axhline(d_max, color=LIMIT, ls='--', lw=0.9, label='$d_{max}$')
     if usv_margin > 0.0:
         a1.axhline(d_max + usv_margin, color=LIMIT, ls=':', lw=0.9, label=r'$d_{max}+\delta_d$')
-    a1.set_ylabel('$d$ (m)'); a1.legend(loc='lower right', fontsize=7); a1.set_ylim(0, 1.12 * d_max)
+    a1.set_ylabel('$d$ (m)'); a1.legend(loc='best', fontsize=7); a1.set_ylim(0, 1.12 * d_max)
     a2.plot(dr[m, 0] - t0, dr[m, 3], color=UAV, lw=0.9)
     a2.set_ylabel('UAV $z$ (m)'); a2.set_xlabel('time (s)')
     a0.set_xlim(0, t_end - t0)

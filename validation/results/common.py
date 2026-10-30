@@ -5,7 +5,7 @@ import numpy as np
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, os.path.dirname(HERE))
-from thesis_style import set_thesis_style, save_figure, COLOR_CYCLE  # noqa: E402,F401
+from thesis_style import set_thesis_style, save_figure, fig_size, legend_above, COLOR_CYCLE  # noqa: E402,F401
 
 WS = os.path.abspath(os.path.join(HERE, '..', '..', '..'))
 BAGS = os.path.join(WS, 'bags')
