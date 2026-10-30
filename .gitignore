@@ -12,3 +12,5 @@ validation/results/data/
 # MoorDyn outputs written next to its input file
 simulation/moordyn_tether/config/lines*.out
 simulation/moordyn_tether/config/lines*.log
+latex/tese/Thesis.lof
+latex/tese/Thesis.lot
