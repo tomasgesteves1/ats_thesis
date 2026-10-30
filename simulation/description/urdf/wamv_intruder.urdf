@@ -1,0 +1,21 @@
+<?xml version="1.0"?>
+<!-- Moving target of the patrol mission (intruder_sim), for display only: the hull of the WAM-V without the landing
+     pad, attached to the TF frame published by intruder_sim_node (intruder/base_link) -->
+<robot name="wamv_intruder">
+  <link name="intruder/base_link">
+    <visual>
+      <origin xyz="0.288249 0 0" rpy="0 0 0"/>
+      <geometry>
+        <mesh filename="file:///home/tomas/ats_ws/src/simulation/description/models/wamv/meshes/WAM-V-Base.dae"/>
+      </geometry>
+    </visual>
+    <visual name="left_engine">
+      <origin xyz="-2.0855 1.0271 0.3182" rpy="0 0 0"/>
+      <geometry><mesh filename="file:///home/tomas/ats_ws/src/simulation/description/models/wamv/meshes/engine.dae"/></geometry>
+    </visual>
+    <visual name="right_engine">
+      <origin xyz="-2.0855 -1.0271 0.3182" rpy="0 0 0"/>
+      <geometry><mesh filename="file:///home/tomas/ats_ws/src/simulation/description/models/wamv/meshes/engine.dae"/></geometry>
+    </visual>
+  </link>
+</robot>
