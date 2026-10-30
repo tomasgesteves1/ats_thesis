@@ -79,17 +79,17 @@ where $\boldsymbol\Phi$ integrates the model over one sampling interval with a f
 A reference far from the vehicle, or beyond what its limits or the tether allow, must not drive it against its constraints. The position error therefore enters both costs through a pseudo-Huber function, $\mathbf{e}\,(1+\|\mathbf{e}\|^2/\delta^2)^{-1/4}$ as a residual, which is quadratic near the reference and grows only linearly beyond a distance $\delta$. A distant reference thus pulls the vehicle with a bounded force, which never outweighs the penalty of a constraint, and the vehicle approaches it as closely as its limits allow.
 
 % Why two controllers, and how do they cooperate?
-A single controller for both vehicles would impose one horizon and one sampling time on vehicles that move on very different time scales, and enlarge the problem to be solved in real time. Each vehicle therefore has its own NMPC, and the two exchange the trajectories they predict, as shown in Figure~\ref{fig:overview}. Each controller then constrains the distance between the vehicles along the predicted trajectory of the other, so that it anticipates where the other vehicle is going, rather than where it is.
+A single controller for both vehicles would impose one horizon and one sampling time on vehicles that move on very different time scales, and enlarge the problem to be solved in real time. Each vehicle therefore has its own NMPC, and the two exchange the trajectories they predict, as shown in Fig.~\ref{fig:overview}. Each controller then constrains the distance between the vehicles along the predicted trajectory of the other, so that it anticipates where the other vehicle is going, rather than where it is.
 
 \begin{figure}[t]
     \centering
-    \includegraphics[width=\columnwidth]{system_overview_column.pdf}
+    \includegraphics{system_overview_column.pdf}
     \caption{Overview of the system.}
     \label{fig:overview}
 \end{figure}
 
 % What does the NMPC of the USV optimise and respect?
-\textbf{USV NMPC.} To limit both the thrusts and their rates, the thrusts and angles are included in the state, $\mathbf{x}_v = [x,y,\psi,u,v,r,T_L,T_R,\alpha_L,\alpha_R]^\top$, and the inputs are their rates, bounded by the limits of the thrusters. The stage cost penalises the errors of position, heading and velocity, together with the thrusts and their rates. A soft lower bound on the surge speed limits the motion astern, for which the hull and the thrusters are least effective, and the separation from the predicted trajectory of the UAV, $\hat{\mathbf{p}}_a$, is limited by the reach of the tether,
+\textit{USV NMPC.} To limit both the thrusts and their rates, the thrusts and angles are included in the state, $\mathbf{x}_v = [x,y,\psi,u,v,r,T_L,T_R,\alpha_L,\alpha_R]^\top$, and the inputs are their rates, bounded by the limits of the thrusters. The stage cost penalises the errors of position, heading and velocity, together with the thrusts and their rates. A soft lower bound on the surge speed limits the motion astern, for which the hull and the thrusters are least effective, and the separation from the predicted trajectory of the UAV, $\hat{\mathbf{p}}_a$, is limited by the reach of the tether,
 \begin{equation}
     (x-\hat x_a)^2 + (y-\hat y_a)^2 + (\hat z_a - z_t)^2 - d_{max}^2 \le \sigma,
     \label{eq:usv_tether}
@@ -97,10 +97,10 @@ A single controller for both vehicles would impose one horizon and one sampling 
 where $z_t$ is the height of the winch.
 
 % What does the NMPC of the UAV optimise and respect?
-\textbf{UAV NMPC.} The commanded attitude and thrust are included in the state, together with the states of the delays, and the inputs are their rates. The model combines \eqref{eq:uav_dyn}--\eqref{eq:tether_force}, with the tether attached to the predicted trajectory of the USV. The stage cost penalises the errors of position and velocity, the tilt, the deviation of the thrust from hover and the inputs, and keeps the UAV looking at the winch. The soft constraints bound the height, the horizontal and vertical speeds and the tilt from the vertical, $\cos\phi\cos\theta \ge \cos\phi_{max}$, which is imposed on both the attitude and its command, so that the setpoint sent to the autopilot also respects it. The tether adds two more. The separation is limited, $d \le d_{max}$, and so is the rate at which it grows, $\dot d \le \dot d_{max}$, which may not exceed the pay-out speed of the winch.
+\textit{UAV NMPC.} The commanded attitude and thrust are included in the state, together with the states of the delays, and the inputs are their rates. The model combines \eqref{eq:uav_dyn}--\eqref{eq:tether_force}, with the tether attached to the predicted trajectory of the USV. The stage cost penalises the errors of position and velocity, the tilt, the deviation of the thrust from hover and the inputs, and keeps the UAV looking at the winch. The soft constraints bound the height, the horizontal and vertical speeds and the tilt from the vertical, $\cos\phi\cos\theta \ge \cos\phi_{max}$, which is imposed on both the attitude and its command, so that the setpoint sent to the autopilot also respects it. The tether adds two more. The separation is limited, $d \le d_{max}$, and so is the rate at which it grows, $\dot d \le \dot d_{max}$, which may not exceed the pay-out speed of the winch.
 
 % How are unmodelled forces compensated?
-\textbf{Disturbance observer.} A force that the model does not describe, such as wind, makes the prediction drift and leaves a steady offset. Following the disturbance-model approach to offset-free predictive control~\cite{pannocchia2003offsetfree,maeder2009offsetfree}, an external force $\hat{\mathbf{F}}_{\mathrm{ext}}$, held constant over the horizon, is added to \eqref{eq:uav_dyn} and estimated from the one-step prediction error of the velocity,
+\textit{Disturbance observer.} A force that the model does not describe, such as wind, makes the prediction drift and leaves a steady offset. Following the disturbance-model approach to offset-free predictive control~\cite{pannocchia2003offsetfree,maeder2009offsetfree}, an external force $\hat{\mathbf{F}}_{\mathrm{ext}}$, held constant over the horizon, is added to \eqref{eq:uav_dyn} and estimated from the one-step prediction error of the velocity,
 \begin{equation}
     \hat{\mathbf{F}}_{\mathrm{ext},k} = \mathrm{sat}_{\bar F}\Big(\hat{\mathbf{F}}_{\mathrm{ext},k-1} + \beta\frac{m}{T_s}\big(\mathbf{v}_k - \hat{\mathbf{v}}_{k|k-1}\big)\Big),
     \label{eq:observer}

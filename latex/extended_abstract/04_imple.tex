@@ -9,11 +9,11 @@ The system is simulated in Gazebo~\cite{koenig2004gazebo}, with the hydrodynamic
 \subsection{Model Validation}
 
 % Are the models accurate enough to predict with?
-The models of Section~\ref{sec:model} were compared with the simulator as the controllers use them, over predictions as long as each horizon, started from the state of the simulator and driven by the recorded commands, as listed in Table~\ref{tab:validation}. Over its horizon, the model of the WAM-V predicts its position within a few centimetres, and that of the x500 within about one percent of the distance it travels, an accuracy that relies on the delays of the attitude response. The model of the tether reduces the error of the force by about three quarters with respect to a taut tether or a hanging load, and follows the tension computed by the simulator from the dynamics of the tether using only the positions of the two vehicles, as shown in Figure~\ref{fig:tether_fit}.
+The models of Section~\ref{sec:model} were compared with the simulator as the controllers use them, over predictions as long as each horizon, started from the state of the simulator and driven by the recorded commands, as listed in Table~\ref{tab:validation}. Over its horizon, the model of the WAM-V predicts its position within a few centimetres, and that of the x500 within about one percent of the distance it travels, an accuracy that relies on the delays of the attitude response. The model of the tether reduces the error of the force by about three quarters with respect to a taut tether or a hanging load, and follows the tension computed by the simulator from the dynamics of the tether using only the positions of the two vehicles, as shown in Fig.~\ref{fig:tether_fit}.
 
 \begin{figure}[t]
     \centering
-    \includegraphics[width=\columnwidth]{Implementation/figures/02_model_validation/model_fit_comparison.pdf}
+    \includegraphics{ea_model_fit_comparison.pdf}
     \caption{Tension of the tether at the UAV, computed by MoorDyn in the simulator and by the model of Eqs.~(\ref{eq:tether_tension})--(\ref{eq:tether_force}).}
     \label{fig:tether_fit}
 \end{figure}
@@ -54,7 +54,7 @@ The controllers follow references, but do not decide where each vehicle should g
 
 \begin{figure*}[t]
     \centering
-    \includegraphics[width=0.85\textwidth]{Implementation/figures/04_maneuvers_and_missions/maneuver_catalogue.pdf}
+    \includegraphics{Implementation/figures/04_maneuvers_and_missions/maneuver_catalogue.pdf}
     \caption{Manoeuvres of the UAV in simulation.}
     \label{fig:catalogue}
 \end{figure*}

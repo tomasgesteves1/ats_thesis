@@ -1,68 +1,28 @@
 %%%%%%%%%%%%%%%%%%%%%%%% ExtendedAbstract.tex %%%%%%%%%%%%%%%%%%%%%%%%
 %                                                                    %
-%  Extended abstract (up to 10 pages) of the MSc thesis, following   %
-%  the IST template by Andre C. Marta (2011, CC BY 4.0).             %
+%  Extended abstract (up to 10 pages) of the MSc thesis, in the      %
+%  format of the IEEE Transactions (IEEEtran, journal mode), as the  %
+%  MEEC regulation requires.                                         %
 %  Figures and references are taken from the thesis (../tese).       %
 %                                                                    %
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-\documentclass[10pt,a4paper,twocolumn]{article}
-
-\usepackage{graphicx}
-\graphicspath{{../tese/}{figures/}}
-\usepackage{siunitx}
-
-% Latin Modern for the text and the mathematics alike
-\usepackage{lmodern}
-\usepackage{microtype}
+\documentclass[journal,a4paper]{IEEEtran}
 
 \usepackage[utf8]{inputenc}
 \usepackage[T1]{fontenc}
 
-% Captions in the size of the text, centred, with a plain label ("Figure 1: ..."); tables are captioned above
-\usepackage[font=small, skip=4pt, labelsep=colon, justification=centering]{caption}
-\usepackage[font=small]{subcaption}
+\usepackage{cite}
+\usepackage{graphicx}
+\graphicspath{{../tese/}{figures/}}
+\usepackage{xurl}
+\usepackage{siunitx}
 
 \usepackage{amsmath}
 \usepackage{amsfonts}
 \usepackage{amssymb}
-\usepackage{float}
 \usepackage{placeins}
 \usepackage{booktabs}
 \usepackage{csquotes}
-
-% Headings with trailing dots: sections in bold, subsections in the plain text face, both in the size of the text and
-% set apart by space
-\usepackage{sectsty}
-\sectionfont{\normalsize\bfseries}
-\subsectionfont{\normalsize\mdseries}
-\usepackage{titlesec}
-\titlespacing*{\section}{0pt}{12pt}{6pt}
-\titlespacing*{\subsection}{0pt}{9pt}{5pt}
-
-% Paragraphs separated by space rather than indented
-\usepackage[skip=4pt plus 1pt, indent=0pt]{parskip}
-\usepackage{secdot}
-\sectiondot{subsection}
-\sectionpunct{section}{. }
-\sectionpunct{subsection}{. }
-
-% A4 page with top margin of 25 mm, bottom of 30 mm, left and right of 25 mm (printable area 242 x 160 mm)
-\setlength{\topmargin}{-10.4mm}
-\setlength{\headheight}{0.0mm}
-\setlength{\headsep}{10.0mm}
-\setlength{\textwidth}{160mm}
-\setlength{\textheight}{242mm}
-\setlength{\oddsidemargin}{0mm}
-\setlength{\evensidemargin}{0mm}
-\setlength{\marginparwidth}{0mm}
-\setlength{\marginparsep}{0mm}
-\setlength{\columnsep}{6mm}
-
-\newcommand{\eqnref}[1]{Eq.~(\ref{#1})}
-
-% Compact bibliography: entries without extra space between them
-\usepackage{etoolbox}
-\apptocmd{\thebibliography}{\setlength{\itemsep}{1pt}\setlength{\parsep}{0pt}}{}{}
 
 % Up to two full-width floats at the top of a page, so that they stay close to their text
 \setcounter{dbltopnumber}{2}
@@ -71,27 +31,22 @@
 \renewcommand{\topfraction}{0.85}
 \renewcommand{\bottomfraction}{0.7}
 \renewcommand{\textfraction}{0.1}
-% the figures of the results are all placed before the conclusions (\FloatBarrier); columns end at the bottom of
-% the page when the text allows it, without stretching the space between paragraphs, and up to three floats share a column
-\raggedbottom
 \setcounter{topnumber}{3}
 \setcounter{bottomnumber}{2}
 \setcounter{totalnumber}{5}
 \renewcommand{\floatpagefraction}{0.75}
 
-% Title, author and address
-\title{Cooperative Control of a Tethered Drone and Surface Vessel for Sustained Presence at Sea}
-\date{January 2026}
-\author{Tomás Grossinho Esteves \\ tomasesteves03@gmail.com \\ \\ Instituto Superior Técnico, Lisboa, Portugal}
+% Title, author and affiliation; the month of the defence is given in the running heads and in the first footnote
+\title{Cooperative control of a tethered drone and surface vessel for sustained presence at sea}
+\author{Tom\'{a}s~Grossinho~Esteves%
+\thanks{Extended abstract of the thesis to obtain the Master of Science Degree in Electrical and Computer Engineering, Instituto Superior T\'{e}cnico, Universidade de Lisboa, Lisboa, Portugal, November 2026 (e-mail: tomasesteves03@gmail.com).}}
+\markboth{Extended Abstract, MSc in Electrical and Computer Engineering, Instituto Superior T\'{e}cnico, November 2026}%
+{Esteves: Cooperative control of a tethered drone and surface vessel for sustained presence at sea}
 
 \begin{document}
 
-\twocolumn[
-\begin{@twocolumnfalse}
 \maketitle
 \input{00_abstr}
-\end{@twocolumnfalse}
-]
 
 \input{01_intro}
 \input{02_backg}
@@ -100,8 +55,16 @@
 \input{05_resul}
 \input{06_concl}
 
-{\footnotesize
-\bibliographystyle{abbrv}
-\bibliography{../tese/refs}}
+% Declaration of AI tools use, required by IST before the references
+\section*{Declaration of Artificial Intelligence Tools Use}
+I declare that generative Artificial Intelligence (AI) and AI-assisted tools were used in this work. Nevertheless, I take full responsibility for the content and integrity of this work. In compliance with the Guide for the Responsible Use of Artificial Intelligence at T\'{e}cnico, I declare that the following tools were used:
+\begin{enumerate}
+	\item As a coding assistant: Anthropic. 2026. Claude Code [AI coding assistant]. \url{https://claude.com/claude-code}
+	\item As a coding assistant: Google. 2026. Google Antigravity with Gemini [AI coding assistant]. \url{https://antigravity.google}
+	\item For linguistic revision of the text: Anthropic. 2026. Claude [Large language model]. \url{https://claude.ai}
+\end{enumerate}
+
+\bibliographystyle{IEEEtran}
+\bibliography{../tese/refs}
 
 \end{document}
