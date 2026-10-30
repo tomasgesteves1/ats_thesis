@@ -8,7 +8,7 @@
 \chapter{Proposed Methodology}
 \label{chapter:methodology}
 
-This chapter presents the theoretical and algorithmic methodology developed in this work for the autonomous cooperative control of the tethered \gls{usv}--\gls{uav} system. It is structured into two main parts: Section~\ref{sec:system_modeling} derives the control-oriented kinematic and dynamic models of both vehicles, their actuator mappings, and the physical coupling introduced by the tether; Section~\ref{sec:system_control} then formulates the cooperative \gls{nmpc} architecture that exploits these models to compute optimal, collision-free, and constraint-respecting trajectories.
+This chapter presents the methodology developed for the cooperative control of the tethered \gls{usv}--\gls{uav} system. Section~\ref{sec:system_modeling} derives the models of both vehicles and of the force that the tether applies on the \gls{uav}, and Section~\ref{sec:system_control} formulates the two cooperating \gls{nmpc} controllers that use these models to drive each vehicle within its limits while keeping the tether within its reach.
 
 \input{Methodology/01_SystemModeling}
 \input{Methodology/02_SystemControl}

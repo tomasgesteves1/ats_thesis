@@ -158,55 +158,12 @@ The vector field $f(\cdot)$ splits into a kinematic block and a dynamic block, d
 \label{subsec:mod_usv_kinematics}
 The kinematics describe how the \gls{usv}'s inertial position and heading evolve as a function of its body-fixed velocities, forming the first half of \eqref{eq:usv_state_space_generic}.
 
-Let $\mathbf{p} = x\,\mathbf{x}^{\mathcal{I}} + y\,\mathbf{y}^{\mathcal{I}}$ denote the inertial position of the origin $\mathcal{O}_v$ of $\{\mathcal{B}_v\}$. Since $\mathbf{x}^{\mathcal{I}}, \mathbf{y}^{\mathcal{I}}$ are constant, differentiating yields
-\begin{equation}
-    \dot{\mathbf{p}} = \dot{x}\,\mathbf{x}^{\mathcal{I}} + \dot{y}\,\mathbf{y}^{\mathcal{I}},
-    \label{eq:usv_pdot_inertial_def}
-\end{equation}
-i.e.\ $\dot{x}, \dot{y}$ are, by definition, the components of $\dot{\mathbf{p}}$ in the inertial frame.
-
-The surge and sway velocities $u, v$ are defined in the body-fixed frame, so that
-\begin{equation}
-    \dot{\mathbf{p}} = u\,\mathbf{x}^{\mathcal{B}} + v\,\mathbf{y}^{\mathcal{B}},
-    \label{eq:usv_pdot_body_frame}
-\end{equation}
-where $\mathbf{x}^{\mathcal{B}}, \mathbf{y}^{\mathcal{B}}$ denote the basis vectors of $\{\mathcal{B}_v\}$, i.e.\ $\mathbf{x}^{\mathcal{B}_v}, \mathbf{y}^{\mathcal{B}_v}$.
-
-Since $\{\mathcal{B}_v\}$ is rotated relative to $\{\mathcal{I}\}$ by the heading angle $\psi$, the inertial unit vectors are related to the body-fixed ones by the rotation matrix $\mathbf{R}(\psi) \in SO(2)$,
-\begin{equation}
-    \begin{bmatrix} \mathbf{x}^{\mathcal{I}} \\ \mathbf{y}^{\mathcal{I}} \end{bmatrix} = \mathbf{R}(\psi) \begin{bmatrix} \mathbf{x}^{\mathcal{B}} \\ \mathbf{y}^{\mathcal{B}} \end{bmatrix},
-    \label{eq:usv_basis_matrix}
-\end{equation}
-following the standard planar rotation matrix,
-\begin{equation}
-    \mathbf{R}(\psi) = \begin{bmatrix} \cos\psi & -\sin\psi \\ \sin\psi & \cos\psi \end{bmatrix},
-    \label{eq:usv_rotation_matrix}
-\end{equation}
-which is equivalent to
-\begin{equation}
-    \mathbf{x}^{\mathcal{B}} = \cos\psi\,\mathbf{x}^{\mathcal{I}} + \sin\psi\,\mathbf{y}^{\mathcal{I}}, \qquad
-    \mathbf{y}^{\mathcal{B}} = -\sin\psi\,\mathbf{x}^{\mathcal{I}} + \cos\psi\,\mathbf{y}^{\mathcal{I}}.
-    \label{eq:usv_basis_change}
-\end{equation}
-
-Substituting \eqref{eq:usv_basis_change} into \eqref{eq:usv_pdot_body_frame} and grouping terms gives
-\begin{equation}
-    \dot{\mathbf{p}} = \underbrace{(u\cos\psi - v\sin\psi)}_{\dot{x}}\,\mathbf{x}^{\mathcal{I}} + \underbrace{(u\sin\psi + v\cos\psi)}_{\dot{y}}\,\mathbf{y}^{\mathcal{I}}.
-    \label{eq:usv_pdot_expanded}
-\end{equation}
-Comparing with \eqref{eq:usv_pdot_inertial_def} then directly gives
-\begin{equation}
-    \dot{x} = u\cos\psi - v\sin\psi, \qquad \dot{y} = u\sin\psi + v\cos\psi,
-\end{equation}
-which is precisely
+Since $\{\mathcal{B}_v\}$ is rotated relative to $\{\mathcal{I}\}$ by the heading $\psi$, the body-fixed velocities $u, v$ give the inertial velocity of $\mathcal{O}_v$ through the planar rotation matrix $\mathbf{R}(\psi)$, while the heading rate is the angular velocity $r$,
 \begin{equation}
     \label{eq:usv_kinematics_planar}
-    \begin{bmatrix} \dot{x} \\ \dot{y} \end{bmatrix} = \mathbf{R}(\psi)\begin{bmatrix} u \\ v \end{bmatrix}.
-\end{equation}
-
-The heading rate follows directly from the definition of the angular velocity $r$:
-\begin{equation}
-    \dot{\psi} = r. \label{eq:usv_psi_dot}
+    \begin{bmatrix} \dot{x} \\ \dot{y} \end{bmatrix} = \mathbf{R}(\psi)\begin{bmatrix} u \\ v \end{bmatrix}, \qquad
+    \mathbf{R}(\psi) = \begin{bmatrix} \cos\psi & -\sin\psi \\ \sin\psi & \cos\psi \end{bmatrix}, \qquad
+    \dot{\psi} = r.
 \end{equation}
 
 \subsubsection{Dynamic Model}
@@ -214,12 +171,12 @@ The heading rate follows directly from the definition of the angular velocity $r
 
 The dynamics describe how the \gls{usv}'s body-fixed velocities evolve as a function of the applied forces and moments, forming the second half of \eqref{eq:usv_state_space_generic}.
 
-Unlike $\mathbf{x}^{\mathcal{I}}, \mathbf{y}^{\mathcal{I}}$, the body-fixed unit vectors $\mathbf{x}^{\mathcal{B}}, \mathbf{y}^{\mathcal{B}}$ rotate with the vehicle. Differentiating \eqref{eq:usv_basis_change} and using $\dot\psi = r$ gives
+The body-fixed basis vectors, denoted $\mathbf{x}^{\mathcal{B}}, \mathbf{y}^{\mathcal{B}}$ for brevity, rotate with the vehicle at the rate $r$,
 \begin{equation}
     \dot{\mathbf{x}}^{\mathcal{B}} = r\,\mathbf{y}^{\mathcal{B}}, \qquad \dot{\mathbf{y}}^{\mathcal{B}} = -r\,\mathbf{x}^{\mathcal{B}}.
     \label{eq:usv_basis_dot}
 \end{equation}
-The inertial velocity, expressed in the body-fixed frame, is $\dot{\mathbf{p}} = u\,\mathbf{x}^{\mathcal{B}} + v\,\mathbf{y}^{\mathcal{B}}$. Differentiating once more and substituting \eqref{eq:usv_basis_dot} yields the inertial acceleration
+The inertial velocity $\dot{\mathbf{p}}$ of $\mathcal{O}_v$, expressed in the body-fixed frame, is $\dot{\mathbf{p}} = u\,\mathbf{x}^{\mathcal{B}} + v\,\mathbf{y}^{\mathcal{B}}$. Differentiating once more and substituting \eqref{eq:usv_basis_dot} yields the inertial acceleration
 \begin{equation}
     \ddot{\mathbf{p}} = (\dot{u} - vr)\,\mathbf{x}^{\mathcal{B}} + (\dot{v} + ur)\,\mathbf{y}^{\mathcal{B}},
     \label{eq:usv_pddot_body_frame}
@@ -237,6 +194,13 @@ Since the \gls{usv}'s motion is planar, Euler's rotational equation about $\math
     \label{eq:usv_euler_yaw}
 \end{equation}
 where $M_z$ is the resultant yaw moment about $\mathcal{O}_v$ and $I_z$ the yaw moment of inertia.
+Accelerating the hull also accelerates the surrounding water, whose inertia acts on the \gls{usv} as an added mass. For a hull symmetric about its centreline, it is described by the diagonal coefficients $X_{\dot u}, Y_{\dot v}, N_{\dot r} \le 0$~\cite{fossenHandbookMarineCraft2011}, which add inertia and Coriolis terms to \eqref{eq:usv_newton_linear} and \eqref{eq:usv_euler_yaw},
+\begin{equation}
+    (m - X_{\dot u})\dot{u} - (m - Y_{\dot v})vr = F_x, \qquad
+    (m - Y_{\dot v})\dot{v} + (m - X_{\dot u})ur = F_y, \qquad
+    (I_z - N_{\dot r})\dot{r} + (X_{\dot u} - Y_{\dot v})uv = M_z.
+    \label{eq:usv_added_mass}
+\end{equation}
 
 The resultant force and moment $F_x, F_y, M_z$ combine two contributions: the thrust generated by the propulsion system, $X, Y, N$, and the hydrodynamic damping opposing the \gls{usv}'s motion. This damping follows the standard linear-plus-quadratic model for \glspl{usv}~\cite{fossenHandbookMarineCraft2011}. The quadratic surge term is further split into forward and backward coefficients, to capture the asymmetric drag between the two directions:
 \begin{equation}
@@ -250,17 +214,17 @@ The resultant force and moment $F_x, F_y, M_z$ combine two contributions: the th
     \label{eq:usv_damping_sway_yaw}
 \end{equation}
 
-Substituting \eqref{eq:usv_damping_surge}--\eqref{eq:usv_damping_sway_yaw} into \eqref{eq:usv_newton_linear} and \eqref{eq:usv_euler_yaw}, and solving for the accelerations, gives the dynamic block of \eqref{eq:usv_state_space_generic}:
+Substituting \eqref{eq:usv_damping_surge}--\eqref{eq:usv_damping_sway_yaw} into \eqref{eq:usv_added_mass}, and solving for the accelerations, gives the dynamic block of \eqref{eq:usv_state_space_generic}:
 \begin{equation}
-    \dot{u} = \frac{1}{m}\Big[X - \big(X_u + X_{uu}^{\pm}|u|\big)u\Big] + vr,
+    \dot{u} = \frac{1}{m - X_{\dot u}}\Big[X - \big(X_u + X_{uu}^{\pm}|u|\big)u + (m - Y_{\dot v})vr\Big],
     \label{eq:usv_udot}
 \end{equation}
 \begin{equation}
-    \dot{v} = \frac{1}{m}\Big[Y - \big(Y_v + Y_{vv}|v|\big)v\Big] - ur,
+    \dot{v} = \frac{1}{m - Y_{\dot v}}\Big[Y - \big(Y_v + Y_{vv}|v|\big)v - (m - X_{\dot u})ur\Big],
     \label{eq:usv_vdot}
 \end{equation}
 \begin{equation}
-    \dot{r} = \frac{1}{I_z}\Big[N - \big(N_r + N_{rr}|r|\big)r\Big].
+    \dot{r} = \frac{1}{I_z - N_{\dot r}}\Big[N - \big(N_r + N_{rr}|r|\big)r - (X_{\dot u} - Y_{\dot v})uv\Big].
     \label{eq:usv_rdot}
 \end{equation}
 
@@ -458,12 +422,7 @@ Let $\mathbf{p} = x\,\mathbf{x}^{\mathcal{I}} + y\,\mathbf{y}^{\mathcal{I}} + z\
     \label{eq:uav_pdot_inertial_def}
     \dot{\mathbf{p}} = \dot{x}\,\mathbf{x}^{\mathcal{I}} + \dot{y}\,\mathbf{y}^{\mathcal{I}} + \dot{z}\,\mathbf{z}^{\mathcal{I}},
 \end{equation}
-i.e.\ $\dot{x}, \dot{y}, \dot{z}$ are, by definition, the components of $\dot{\mathbf{p}}$ in the inertial frame, which are precisely the linear velocity components in $\mathbf{x}_a$. The kinematic block of \eqref{eq:uav_state_space_generic} is therefore the trivial identity
-\begin{equation}
-    \label{eq:uav_kinematics}
-    \begin{bmatrix} \dot{x} \\ \dot{y} \\ \dot{z} \end{bmatrix} = \begin{bmatrix} \dot{x} \\ \dot{y} \\ \dot{z} \end{bmatrix}.
-\end{equation}
-This is in contrast to a \gls{usv} such as the \gls{wamv} (Section~\ref{sec:mod_usv}), where the linear velocities are instead expressed in $\{\mathcal{B}_v\}$, requiring an additional change of basis via $\mathbf{R}(\psi)$ to relate them to $\dot{\mathbf p}$. Here, this rotation is required instead to express the thrust force, applied along $\mathbf{z}^{\mathcal{B}_a}$, in $\{\mathcal{I}\}$. It is therefore deferred to the dynamic block, derived next.
+i.e.\ $\dot{x}, \dot{y}, \dot{z}$ are, by definition, the components of $\dot{\mathbf{p}}$ in the inertial frame, which are precisely the linear velocity components in $\mathbf{x}_a$. The kinematic block of \eqref{eq:uav_state_space_generic} is therefore given directly by \eqref{eq:uav_pdot_inertial_def}, without any change of basis. This is in contrast to a \gls{usv} such as the \gls{wamv} (Section~\ref{sec:mod_usv}), where the linear velocities are instead expressed in $\{\mathcal{B}_v\}$, requiring an additional change of basis via $\mathbf{R}(\psi)$ to relate them to $\dot{\mathbf p}$. Here, this rotation is required instead to express the thrust force, applied along $\mathbf{z}^{\mathcal{B}_a}$, in $\{\mathcal{I}\}$. It is therefore deferred to the dynamic block, derived next.
 
 \subsubsection{Dynamic Model}
 \label{subsec:mod_uav_dynamics}
@@ -476,7 +435,7 @@ The thrust generated by the propulsion system acts along the vertical axis of $\
 \end{equation}
 where $\mathbf{z}^{\mathcal{B}}$ denotes the vertical basis vector of $\{\mathcal{B}_a\}$, i.e.\ $\mathbf{z}^{\mathcal{B}_a}$.
 
-Since \eqref{eq:uav_kinematics} relates the inertial position and velocity directly, without an intermediate change of basis, Newton's second law is more conveniently applied directly in $\{\mathcal{I}\}$, requiring $\mathbf{F}_{\mathrm{thr}}$ to instead be expressed in the inertial frame. 
+Since \eqref{eq:uav_pdot_inertial_def} relates the inertial position and velocity directly, without an intermediate change of basis, Newton's second law is more conveniently applied directly in $\{\mathcal{I}\}$, requiring $\mathbf{F}_{\mathrm{thr}}$ to instead be expressed in the inertial frame. 
 
 Since $\{\mathcal{B}_a\}$ is rotated relative to $\{\mathcal{I}\}$ by the roll, pitch, and yaw angles $\phi, \theta, \psi$, the inertial unit vectors are related to the body-fixed ones by the rotation matrix $\mathbf{R}(\phi,\theta,\psi) \in SO(3)$,
 \begin{equation}
@@ -608,9 +567,14 @@ Gravity, unlike the thrust, is already naturally expressed in $\{\mathcal{I}\}$:
     \label{eq:uav_gravity}
 \end{equation}
 
-During translational flight, the vehicle is also subject to aerodynamic drag opposing its planar motion, arising primarily from the relative airflow across the spinning rotor disks (rotor drag). This force is naturally expressed as a linear damping of the velocity in $\{B_a\}$, with coefficient $d_r$ along the body axes $x^{B}$ and $y^{B}$. For small roll and pitch angles, the horizontal axes of the body remain approximately horizontal in $\{I\}$, so the drag can be written directly in the inertial frame as
+During translational flight, the vehicle is also subject to aerodynamic drag opposing its planar motion, arising primarily from the relative airflow across the spinning rotor disks (rotor drag). This force is naturally expressed in $\{\mathcal{B}_a\}$ as a linear damping $\mathbf{D} = \mathrm{diag}(d_r, d_r, 0)$ of the velocity along $\mathbf{x}^{\mathcal{B}}$ and $\mathbf{y}^{\mathcal{B}}$, which in $\{\mathcal{I}\}$ gives
 \begin{equation}
-    \mathbf{F}_{\mathrm{drag}}^{\mathcal{I}} = \begin{bmatrix} -d_r\,\dot{x} \\ -d_r\,\dot{y} \\ 0 \end{bmatrix},
+    \mathbf{F}_{\mathrm{drag}}^{\mathcal{I}} = -\mathbf{R}(\phi,\theta,\psi)\,\mathbf{D}\,\mathbf{R}(\phi,\theta,\psi)^\top\dot{\mathbf{p}}.
+    \label{eq:uav_drag_body}
+\end{equation}
+For small roll and pitch angles, the horizontal axes of the body remain approximately horizontal in $\{\mathcal{I}\}$, so the drag simplifies to
+\begin{equation}
+    \mathbf{F}_{\mathrm{drag}}^{\mathcal{I}} \approx \begin{bmatrix} -d_r\,\dot{x} \\ -d_r\,\dot{y} \\ 0 \end{bmatrix},
     \label{eq:uav_drag}
 \end{equation}
 where the small coupling between horizontal and vertical velocities caused by the tilt of the vehicle is neglected.
@@ -632,14 +596,20 @@ Substituting \eqref{eq:uav_thrust_inertial}, \eqref{eq:uav_gravity}, and \eqref{
 \label{subsec:mod_uav_tether}
 \label{subsec:mod_tether_force_model}
 
-In addition to thrust and gravity, the vehicle is subject to a force transmitted through a tether connecting the origin $\mathcal{O}_a$ of $\{\mathcal{B}_a\}$ to the winch on the deck of the \gls{wamv}, whose position $\mathbf{p}_v$ is treated here only as a known point, without modelling the (negligible) reaction force exerted on the \gls{usv}.
+The tether connects the origin $\mathcal{O}_a$ of $\{\mathcal{B}_a\}$ to the winch on the deck of the \gls{wamv}. The winch is vertically aligned with $\mathcal{O}_v$, at a fixed height $z_t$, so that its position in $\{\mathcal{I}\}$ is $\mathbf{p}_w = [x_v, y_v, z_t]^\top$, where $x_v, y_v$ denote the horizontal position of the \gls{usv}. It is treated here only as a known point, without modelling the (negligible) reaction force exerted on the \gls{usv}.
 
 The relevant geometric quantity is the chord, the straight-line vector between the \gls{uav} and the winch,
 \begin{equation}
-    \mathbf{r} = \mathbf{p}_v - \mathbf{p}, \qquad d = \|\mathbf{r}\|, \qquad \hat{\mathbf{d}}_0 = \frac{\mathbf{r}}{d},
+    \mathbf{r} = \mathbf{p}_w - \mathbf{p}, \qquad d = \|\mathbf{r}\|, \qquad \hat{\mathbf{d}}_0 = \frac{\mathbf{r}}{d},
     \label{eq:uav_tether_geometry}
 \end{equation}
 where $d$ is the length of the chord, i.e.\ the straight-line distance between the \gls{uav} and the \gls{usv}, and $\hat{\mathbf{d}}_0$ is its direction, which the tether would have if taut.
+
+The tether lies in the vertical plane that contains the chord. Within this plane, the horizontal direction towards the winch is the unit vector $\hat{\mathbf{e}}_h$ along the horizontal component of the chord, and the depression angle $\alpha$ of the chord below it follows from
+\begin{equation}
+    \hat{\mathbf{d}}_0 = \cos\alpha\,\hat{\mathbf{e}}_h - \sin\alpha\,\mathbf{z}^{\mathcal{I}}.
+    \label{eq:uav_tether_alpha}
+\end{equation}
 
 Denoting by $L \geq d$ the tether length at a given instant, its slack is conveniently quantified by the dimensionless ratio
 \begin{equation}
@@ -662,25 +632,14 @@ where the nominal coefficient at $\varepsilon_0$ is obtained by approximating th
     c_d(\varepsilon_0) = \frac{\mu\,g}{1 - \varepsilon_0}.
     \label{eq:uav_tether_cd_nominal}
 \end{equation}
-This neglects the dependence of the tension on the inclination of the chord, which for the operating slack changes it by about $12\%$ at most. The deflection angle also depends on the inclination of the chord, given by the depression angle $\alpha$ of $\hat{\mathbf{d}}_0$ below the local horizontal, defined in \eqref{eq:uav_tether_alpha}. Only the component of the weight of the tether normal to the chord, $\mu\,g\,L\cos\alpha$, bends it away from the straight line, so that, for the small slack of the operating point, the deflection approximately scales with $\cos\alpha$. It is maximal for a horizontal chord and vanishes for a vertical one, where the tether hangs straight. The deflection angle is therefore given by its nominal value at $\varepsilon_0$ for a horizontal chord, $\gamma_0 = \gamma(\varepsilon_0, 0)$, scaled by $\cos\alpha$:
+This neglects the dependence of the tension on the inclination of the chord, which for the operating slack changes it by about $12\%$ at most. The deflection angle also depends on the inclination of the chord, given by the depression angle $\alpha$ in \eqref{eq:uav_tether_alpha}. Only the component of the weight of the tether normal to the chord, $\mu\,g\,L\cos\alpha$, bends it away from the straight line, so that, for the small slack of the operating point, the deflection approximately scales with $\cos\alpha$. It is maximal for a horizontal chord and vanishes for a vertical one, where the tether hangs straight. The deflection angle is therefore given by its nominal value at $\varepsilon_0$ for a horizontal chord, $\gamma_0 = \gamma_{\mathrm{exact}}(\varepsilon_0, 0)$, scaled by $\cos\alpha$:
 \begin{equation}
     \gamma(\alpha) = \gamma_0\cos\alpha,
     \label{eq:uav_tether_nominal}
 \end{equation}
-which replaces the transcendental relation with a closed-form expression evaluated at $\varepsilon_0$.
+which replaces the transcendental relation with a closed-form expression. Since $\varepsilon_0$ is fixed, $\gamma_0$ is a constant, obtained once from the exact relation in Section~\ref{subsec:tether_model_validation}.
 
-With $\gamma$ given by \eqref{eq:uav_tether_nominal}, the tension direction $\hat{\mathbf{d}}$ can now be constructed. This requires first introducing the direction $\hat{\mathbf{e}}_h$, orthogonal to $\mathbf{z}^{\mathcal{I}}$ within the catenary plane,
-\begin{equation}
-    \mathbf{h} = \hat{\mathbf{d}}_0 - (\hat{\mathbf{d}}_0\cdot\mathbf{z}^{\mathcal{I}})\,\mathbf{z}^{\mathcal{I}}, \qquad
-    \hat{\mathbf{e}}_h = \frac{\mathbf{h}}{\sqrt{\|\mathbf{h}\|^2 + \delta^2}},
-    \label{eq:uav_tether_horizontal}
-\end{equation}
-where $\delta > 0$ is a small constant that keeps $\hat{\mathbf{e}}_h$ defined and differentiable when the chord is vertical and $\mathbf{h} = \mathbf{0}$, and has a negligible effect otherwise. The depression angle $\alpha$ of $\hat{\mathbf{d}}_0$ below $\hat{\mathbf{e}}_h$ follows from
-\begin{equation}
-    \hat{\mathbf{d}}_0 = \cos\alpha\,\hat{\mathbf{e}}_h - \sin\alpha\,\mathbf{z}^{\mathcal{I}}.
-    \label{eq:uav_tether_alpha}
-\end{equation}
-Figure~\ref{fig:uav_tether_plane} illustrates this construction within the catenary plane, showing the local horizontal $\hat{\mathbf{e}}_h$, the depression angle $\alpha$, and the resulting tension direction $\hat{\mathbf{d}}$, tilted further from $\hat{\mathbf{d}}_0$ by the angle $\gamma$.
+Figure~\ref{fig:uav_tether_plane} illustrates this construction within the catenary plane, showing the local horizontal $\hat{\mathbf{e}}_h$, the depression angle $\alpha$, and the tension direction $\hat{\mathbf{d}}$, tilted further from $\hat{\mathbf{d}}_0$ by the angle $\gamma$.
 
 \begin{figure}[H]
     \centering
@@ -704,7 +663,7 @@ Figure~\ref{fig:uav_tether_plane} illustrates this construction within the caten
 
         \coordinate (Pv) at (3.75,-2.5);
         \fill[black] (Pv) circle (2.0pt);
-        \node[below right, font=\footnotesize] at (Pv) {$\mathbf{p}_v$};
+        \node[below right, font=\footnotesize] at (Pv) {$\mathbf{p}_w$};
 
         % Local horizontal e_h, within the catenary plane, orthogonal to z^I
         \draw[horizLine] (Oa) -- (2.2,0) node[right, okiGreen, font=\footnotesize] {$\hat{\mathbf{e}}_h$};
@@ -747,4 +706,4 @@ and the resulting tether force, applied at $\mathcal{O}_a$ and expressed in $\{\
     \mathbf{F}_{\mathrm{tether}}^{\mathcal{I}} = T_{\mathrm{tether}}(d)\,\hat{\mathbf{d}} = c_d(\varepsilon_0)\,d\,\hat{\mathbf{d}},
     \label{eq:uav_tether_force}
 \end{equation}
-with $d$ evaluated at each instant from \eqref{eq:uav_tether_geometry}. Equation~\eqref{eq:uav_tether_force} is the term $\mathbf{F}_{\mathrm{tether}}^{\mathcal{I}}$ introduced in \eqref{eq:uav_newton}. For a vertical chord, $\mathbf{h} = \mathbf{0}$ and so $\hat{\mathbf{e}}_h = \mathbf{0}$, and since $\cos(\alpha+\gamma) = 0$ the direction reduces to $-\mathbf{z}^{\mathcal{I}}$.
+with $d$ evaluated at each instant from \eqref{eq:uav_tether_geometry}. Equation~\eqref{eq:uav_tether_force} is the term $\mathbf{F}_{\mathrm{tether}}^{\mathcal{I}}$ introduced in \eqref{eq:uav_newton}. For a vertical chord, $\hat{\mathbf{e}}_h$ is undefined, but then $\alpha = \pi/2$ and $\gamma = 0$, so that $\cos(\alpha+\gamma) = 0$ and the direction is simply $-\mathbf{z}^{\mathcal{I}}$.
