@@ -172,7 +172,7 @@ where $\ell$ and $\ell_0$ are the current and the unstretched lengths of the seg
 
 \input{Implementation/figures/01_simulation_environment/tether_model.tex}
 
-The parameters of the model are the mass per unit length, which gives the mass $m_i$ of each node in~\eqref{eq:tether_node}, the axial stiffness $EA$ and the damping ratio, which define the tension in~\eqref{eq:tether_tension}, the bending stiffness, and the drag coefficients. Their values are given in Table~\ref{tab:tether_parameters}, together with the number of segments and the time step used to integrate the equations. The mass per unit length and the diameter are based on commercial micro-tethers for \glspl{uav} that provide power and data \cite{elistair_safet2,linden_microtethers}. The axial stiffness is lower than that of a real tether, since a stiffer tether would require a much smaller time step for the integration to remain stable. Under the tensions of a few newtons found in this work, it stretches the tether by only a few percent. The length of the tether is not fixed, and it is changed by the winch described in Section~\ref{sec:tether_winch}.
+The parameters of the model are the mass per unit length, which gives the mass $m_i$ of each node in~\eqref{eq:tether_node}, the axial stiffness $EA$ and the damping ratio, which define the tension in~\eqref{eq:tether_tension}, the bending stiffness, and the drag coefficients. Their values are given in Table~\ref{tab:tether_parameters}, together with the number of segments and the time step used to integrate the equations. The mass per unit length and the diameter are based on commercial micro-tethers for \glspl{uav} that provide power and data \cite{elistair_safet2,linden_microtethers}. The axial stiffness is lower than that of a real tether, which would require an even smaller time step for the integration to remain stable, but under the tensions of a few newtons found in this work it already stretches the tether by less than $0.1\,\%$. The length of the tether is not fixed, and it is changed by the winch described in Section~\ref{sec:tether_winch}.
 
 \begin{table}[!htbp]
     \centering
@@ -184,19 +184,19 @@ The parameters of the model are the mass per unit length, which gives the mass $
         \midrule
         Diameter & $4$ & $\text{mm}$ \\
         Mass per unit length & $0.020$ & $\text{kg/m}$ \\
-        Axial stiffness, $EA$ & $100$ & $\text{N}$ \\
+        Axial stiffness, $EA$ & $10^4$ & $\text{N}$ \\
         Damping ratio (relative to critical) & $0.8$ & -- \\
         Bending stiffness & $2\times 10^{-5}$ & $\text{N}\cdot\text{m}^2$ \\
         Transverse drag coefficient & $1.2$ & -- \\
         Axial drag coefficient & $0.005$ & -- \\
         Density of the surrounding air & $1.225$ & $\text{kg/m}^3$ \\
         Number of segments & $30$ & -- \\
-        Integration time step & $0.2$ & $\text{ms}$ \\
+        Integration time step & $0.02$ & $\text{ms}$ \\
         \bottomrule
     \end{tabular}
 \end{table}
 
-The tether is coupled to the vehicles by a \gls{ros} node, as shown in Figure~\ref{fig:tether_coupling}. At each step, the node reads the position and the velocity of the two attachment points, which are the tether anchor on the deck of the \gls{usv} and the centre of the body of the \gls{uav}, and gives them to MoorDyn. MoorDyn imposes them as the motion of the ends of the tether, integrates the tether over the step, and returns the force vector at each attachment point, which is applied to the vehicles in Gazebo.
+The tether is coupled to the vehicles by a \gls{ros} node, as shown in Figure~\ref{fig:tether_coupling}. At each step, the node reads the position and the velocity of the two ends of the tether, the winch on the deck of the \gls{usv} and the centre of the body of the \gls{uav}, and gives them to MoorDyn. MoorDyn imposes them as the motion of the ends of the tether, integrates the tether over the step, and returns the force vector at each end, which is applied to the vehicles in Gazebo.
 
 \input{Implementation/figures/01_simulation_environment/tether_coupling.tex}
 
@@ -205,9 +205,9 @@ The tether is coupled to the vehicles by a \gls{ros} node, as shown in Figure~\r
 \subsection{Tether Winch}
 \label{sec:tether_winch}
 
-The model of the tether used by the controllers in Section~\ref{sec:system_modeling} assumes that its slack is kept close to a constant value $\varepsilon_0$, which requires a mechanism that adjusts the length of the tether as the vehicles move. In a real system, this can be achieved by a winch system on the \gls{usv}, which spools the tether in and out. In simulation, this mechanism is represented by a virtual winch that varies the length of the tether.
+The model of the tether used by the controllers in Section~\ref{sec:system_modeling} assumes that its slack is kept close to a constant value $\varepsilon_0$, which requires a mechanism that adjusts the length of the tether as the vehicles move. In a real system, the winch spools the tether in and out, and in simulation it is represented by a virtual winch that varies the length of the tether.
 
-At each step, the virtual winch reads the distance $d$ between the attachment points and computes the tether length $L_{\text{ref}}$ that gives the desired slack,
+At each step, the virtual winch reads the distance $d$ between the winch and the \gls{uav} and computes the tether length $L_{\text{ref}}$ that gives the desired slack,
 \begin{equation}
     L_{\text{ref}} = \frac{d}{1-\varepsilon_0},
     \label{eq:winch_length}
@@ -215,7 +215,7 @@ At each step, the virtual winch reads the distance $d$ between the attachment po
 which it then applies as the length of the tether in MoorDyn.
 A real system cannot follow the variations of the length instantly, because of the speed of the winch and the delay in the measurement of the distance. To account for this limitation, the rate of change of the length is limited to $v_{\text{winch}} = 2\,\text{m/s}$, which makes the slack deviate from $\varepsilon_0$ when the distance changes faster than the system can follow.
 
-To evaluate the effect of the slack ratio, the same $60\,\text{s}$ trajectory of the \gls{uav} was flown with $\varepsilon_0 = 2\%$, $5\%$, and $10\%$. Figure~\ref{fig:winch_shape} shows the shape of the tether for each value, and a larger slack naturally makes the tether sag more between the vehicles. Figure~\ref{fig:winch_geometry} shows the distance between the attachment points (dashed) and the length of the tether (solid) along the trajectory. The length follows the distance, staying above it by a margin that grows with $\varepsilon_0$. Figure~\ref{fig:winch_tension} shows the tension at the \gls{uav} along the same trajectory. The tension follows the distance, with its peaks coinciding with the largest distances, since the weight of the tether that the \gls{uav} supports increases with it. The tension also decreases as the slack increases. Table~\ref{tab:winch_slack} quantifies these results. From $\varepsilon_0 = 2\%$ to $10\%$, the mean tension decreases from $2.07\,\text{N}$ to $1.62\,\text{N}$, a reduction of $22\%$, and the maximum from $3.38\,\text{N}$ to $2.88\,\text{N}$.
+To evaluate the effect of the slack ratio, the \gls{uav} flew the same $60\,\text{s}$ trajectory with $\varepsilon_0 = 2\%$, $5\%$, and $10\%$, moving along $x$ up to $10\,\text{m}$ to each side of the \gls{usv}, which held its position, so that the distance between the winch and the \gls{uav} varied between about $5$ and $14\,\text{m}$. Figure~\ref{fig:winch_shape} shows the shape of the tether for each value, and a larger slack naturally makes the tether sag more between the vehicles. Figure~\ref{fig:winch_geometry} shows the distance between the winch and the \gls{uav} (dashed) and the length of the tether (solid) along the trajectory. The length follows the distance, staying above it by a margin that grows with $\varepsilon_0$. Figure~\ref{fig:winch_tension} shows the tension at the \gls{uav} along the same trajectory. The tension follows the distance, with its peaks coinciding with the largest distances, since the weight of the tether that the \gls{uav} supports increases with it. The tension also decreases as the slack increases. Table~\ref{tab:winch_slack} quantifies these results. From $\varepsilon_0 = 2\%$ to $10\%$, the mean tension decreases from $2.07\,\text{N}$ to $1.62\,\text{N}$, a reduction of $22\%$, and the maximum from $3.38\,\text{N}$ to $2.88\,\text{N}$.
 
 \begin{figure}[!htbp]
     \centering

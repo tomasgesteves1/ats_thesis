@@ -34,17 +34,11 @@ Figure~\ref{fig:architecture} shows the components and the main data exchanged b
 \label{subsec:operator_dashboard}
 
 % What is the Mission Control Centre for?
-The Mission Control Centre is a web page, shown in Figure~\ref{fig:mission_control_centre}, from which an operator runs the whole system without the command line. Since every mission is launched and recorded in the same way, it also made the tests in simulation repeatable. It is organised in four parts.
-\begin{itemize}
-    \item \textbf{Simulation}, at the top, starts and stops the simulation, with or without the graphical interface of Gazebo.
-    \item \textbf{Missions}, on the left, lists the missions with their manoeuvres, starts one, optionally recording its data, and aborts it.
-    \item \textbf{Map}, in the centre, shows the two vehicles, the tether and their references from above.
-    \item \textbf{Telemetry and progress}, on the right, show the state of each vehicle and of the tether, and the manoeuvres of each vehicle already done, running and still to come.
-\end{itemize}
+The Mission Control Centre is a web page, shown in Figure~\ref{fig:mission_control_centre}, from which an operator runs the whole system without the command line. Since every mission is launched and recorded in the same way, it also made the tests in simulation repeatable. The bar at the top starts and stops the simulation, the panel on the left lists the missions with their manoeuvres and starts, records or aborts them, the map in the centre shows the two vehicles, the tether and their references from above, and the panels on the right show the state of each vehicle and of the tether and the progress of the mission.
 
 \begin{figure}[H]
     \centering
     \includegraphics[width=1.0\textwidth]{Implementation/figures/05_software_architecture/mission_control_centre.png}
-    \caption{Mission Control Centre during the scout mission.}
+    \caption{Mission Control Centre.}
     \label{fig:mission_control_centre}
 \end{figure}

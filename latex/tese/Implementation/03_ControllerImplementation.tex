@@ -47,7 +47,7 @@ Most limits of the controller are not design choices, but the limits of the thru
         Thrust rate limit & $\dot T_{L,max}=\dot T_{R,max}$ & $500\,\text{N/s}$ \\
         Azimuth rate limit & $\dot\alpha_{L,max}=\dot\alpha_{R,max}$ & $10^\circ/\text{s}$ \\
         Minimum surge speed & $u_{min}$ & $-0.3\,\text{m/s}$ \\
-        Surge slack penalty & $\mu_{u,1},\ \mu_{u,2}$ & $200,\ 2000$ \\
+        Surge slack penalty & $\mu_{u,1},\ \mu_{u,2}$ & $10^5,\ 10^5$ \\
         Maximum tether separation & $d_{max}$ & $15.0\,\text{m}$ \\
         Tether slack penalty & $\mu_1,\ \mu_2$ & $500,\ 5000$ \\
         \bottomrule
@@ -58,7 +58,7 @@ Most limits of the controller are not design choices, but the limits of the thru
 The sampling time, which sets how often the controller computes a new command, and the prediction horizon, which sets how far ahead it plans, are both chosen from how fast the \gls{usv} responds to its commands. At the operating speeds, the hull takes between half a second and a second to react to a change of force. The controller runs at $10\,\text{Hz}$, so it computes a new command every $0.1\,\text{s}$, five to ten while the vessel responds to a single one, and can correct this response as it develops. The horizon must be long enough for the controller to see most of this response, and is set to $2\,\text{s}$, or $20$ steps, which covers two to four times the response time and is the horizon over which the model was validated in Section~\ref{sec:model_validation}. Since the \gls{uav} predicts only $1\,\text{s}$ ahead, its trajectory covers the first $N_c = 10$ steps of this horizon, over which the tether constraint is applied.
 
 % What does the controller prioritise?
-The weights of the cost set what the controller values most, and were tuned in simulation until the vessel followed its references smoothly. They form a baseline for all the missions of this work, which could be adapted to each manoeuvre, favouring precision when holding a station or smoothness on a long transit. The position and the heading dominate the cost, since following the reference is the purpose of the controller. The sway velocity is also penalised, so that the vessel does not drift sideways, and the thrust and its rate of change receive a light penalty that avoids unnecessary effort without compromising the tracking. The steering needs little weight to remain smooth, since the azimuth rate limit already prevents abrupt changes of direction. The weights are listed in Table~\ref{tab:usv_ctrl_weights}.
+The weights of the cost set what the controller values most, and were tuned in simulation until the vessel followed its references smoothly. They form a baseline for all the missions of this work, which could be adapted to each manoeuvre, favouring precision when holding a station or smoothness on a long transit. The position and the heading dominate the cost, since following the reference is the purpose of the controller. The sway velocity is also penalised, so that the vessel does not drift sideways, and the thrust and its rate of change receive a light penalty that avoids unnecessary effort without compromising the tracking. The rate of change of the azimuth receives a larger weight, which keeps the steering smooth. The weights are listed in Table~\ref{tab:usv_ctrl_weights}.
 
 \begin{table}[htbp]
     \centering
@@ -70,9 +70,9 @@ The weights of the cost set what the controller values most, and were tuned in s
         \midrule
         Position weight & $Q_p$ & $\mathrm{diag}(150,\,150)$ \\
         Heading weight & $q_\psi$ & $150$ \\
-        Velocity weight & $Q_\nu$ & $\mathrm{diag}(2,\,40,\,1)$ \\
+        Velocity weight & $Q_\nu$ & $\mathrm{diag}(2,\,120,\,1)$ \\
         Thruster command weight & $Q_\tau$ & $\mathrm{diag}(10^{-5},\,10^{-5},\,0.1,\,0.1)$ \\
-        Thruster rate weight & $R$ & $\mathrm{diag}(10^{-5},\,10^{-5},\,10,\,10)$ \\
+        Thruster rate weight & $R$ & $\mathrm{diag}(10^{-5},\,10^{-5},\,100,\,100)$ \\
         \bottomrule
     \end{tabular*}
 \end{table}
@@ -152,10 +152,12 @@ As for the \gls{usv}, some limits of the controller come from the vehicle itself
         Attitude command rate limits & $\dot\phi_{max},\ \dot\theta_{max},\ \dot\psi_{max}$ & $0.8,\ 0.8,\ 1.0\,\text{rad/s}$ \\
         Horizontal and vertical speed limits & $v_{xy,max},\ v_{z,max}$ & $10.0,\ 3.0\,\text{m/s}$ \\
         Minimum altitude & $z_{min}$ & $2.0\,\text{m}$ \\
-        Slack penalty, bounds $h_1$--$h_5$ & $\mu_{1,j},\ \mu_{2,j}$ & $10^4,\ 10^4$ \\
+        Slack penalty, height and vertical speed $h_1$, $h_3$ & $\mu_{1,j},\ \mu_{2,j}$ & $10^3,\ 10^3$ \\
+        Slack penalty, horizontal speed $h_2$ & $\mu_{1,2},\ \mu_{2,2}$ & $300,\ 300$ \\
+        Slack penalty, tilt $h_4$, $h_5$ & $\mu_{1,j},\ \mu_{2,j}$ & $10^4,\ 10^4$ \\
         Maximum tether separation & $d_{max}$ & $15.0\,\text{m}$ \\
         Maximum separation rate & $\dot d_{max}$ & $2.0\,\text{m/s}$ \\
-        Slack penalty, tether $h_6$, $h_7$ & $\mu_{1,j},\ \mu_{2,j}$ & $10^4,\ 10^4$ \\
+        Slack penalty, tether $h_6$, $h_7$ & $\mu_{1,j},\ \mu_{2,j}$ & $10^5,\ 10^5$ \\
         \bottomrule
     \end{tabular*}
 \end{table}
@@ -164,7 +166,7 @@ As for the \gls{usv}, some limits of the controller come from the vehicle itself
 The sampling time and the prediction horizon of the \gls{uav} controller follow from how fast the vehicle responds, which is much faster than the \gls{usv}. Its roll and pitch respond to a new command within about $0.2\,\text{s}$, the delay and the time constant of Table~\ref{tab:uav_model_parameters} together. The controller runs at $50\,\text{Hz}$, the rate at which the state estimate of the vehicle is received, so it computes a new command every $0.02\,\text{s}$, about ten while the vehicle responds to a single one, and can correct this response as it develops. The horizon is set to $1\,\text{s}$, or $50$ steps, which covers about five times this response and more than twice the slower response of the yaw, and is the horizon over which the model was validated.
 
 % What does the controller prioritise?
-The weights of the cost were also tuned in simulation, until the vehicle followed its references closely with smooth commands, and are likewise a baseline that could favour precision when landing or smoothness when following a target. The position dominates the cost, with a larger weight on the height, since the thrust corrects it directly, whereas a horizontal correction requires the vehicle to tilt first and a lighter weight keeps this tilting gradual. The yaw is tracked as well, independently of the position, since the vehicle can turn without moving. Among the inputs, the rates of the roll and pitch commands are penalised the most, while the thrust may change quickly within its rate limit. The tilt and the deviation of the thrust from the hover value are lightly penalised to discourage values larger than the tracking requires. The weights are listed in Table~\ref{tab:uav_ctrl_weights}.
+The weights of the cost were also tuned in simulation, until the vehicle followed its references closely with smooth commands, and are likewise a baseline that could favour precision when landing or smoothness when following a target. The position dominates the cost, with a larger weight on the height, since the thrust corrects it directly, whereas a horizontal correction requires the vehicle to tilt first and a lighter weight keeps this tilting gradual. The yaw is tracked as well, independently of the position, since the vehicle can turn without moving. Among the inputs, the rates of the attitude commands are penalised the most, while the thrust may change quickly within its rate limit. The tilt and the deviation of the thrust from the hover value are lightly penalised to discourage values larger than the tracking requires. The weights are listed in Table~\ref{tab:uav_ctrl_weights}.
 
 \begin{table}[htbp]
     \centering
@@ -179,13 +181,13 @@ The weights of the cost were also tuned in simulation, until the vehicle followe
         Tilt weight & $Q_{tilt}$ & $\mathrm{diag}(5,\,5)$ \\
         Yaw weight & $q_\psi$ & $20$ \\
         Thrust weight & $Q_T$ & $0.118$ \\
-        Input weight & $R$ & $\mathrm{diag}(30,\,30,\,5,\,5\times10^{-4})$ \\
+        Input weight & $R$ & $\mathrm{diag}(30,\,30,\,30,\,0.01)$ \\
         \bottomrule
     \end{tabular*}
 \end{table}
 
 % How does the controller account for unmodelled forces?
-The disturbance observer of Chapter~\ref{chapter:control} is set by its gain and its bound. With $\beta = 0.03$, the estimate converges with a time constant of about $T_s/\beta \approx 0.7\,\text{s}$, slower than the response of the attitude, so that it does not react to the short prediction errors of a manoeuvre, but fast enough to follow the gusts of the wind, which vary over several seconds. The bound of $8\,\text{N}$ is above the force of a strong wind on the vehicle, of about $5\,\text{N}$ at $12\,\text{m/s}$.
+The disturbance observer of Section~\ref{sec:ctrl_uav_mpc} is set by its gain and its bound. With $\beta = 0.03$, the estimate converges with a time constant of about $T_s/\beta \approx 0.7\,\text{s}$, slower than the response of the attitude, so that it does not react to the short prediction errors of a manoeuvre, but fast enough to follow the gusts of the wind, which vary over several seconds. The bound of $8\,\text{N}$ is above the force of a strong wind on the vehicle, of about $5\,\text{N}$ at $12\,\text{m/s}$.
 
 % How good is the computed command, and how long does it take?
 The same comparison was made for the \gls{uav}, close to its limits, between iterating until a tolerance of $10^{-4}$, with at most $25$ iterations, as in the \gls{usv}, and the \gls{rti}, which relies on the solution changing little between consecutive instants, so that refining the previous one once is enough to follow it. Iterating towards convergence leaves a residual several hundred times smaller, but it exceeded the $20\,\text{ms}$ available in about $6\%$ of the instants, most of them ending at the iteration limit without converging, as shown in Figure~\ref{fig:uav_solver_performance} and Table~\ref{tab:uav_solver_settings}. The single iteration never took more than $5\,\text{ms}$, and its commands differed from the converged ones by less than $0.7^\circ$ in roll and pitch and $0.6\,\text{N}$ in thrust, making the \gls{rti} the strategy used by the controller.

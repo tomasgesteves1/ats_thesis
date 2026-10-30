@@ -35,15 +35,6 @@
             {\gls{uav} took off, , laps covered}
     \end{tikzpicture}}
     \\[3mm]
-    \subfloat[Recovery.]{
-    \begin{tikzpicture}
-        \missionlanes
-        \missionlane{0}{a}{uavbox}{above}{Takeoff, Formation, Landing}
-            {, \gls{usv} returned}
-        \missionlane{-1.2}{v}{usvbox}{below}{Hold, Route, Return, Hold}
-            {\gls{uav} took off, route abandoned, }
-    \end{tikzpicture}}
-    \\[3mm]
     \subfloat[Patrol.]{
     \begin{tikzpicture}
         \missionlanes
@@ -51,6 +42,15 @@
             {, target detected, after 1 min}
         \missionlane{-1.2}{v}{usvbox}{below}{Hold, Route, Follow, Hold}
             {\gls{uav} took off, target detected, }
+    \end{tikzpicture}}
+    \\[3mm]
+    \subfloat[Recovery.]{
+    \begin{tikzpicture}
+        \missionlanes
+        \missionlane{0}{a}{uavbox}{above}{Takeoff, Formation, Landing}
+            {, \gls{usv} returned}
+        \missionlane{-1.2}{v}{usvbox}{below}{Hold, Route, Route, Hold}
+            {\gls{uav} took off, route abandoned, }
     \end{tikzpicture}}
     \caption[Missions tested in simulation.]{Missions tested in simulation.}
     \label{fig:missions}

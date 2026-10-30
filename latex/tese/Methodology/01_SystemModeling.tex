@@ -74,10 +74,10 @@ Similarly, this frame attaches to the \gls{uav}, with origin $\mathcal{O}_a$ at 
             \draw[bodyaxis] (0,0) -- (0,1.5) node[right,label,okiGreen,xshift=2pt,yshift=-4pt] {$\mathbf{z}^{\mathcal{B}_v}$};
             \draw[bodyaxis] (0,0) -- (0.6,0.48) node[above,label,okiGreen,xshift=-3pt] {$\mathbf{y}^{\mathcal{B}_v}$};
             
-            % Anchor point, vertically aligned with the CG
+            % Winch, vertically aligned with the CG
             \coordinate (Pa) at (0,0.45);
             \fill[white] (Pa) circle (4pt); % break the z_v arrow shaft behind the marker
-            \fill[okiVermillion] (Pa) circle (2.5pt) node[above left,font=\scriptsize,black] {Anchor};
+            \fill[okiVermillion] (Pa) circle (2.5pt) node[above left,font=\scriptsize,black] {Winch};
         \end{scope}
 
         \node[below,label,okiGreen] at ($(Ov)+(0,-0.45)$) {$\{\mathcal{B}_v\}$};
@@ -632,9 +632,9 @@ Substituting \eqref{eq:uav_thrust_inertial}, \eqref{eq:uav_gravity}, and \eqref{
 \label{subsec:mod_uav_tether}
 \label{subsec:mod_tether_force_model}
 
-In addition to thrust and gravity, the vehicle is subject to a force transmitted through a tether connecting the origin $\mathcal{O}_a$ of $\{\mathcal{B}_a\}$ to a fixed attachment point on the \gls{wamv}, whose position $\mathbf{p}_v$ is treated here only as a known geometric anchor, without modelling the (negligible) reaction force exerted on the \gls{usv}.
+In addition to thrust and gravity, the vehicle is subject to a force transmitted through a tether connecting the origin $\mathcal{O}_a$ of $\{\mathcal{B}_a\}$ to the winch on the deck of the \gls{wamv}, whose position $\mathbf{p}_v$ is treated here only as a known point, without modelling the (negligible) reaction force exerted on the \gls{usv}.
 
-The relevant geometric quantity is the chord, the straight-line vector between the two attachment points,
+The relevant geometric quantity is the chord, the straight-line vector between the \gls{uav} and the winch,
 \begin{equation}
     \mathbf{r} = \mathbf{p}_v - \mathbf{p}, \qquad d = \|\mathbf{r}\|, \qquad \hat{\mathbf{d}}_0 = \frac{\mathbf{r}}{d},
     \label{eq:uav_tether_geometry}
@@ -648,7 +648,7 @@ Denoting by $L \geq d$ the tether length at a given instant, its slack is conven
 \end{equation}
 with $\varepsilon = 0$ corresponding to a taut tether, and $\varepsilon$ increasing as more slack is introduced.
 
-Under its own weight, a tether of linear mass density $\mu$ suspended between two attachment points takes the shape of a catenary, contained in the vertical plane defined by the two endpoints. Due to the geometric self-similarity of the catenary curve at a given slack ratio $\varepsilon$ and chord inclination, the tension magnitude scales proportionally with the length $d$ of the chord (or with the unstretched length $L$), while the tension direction is governed by the angular deflection $\gamma$ by which the tension vector at $\mathcal{O}_a$ deviates from $\hat{\mathbf{d}}_0$ towards the vertical.
+Under its own weight, a tether of linear mass density $\mu$ suspended between its two ends takes the shape of a catenary, contained in the vertical plane defined by the two endpoints. Due to the geometric self-similarity of the catenary curve at a given slack ratio $\varepsilon$ and chord inclination, the tension magnitude scales proportionally with the length $d$ of the chord (or with the unstretched length $L$), while the tension direction is governed by the angular deflection $\gamma$ by which the tension vector at $\mathcal{O}_a$ deviates from $\hat{\mathbf{d}}_0$ towards the vertical.
 
 The exact relations governing the deflection angle $\gamma_{\mathrm{exact}}(\varepsilon,\alpha)$ and the normalised tension coefficient $c_d^{\mathrm{exact}}(\varepsilon,\alpha) = T_{\mathrm{tether}}/d$ do not admit a closed-form analytical solution, requiring numerical root-finding algorithms at every control cycle.
 

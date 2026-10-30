@@ -9,7 +9,7 @@
 \label{sec:system_control}
 \label{chapter:control}
 
-Having established, in Chapter~\ref{chapter:modeling}, the kinematic and dynamic models governing the \gls{usv} and \gls{uav}, the natural next step is to determine how these models can be exploited to compute the control inputs that drive each vehicle along a desired trajectory. Because the two vehicles are physically coupled through the tether, their motion cannot be planned independently without accounting for this interaction, motivating a cooperative control strategy.
+Having established, in Section~\ref{chapter:modeling}, the kinematic and dynamic models governing the \gls{usv} and \gls{uav}, the natural next step is to determine how these models can be exploited to compute the control inputs that drive each vehicle along a desired trajectory. Because the two vehicles are physically coupled through the tether, their motion cannot be planned independently without accounting for this interaction, motivating a cooperative control strategy.
 
 The overall control approach is therefore established first, followed by the design of the controllers for each vehicle.
 
@@ -24,7 +24,7 @@ Keeping the tether within safe operating conditions depends on how the distance 
 
 A predictive controller does this by repeatedly solving, at each control instant, an optimisation problem over a finite look-ahead window. Because the optimisation runs over the predicted trajectory rather than the current state alone, requirements such as keeping the tether within safe conditions can be stated as explicit constraints in the problem itself, enforcing them explicitly over the prediction horizon.
 
-The predictions rely on the model of the system dynamics, so their accuracy is tied to how well that model represents the real behaviour. The \gls{usv} and \gls{uav} models derived in Chapter~\ref{chapter:modeling} include non-linear terms. The predictive controller uses these non-linear models directly, making \gls{nmpc} the method used for both vehicles.
+The predictions rely on the model of the system dynamics, so their accuracy is tied to how well that model represents the real behaviour. The \gls{usv} and \gls{uav} models derived in Section~\ref{chapter:modeling} include non-linear terms. The predictive controller uses these non-linear models directly, making \gls{nmpc} the method used for both vehicles.
 
 
 \subsubsection{Cooperative Architecture}
@@ -94,7 +94,7 @@ Figure~\ref{fig:ctrl_architecture} shows this architecture, with two independent
 \subsection{Non-linear Model Predictive Control}
 \label{sec:ctrl_nmpc_principles}
 
-The vehicle models of Chapter~\ref{chapter:modeling} are continuous-time systems of the form
+The vehicle models of Section~\ref{chapter:modeling} are continuous-time systems of the form
 \begin{equation}
     \dot{\mathbf{x}} = \mathbf{f}\left( \mathbf{x}, \mathbf{u} \right),
     \label{eq:nmpc_dynamics_continuous}
@@ -165,11 +165,11 @@ Solving this problem returns a full predicted input sequence, $\hat{\mathbf{u}}_
 \subsection{\texorpdfstring{\gls{usv} \gls{nmpc}}{USV NMPC}}
 \label{sec:ctrl_usv_mpc}
 
-The \gls{usv} \gls{nmpc} computes, at every sampling instant, the thruster commands that best track a reference trajectory over a finite prediction horizon, subject to the \gls{usv}'s dynamics, the physical limits of its actuators, and the tether workspace. It predicts the \gls{usv}'s motion with the model derived in Chapter~\ref{chapter:modeling}, and solves a constrained optimisation problem at each step to obtain the commands applied to the thrusters.
+The \gls{usv} \gls{nmpc} computes, at every sampling instant, the thruster commands that best track a reference trajectory over a finite prediction horizon, subject to the \gls{usv}'s dynamics, the physical limits of its actuators, and the tether workspace. It predicts the \gls{usv}'s motion with the model derived in Section~\ref{chapter:modeling}, and solves a constrained optimisation problem at each step to obtain the commands applied to the thrusters.
 
 \subsubsection*{Predictive Model}
 
-The \gls{usv} model of Chapter~\ref{chapter:modeling} is driven by the resultant thrust force and moment $\boldsymbol\tau = [X,Y,N]^\top$, which are obtained from the physical actuator commands $T_L, T_R, \alpha_L, \alpha_R$ through the allocation
+The \gls{usv} model of Section~\ref{chapter:modeling} is driven by the resultant thrust force and moment $\boldsymbol\tau = [X,Y,N]^\top$, which are obtained from the physical actuator commands $T_L, T_R, \alpha_L, \alpha_R$ through the allocation
 \begin{equation}
     X = T_L\cos\alpha_L + T_R\cos\alpha_R, \qquad Y = T_L\sin\alpha_L + T_R\sin\alpha_R,
     \label{eq:usv_mpc_alloc_force}
@@ -317,7 +317,7 @@ The surge speed is bounded from below, so that the \gls{usv} does not sail aster
 \end{equation}
 penalised by $\rho_u(\sigma_u)$ of the form \eqref{eq:nmpc_slack_penalty}, with its own weights $\mu_{u,1}$ and $\mu_{u,2}$.
 
-The last constraint couples the \gls{usv} to the \gls{uav} through the tether, and is the only one that depends on the other vehicle. The tether limits the distance between its attachment point on the \gls{usv} deck and the \gls{uav} to a maximum admissible separation $d_{max}$. The attachment point is vertically aligned with the origin of the \gls{usv}'s body frame, at a fixed height $z_t$ in the inertial frame, so its position is $(x, y, z_t)$. Along the horizon, the \gls{usv} controller uses the \gls{uav}'s most recently computed predicted trajectory $\hat{\mathbf{p}}_a = [\hat x_a, \hat y_a, \hat z_a]^\top$, temporally resampled at the \gls{usv}'s prediction nodes covered by it, to compute the squared distance between the attachment point and the \gls{uav},
+The last constraint couples the \gls{usv} to the \gls{uav} through the tether, and is the only one that depends on the other vehicle. The tether limits the distance between the winch on the \gls{usv} deck and the \gls{uav} to a maximum admissible separation $d_{max}$. The winch is vertically aligned with the origin of the \gls{usv}'s body frame, at a fixed height $z_t$ in the inertial frame, so its position is $(x, y, z_t)$. Along the horizon, the \gls{usv} controller uses the \gls{uav}'s most recently computed predicted trajectory $\hat{\mathbf{p}}_a = [\hat x_a, \hat y_a, \hat z_a]^\top$, temporally resampled at the \gls{usv}'s prediction nodes covered by it, to compute the squared distance between the winch and the \gls{uav},
 \begin{equation}
     d^2 = (x - \hat x_a)^2 + (y - \hat y_a)^2 + (\hat z_a - z_t)^2.
     \label{eq:usv_mpc_tether_distance}
@@ -529,7 +529,7 @@ while the command rate limits of the predictive model \eqref{eq:uav_mpc_rate_bou
     \label{eq:uav_mpc_input_set}
 \end{equation}
 
-The remaining constraints couple the \gls{uav} to the \gls{usv} through the tether, and are the only ones that depend on the other vehicle. First, as for the \gls{usv}, the tether limits the distance between the \gls{uav} and the tether attachment point, described in Section~\ref{sec:ctrl_usv_mpc}, to the maximum admissible separation $d_{max}$. The attachment point on the \gls{usv} is located at $(\hat x_v, \hat y_v, z_t)$, where the horizontal position $\hat{\mathbf{p}}_v = [\hat x_v, \hat y_v]^\top$ at each node is taken from the \gls{usv}'s most recently computed predicted trajectory, temporally resampled at the \gls{uav}'s prediction nodes, and $z_t$ is the height of the attachment point. Since the \gls{usv}'s horizon covers that of the \gls{uav}, the constraint is enforced at every node. Denoting by $\mathbf{r} = [x-\hat x_v, y-\hat y_v, z-z_t]^\top$ the relative position vector between the \gls{uav} and the attachment point, the squared separation distance is
+The remaining constraints couple the \gls{uav} to the \gls{usv} through the tether, and are the only ones that depend on the other vehicle. First, as for the \gls{usv}, the tether limits the distance between the \gls{uav} and the winch, described in Section~\ref{sec:ctrl_usv_mpc}, to the maximum admissible separation $d_{max}$. The winch is located at $(\hat x_v, \hat y_v, z_t)$, where the horizontal position $\hat{\mathbf{p}}_v = [\hat x_v, \hat y_v]^\top$ at each node is taken from the \gls{usv}'s most recently computed predicted trajectory, temporally resampled at the \gls{uav}'s prediction nodes, and $z_t$ is the height of the winch. Since the \gls{usv}'s horizon covers that of the \gls{uav}, the constraint is enforced at every node. Denoting by $\mathbf{r} = [x-\hat x_v, y-\hat y_v, z-z_t]^\top$ the relative position vector between the \gls{uav} and the winch, the squared separation distance is
 \begin{equation}
     d^2 = \|\mathbf{r}\|^2 = (x-\hat x_v)^2 + (y-\hat y_v)^2 + (z-z_t)^2.
     \label{eq:uav_mpc_tether_distance}
@@ -546,7 +546,7 @@ Similarly, the length of the tether can only follow the distance between the veh
     \dot d = \frac{\mathrm{d}}{\mathrm{d}t}\|\mathbf{r}\| = \frac{\mathbf{r}^\top\dot{\mathbf{r}}}{d}.
     \label{eq:uav_mpc_tether_rate_deriv}
 \end{equation}
-This formulation restricts only the radial component of the relative motion, leaving the motion around the attachment point, at constant distance, unconstrained. Enforcing $|\dot d| \le \dot d_{max}$ with a small regularisation $\epsilon > 0$ to avoid numerical singularity when $d \to 0$ gives the softened constraint:
+This formulation restricts only the radial component of the relative motion, leaving the motion around the winch, at constant distance, unconstrained. Enforcing $|\dot d| \le \dot d_{max}$ with a small regularisation $\epsilon > 0$ to avoid numerical singularity when $d \to 0$ gives the softened constraint:
 \begin{equation}
     \underbrace{\frac{|\mathbf{r}^\top \dot{\mathbf{r}}|}{\sqrt{d^2 + \epsilon}} - \dot d_{max}}_{h_7(\mathbf{x}_a)} \le \sigma_7,
     \label{eq:uav_mpc_tether_rate_constraint}
@@ -601,7 +601,7 @@ Together, the minimum altitude $z_{min}$ and the maximum tether separation $d_{m
             \draw[line width=1.5pt,black] (0.6,-0.15) -- (0.3,0.3);
             \draw[thick,fill=gray!50] (-0.5,0.3) rectangle (0.5,0.45);
             \coordinate (Pa) at (0,0.45);
-            \fill[okiVermillion] (Pa) circle (2.5pt) node[above left,font=\scriptsize,black] {Anchor};
+            \fill[okiVermillion] (Pa) circle (2.5pt) node[above left,font=\scriptsize,black] {Winch};
         \end{scope}
 
         % -- ATTACHMENT HEIGHT z_t, with guide line to the anchor point --
@@ -643,7 +643,7 @@ At every sampling instant $k$, the translational and physical attitude component
 \end{equation}
 The tilt angles $\phi_k, \theta_k$ are obtained from the estimated direction of the thrust, expressed in the frame rotated by the last commanded yaw as in \eqref{eq:uav_mpc_tilt}, $\mathbf{R}(0,0,\psi_{\mathrm{cmd},k-1})^\top\mathbf{z}^{\mathcal{B}_a} = \mathbf{n}(\phi_k,\theta_k)$. Since the state estimate is not synchronised with the sampling instants, the position is also propagated with the estimated velocity from the instant $t_e$ of the most recent estimate to the sampling instant $t_k$, $\mathbf{p}_k = \mathbf{p}(t_e) + \mathbf{v}(t_e)\,(t_k - t_e)$.
 
-A force that the model does not describe makes the prediction drift from the true motion, and without a model of it the controller settles with a steady offset. Following the disturbance-model approach to offset-free predictive control~\cite{pannocchia2003offsetfree,maeder2009offsetfree}, the external force $\hat{\mathbf{F}}_{\mathrm{ext}}$ in \eqref{eq:uav_mpc_xddot}--\eqref{eq:uav_mpc_zddot} is estimated at every sampling instant from the one-step prediction error of the velocity. The velocity $\hat{\mathbf{v}}_{k|k-1}$ predicted for the current instant by the solution of the previous instant is compared with the estimated velocity $\mathbf{v}_k$, and the force left unexplained over the last interval corrects the estimate,
+A force that the model does not describe makes the prediction drift from the true motion, and without a model of it the controller settles with a steady offset. Following the disturbance-model approach to offset-free predictive control~\cite{pannocchia2003offsetfree,maeder2009offsetfree}, the external force $\hat{\mathbf{F}}_{\mathrm{ext}}$ in \eqref{eq:uav_mpc_xddot}--\eqref{eq:uav_mpc_zddot} is estimated at every sampling instant by a disturbance observer, from the one-step prediction error of the velocity. The velocity $\hat{\mathbf{v}}_{k|k-1}$ predicted for the current instant by the solution of the previous instant is compared with the estimated velocity $\mathbf{v}_k$, and the force left unexplained over the last interval corrects the estimate,
 \begin{equation}
     \hat{\mathbf{F}}_{\mathrm{ext},k} = \mathrm{sat}_{\bar F}\!\Big(\hat{\mathbf{F}}_{\mathrm{ext},k-1} + \beta\,\frac{m}{T_s}\big(\mathbf{v}_k - \hat{\mathbf{v}}_{k|k-1}\big)\Big),
     \label{eq:uav_mpc_disturbance_observer}
