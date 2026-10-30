@@ -104,7 +104,14 @@
 %  Cover page
 % ----------------------------------------------------------------------
 \input{Thesis_FrontCover} % file "Thesis_FrontCover.tex"
-\cleardoublepage
+% blank back of the cover, without page number
+\newpage
+\thispagestyle{empty}
+\mbox{}
+\newpage
+
+% the declaration of originality starts the roman numbering (page i)
+\setcounter{page}{1}
 
 % ----------------------------------------------------------------------
 % Dedication page (optional)
@@ -119,6 +126,12 @@
 \cleardoublepage
 
 % ----------------------------------------------------------------------
+% Declaration of AI tools use (mandatory, follows the declaration)
+% ----------------------------------------------------------------------
+\input{Thesis_AIDeclaration} % file "Thesis_AIDeclaration.tex"
+\cleardoublepage
+
+% ----------------------------------------------------------------------
 %  Acknowledgments (optional)
 % ----------------------------------------------------------------------
 % \input{Thesis_Acknowledgements} % file "Thesis_Acknowledgements.tex"
@@ -127,10 +140,10 @@
 % ----------------------------------------------------------------------
 %  Abstract (both in English and Portuguese)
 % ----------------------------------------------------------------------
-\input{Thesis_Resumo}   % file "Thesis_Resumo.tex"
+\input{Thesis_Abstract} % file "Thesis_Abstract.tex"
 \cleardoublepage
 
-\input{Thesis_Abstract} % file "Thesis_Abstract.tex"
+\input{Thesis_Resumo}   % file "Thesis_Resumo.tex"
 \cleardoublepage
 
 % ----------------------------------------------------------------------
@@ -139,26 +152,29 @@
 
 % Table of contents
 %
+% acronyms in headings and captions appear in short form in the lists,
+% so that their first use is left for the text
+\glsunsetall
 \tableofcontents
 \cleardoublepage 
 
-% % List of tables
-% %
-% % Add entry in the table of contents as section
-% \phantomsection
-% \addcontentsline{toc}{section}{\listtablename}
-% % Generate list
-% \listoftables
-% \cleardoublepage 
+% List of tables
+%
+% Add entry in the table of contents as section
+\phantomsection
+\addcontentsline{toc}{section}{\listtablename}
+% Generate list
+\listoftables
+\cleardoublepage
 
-% % List of figures
-% %
-% % Add entry in the table of contents as section
-% \phantomsection
-% \addcontentsline{toc}{section}{\listfigurename}
-% % Generate list
-% \listoffigures
-% \cleardoublepage 
+% List of figures
+%
+% Add entry in the table of contents as section
+\phantomsection
+\addcontentsline{toc}{section}{\listfigurename}
+% Generate list
+\listoffigures
+\cleardoublepage
 
 % % Nomenclature
 % %
@@ -183,6 +199,9 @@
 %
 \setcounter{page}{1}
 \pagenumbering{arabic}
+
+% expand each acronym again on its first use in the text
+\glsresetall
 
 % ----------------------------------------------------------------------
 %  Chapters

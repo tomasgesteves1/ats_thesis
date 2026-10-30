@@ -261,7 +261,7 @@
 \newcommand{\declarationText}{@undefined}  % new LaTeX variable name
 % > English
 \addto\captionsenglish{\renewcommand{\declarationTitle}{Declaration}}
-\addto\captionsenglish{\renewcommand{\declarationText}{I declare that this document is an original work of my own authorship and that it fulfills all the requirements of the Code of Conduct and Good Practices of the Universidade de Lisboa.}}
+\addto\captionsenglish{\renewcommand{\declarationText}{I declare that this document is an original work of my own authorship and that it fulfils all the requirements of the Code of Conduct and Good Practices of the Universidade de Lisboa.}}
 % > Portuguese
 \addto\captionsportuguese{\renewcommand{\declarationTitle}{Declara\c{c}\~{a}o}}
 \addto\captionsportuguese{\renewcommand{\declarationText}{Declaro que o presente documento \'{e} um trabalho original da minha autoria e que cumpre todos os requisitos do C\'{o}digo de Conduta e Boas Pr\'{a}ticas da Universidade de Lisboa.}}
@@ -331,6 +331,20 @@
 %
 \usepackage{setspace}
 \renewcommand{\baselinestretch}{1.5}
+
+% Paragraphs that cannot be broken within the margins (long inline maths,
+% hyphenated compounds) may stretch their spacing instead of running
+% into the 2.5 cm margin
+\setlength{\emergencystretch}{1.5em}
+
+% Page number in 9 pt, the only footer content allowed (as per IST rules)
+\makeatletter
+\def\ps@plain{%
+  \let\@mkboth\@gobbletwo
+  \let\@oddhead\@empty\let\@evenhead\@empty
+  \def\@oddfoot{\reset@font\hfil{\fontsize{9pt}{11pt}\selectfont\thepage}\hfil}%
+  \let\@evenfoot\@oddfoot}
+\makeatother
 
 
 % ----------------------------------------------------------------------
@@ -503,10 +517,10 @@
             urlcolor=black,   % color for linked URLs
 	          bookmarksopen=false,    % don't expand bookmarks
 	          bookmarksnumbered=true, % number bookmarks
-	          pdftitle={Thesis},
-            pdfauthor={Andre C. Marta},
-            pdfsubject={Thesis Title},
-            pdfkeywords={Thesis Keywords},
+	          pdftitle={Cooperative control of a tethered drone and surface vessel for sustained presence at sea},
+            pdfauthor={Tom\'{a}s Grossinho Esteves},
+            pdfsubject={Thesis to obtain the Master of Science Degree in Electrical and Computer Engineering},
+            pdfkeywords={Tethered UAV, Unmanned Surface Vehicle, Cooperative Control, Nonlinear Model Predictive Control, Maritime Robotics},
             pdfstartview=FitV,
             pdfdisplaydoctitle=true}
 
@@ -520,6 +534,12 @@
 %   below the caption and not at the beginning of the float.
 %
 \usepackage[figure,table]{hypcap}
+
+% 'xurl' package
+%
+% > lets long URLs in the bibliography break at any character, within the margins
+%
+\usepackage{xurl}
 
 
 % 'multirow' package
