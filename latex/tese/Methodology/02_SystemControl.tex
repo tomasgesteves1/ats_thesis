@@ -310,7 +310,7 @@ while the limits on their rates of change, which act on the input, define the ad
     \label{eq:usv_mpc_set_U}
 \end{equation}
 
-The surge speed is bounded from below, so that the \gls{usv} does not sail astern: without this bound, when the reference changes direction the tracking cost can be reduced faster by turning the stern towards it and backing than by turning the bow, which is not how the vessel is meant to be operated. A small negative bound $u_{min} \le 0$ still allows the slow backing needed to hold a position or to brake. Since the speed is a state that a disturbance can push below the bound, it is enforced as a soft constraint through a slack variable $\sigma_u \ge 0$,
+The surge speed is bounded from below, so that the \gls{usv} does not sail astern: without this bound, when the reference changes direction the tracking cost can be reduced faster by turning the stern towards it and backing than by turning the bow, which is not how the \gls{usv} is meant to be operated. A small negative bound $u_{min} \le 0$ still allows the slow backing needed to hold a position or to brake. Since the speed is a state that a disturbance can push below the bound, it is enforced as a soft constraint through a slack variable $\sigma_u \ge 0$,
 \begin{equation}
     u_{min} - u \le \sigma_u,
     \label{eq:usv_mpc_surge_constraint}

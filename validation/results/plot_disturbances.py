@@ -199,6 +199,9 @@ def wind():
             below = (t > ev_time(dd, 'descending')) & (rel[:, 2] < 0.0)
             k = t <= t[np.argmax(below)]
             t, rel = t[k], rel[k]
+        if obs == 'noobs':   # the landing is aborted when the centring times out
+            k = t <= ev_time(dd, 'descending')
+            t, rel = t[k], rel[k]
         axs2[0].plot(t - tl, rel[:, 2], color=c, lw=0.9, label=lab)
         axs2[1].plot(t - tl, 100 * np.hypot(rel[:, 0], rel[:, 1]), color=c, lw=0.9)
         for a in axs2:

@@ -29,7 +29,7 @@ The world used in this work represents an open water area, shown in Figure~\ref{
     \label{fig:world_view}
 \end{figure}
 
-The vehicles operate at sea, where wind, waves, and currents act on them. The world allows these disturbances to be included, so that the controllers can be tested under conditions that their models do not predict. Each disturbance acts through a different physical path. Wind applies a force on the bodies exposed to the air, waves change the height of the water surface and therefore the buoyancy of the hull, and currents move the water itself, which changes the drag on the submerged bodies. These disturbances can be enabled, disabled, or adjusted for each test.
+The vehicles operate at sea, where wind, waves, and currents act on them. The world allows these disturbances to be included, so that the controllers can be tested under conditions that their models do not predict. Each disturbance acts through a different physical path. Wind applies a force on the bodies exposed to the air, waves change the height of the water surface and therefore the buoyancy of the hull, and currents move the water itself, which changes the drag on the submerged bodies. These disturbances can be enabled, disabled, or adjusted for each test. In this work, a moderate sea, with a significant wave height of $0.6\,\text{m}$, is present in every test unless stated otherwise.
 
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -138,7 +138,7 @@ The tether couples the two vehicles, so the behaviour of the system depends on h
 
 The tether is simulated with MoorDyn \cite{hall2015moordyn}, a tool that represents a tether as a chain of lumped masses connected by segments that behave as springs and dampers. Each segment resists stretching and bending, while the weight and the drag of the tether are calculated at the nodes between segments. The slack and the tension of the tether result from the motion of these nodes, without assuming a shape for the tether. MoorDyn runs separately from Gazebo, which does not represent the tether itself but receives its effect on the vehicles through the forces that MoorDyn calculates. The tether is therefore displayed in a separate visualisation tool, Foxglove \cite{foxglove}, as shown in Figure~\ref{fig:tether_foxglove}.
 
-\begin{figure}[!htbp]
+\begin{figure}[!b]
     \centering
     \subfloat[Side view.]{
         \reflectbox{\includegraphics[height=5.5cm]{Implementation/figures/01_simulation_environment/drone_foxglove_side.png}}
@@ -212,12 +212,12 @@ At each step, the virtual winch reads the distance $d$ between the winch and the
     L_{\text{ref}} = \frac{d}{1-\varepsilon_0},
     \label{eq:winch_length}
 \end{equation}
-which it then applies as the length of the tether in MoorDyn.
+which it then applies as the length of the tether in MoorDyn. Close to the deck, the winch can instead pull the tether with a constant force of $4\,\text{N}$, about a fifth of the weight of the \gls{uav}, raised gradually when the pull starts.
 A real system cannot follow the variations of the length instantly, because of the speed of the winch and the delay in the measurement of the distance. To account for this limitation, the rate of change of the length is limited to $v_{\text{winch}} = 2\,\text{m/s}$, which makes the slack deviate from $\varepsilon_0$ when the distance changes faster than the system can follow.
 
 To evaluate the effect of the slack ratio, the \gls{uav} flew the same $60\,\text{s}$ trajectory with $\varepsilon_0 = 2\%$, $5\%$, and $10\%$, moving along $x$ up to $10\,\text{m}$ to each side of the \gls{usv}, which held its position, so that the distance between the winch and the \gls{uav} varied between about $5$ and $14\,\text{m}$. Figure~\ref{fig:winch_shape} shows the shape of the tether for each value, and a larger slack naturally makes the tether sag more between the vehicles. Figure~\ref{fig:winch_tension} shows the tension at the \gls{uav} as a function of the distance between the winch and the \gls{uav}, averaged over intervals of $1\,\text{m}$, with the band showing its spread along the trajectory. For every slack ratio, the tension grows almost linearly with the distance, since the weight of the tether that the \gls{uav} supports increases with it. A larger slack lowers the whole curve, since a tether that sags more needs less tension to hold its own weight. Table~\ref{tab:winch_slack} quantifies these results. From $\varepsilon_0 = 2\%$ to $10\%$, the mean tension decreases from $2.07\,\text{N}$ to $1.62\,\text{N}$, a reduction of $22\%$, and the maximum from $3.38\,\text{N}$ to $2.88\,\text{N}$.
 
-\begin{figure}[!htbp]
+\begin{figure}[!b]
     \centering
     \subfloat[$\varepsilon_0 = 2\%$.]{
         \includegraphics[width=0.32\textwidth]{Implementation/figures/01_simulation_environment/slack_2.png}

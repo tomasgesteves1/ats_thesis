@@ -16,7 +16,7 @@ With the tracking of each controller and the landing on the moving deck establis
 \label{subsec:res_inspection}
 
 % What does the inspection ask of the two vehicles?
-The inspection represents the survey of a structure standing in the water, here a tower $43\,\text{m}$ high. The \gls{uav} circles the tower at $13\,\text{m}$ from its centre, in three laps at heights of $12$, $27$ and $42\,\text{m}$, with its heading pointed at the tower, so that a camera on board covers it from bottom to top, as shown in Figure~\ref{fig:res_inspection_laps}. To reach the top of the tower, the mission is executed with a tether of $45\,\text{m}$.
+The inspection represents the survey of a structure standing in the water, here the tower. The \gls{uav} circles the tower at $13\,\text{m}$ from its centre, in three laps at heights of $12$, $27$ and $42\,\text{m}$, with its heading pointed at the tower, so that a camera on board covers it from bottom to top, as shown in Figure~\ref{fig:res_inspection_laps}. To reach the top of the tower, the maximum separation is raised to $d_{max} = 45\,\text{m}$.
 
 \begin{figure}[htbp]
     \centering
@@ -63,7 +63,7 @@ With the longer tether, the force on the \gls{uav} grows with the height of the 
 \label{subsec:res_patrol}
 
 % What does the patrol represent?
-The patrol represents the surveillance of an area, in which the \gls{uav} acts as a lookout for the \gls{usv}. The \gls{usv} sails a route while the \gls{uav} orbits it, $15\,\text{m}$ above the winch, looking down with a camera assumed to cover $120^\circ$. Near the route, a moving target patrols a forbidden zone and flees when either vehicle approaches it. Once the \gls{uav} detects the target, both vehicles pursue it for one minute. The mission is executed with a tether of $20\,\text{m}$. Figure~\ref{fig:res_patrol_shots} shows the system at three moments of the pursuit.
+The patrol represents the surveillance of an area, in which the \gls{uav} acts as a lookout for the \gls{usv}. The \gls{usv} sails a route near the forbidden zone while the \gls{uav} orbits it, $15\,\text{m}$ above the winch. Once the \gls{uav} detects the target, both vehicles pursue it for one minute. The maximum separation is $d_{max} = 20\,\text{m}$. Figure~\ref{fig:res_patrol_shots} shows the system at three moments of the pursuit.
 
 \begin{figure}[htbp]
     \centering
@@ -110,7 +110,7 @@ Throughout the mission, the \gls{uav} keeps within both limits of the tether, as
 \label{subsec:res_recovery}
 
 % What situation does the recovery represent?
-The recovery represents the rescue of a \gls{uav} that cannot follow the \gls{usv}, for instance against a wind it cannot overcome. The \gls{uav} is held at a point fixed in the world, while the \gls{usv} is sent along a route of $60\,\text{m}$, three times the reach of the tether, with $d_{max} = 20.5\,\text{m}$ in this mission. After a wait, the \gls{usv} abandons the route and returns below the \gls{uav}, which then lands.
+The recovery represents the rescue of a \gls{uav} that cannot follow the \gls{usv}, for instance against a wind it cannot overcome. The \gls{uav} is held at a point fixed in the world, without giving way to the tether, as it could not against such a wind, while the \gls{usv} is sent along a route of $60\,\text{m}$, about three times the maximum separation of $d_{max} = 20.5\,\text{m}$. After a wait, the \gls{usv} abandons the route and returns below the \gls{uav}, which then lands.
 
 % Does the USV stop at the reach of the tether?
 The \gls{usv} sets off at its top speed and brakes as the separation predicted over its horizon approaches $d_{max}$, and then waits at the reach of the tether, as shown in Figure~\ref{fig:res_recovery}. While braking, the separation briefly exceeds $d_{max}$ by less than $0.5\,\text{m}$, since the \gls{usv} sees the \gls{uav} only over the horizon of the \gls{uav}, which is shorter than the time the \gls{usv} needs to stop from its top speed.

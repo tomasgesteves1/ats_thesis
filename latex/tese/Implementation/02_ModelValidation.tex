@@ -15,7 +15,7 @@ Before incorporating the vehicle and tether models into the real-time controller
 \subsection{\texorpdfstring{\gls{usv} Model}{USV Model}}
 \label{subsec:usv_validation}
 
-The first model to be validated is the one used by the \gls{usv} \gls{nmpc}, presented in Section~\ref{sec:ctrl_usv_mpc}. It predicts how the vessel moves from the commands sent to its thrusters, so its accuracy determines how well the controller can anticipate the motion of the vessel. To compare it with the simulator, the parameters of the model are set to the values of the simulated vessel, described in Section~\ref{sec:simulation_environment}. These values are listed in Table~\ref{tab:usv_model_parameters}.
+The first model to be validated is the one used by the \gls{usv} \gls{nmpc}, presented in Section~\ref{sec:ctrl_usv_mpc}. It predicts how the \gls{usv} moves from the commands sent to its thrusters, so its accuracy determines how well the controller can anticipate the motion of the \gls{usv}. To compare it with the simulator, the parameters of the model are set to the values of the simulated \gls{usv}, described in Section~\ref{sec:simulation_environment}. These values are listed in Table~\ref{tab:usv_model_parameters}.
 
 \begin{table}[htbp]
     \centering
@@ -40,7 +40,7 @@ The first model to be validated is the one used by the \gls{usv} \gls{nmpc}, pre
     \end{tabular}
 \end{table}
 
-To compare the model with the simulator, the \gls{usv} was driven in open loop for $69.96\,\text{s}$ with a sequence of thrust and azimuth commands chosen to excite the three velocities of the model, surge, sway, and yaw rate. Figure~\ref{fig:usv_actuator_inputs} shows the commands sent to the thrusters, which were recorded together with the resulting motion of the vessel. The model is then given the same commands, starting from the initial state of the vessel, and computes the velocities over the whole run without any correction from the simulator, to be compared with the recorded ones.
+To compare the model with the simulator, the \gls{usv} was driven in open loop for $69.96\,\text{s}$ with a sequence of thrust and azimuth commands chosen to excite the three velocities of the model, surge, sway, and yaw rate. Figure~\ref{fig:usv_actuator_inputs} shows the commands sent to the thrusters, which were recorded together with the resulting motion of the \gls{usv}. The model is then given the same commands, starting from the initial state of the \gls{usv}, and computes the velocities over the whole run without any correction from the simulator, to be compared with the recorded ones.
 
 \begin{figure}[htbp]
     \centering
@@ -76,7 +76,7 @@ The dynamics of the model are first tested over the whole run, in a single conti
     \label{fig:usv_velocities_validation}
 \end{figure}
 
-The \gls{nmpc} does not use the model over the whole run, but over a prediction horizon of $T_h = 2.0\,\text{s}$ that always starts from the current state of the \gls{usv}. To evaluate the model in this use, predictions of $2.0\,\text{s}$ were computed along the trajectory of the run, each one starting from the state of the simulator and driven by the recorded commands. Figure~\ref{fig:usv_trajectory_validation} shows these predictions over the trajectory of the vessel. Since each prediction starts from the state of the simulator, the errors of the position and the heading accumulate only over the horizon, which is the time span of the \gls{nmpc} prediction.
+The \gls{nmpc} does not use the model over the whole run, but over a prediction horizon of $T_h = 2.0\,\text{s}$, chosen in Section~\ref{subsec:usv_controller_implementation}, that always starts from the current state of the \gls{usv}. To evaluate the model in this use, predictions of $2.0\,\text{s}$ were computed along the trajectory of the run, each one starting from the state of the simulator and driven by the recorded commands. Figure~\ref{fig:usv_trajectory_validation} shows these predictions over the trajectory of the \gls{usv}. Since each prediction starts from the state of the simulator, the errors of the position and the heading accumulate only over the horizon, which is the time span of the \gls{nmpc} prediction.
 
 \begin{figure}[htbp]
     \centering
@@ -85,7 +85,7 @@ The \gls{nmpc} does not use the model over the whole run, but over a prediction 
     \label{fig:usv_trajectory_validation}
 \end{figure}
 
-The error of these predictions grows with how far ahead they are made. Figure~\ref{fig:usv_prediction_error} presents the error of the position, the heading, the linear velocity, and the yaw rate as a function of the prediction horizon, up to $T_h = 2.0\,\text{s}$. The errors grow with the horizon, and at its end they are below $1\%$ of the range of each state, as listed in Table~\ref{tab:usv_validation_metrics}, and the largest position error represents less than $2\%$ of the length of the vessel, which makes the model suitable for the \gls{nmpc}.
+The error of these predictions grows with how far ahead they are made. Figure~\ref{fig:usv_prediction_error} presents the error of the position, the heading, the linear velocity, and the yaw rate as a function of the prediction horizon, up to $T_h = 2.0\,\text{s}$. The errors grow with the horizon, and at its end they are below $1\%$ of the range of each state, as listed in Table~\ref{tab:usv_validation_metrics}, and the largest position error represents less than $2\%$ of the length of the \gls{usv}, which makes the model suitable for the \gls{nmpc}.
 
 \begin{figure}[htbp]
     \centering
@@ -162,10 +162,10 @@ The mass and the gravitational acceleration are taken directly from the simulato
 \end{equation}
 where $k_F$ is the thrust coefficient of the rotors. The nominal attitude time constants are not parameters of the simulator, since they result from the attitude controller of the vehicle. This controller converts the angle error into an angular rate setpoint through a proportional gain, $P_\phi = 6.5\,\text{s}^{-1}$ for roll and pitch and $P_\psi = 2.8\,\text{s}^{-1}$ for yaw. Assuming that the inner loop that tracks the angular rate does so instantly, the angular rate of the vehicle is equal to the setpoint, and the roll angle $\phi$ evolves as
 \begin{equation}
-    \dot\phi = P_\phi\,(\phi_c - \phi),
+    \dot\phi = P_\phi\,(\phi_{\mathrm{cmd}} - \phi),
     \label{eq:uav_attitude_loop}
 \end{equation}
-where $\phi_c$ is the commanded roll angle, and the same relation holds for the pitch and, with the gain $P_\psi$, for the yaw. This is a first-order response, in which the attitude changes faster the further it is from the command, and its time constant is the inverse of the gain,
+where $\phi_{\mathrm{cmd}}$ is the commanded roll angle, and the same relation holds for the pitch and, with the gain $P_\psi$, for the yaw. This is a first-order response, in which the attitude changes faster the further it is from the command, and its time constant is the inverse of the gain,
 \begin{equation}
     \tau = \frac{1}{P_\phi} \approx 0.154\,\text{s}, \qquad \tau_\psi = \frac{1}{P_\psi} \approx 0.357\,\text{s}.
     \label{eq:uav_tau_nominal}
@@ -236,7 +236,7 @@ The model is first compared with the simulator on the inertial acceleration of t
 \end{figure}
 
 % O erro do modelo é aceitável para o uso que o controlador faz dele?
-The \gls{nmpc} does not use the model over the whole flight, but over a prediction horizon of $T_h = 1.0\,\text{s}$ that always starts from the current state of the vehicle. To evaluate the model in this use, predictions of $1.0\,\text{s}$ were computed along the flight, each one starting from the state of the simulator and driven by the recorded commands. Figure~\ref{fig:uav_prediction_trajectory} shows these predictions over the trajectory of the vehicle. Since the position and the velocity are obtained by integrating the acceleration, their errors accumulate only over the horizon, and they can be compared together with the acceleration.
+The \gls{nmpc} does not use the model over the whole flight, but over a prediction horizon of $T_h = 1.0\,\text{s}$, chosen in Section~\ref{subsec:uav_controller_implementation}, that always starts from the current state of the vehicle. To evaluate the model in this use, predictions of $1.0\,\text{s}$ were computed along the flight, each one starting from the state of the simulator and driven by the recorded commands. Figure~\ref{fig:uav_prediction_trajectory} shows these predictions over the trajectory of the vehicle. Since the position and the velocity are obtained by integrating the acceleration, their errors accumulate only over the horizon, and they can be compared together with the acceleration.
 
 \begin{figure}[!htbp]
     \centering
@@ -305,9 +305,9 @@ The last model to be validated is the tether force model of Section~\ref{subsec:
 \end{equation}
 The deflection of the force is largest when the chord is horizontal and decreases as it approaches the vertical. For a horizontal chord, the weight bends the tether into a catenary~\cite{irvine1981cable}, and the deflection $\gamma_0$ is the angle that the tether makes with the chord at the \gls{uav}. For a tether of length $L$ between two points at distance $d$, it is given by
 \begin{equation}
-    \gamma_0 = \arctan\left(\sinh u\right), \qquad \frac{\sinh u}{u} = \frac{L}{d} = \frac{1}{1-\varepsilon_0},
+    \gamma_0 = \arctan\left(\sinh \kappa\right), \qquad \frac{\sinh \kappa}{\kappa} = \frac{L}{d} = \frac{1}{1-\varepsilon_0},
 \end{equation}
-where $u$ is the positive solution of the second equation, obtained iteratively. For $\varepsilon_0 = 5\%$, this gives $u = 0.558$ and $\gamma_0 = 30.4^\circ$. The parameters of the model are listed in Table~\ref{tab:tether_model_parameters}.
+where $\kappa$ is the positive solution of the second equation, obtained iteratively. For $\varepsilon_0 = 5\%$, this gives $\kappa = 0.558$ and $\gamma_0 = 30.4^\circ$. The parameters of the model are listed in Table~\ref{tab:tether_model_parameters}.
 
 \begin{table}[htbp]
     \centering
