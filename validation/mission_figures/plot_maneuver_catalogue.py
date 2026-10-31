@@ -114,7 +114,7 @@ for ax in axs:
 from matplotlib.lines import Line2D
 handles = [Line2D([], [], color=UAV, marker='o', mec='k', mew=0.4, ms=3.5), Line2D([], [], color=USV, lw=4),
            Line2D([], [], color=TGT, lw=4), Line2D([], [], color=TETHER, lw=0.8)]
-fig.legend(handles, ['UAV', 'USV', 'Moving target', 'Tether'], loc='upper center', ncol=4,
+fig.legend(handles, ['UAV', 'USV', 'Target', 'Tether'], loc='upper center', ncol=4,
            frameon=False, fontsize=8, bbox_to_anchor=(0.5, 1.0))
 fig.tight_layout(rect=(0, 0, 1, 0.97))
 os.makedirs(os.path.dirname(OUT), exist_ok=True)
