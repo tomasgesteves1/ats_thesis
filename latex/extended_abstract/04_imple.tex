@@ -4,7 +4,14 @@
 \subsection{Simulation Environment}
 
 % Where are the controllers tested?
-The system is simulated in Gazebo~\cite{koenig2004gazebo}, with the hydrodynamics and the waves of the Virtual RobotX environment~\cite{bingham2019vrx}, in which the WAM-V heaves, rolls and pitches on the waves. Unless stated otherwise, every test takes place in a moderate sea, with a significant wave height of $0.6\,\text{m}$. The x500 is flown by PX4 in software-in-the-loop, so that the NMPC drives it through the same autopilot as on the real vehicle. The tether is simulated with MoorDyn~\cite{hall2015moordyn} as a chain of lumped masses with its own weight, elasticity and drag, so that it pulls on both vehicles through its own dynamics rather than through the model of the controllers. A virtual winch on the deck adjusts its length at up to $2\,\text{m/s}$ to keep a slack of $\varepsilon_0 = 5\,\%$, and close to the deck it can instead pull the UAV towards the pad with a force of $4\,\text{N}$. Wind acts on the UAV as a horizontal drag force with gusts.
+The system is simulated in Gazebo~\cite{koenig2004gazebo}, with the hydrodynamics and the waves of the Virtual RobotX environment~\cite{bingham2019vrx}, in which the WAM-V heaves, rolls and pitches on the waves. Unless stated otherwise, every test takes place in a moderate sea, with a significant wave height of $0.6\,\text{m}$. The x500 is flown by PX4 in software-in-the-loop, so that the NMPC drives it through the same autopilot as on the real vehicle. The tether is simulated with MoorDyn~\cite{hall2015moordyn} as a chain of lumped masses with its own weight, elasticity and drag, so that it pulls on both vehicles through its own dynamics rather than through the model of the controllers. A virtual winch on the deck adjusts its length at up to $2\,\text{m/s}$ to keep a slack of $\varepsilon_0 = 5\,\%$, and close to the deck it can instead pull the UAV towards the pad with a force of $4\,\text{N}$. With the slack held constant, the tension that MoorDyn computes at the UAV grows almost linearly with the distance between the vehicles, as shown in Fig.~\ref{fig:slack}, since the weight of the tether that the UAV supports grows with it, and a larger slack lowers it, since a tether that sags more needs less tension to hold its own weight. Wind acts on the UAV as a horizontal drag force with gusts.
+
+\begin{figure}[t]
+    \centering
+    \includegraphics{Implementation/figures/01_simulation_environment/slack_tension_distance.pdf}
+    \caption{Tension of the tether at the UAV in the simulator as a function of the distance between the vehicles, for three slack ratios.}
+    \label{fig:slack}
+\end{figure}
 
 \subsection{Model Validation}
 
@@ -63,7 +70,30 @@ The controllers follow references, but do not decide where each vehicle should g
 \end{figure*}
 
 % Why are the takeoff and the landing special?
-The takeoff and the landing are the manoeuvres in which the UAV is closest to the deck and moves with it, on a pad of $0.40\,\text{m}$ by $0.40\,\text{m}$ placed directly above the winch. To keep the waves from tipping the UAV off the deck, the winch pulls it towards the pad from the start of the takeoff until it is clear of the deck. Its controller does not include this pull in its model, and the vertical component of the disturbance estimate is held while the pull acts, so that the controller does not cancel it. The takeoff therefore starts with a vertical climb off the pad, so that the UAV does not drift over the edge of the deck at low height. In the landing, the UAV first waits above the pad until it is centred and moving with it, then descends with the winch pulling it, and ends with a slow approach towards a point below the deck, so that it touches down even if the deck falls away. If it is not centred within $40\,\text{s}$, the landing is aborted and the USV starts the recovery of the UAV.
+The takeoff and the landing are the manoeuvres in which the UAV is closest to the deck and moves with it, on a pad of $0.40\,\text{m}$ by $0.40\,\text{m}$ placed directly above the winch. To keep the waves from tipping the UAV off the deck, the winch pulls it towards the pad from the start of the takeoff until it is clear of the deck. Its controller does not include this pull in its model, and the vertical component of the disturbance estimate is held while the pull acts, so that the controller does not cancel it. The takeoff therefore starts with a vertical climb off the pad, so that the UAV does not drift over the edge of the deck at low height. In the landing, the UAV first waits above the pad until it is centred and moving with it, then descends with the winch pulling it, and ends with a slow approach towards a point below the deck, so that it touches down even if the deck falls away, as shown in Fig.~\ref{fig:landing_phases}. If it is not centred within $40\,\text{s}$, the landing is aborted and the USV starts the recovery of the UAV.
+
+\begin{figure*}[t]
+    \centering
+    \subfloat[Waiting above the pad.]{\includegraphics[width=0.32\textwidth]{Implementation/figures/04_maneuvers_and_missions/landing_hover.png}}
+    \hfill
+    \subfloat[Descent pulled by the winch.]{\includegraphics[width=0.32\textwidth]{Implementation/figures/04_maneuvers_and_missions/landing_descent.png}}
+    \hfill
+    \subfloat[Touchdown on the pad.]{\includegraphics[width=0.32\textwidth]{Implementation/figures/04_maneuvers_and_missions/landing_touchdown.png}}
+    \caption{Phases of the landing in the simulator, with the USV sailing at $0.75\,\text{m/s}$.}
+    \label{fig:landing_phases}
+\end{figure*}
 
 % How are the manoeuvres combined into missions?
 A mission chains the manoeuvres of both vehicles, each ending with an event, such as the detection of a target or the end of a manoeuvre of the other vehicle. Three missions were tested. In the inspection, the UAV circles a tower while the USV supports it. In the patrol, the UAV orbits the USV until it detects a target, which both vehicles then follow. In the recovery, the UAV is held at a point it cannot leave, while the USV sails away, waits at the reach of the tether and returns to collect it.
+
+\subsection{Software}
+
+% How is the system put together?
+The models, the controllers and the manoeuvres run as independent nodes of ROS~2~\cite{macenski2022ros2}, connected to the simulator and to the autopilot as shown in Fig.~\ref{fig:architecture}, so that the controllers do not depend on whether their data comes from the simulation or from the real vehicles. An operator launches, records and aborts the missions from a web interface, the Mission Control Centre, which shows the two vehicles, the tether and their references on a map, so that every mission is run and recorded in the same way. The code of the system is publicly available\footnote{\url{https://github.com/tomasgesteves1/tethered-usv-uav-nmpc}}.
+
+\begin{figure*}[t]
+    \centering
+    \includegraphics[width=0.85\textwidth]{Implementation/figures/05_software_architecture/architecture.pdf}
+    \caption{Software architecture of the system.}
+    \label{fig:architecture}
+\end{figure*}
