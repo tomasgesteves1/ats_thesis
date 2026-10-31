@@ -76,16 +76,9 @@ Both controllers are written in CasADi~\cite{anderssonCasADiSoftwareFramework201
 The USV solver iterates until convergence, which takes on average $1.1\,\text{ms}$ and at most $3.7\,\text{ms}$ of the $100\,\text{ms}$ available. Iterating until convergence, the UAV solver exceeded its $20\,\text{ms}$ in about $6\,\%$ of the instants close to its limits, so it performs a single iteration per instant instead, the real-time iteration~\cite{diehl2005rti}, as shown in Fig.~\ref{fig:solver}, which takes on average $2.2\,\text{ms}$ and at most $4.7\,\text{ms}$, and whose commands differ from the converged ones by less than $0.7^\circ$.
 
 % Which limits keep the tether safe?
-Both controllers limit the separation between the vehicles to $d_{max} = 15\,\text{m}$, raised in the missions that need a longer reach, and the UAV limits the rate at which it changes to the speed of the winch, $\dot d_{max} = 2\,\text{m/s}$. The disturbance observer uses a gain $\beta = 0.03$, so that its estimate settles in about $0.7\,\text{s}$, slower than the response of the attitude but faster than the gusts of the wind, and a bound of $8\,\text{N}$, well above the strongest wind tested.
+Both controllers limit the separation between the vehicles to $d_{max} = 15\,\text{m}$, raised in the missions that need a longer reach, and the UAV limits the rate at which it changes to the speed of the winch, $\dot d_{max} = 2\,\text{m/s}$. The disturbance observer uses a gain $\beta = 0.03$, so that its estimate settles in about $0.7\,\text{s}$, slower than the response of the attitude but faster than the gusts of the wind, and a bound of $8\,\text{N}$, well above the strongest wind tested. Both problems have a solution at every instant, since the only hard constraints bound the commands of the actuators, which start from the last command sent, and their rates, while every other constraint is soft. The stability of the closed loop, on the other hand, is not established formally, since the controllers were not designed under the assumptions that guarantee it~\cite{mayneConstrainedModelPredictive2000}, and is instead evaluated in simulation in Section~\ref{sec:resul}.
 
 \subsection{Manoeuvres and Missions}
-
-\begin{figure*}[!t]
-    \centering
-    \includegraphics[width=0.85\textwidth]{Implementation/figures/05_software_architecture/architecture.pdf}
-    \caption{Software architecture of the system.}
-    \label{fig:architecture}
-\end{figure*}
 
 % Who decides where each vehicle goes?
 The controllers follow references, but do not decide where each vehicle should go. This is the role of the manoeuvres, which give the reference of one vehicle over the horizon of its controller at every instant. The UAV can take off, fly in formation with the USV, orbit it or a point in the world, follow a target and land, while the USV can hold its position, sail a route, follow a target, or support the UAV, sailing below it at a safe distance from a structure that the UAV circles, so that the tether does not wrap around the structure. The references are simple geometric curves, such as lines and circles, and often a single point. Figure~\ref{fig:catalogue} shows the manoeuvres of the UAV as flown in simulation, the takeoff and the landing through the height of the UAV above the winch, and the others from above.
@@ -99,4 +92,4 @@ A mission chains the manoeuvres of both vehicles, each ending with an event, suc
 \subsection{Software}
 
 % How is the system put together?
-The models, the controllers and the manoeuvres run as independent nodes of the Robot Operating System (ROS)~2~\cite{macenski2022ros2}, connected to the simulator and to the autopilot as shown in Fig.~\ref{fig:architecture}, so that the controllers do not depend on whether their data comes from the simulation or from the real vehicles. An operator launches, records and aborts the missions from a web interface, the Mission Control Centre, which shows the two vehicles, the tether and their references on a map, so that every mission is run and recorded in the same way. The code of the system is publicly available\footnote{\url{https://github.com/tomasgesteves1/tethered-usv-uav-nmpc}}.
+The models, the controllers and the manoeuvres run as independent nodes of the Robot Operating System (ROS)~2~\cite{macenski2022ros2}, connected to the simulator and to the autopilot, so that the controllers do not depend on whether their data comes from the simulation or from the real vehicles. An operator launches, records and aborts the missions from a web interface, the Mission Control Centre, which shows the two vehicles, the tether and their references on a map, so that every mission is run and recorded in the same way. The code of the system is publicly available\footnotemark[1].
