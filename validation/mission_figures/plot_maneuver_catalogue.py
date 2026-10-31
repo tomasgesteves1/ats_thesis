@@ -77,7 +77,7 @@ def side(ax, t0, t1, phases, title):
     ax.plot(dd[:, 0] - t0, dd[:, 3] - z0, color=UAV, lw=1.0)
     bb = win(b, t0, t1); ax.plot(bb[:, 0] - t0, bb[:, 3] + WINCH_H - z0, color=USV, lw=1.0)
     ax.set_xlim(0, t1 - t0)
-    ax.set_xlabel('$t$ (s)', fontsize=8); ax.set_ylabel('height above winch (m)', fontsize=8)
+    ax.set_xlabel('Time (s)', fontsize=8); ax.set_ylabel('height above the winch (m)', fontsize=8)
     ax.set_title(title, fontsize=8, pad=12)
 
 side(axs[0], t_arm - 1, t_to + 2, [(t_arm, t_arm + 5, '1'), (t_arm + 5, t_to, '2')], '(a) Takeoff')

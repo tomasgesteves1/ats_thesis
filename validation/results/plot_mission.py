@@ -95,7 +95,7 @@ def main(name, d_max, usv_margin=0.0):
                                           (6.3, min(3.2, 0.9 + 5.4 * np.ptp(ys) / np.ptp(xs))) if wide else (3.0, 3.2)))
     if name.startswith('inspection'):
         ax.add_patch(Rectangle((-25 - 5.9, -6.7), 11.8, 13.4, fc='#bbbbbb', ec='#555555', lw=0.6, zorder=1))
-        ax.annotate('tower', (-25, 0), ha='center', va='center', fontsize=7, zorder=2)
+        ax.annotate('Tower', (-25, 0), ha='center', va='center', fontsize=7, zorder=2)
     if len(it):
         mi = (it[:, 0] >= t0) & (it[:, 0] <= t_end)
         ax.plot(it[mi, 1], it[mi, 2], color=TGT, lw=1.0, label='target')

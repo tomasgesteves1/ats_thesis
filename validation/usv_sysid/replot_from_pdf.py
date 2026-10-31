@@ -144,7 +144,7 @@ def main(src):
     for var, unit in (('u', 'm/s'), ('v', 'm/s'), ('r', 'deg/s')):
         sim, mod = data[var]
         fig, ax = plt.subplots(figsize=fig_size(f'usv_velocity_{var}_validation'))
-        ax.plot(*sim.T, color=SIMULATION_COLOR, label='Simulation', linewidth=1.25)
+        ax.plot(*sim.T, color=SIMULATION_COLOR, label='Simulator', linewidth=1.25)
         ax.plot(*mod.T, color=COLOR_CYCLE[0], label='Prediction model', linewidth=1.0)
         lo, hi = min(sim[:, 1].min(), mod[:, 1].min()), max(sim[:, 1].max(), mod[:, 1].max())
         span = hi - lo
@@ -156,10 +156,10 @@ def main(src):
         plt.close(fig)
 
     for name, ylabel, ylim, lims, labels, limit_label in (
-            ('thrust', 'Thrust (N)', (-450.0, 1000.0), (510.0, -380.0), ('Port ($T_L$)', 'Starboard ($T_R$)'),
-             r'Limits ($510/-380\,\mathrm{N}$)'),
-            ('azimuth', 'Azimuth (deg)', (-36.0, 72.0), (30.0, -30.0), (r'Port ($\alpha_L$)', r'Starboard ($\alpha_R$)'),
-             r'Limits ($\pm 30^\circ$)')):
+            ('thrust', 'Thrust (N)', (-450.0, 1000.0), (510.0, -380.0), ('Left ($T_L$)', 'Right ($T_R$)'),
+             r'Limit ($510/-380\,\mathrm{N}$)'),
+            ('azimuth', 'Azimuth (deg)', (-36.0, 72.0), (30.0, -30.0), (r'Left ($\alpha_L$)', r'Right ($\alpha_R$)'),
+             r'Limit ($\pm 30^\circ$)')):
         port, stbd = data[name]
         fig, ax = plt.subplots(figsize=fig_size(f'usv_actuator_inputs_{name}'))
         ax.plot(*port.T, color=COLOR_CYCLE[0], label=labels[0], linewidth=1.0)
@@ -172,8 +172,8 @@ def main(src):
         save_figure(fig, os.path.join(OUT, f'usv_actuator_inputs_{name}'))
         plt.close(fig)
 
-    for name, ylabel in (('pos', 'Position error RMSE (m)'), ('psi', 'Heading error RMSE (deg)'),
-                         ('vel', 'Velocity error RMSE (m/s)'), ('r', 'Yaw rate error RMSE (deg/s)')):
+    for name, ylabel in (('pos', 'Position RMSE (m)'), ('psi', 'Heading RMSE (deg)'),
+                         ('vel', 'Velocity RMSE (m/s)'), ('r', 'Yaw rate RMSE (deg/s)')):
         e = data['err_' + name]
         fig, ax = plt.subplots(figsize=fig_size(f'usv_prediction_error_{name}'))
         ax.plot(*e.T, color=COLOR_CYCLE[0], linewidth=1.0, label='Prediction model')
@@ -186,7 +186,7 @@ def main(src):
 
     traj, preds = data['traj'], data['pred']
     fig, ax = plt.subplots(figsize=fig_size('usv_prediction_trajectory'))
-    ax.plot(*traj.T, color=SIMULATION_COLOR, linewidth=1.2, label='Simulation')
+    ax.plot(*traj.T, color=SIMULATION_COLOR, linewidth=1.2, label='Simulator')
     for j, s in enumerate(preds):
         ax.plot(*s.T, color=COLOR_CYCLE[0], linewidth=1.2, label='2 s predictions' if j == 0 else None)
         ax.plot(*s[0], 'o', color=COLOR_CYCLE[0], markersize=2.5)

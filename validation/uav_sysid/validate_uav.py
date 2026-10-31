@@ -422,12 +422,12 @@ def plot_actuator_inputs(data, out_dirs):
 
     axs[0].plot(t, np.rad2deg(data['roll_c']), color=COLOR_CYCLE[0], label=r'Roll $\phi_c$', linewidth=1.15)
     axs[0].plot(t, np.rad2deg(data['pitch_c']), color=COLOR_CYCLE[1], label=r'Pitch $\theta_c$', linewidth=1.15)
-    axs[0].set_ylabel('Attitude cmd [deg]')
+    axs[0].set_ylabel('Commanded\nattitude [deg]')
     axs[0].set_ylim([-32.0, 50.0])
     axs[0].legend(loc='upper right', framealpha=0.9, ncol=2)
 
     axs[1].plot(t, np.rad2deg(data['yaw_c']), color=COLOR_CYCLE[2], label=r'Yaw $\psi_c$', linewidth=1.15)
-    axs[1].set_ylabel('Yaw cmd [deg]')
+    axs[1].set_ylabel('Commanded\nyaw [deg]')
     axs[1].set_ylim([-90.0, 100.0])
     axs[1].legend(loc='upper right', framealpha=0.9)
 
@@ -452,7 +452,7 @@ def plot_actuator_inputs(data, out_dirs):
     fig_a, ax_a = plt.subplots(figsize=fig_size('uav_actuator_inputs_attitude', (3.5, 2.7)))
     ax_a.plot(t, np.rad2deg(data['roll_c']), color=COLOR_CYCLE[0], label=r'Roll $\phi_c$', linewidth=1.15)
     ax_a.plot(t, np.rad2deg(data['pitch_c']), color=COLOR_CYCLE[1], label=r'Pitch $\theta_c$', linewidth=1.15)
-    ax_a.set_ylabel('Attitude cmd [deg]')
+    ax_a.set_ylabel('Commanded\nattitude [deg]')
     ax_a.set_xlabel('Time [s]')
     ax_a.set_ylim([-32.0, 50.0])
     ax_a.grid(True)
@@ -464,7 +464,7 @@ def plot_actuator_inputs(data, out_dirs):
 
     fig_y, ax_y = plt.subplots(figsize=fig_size('uav_actuator_inputs_yaw', (3.5, 2.7)))
     ax_y.plot(t, np.rad2deg(data['yaw_c']), color=COLOR_CYCLE[2], label=r'Yaw $\psi_c$', linewidth=1.15)
-    ax_y.set_ylabel('Yaw cmd [deg]')
+    ax_y.set_ylabel('Commanded\nyaw [deg]')
     ax_y.set_xlabel('Time [s]')
     ax_y.set_ylim([-90.0, 100.0])
     ax_y.grid(True)
@@ -499,7 +499,7 @@ def plot_attitude_tracking(data, out_dirs):
     l_sim, l_mod = None, None
     for ax, (meas_k, mod_k, name) in zip(axs, keys):
         l_sim, = ax.plot(t, np.rad2deg(data[meas_k]), color=SIMULATION_COLOR, linewidth=1.25,
-                         label='Simulation')
+                         label='Simulator')
         l_mod, = ax.plot(t, np.rad2deg(data[mod_k]), color=COLOR_CYCLE[0], linewidth=1.0,
                          linestyle='-', label='Prediction Model')
         ax.set_ylabel(f'{name} [deg]')
@@ -511,7 +511,7 @@ def plot_attitude_tracking(data, out_dirs):
     axs[-1].set_xlabel('Time [s]')
 
     # Shared top legend: guaranteed zero overlap with any transient spike
-    fig.legend([l_sim, l_mod], ['Simulation', 'Prediction Model'],
+    fig.legend([l_sim, l_mod], ['Simulator', 'Prediction Model'],
                loc='upper center', bbox_to_anchor=(0.5, 0.99), ncol=2, frameon=True)
     plt.tight_layout(rect=[0.0, 0.0, 1.0, 0.95])
     for d in out_dirs:
@@ -521,7 +521,7 @@ def plot_attitude_tracking(data, out_dirs):
     ylims = {'roll': [-28.0, 34.0], 'pitch': [-28.0, 30.0], 'yaw': [-85.0, 105.0]}
     for meas_k, mod_k, name in keys:
         fig_i, ax_i = plt.subplots(figsize=fig_size(f'uav_attitude_{meas_k}_validation', (3.5, 2.7)))
-        ax_i.plot(t, np.rad2deg(data[meas_k]), color=SIMULATION_COLOR, linewidth=1.25, label='Simulation')
+        ax_i.plot(t, np.rad2deg(data[meas_k]), color=SIMULATION_COLOR, linewidth=1.25, label='Simulator')
         ax_i.plot(t, np.rad2deg(data[mod_k]), color=COLOR_CYCLE[0], linewidth=1.0, label='Prediction Model')
         ax_i.set_ylabel(f'{name} [deg]')
         ax_i.set_xlabel('Time [s]')
@@ -540,7 +540,7 @@ def plot_acceleration(data, a_meas, a_model, out_dirs):
     fig, axs = plt.subplots(3, 1, figsize=(7.2, 5.8), sharex=True)
     l_sim, l_mod = None, None
     for i, (ax, name) in enumerate(zip(axs, ('x', 'y', 'z'))):
-        l_sim, = ax.plot(t, a_meas[:, i], color=SIMULATION_COLOR, linewidth=1.25, label='Simulation')
+        l_sim, = ax.plot(t, a_meas[:, i], color=SIMULATION_COLOR, linewidth=1.25, label='Simulator')
         l_mod, = ax.plot(t, a_model[:, i], color=COLOR_CYCLE[0], linewidth=1.0, linestyle='-',
                          label='Prediction Model')
         ax.set_ylabel(f'$\\ddot{{{name}}}$ [m/s$^2$]')
@@ -551,7 +551,7 @@ def plot_acceleration(data, a_meas, a_model, out_dirs):
     axs[-1].set_xlabel('Time [s]')
 
     # Shared top legend: guaranteed zero overlap with any transient spike
-    fig.legend([l_sim, l_mod], ['Simulation', 'Prediction Model'],
+    fig.legend([l_sim, l_mod], ['Simulator', 'Prediction Model'],
                loc='upper center', bbox_to_anchor=(0.5, 0.99), ncol=2, frameon=True)
     plt.tight_layout(rect=[0.0, 0.0, 1.0, 0.95])
     for d in out_dirs:
@@ -561,7 +561,7 @@ def plot_acceleration(data, a_meas, a_model, out_dirs):
     ylims = [[-7.5, 10.0], [-7.5, 10.0], [-2.5, 4.5]]
     for i, name in enumerate(('x', 'y', 'z')):
         fig_i, ax_i = plt.subplots(figsize=fig_size(f'uav_acceleration_{name}_validation', (3.5, 2.7)))
-        ax_i.plot(t, a_meas[:, i], color=SIMULATION_COLOR, linewidth=1.25, label='Simulation')
+        ax_i.plot(t, a_meas[:, i], color=SIMULATION_COLOR, linewidth=1.25, label='Simulator')
         ax_i.plot(t, a_model[:, i], color=COLOR_CYCLE[0], linewidth=1.0, label='Prediction Model')
         ax_i.set_ylabel(f'$\\ddot{{{name}}}$ [m/s$^2$]')
         ax_i.set_xlabel('Time [s]')
@@ -580,7 +580,7 @@ def plot_prediction_error(horizon_t, pos_rmse, vel_rmse, out_dirs):
     fig_pos, ax_pos = plt.subplots(figsize=fig_size('uav_prediction_error_pos', (5.4, 3.4)))
     ax_pos.plot(horizon_t, pos_rmse, color=COLOR_CYCLE[0], linewidth=1.2, label='Prediction Model')
     ax_pos.set_xlabel('Prediction horizon [s]')
-    ax_pos.set_ylabel('Position error RMSE [m]')
+    ax_pos.set_ylabel('Position RMSE [m]')
     ax_pos.grid(True)
     ax_pos.legend(loc='upper left', framealpha=0.9)
     plt.tight_layout()
@@ -593,7 +593,7 @@ def plot_prediction_error(horizon_t, pos_rmse, vel_rmse, out_dirs):
     fig_vel, ax_vel = plt.subplots(figsize=fig_size('uav_prediction_error_vel', (5.4, 3.4)))
     ax_vel.plot(horizon_t, vel_rmse, color=COLOR_CYCLE[0], linewidth=1.2, label='Prediction Model')
     ax_vel.set_xlabel('Prediction horizon [s]')
-    ax_vel.set_ylabel('Velocity error RMSE [m/s]')
+    ax_vel.set_ylabel('Velocity RMSE [m/s]')
     ax_vel.grid(True)
     ax_vel.legend(loc='upper left', framealpha=0.9)
     plt.tight_layout()
@@ -607,7 +607,7 @@ def plot_prediction_examples(data, windows, out_dirs):
     # 1. 2D Spatial trajectory with prediction chords (1:1 aspect ratio)
     fig_traj, ax_traj = plt.subplots(figsize=fig_size('uav_prediction_trajectory', (4.6, 4.2)))
     ax_traj.plot(data['p'][:, 0], data['p'][:, 1], color=SIMULATION_COLOR,
-                linewidth=1.2, label='Simulation')
+                linewidth=1.2, label='Simulator')
     for j, (k0, s) in enumerate(windows):
         ax_traj.plot(s[:, 0], s[:, 1], color=COLOR_CYCLE[0], linewidth=1.4,
                     label='1 s predictions' if j == 0 else None)
@@ -631,7 +631,7 @@ def plot_prediction_examples(data, windows, out_dirs):
     tt = np.arange(n + 1) * data['dt']
     for i, (name, col) in enumerate(zip(('x', 'y'), COLOR_CYCLE[:2])):
         ax_det.plot(tt, data['p'][k0:k0 + n + 1, i] - data['p'][k0, i], color=SIMULATION_COLOR,
-                    linewidth=1.25, label='Simulation' if i == 0 else None)
+                    linewidth=1.25, label='Simulator' if i == 0 else None)
         ax_det.plot(tt, s[:, i] - s[0, i], color=col, linewidth=1.0, linestyle='-',
                     label=f'Prediction ${name}$')
     ax_det.set_xlabel('Time since window start [s]')

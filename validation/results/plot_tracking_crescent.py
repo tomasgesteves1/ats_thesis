@@ -122,7 +122,7 @@ def main():
         ax.annotate('', xy=tab[j, [2, 1]], xytext=tab[k, [2, 1]], arrowprops=dict(arrowstyle='->', color='k', lw=0.7))
     ax.plot(0, 0, 's', color=USV, ms=6)
     ax.annotate('USV', (0, 0), xytext=(6, 0), textcoords='offset points', va='center', fontsize=8)
-    fig.colorbar(sc, ax=ax, label='Reference speed (m/s)', shrink=0.7, pad=0.02)
+    fig.colorbar(sc, ax=ax, label='Reference\nspeed (m/s)', shrink=0.7, pad=0.02)
     ax.set_aspect('equal'); ax.invert_xaxis(); ax.set_xlabel('$y$ (m)'); ax.set_ylabel('$x$ (m)')
     fig.tight_layout()
     save_figure(fig, os.path.join(OUT, 'crescent_top'))
