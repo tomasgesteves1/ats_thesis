@@ -1,0 +1,44 @@
+# Repeated landings on the moving boat (statistics of the landing, Section 5.2): the UAV takes off to the start
+# point of the landing (3 m above the winch) and lands back on the pad, 5 times, while the boat sails a square
+# route twice. Offsets are relative to the winch (world axes), heights above its mean height.
+name: "Repeated landings"
+description: "Takeoff and landing on the moving boat, repeated."
+dashboard: false
+timeout: 360.0
+
+uav:
+  - {id: takeoff1, type: takeoff, vertical_clearance: 1.5, clearance_duration: 5.0, pull_release_height: 1.6,
+     offset: [0.0, 0.0, 3.0], duration: 6.0, tolerance: 0.3, arm_timeout: 30.0}
+  - {id: land1, type: land, height: 3.0, approach_duration: 8.0, tolerance: 0.15, velocity_tolerance: 0.15,
+     settle: 3.0, track_timeout: 40.0, descent_duration: 12.0, final_height: 0.5, final_speed: 0.15,
+     final_ramp: 1.0, depth: 0.2, touch_margin: 0.05,
+     touch_velocity: 0.1, touch_time: 0.5, disarm_timeout: 5.0}
+  - {id: takeoff2, type: takeoff, vertical_clearance: 1.5, clearance_duration: 5.0, pull_release_height: 1.6,
+     offset: [0.0, 0.0, 3.0], duration: 6.0, tolerance: 0.3, arm_timeout: 30.0}
+  - {id: land2, type: land, height: 3.0, approach_duration: 8.0, tolerance: 0.15, velocity_tolerance: 0.15,
+     settle: 3.0, track_timeout: 40.0, descent_duration: 12.0, final_height: 0.5, final_speed: 0.15,
+     final_ramp: 1.0, depth: 0.2, touch_margin: 0.05,
+     touch_velocity: 0.1, touch_time: 0.5, disarm_timeout: 5.0}
+  - {id: takeoff3, type: takeoff, vertical_clearance: 1.5, clearance_duration: 5.0, pull_release_height: 1.6,
+     offset: [0.0, 0.0, 3.0], duration: 6.0, tolerance: 0.3, arm_timeout: 30.0}
+  - {id: land3, type: land, height: 3.0, approach_duration: 8.0, tolerance: 0.15, velocity_tolerance: 0.15,
+     settle: 3.0, track_timeout: 40.0, descent_duration: 12.0, final_height: 0.5, final_speed: 0.15,
+     final_ramp: 1.0, depth: 0.2, touch_margin: 0.05,
+     touch_velocity: 0.1, touch_time: 0.5, disarm_timeout: 5.0}
+  - {id: takeoff4, type: takeoff, vertical_clearance: 1.5, clearance_duration: 5.0, pull_release_height: 1.6,
+     offset: [0.0, 0.0, 3.0], duration: 6.0, tolerance: 0.3, arm_timeout: 30.0}
+  - {id: land4, type: land, height: 3.0, approach_duration: 8.0, tolerance: 0.15, velocity_tolerance: 0.15,
+     settle: 3.0, track_timeout: 40.0, descent_duration: 12.0, final_height: 0.5, final_speed: 0.15,
+     final_ramp: 1.0, depth: 0.2, touch_margin: 0.05,
+     touch_velocity: 0.1, touch_time: 0.5, disarm_timeout: 5.0}
+  - {id: takeoff5, type: takeoff, vertical_clearance: 1.5, clearance_duration: 5.0, pull_release_height: 1.6,
+     offset: [0.0, 0.0, 3.0], duration: 6.0, tolerance: 0.3, arm_timeout: 30.0}
+  - {id: land5, type: land, height: 3.0, approach_duration: 8.0, tolerance: 0.15, velocity_tolerance: 0.15,
+     settle: 3.0, track_timeout: 40.0, descent_duration: 12.0, final_height: 0.5, final_speed: 0.15,
+     final_ramp: 1.0, depth: 0.2, touch_margin: 0.05,
+     touch_velocity: 0.1, touch_time: 0.5, disarm_timeout: 5.0}
+
+usv:
+  - {id: wait, type: hold, duration: 0.0}
+  - {id: route, type: waypoints, after: uav.takeoff1, points: [[20.0, 0.0], [20.0, 20.0], [0.0, 20.0], [0.0, 0.0],
+     [20.0, 0.0], [20.0, 20.0], [0.0, 20.0], [0.0, 0.0]], speed: 0.75, ramp_time: 5.0, lookahead: 6.0, tolerance: 1.5}
