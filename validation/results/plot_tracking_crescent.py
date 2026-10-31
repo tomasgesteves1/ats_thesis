@@ -1,7 +1,8 @@
 #!/usr/bin/env python3
 """
 Section 5.1: accuracy of the UAV on the crescent, with the NMPC and with the PX4 position controller (crescent scenario of
-record_tracking.sh). Data: data/tracking_crescent_{nmpc,px4}.npz (extract.py). The error is measured from the ground
+record_tracking.sh), and with the NMPC under a wind of 8 m/s (WIND_SPEED=8). Data: data/tracking_crescent_{nmpc,px4,
+nmpc_wind8}.npz (extract.py). The error is measured from the ground
 truth against the published reference at the same simulation instant, over the last three complete laps of each run.
 Prints the metrics of the section and writes one figure per panel to Results/figures/01_tracking.
 """
@@ -9,7 +10,7 @@ import os
 import numpy as np
 from scipy.signal import butter, filtfilt
 import matplotlib.pyplot as plt
-from common import load, interp, rms, set_thesis_style, save_figure, fig_size, legend_above, FIGS, HERE, UAV, USV, PX4, REF, LIMIT, UAV_LIM
+from common import load, interp, rms, set_thesis_style, save_figure, fig_size, legend_above, FIGS, HERE, UAV, USV, PX4, REF, LIMIT, UAV_LIM, COLOR_CYCLE
 
 TABLE = os.path.join(HERE, '..', '..', 'mission', 'test_uav_circle', 'config', 'crescent.csv')
 OUT = os.path.join(FIGS, '01_tracking')
@@ -24,6 +25,8 @@ K = 1.7
 SIZE = (3.1 * K, 2.4 * K)    # one panel; two side by side in the thesis
 NAMES = {'NMPC': 'nmpc', 'PX4': 'px4'}
 COLORS = {'NMPC': UAV, 'PX4': PX4}
+WIND = COLOR_CYCLE[5]   # NMPC under wind
+WIND_DIR = 1           # wind along +y (validation/wind.py, towards 90 deg)
 
 
 def lap_passes(d, tab):
@@ -175,6 +178,45 @@ def main():
     legend_above(ax, ncol=2)
     fig.tight_layout()
     save_figure(fig, os.path.join(OUT, 'crescent_error'))
+
+    # --- Under wind: error of the NMPC with and without wind, and the wind force against its estimate, over the middle
+    # lap (both windows start at a pass on the first point of the table, so the laps are aligned) ----------------------
+    dw = load('tracking_crescent_nmpc_wind8')
+    aw = analyse(dw, tab)
+    hor = np.hypot(aw['e'][:, 0], aw['e'][:, 1])
+    lag = -np.mean(aw['e_al'][aw['sp_ref'] > 3.0] / aw['sp_ref'][aw['sp_ref'] > 3.0])
+    print('NMPC wind 8 m/s RMSE %.1f cm | max %.1f cm | horizontal %.1f vertical %.1f cm | along %.1f cross %.1f cm | '
+          'lag %.0f ms | tilt max %.1f deg | d %.1f..%.1f m' % (
+              100 * rms(aw['n']), 100 * aw['n'].max(), 100 * rms(hor), 100 * rms(aw['e'][:, 2]), 100 * rms(aw['e_al']),
+              100 * rms(aw['e_cr']), 1000 * lag, aw['tilt'].max(), aw['dist'].min(), aw['dist'].max()))
+    t0w = aw['t0']
+    ext, est = np.asarray(dw['ext']), np.asarray(dw['dist'])
+    me = (ext[:, 0] >= t0w) & (ext[:, 0] <= t0w + LAPS * period)
+    ms = (est[:, 0] >= t0w) & (est[:, 0] <= t0w + LAPS * period)
+    print('wind force %.2f (%.2f..%.2f) N | estimate %.2f (%.2f..%.2f) N, rms difference %.2f N' % (
+        ext[me, 1 + WIND_DIR].mean(), ext[me, 1 + WIND_DIR].min(), ext[me, 1 + WIND_DIR].max(),
+        est[ms, 1 + WIND_DIR].mean(), est[ms, 1 + WIND_DIR].min(), est[ms, 1 + WIND_DIR].max(),
+        rms(est[ms, 1 + WIND_DIR] - np.interp(est[ms, 0], ext[:, 0], ext[:, 1 + WIND_DIR]))))
+
+    fig, ax = panel('crescent_wind_error')
+    for a, c, lab in ((res['NMPC'], UAV, 'Without wind'), (aw, WIND, 'Wind 8 m/s')):
+        mid = (a['t'] >= period) & (a['t'] <= 2 * period)
+        ax.plot(a['t'][mid] - period, 100 * a['n'][mid], color=c, lw=0.9, label=lab)
+    ax.set_xlabel('Time (s)'); ax.set_ylabel('Position error (cm)'); ax.set_xlim(0, period); ax.set_ylim(bottom=0)
+    legend_above(ax, ncol=2)
+    fig.tight_layout()
+    save_figure(fig, os.path.join(OUT, 'crescent_wind_error'))
+
+    fig, ax = panel('crescent_wind_force')
+    lap = (t0w + period, t0w + 2 * period)
+    m1 = (ext[:, 0] >= lap[0]) & (ext[:, 0] <= lap[1])
+    m2 = (est[:, 0] >= lap[0]) & (est[:, 0] <= lap[1])
+    ax.plot(ext[m1, 0] - lap[0], ext[m1, 1 + WIND_DIR], color=REF, lw=1.2, label='Wind force')
+    ax.plot(est[m2, 0] - lap[0], est[m2, 1 + WIND_DIR], color=WIND, lw=0.9, label='Estimate')
+    ax.set_xlabel('Time (s)'); ax.set_ylabel('Force (N)'); ax.set_xlim(0, period); ax.set_ylim(0, None)
+    legend_above(ax, ncol=2)
+    fig.tight_layout()
+    save_figure(fig, os.path.join(OUT, 'crescent_wind_force'))
 
 
 if __name__ == '__main__':

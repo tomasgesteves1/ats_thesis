@@ -100,6 +100,7 @@ FIG_SIZES = {
     'crescent_top': (0.48, 45), 'crescent_track_top': (0.48, 45),
     'crescent_cmd_tilt': (0.48, 50), 'crescent_cmd_thrust': (0.48, 50),
     'crescent_error': (0.65, 52),
+    'crescent_wind_error': (0.48, 50), 'crescent_wind_force': (0.48, 50),
     'limits_top': (0.65, 65), 'limits_horizontal': (1.0, 80), 'limits_vertical': (1.0, 95),
     # 5.2 Missions
     'inspection_paths': (0.48, 62), 'inspection_timeline': (0.48, 78), 'inspection_error': (0.48, 62),

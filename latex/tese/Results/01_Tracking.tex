@@ -169,6 +169,7 @@ Over a full lap, the paths of both controllers are nearly indistinguishable from
         Controller & \gls{rmse} (cm) & Maximum (cm) & Horizontal (cm) & Vertical (cm) \\
         \midrule
         \gls{nmpc} & $6.5$ & $12.8$ & $6.4$ & $1.0$ \\
+        \gls{nmpc}, wind of $8\,\text{m/s}$ & $6.6$ & $13.0$ & $6.5$ & $1.3$ \\
         PX4 & $29.9$ & $53.8$ & $29.9$ & $1.8$ \\
         \bottomrule
     \end{tabular*}
@@ -183,6 +184,24 @@ The error of PX4 is not uniform along the lap. It increases on each fast arc and
     \includegraphics{Results/figures/01_tracking/crescent_error.pdf}
     \caption{Position error of the \gls{uav}, with the speed of the reference shaded.}
     \label{fig:res_uav_error}
+\end{figure}
+
+% Does the accuracy hold under wind?
+The same trajectory is then flown by the \gls{nmpc} under a wind of $8\,\text{m/s}$, which acts on the \gls{uav} as a horizontal drag force along a fixed direction, with slow gusts of $\pm 30\,\%$, the same wind used for the landing in Section~\ref{sec:res_disturbances}. The error barely changes, as listed in Table~\ref{tab:res_uav}, and remains within the same range along the lap, as shown in Figure~\ref{fig:res_uav_wind_error}, with only its component across the path growing, from $2.2$ to $4.3\,\text{cm}$. The \gls{uav} tilts up to $14^\circ$ instead of $8^\circ$ to hold the trajectory against the wind, which the disturbance observer estimates at $2.26\,\text{N}$ on average, against a mean force of $2.36\,\text{N}$, as shown in Figure~\ref{fig:res_uav_wind_force}. The estimate departs from the wind by up to about $0.7\,\text{N}$ on the fast arcs, since the observer also absorbs what the models do not describe in these manoeuvres, and the controller corrects the remainder through the feedback on the position.
+
+\begin{figure}[htbp]
+    \centering
+    \subfloat[Position error over one lap.]{
+        \includegraphics{Results/figures/01_tracking/crescent_wind_error.pdf}
+        \label{fig:res_uav_wind_error}
+    }
+    \hfill
+    \subfloat[Wind force and its estimate over the same lap.]{
+        \includegraphics{Results/figures/01_tracking/crescent_wind_force.pdf}
+        \label{fig:res_uav_wind_force}
+    }
+    \caption{Tracking of the \gls{uav} under a wind of $8\,\text{m/s}$.}
+    \label{fig:res_uav_wind}
 \end{figure}
 
 \subsubsection{Operating Limits}

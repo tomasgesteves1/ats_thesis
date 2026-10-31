@@ -1,7 +1,8 @@
 #!/bin/bash
 # Runs the cooperative tracking scenario in simulation and records the signals needed to evaluate both controllers.
 # Usage: validation/record_tracking.sh <scenario: crescent|limits|usv_track|usv_limits|steps> [duration_s=240] [controller=nmpc]
-#        environment: WAVE_GAIN=<gain of the VRX wavefield> (0 = calm sea; unset = default sea)
+#        environment: WAVE_GAIN=<gain of the VRX wavefield> (0 = calm sea; unset = default sea),
+#                     WIND_SPEED=<m/s> (force on the UAV through the tether node, validation/wind.py)
 #   crescent   - accuracy of the UAV (Section 5.1): the USV holds its position at the origin and the UAV flies the crescent
 #                of validation/uav_tracking/crescent_reference.py (fast arcs at constant distance, slow U-turns), with
 #                d_max 35 m, so that no limit of the vehicle or of the tether is reached
@@ -37,10 +38,10 @@ case $CTRL in nmpc) CTRL_ARGS="";; px4) CTRL_ARGS="px4_baseline:=true";; noobs) 
 WS=$(cd "$(dirname "$0")/../.." && pwd)
 source /opt/ros/*/setup.bash; source "$WS/install/setup.bash"
 export ACADOS_SOURCE_DIR=${ACADOS_SOURCE_DIR:-$HOME/acados}; export LD_LIBRARY_PATH=$ACADOS_SOURCE_DIR/lib:$LD_LIBRARY_PATH
-mkdir -p "$WS/bags/tracking"; BAG="$WS/bags/tracking/tracking_${SCENARIO}_${CTRL}_$(date +%Y%m%d_%H%M%S)"
+mkdir -p "$WS/bags/tracking"; BAG="$WS/bags/tracking/tracking_${SCENARIO}_${CTRL}${WIND_SPEED:+_wind$WIND_SPEED}_$(date +%Y%m%d_%H%M%S)"
 
 stop_all() {  # stops every simulation/control process by PID (no pkill -f, the launch files kill px4 themselves)
-  for p in $(ps aux | grep -E "install/|[p]x4_sitl|[g]z sim|[M]icroXRCE|parameter_bridge|foxglove_bridge|[r]uby /opt|ros2 launch|ros2 bag" | grep -v "grep\|claude\|record_tracking" | awk '{print $2}'); do kill -9 $p 2>/dev/null; done
+  for p in $(ps aux | grep -E "install/|[p]x4_sitl|[g]z sim|[M]icroXRCE|parameter_bridge|foxglove_bridge|[r]uby /opt|ros2 launch|ros2 bag|wind.py" | grep -v "grep\|claude\|record_tracking" | awk '{print $2}'); do kill -9 $p 2>/dev/null; done
 }
 stop_all; sleep 3
 (setsid ros2 launch test_cooperative_mpc sim.launch.py use_tether:=${SIM_TETHER:-true} > /tmp/tracking_sim.log 2>&1 &)
@@ -49,11 +50,14 @@ if [ -n "$WAVE_GAIN" ]; then   # sea state: gain of the VRX wavefield (default s
   MSG='params {key: "gain" value {type: DOUBLE double_value: '$WAVE_GAIN'}}'
   for i in 1 2 3 4 5; do gz topic -t /vrx/wavefield/parameters -m gz.msgs.Param -p "$MSG"; sleep 1; done
 fi
+if [ -n "$WIND_SPEED" ]; then
+  (python3 "$(dirname "$0")/wind.py" $WIND_SPEED > /tmp/tracking_wind.log 2>&1 &)
+fi
 TOPICS="/tf /tf_static /tether_geometry_marker /tether_force_markers /predicted_trajectory /reference_trajectory /mpc_predicted_path /usv/mpc_horizon \
  /mpc_states_and_inputs /drone/ground_truth/odometry /boat/ground_truth/odometry /usv/reference_path /uav/reference_path \
  /boat/thrusters/left/thrust /boat/thrusters/right/thrust /boat/thrusters/left/pos /boat/thrusters/right/pos \
  /moordyn_tether_node/tether_distance /moordyn_tether_node/tether_length /tether_force_drone_mag /tether_force_boat_mag \
- /px4_1/fmu/out/vehicle_attitude /px4_1/fmu/out/vehicle_attitude_setpoint /virtual_tether_distance /virtual_tether_limit /virtual_tether_separation_speed /uav_solve_time_ms /usv_solve_time_ms /disturbance_estimate /simulation/stats /clock"
+ /px4_1/fmu/out/vehicle_attitude /px4_1/fmu/out/vehicle_attitude_setpoint /virtual_tether_distance /virtual_tether_limit /virtual_tether_separation_speed /uav_solve_time_ms /usv_solve_time_ms /disturbance_estimate /moordyn_tether_node/external_force_drone /simulation/stats /clock"
 # The bag starts before the controllers, so that the takeoff is recorded
 (timeout $DUR ros2 bag record --use-sim-time -o "$BAG" $TOPICS > /tmp/tracking_bag.log 2>&1 &)
 sleep 3
