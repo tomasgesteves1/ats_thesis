@@ -4,7 +4,7 @@
 \subsection{Simulation Environment}
 
 % Where are the controllers tested?
-The system is simulated in Gazebo~\cite{koenig2004gazebo}, with the hydrodynamics and the waves of the Virtual RobotX environment~\cite{bingham2019vrx}, in which the WAM-V heaves, rolls and pitches on the waves. Unless stated otherwise, every test takes place in a moderate sea, with a significant wave height of $0.6\,\text{m}$. The x500 is flown by PX4 in software-in-the-loop, so that the NMPC drives it through the same autopilot as on the real vehicle. The tether is simulated with MoorDyn~\cite{hall2015moordyn} as a chain of lumped masses with its own weight, elasticity and drag, so that it pulls on both vehicles through its own dynamics rather than through the model of the controllers. A virtual winch on the deck adjusts its length at up to $2\,\text{m/s}$ to keep a slack of $\varepsilon_0 = 5\,\%$, and close to the deck it can instead pull the UAV towards the pad with a force of $4\,\text{N}$. With the slack held constant, the tension that MoorDyn computes at the UAV grows almost linearly with the distance between the vehicles, as shown in Fig.~\ref{fig:slack}, since the weight of the tether that the UAV supports grows with it, and a larger slack lowers it, since a tether that sags more needs less tension to hold its own weight. Wind acts on the UAV as a horizontal drag force with gusts.
+The system is simulated in Gazebo~\cite{koenig2004gazebo}, with the hydrodynamics and the waves of the Virtual RobotX environment~\cite{bingham2019vrx}. The USV is the WAM-V, a catamaran whose deck carries the winch and the landing pad, and which heaves, rolls and pitches on the waves. Unless stated otherwise, every test takes place in a moderate sea, with a significant wave height of $0.6\,\text{m}$. The UAV is the x500, a quadrotor flown by PX4 in software-in-the-loop, so that the NMPC drives it through the same autopilot as on the real vehicle. The tether is simulated with MoorDyn~\cite{hall2015moordyn} as a chain of lumped masses with its own weight, elasticity and drag, so that it pulls on both vehicles through its own dynamics rather than through the model of the controllers. A virtual winch on the deck adjusts its length at up to $2\,\text{m/s}$ to keep a slack of $\varepsilon_0 = 5\,\%$, and close to the deck it can instead pull the UAV towards the pad with a force of $4\,\text{N}$. With the slack held constant, the tension that MoorDyn computes at the UAV grows almost linearly with the distance between the vehicles, as shown in Fig.~\ref{fig:slack}, since the weight of the tether that the UAV supports grows with it, and a larger slack lowers it, since a tether that sags more needs less tension to hold its own weight. Wind acts on the UAV as a horizontal drag force with gusts.
 
 \begin{figure}[t]
     \centering
@@ -16,7 +16,7 @@ The system is simulated in Gazebo~\cite{koenig2004gazebo}, with the hydrodynamic
 \subsection{Model Validation}
 
 % Are the models accurate enough to predict with?
-Each model of Section~\ref{sec:model} was compared with the simulator in the way its controller uses it, over predictions as long as its horizon, started from the state of the simulator and driven by the recorded commands, as illustrated for the UAV in Fig.~\ref{fig:uav_pred}, with the errors listed in Table~\ref{tab:validation}. Over its horizon, the model of the WAM-V predicts its position within a few centimetres, and that of the x500 within about one percent of the distance it travels, an accuracy that relies on the response of the attitude, without which the errors of the roll and the pitch grow to about $5\,\%$. The tether model was compared with two simpler models that keep its tension but change its direction, a taut model, in which the force points along the chord, and a vertical model, in which the tether hangs from the UAV as a vertical load. The catenary model reduces their error by about three quarters, to $1.2\,\%$ of the weight of the UAV, and, from the positions of the two vehicles alone, follows the tension that the simulator computes from the full dynamics of the tether, as shown in Fig.~\ref{fig:tether_fit}.
+Each model of Section~\ref{sec:model} was compared with the simulator in the way its controller uses it, over predictions as long as its horizon, started from the state of the simulator and driven by the recorded commands, as illustrated for the UAV in Fig.~\ref{fig:uav_pred}, with the errors, as the root-mean-square error (RMSE) and the RMSE normalised by the range of each signal (NRMSE), listed in Table~\ref{tab:validation}. Over its horizon, the model of the WAM-V predicts its position within a few centimetres, and that of the x500 within about one percent of the distance it travels, an accuracy that relies on the response of the attitude, without which the errors of the roll and the pitch grow to about $5\,\%$. The tether model was compared with two simpler models that keep its tension but change its direction, a taut model, in which the force points along the chord, and a vertical model, in which the tether hangs from the UAV as a vertical load. The catenary model reduces their error by about three quarters, to $1.2\,\%$ of the weight of the UAV, and, from the positions of the two vehicles alone, follows the tension that the simulator computes from the full dynamics of the tether, as shown in Fig.~\ref{fig:tether_fit}.
 
 \begin{figure}[!tb]
     \centering
@@ -27,7 +27,7 @@ Each model of Section~\ref{sec:model} was compared with the simulator in the way
 
 \begin{table}[!tb]
     \centering
-    \caption{Errors of the models against the simulator (RMSE, and NRMSE relative to the range of each signal).}
+    \caption{Errors of the models against the simulator.}
     \label{tab:validation}
     \footnotesize
     \begin{tabular}{@{}llrr@{}}
@@ -49,7 +49,7 @@ Each model of Section~\ref{sec:model} was compared with the simulator in the way
 \begin{figure}[t]
     \centering
     \includegraphics{ea_model_fit_comparison.pdf}
-    \caption{Tension of the tether at the UAV, computed by MoorDyn in the simulator and by the catenary model of Eqs.~(\ref{eq:tether_tension})--(\ref{eq:tether_force}).}
+    \caption{Tension of the tether at the UAV, computed by MoorDyn in the simulator and by the catenary model of (\ref{eq:tether_tension})--(\ref{eq:tether_force}).}
     \label{fig:tether_fit}
 \end{figure}
 
@@ -99,4 +99,4 @@ A mission chains the manoeuvres of both vehicles, each ending with an event, suc
 \subsection{Software}
 
 % How is the system put together?
-The models, the controllers and the manoeuvres run as independent nodes of ROS~2~\cite{macenski2022ros2}, connected to the simulator and to the autopilot as shown in Fig.~\ref{fig:architecture}, so that the controllers do not depend on whether their data comes from the simulation or from the real vehicles. An operator launches, records and aborts the missions from a web interface, the Mission Control Centre, which shows the two vehicles, the tether and their references on a map, so that every mission is run and recorded in the same way. The code of the system is publicly available\footnote{\url{https://github.com/tomasgesteves1/tethered-usv-uav-nmpc}}.
+The models, the controllers and the manoeuvres run as independent nodes of the Robot Operating System (ROS)~2~\cite{macenski2022ros2}, connected to the simulator and to the autopilot as shown in Fig.~\ref{fig:architecture}, so that the controllers do not depend on whether their data comes from the simulation or from the real vehicles. An operator launches, records and aborts the missions from a web interface, the Mission Control Centre, which shows the two vehicles, the tether and their references on a map, so that every mission is run and recorded in the same way. The code of the system is publicly available\footnote{\url{https://github.com/tomasgesteves1/tethered-usv-uav-nmpc}}.

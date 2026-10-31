@@ -7,7 +7,7 @@ Each controller predicts the motion of its vehicle over a short horizon, so its 
 \subsection{USV Model}
 
 % Which motion of the USV does its controller predict?
-The WAM-V moves on the surface, so its controller only needs to predict its motion in the horizontal plane. The state collects its position $(x,y)$ and heading $\psi$ in the inertial frame, and its surge, sway and yaw velocities $(u,v,r)$ in its body frame. The kinematics are $\dot x = u\cos\psi - v\sin\psi$, $\dot y = u\sin\psi + v\cos\psi$ and $\dot\psi = r$, and the dynamics follow from Newton's and Euler's laws in the rotating body frame, with the linear-plus-quadratic hydrodynamic damping of~\cite{fossenHandbookMarineCraft2011},
+The USV, a catamaran, moves on the surface, so its controller only needs to predict its motion in the horizontal plane. The state collects its position $(x,y)$ and heading $\psi$ in the inertial frame, and its surge, sway and yaw velocities $(u,v,r)$ in its body frame. The kinematics are $\dot x = u\cos\psi - v\sin\psi$, $\dot y = u\sin\psi + v\cos\psi$ and $\dot\psi = r$, and the dynamics follow from Newton's and Euler's laws in the rotating body frame, with the linear-plus-quadratic hydrodynamic damping of~\cite{fossenHandbookMarineCraft2011},
 \begin{equation}
 \begin{aligned}
     \dot u &= \tfrac{1}{m}\big[X - (X_u + X_{uu}^{\pm}|u|)u\big] + vr, \\
@@ -30,7 +30,7 @@ where $m$ and $I_z$ are the mass and the yaw inertia, and the quadratic surge da
 \subsection{UAV Model}
 
 % Which forces move the UAV?
-The x500 is described by its position $\mathbf{p} = [x,y,z]^\top$ and velocity in the inertial frame. Its acceleration results from the thrust $T$ along the vertical axis of its body, $\mathbf{z}^{\mathcal{B}}$, gravity, a linear rotor drag $d_r$ on the horizontal velocity, and the force of the tether,
+The UAV, a quadrotor, is described by its position $\mathbf{p} = [x,y,z]^\top$ and velocity in the inertial frame. Its acceleration results from the thrust $T$ along the vertical axis of its body, $\mathbf{z}^{\mathcal{B}}$, gravity, a linear rotor drag $d_r$ on the horizontal velocity, and the force of the tether,
 \begin{equation}
     \ddot{\mathbf{p}} = \frac{T}{m}\,\mathbf{z}^{\mathcal{B}} - \begin{bmatrix}0\\0\\g\end{bmatrix} - \frac{d_r}{m}\begin{bmatrix}\dot x\\ \dot y\\ 0\end{bmatrix} + \frac{1}{m}\mathbf{F}_{\mathrm{tether}}.
     \label{eq:uav_dyn}
