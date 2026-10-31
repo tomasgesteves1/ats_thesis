@@ -114,12 +114,6 @@
 \setcounter{page}{1}
 
 % ----------------------------------------------------------------------
-% Dedication page (optional)
-% ----------------------------------------------------------------------
-% \input{Thesis_Dedication} % file "Thesis_Dedication.tex"
-% \cleardoublepage
-
-% ----------------------------------------------------------------------
 % Declaration page (mandatory)
 % ----------------------------------------------------------------------
 \input{Thesis_Declaration} % file "Thesis_Declaration.tex"
@@ -132,10 +126,16 @@
 \cleardoublepage
 
 % ----------------------------------------------------------------------
+% Dedication page (optional, after the declarations required by IST)
+% ----------------------------------------------------------------------
+\input{Thesis_Dedication} % file "Thesis_Dedication.tex"
+\cleardoublepage
+
+% ----------------------------------------------------------------------
 %  Acknowledgments (optional)
 % ----------------------------------------------------------------------
-% \input{Thesis_Acknowledgements} % file "Thesis_Acknowledgements.tex"
-% \cleardoublepage
+\input{Thesis_Acknowledgements} % file "Thesis_Acknowledgements.tex"
+\cleardoublepage
 
 % ----------------------------------------------------------------------
 %  Abstract (both in English and Portuguese)
