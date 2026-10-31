@@ -160,6 +160,20 @@ The trajectory keeps both controllers well within the limits of the \gls{uav}, a
 % How closely do the two follow it?
 Over a full lap, the paths of both controllers are nearly indistinguishable from the reference, as shown in Figure~\ref{fig:res_uav_track}. Their errors are of the order of centimetres, and over three laps the error of the \gls{nmpc} is more than four times smaller than that of PX4, both on average and at its maximum, as listed in Table~\ref{tab:res_uav}.
 
+
+% Why does the error of PX4 grow with the speed?
+The error of PX4 is not uniform along the lap. It increases on each fast arc and decreases on the slow turns, as shown in Figure~\ref{fig:res_uav_error}, and lies mostly along the path. On the fast arcs, PX4 trails the reference by about $80\,\text{ms}$, and a constant lag produces an error proportional to the speed. The \gls{nmpc}, which receives the trajectory ahead and predicts the response of the \gls{uav}, shows no such lag.
+
+\begin{figure}[htbp]
+    \centering
+    \includegraphics{Results/figures/01_tracking/crescent_error.pdf}
+    \caption{Position error of the \gls{uav}, with the speed of the reference shaded.}
+    \label{fig:res_uav_error}
+\end{figure}
+
+% Does the accuracy hold under wind?
+The same trajectory is then flown by the \gls{nmpc} under a wind of $8\,\text{m/s}$, which acts on the \gls{uav} as a horizontal drag force along a fixed direction, with slow gusts of $\pm 30\,\%$. The error barely changes, as listed in Table~\ref{tab:res_uav}, and remains within the same range along the lap, as shown in Figure~\ref{fig:res_uav_wind_error}, with only its component across the path growing, from $2.2$ to $4.3\,\text{cm}$. The \gls{uav} tilts up to $14^\circ$ instead of $8^\circ$ to hold the trajectory against the wind, which the disturbance observer estimates at $2.26\,\text{N}$ on average, against a mean force of $2.36\,\text{N}$, as shvisown in Figure~\ref{fig:res_uav_wind_force}. The small differences between the estimate and the wind along the lap arise because the observer also compensates what the models do not describe, and the controller corrects the remainder through the feedback on the position.
+
 \begin{table}[htbp]
     \centering
     \caption{Position error of the \gls{uav}.}
@@ -174,20 +188,6 @@ Over a full lap, the paths of both controllers are nearly indistinguishable from
         \bottomrule
     \end{tabular*}
 \end{table}
-
-\newpage
-% Why does the error of PX4 grow with the speed?
-The error of PX4 is not uniform along the lap. It increases on each fast arc and decreases on the slow turns, as shown in Figure~\ref{fig:res_uav_error}, and lies mostly along the path. On the fast arcs, PX4 trails the reference by about $80\,\text{ms}$, and a constant lag produces an error proportional to the speed. The \gls{nmpc}, which receives the trajectory ahead and predicts the response of the \gls{uav}, shows no such lag.
-
-\begin{figure}[htbp]
-    \centering
-    \includegraphics{Results/figures/01_tracking/crescent_error.pdf}
-    \caption{Position error of the \gls{uav}, with the speed of the reference shaded.}
-    \label{fig:res_uav_error}
-\end{figure}
-
-% Does the accuracy hold under wind?
-The same trajectory is then flown by the \gls{nmpc} under a wind of $8\,\text{m/s}$, which acts on the \gls{uav} as a horizontal drag force along a fixed direction, with slow gusts of $\pm 30\,\%$. The error barely changes, as listed in Table~\ref{tab:res_uav}, and remains within the same range along the lap, as shown in Figure~\ref{fig:res_uav_wind_error}, with only its component across the path growing, from $2.2$ to $4.3\,\text{cm}$. The \gls{uav} tilts up to $14^\circ$ instead of $8^\circ$ to hold the trajectory against the wind, which the disturbance observer estimates at $2.26\,\text{N}$ on average, against a mean force of $2.36\,\text{N}$, as shvisown in Figure~\ref{fig:res_uav_wind_force}. The small differences between the estimate and the wind along the lap arise because the observer also compensates what the models do not describe, and the controller corrects the remainder through the feedback on the position.
 
 \begin{figure}[htbp]
     \centering
