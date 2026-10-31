@@ -120,7 +120,7 @@ The wind was applied together with the waves of $0.6\,\text{m}$, at $5$ and $8\,
 In the missions, both controllers operate at the same time, coupled by the tether, each executing the manoeuvres of its vehicle from the takeoff of the UAV to its landing on the deck.
 
 % Inspection
-\textit{Inspection.} The UAV circles a tower standing in the water, $43\,\text{m}$ high, at $13\,\text{m}$ from its centre, in three laps at heights of $12$, $27$ and $42\,\text{m}$, pointed at the tower, so that a camera on board covers it from bottom to top, as shown in Fig.~\ref{fig:inspection_laps}. To reach the top, the maximum separation is raised to $d_{max} = 45\,\text{m}$. The USV supports the UAV from the water, following it around each lap at the same angle about the tower and $12\,\text{m}$ further out, as shown in Fig.~\ref{fig:inspection}, so that the tether runs outwards from the tower on every lap without crossing it. With the longer tether, its tension more than doubles from the lowest lap to the highest, yet the position error of the UAV remains of about $2\,\text{cm}$ on all three, so that the two vehicles survey the tower at a constant distance, which neither could do alone.
+\textit{Inspection.} The UAV circles a tower standing in the water, $43\,\text{m}$ high, at $13\,\text{m}$ from its centre, in three laps at heights of $12$, $27$ and $42\,\text{m}$, pointed at the tower, so that a camera on board covers it from bottom to top, as shown in Fig.~\ref{fig:inspection_laps}. To reach the top, the maximum separation is raised to $d_{max} = 45\,\text{m}$. The USV supports the UAV from the water, following it around each lap at the same angle about the tower and $12\,\text{m}$ further out, as shown in Fig.~\ref{fig:inspection}, so that the tether runs outwards from the tower on every lap without crossing it. With the longer tether, its tension more than doubles from the lowest lap to the highest, yet the position error of the UAV remains of about $2\,\text{cm}$ on all three, as shown in Fig.~\ref{fig:inspection_error}, so that the two vehicles survey the tower at a constant distance, which neither could do alone.
 
 \begin{figure}[!tb]
     \centering
@@ -136,6 +136,13 @@ In the missions, both controllers operate at the same time, coupled by the tethe
     \includegraphics{Results/figures/02_missions/inspection_paths.pdf}
     \caption{Paths of both vehicles around the tower in the inspection, seen from above.}
     \label{fig:inspection}
+\end{figure}
+
+\begin{figure}[!tb]
+    \centering
+    \includegraphics{Results/figures/02_missions/inspection_error.pdf}
+    \caption{Position error of the UAV along each lap of the inspection.}
+    \label{fig:inspection_error}
 \end{figure}
 
 % Patrol

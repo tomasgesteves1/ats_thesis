@@ -121,7 +121,29 @@ A single controller for both vehicles would impose one horizon and one sampling 
 \end{equation}
 
 % What does the NMPC of the UAV optimise and respect?
-\textit{UAV NMPC.} In the same way, the commanded attitude and thrust become part of the state, and the inputs are their rates. The prediction model combines \eqref{eq:uav_dyn}--\eqref{eq:tether_force}, with the winch placed on the predicted trajectory of the USV. The stage cost penalises the errors of position and velocity, the tilt, the deviation of the thrust from its hover value and the input rates, and turns the UAV towards a point of interest, such as the winch, a structure or a target. Soft constraints bound the height above the water, the horizontal and vertical speeds and the tilt, which is limited both on the attitude and on its command, so that the setpoint sent to the autopilot also respects it. The tether adds two more. The separation is limited, $d \le d_{max}$, and so is the rate at which it changes, $|\dot d| \le \dot d_{max}$, which may not exceed the speed at which the winch spools the tether.
+\textit{UAV NMPC.} In the same way, the commanded attitude and thrust become part of the state, and the inputs $\mathbf{u}_a$ are their rates. The prediction model combines \eqref{eq:uav_dyn}--\eqref{eq:tether_force}, with the winch placed on the predicted trajectory of the USV. The stage cost
+\begin{equation}
+\begin{aligned}
+    \ell = {} & \|\mathbf{p}-\mathbf{p}_{ref}\|^2_{Q_p} + \|\mathbf{v}-\mathbf{v}_{ref}\|^2_{Q_v} + \big\|[\phi,\theta]^\top\big\|^2_{Q_{tilt}} \\
+    & + q_\psi\big(1 - w_b\cos(\psi-\psi_{ref})\big) \\
+    & + Q_T\,(T-mg)^2 + \|\mathbf{u}_a\|^2_R
+\end{aligned}
+\label{eq:uav_cost}
+\end{equation}
+penalises the errors of position and velocity, the tilt, the deviation of the thrust from its hover value and the rates of the commands. It also turns the UAV towards a point of interest, such as the winch, a structure or a target, whose bearing is $\psi_{ref}$, with a weight $w_b = \|\mathbf{b}\|/\sqrt{\|\mathbf{b}\|^2+\delta}$, where $\mathbf{b}$ is the horizontal vector to that point, which fades to zero right above it, where the bearing is undefined. Soft constraints bound the height above the water, the horizontal and vertical speeds and the tilt, the angle between the thrust and the vertical,
+\begin{equation}
+\begin{aligned}
+    & z \ge z_{min}, && \big\|[\dot x,\dot y]^\top\big\| \le v_{xy,max}, \\
+    & |\dot z| \le v_{z,max}, && \cos\phi\cos\theta \ge \cos\vartheta_{max},
+\end{aligned}
+    \label{eq:uav_bounds}
+\end{equation}
+and the tilt is limited both on the attitude and on its command, so that the setpoint sent to the autopilot also respects it. The tether adds two more. The separation is limited, $d \le d_{max}$, and so is the rate at which it changes, the projection of the relative velocity $\dot{\mathbf{r}}$ of the winch onto the chord,
+\begin{equation}
+    |\dot d| = \frac{|\mathbf{r}^\top\dot{\mathbf{r}}|}{d} \le \dot d_{max},
+    \label{eq:uav_ddot}
+\end{equation}
+which may not exceed the speed at which the winch spools the tether. Only the radial motion is restricted, so that the UAV remains free to move around the winch at a constant distance.
 
 % How are unmodelled forces compensated?
 \textit{Disturbance observer.} A force that the model does not describe, such as the wind, makes the prediction drift from the true motion and leaves a steady offset. Following the disturbance-model approach to offset-free predictive control~\cite{pannocchia2003offsetfree,maeder2009offsetfree}, an external force $\hat{\mathbf{F}}_{\mathrm{ext}}$, held constant over the horizon, is added to \eqref{eq:uav_dyn} and estimated at every instant from the one-step prediction error of the velocity,
