@@ -211,10 +211,17 @@ def main():
     lap = (t0w + period, t0w + 2 * period)
     m1 = (ext[:, 0] >= lap[0]) & (ext[:, 0] <= lap[1])
     m2 = (est[:, 0] >= lap[0]) & (est[:, 0] <= lap[1])
+    # The estimate without wind, over the same lap of the run without wind, shows the level at which the observer
+    # absorbs what the models do not describe
+    estn = np.asarray(runs['NMPC']['dist'])
+    lapn = (res['NMPC']['t0'] + period, res['NMPC']['t0'] + 2 * period)
+    m3 = (estn[:, 0] >= lapn[0]) & (estn[:, 0] <= lapn[1])
+    ax.axhline(0, color='k', lw=0.5)
     ax.plot(ext[m1, 0] - lap[0], ext[m1, 1 + WIND_DIR], color=REF, lw=1.2, label='Wind force')
-    ax.plot(est[m2, 0] - lap[0], est[m2, 1 + WIND_DIR], color=WIND, lw=0.9, label='Estimate')
-    ax.set_xlabel('Time (s)'); ax.set_ylabel('Force (N)'); ax.set_xlim(0, period); ax.set_ylim(0, None)
-    legend_above(ax, ncol=2)
+    ax.plot(estn[m3, 0] - lapn[0], estn[m3, 1 + WIND_DIR], color=UAV, lw=0.9, label='Estimate, no wind')
+    ax.plot(est[m2, 0] - lap[0], est[m2, 1 + WIND_DIR], color=WIND, lw=0.9, label='Estimate, wind')
+    ax.set_xlabel('Time (s)'); ax.set_ylabel('Force (N)'); ax.set_xlim(0, period); ax.set_ylim(-1.2, 3.5)
+    legend_above(ax, ncol=3)
     fig.tight_layout()
     save_figure(fig, os.path.join(OUT, 'crescent_wind_force'))
 
