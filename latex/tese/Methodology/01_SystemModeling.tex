@@ -117,12 +117,12 @@ Similarly, this frame attaches to the \gls{uav}, with origin $\mathcal{O}_a$ at 
 % ==============================================================================
 % SECTION 3.2: WAM-V Surface Vessel Model
 % ==============================================================================
-\subsection{WAM-V Model}
+\subsection{\texorpdfstring{\gls{usv} Model}{USV Model}}
 \label{sec:mod_usv}
 
-The mathematical model of the \gls{wamv} catamaran, covering its horizontal manoeuvring dynamics and thruster allocation, forms a control-oriented state-space model suitable for trajectory tracking and predictive control.
+The mathematical model of the \gls{usv}, a catamaran, covering its horizontal manoeuvring dynamics and thruster allocation, forms a control-oriented state-space model suitable for trajectory tracking and predictive control.
 
-Although a rigid body moving freely in the marine environment inherently has six degrees of freedom, the \gls{wamv} is a \gls{usv} that moves on the surface, which allows the motion to be simplified to the horizontal plane. Under this assumption, the model is reduced to three degrees of freedom.
+Although a rigid body moving freely in the marine environment inherently has six degrees of freedom, the \gls{usv} moves on the surface, which allows the motion to be simplified to the horizontal plane. Under this assumption, the model is reduced to three degrees of freedom.
 
 Predicting the \gls{usv}'s motion, as needed for trajectory tracking and predictive control, requires knowing how its state changes over time for a given input. This relationship is captured by the non-linear state-space model
 \begin{equation}
@@ -378,10 +378,10 @@ Equations~\eqref{eq:usv_thruster_force_sum} and~\eqref{eq:usv_thruster_moment} c
 % ==============================================================================
 % SECTION 3.3: x500 Quadrotor Model
 % ==============================================================================
-\subsection{\texorpdfstring{x500 \gls{uav} Model}{x500 UAV Model}}
+\subsection{\texorpdfstring{\gls{uav} Model}{UAV Model}}
 \label{sec:mod_uav}
 
-The mathematical model of the x500 \gls{uav}, covering its translational dynamics in three-dimensional space, forms a control-oriented state-space model suitable for trajectory tracking and predictive control.
+The mathematical model of the \gls{uav}, a quadrotor, covering its translational dynamics in three-dimensional space, forms a control-oriented state-space model suitable for trajectory tracking and predictive control.
 The vehicle's attitude is stabilised by an inner-loop attitude controller, to which the attitude used in the translational dynamics is commanded.
 
 Predicting the vehicle's motion, as needed for trajectory tracking and predictive control, requires knowing how its state changes over time for a given input. This relationship is captured by the non-linear state-space model
@@ -422,7 +422,7 @@ Let $\mathbf{p} = x\,\mathbf{x}^{\mathcal{I}} + y\,\mathbf{y}^{\mathcal{I}} + z\
     \label{eq:uav_pdot_inertial_def}
     \dot{\mathbf{p}} = \dot{x}\,\mathbf{x}^{\mathcal{I}} + \dot{y}\,\mathbf{y}^{\mathcal{I}} + \dot{z}\,\mathbf{z}^{\mathcal{I}},
 \end{equation}
-i.e.\ $\dot{x}, \dot{y}, \dot{z}$ are, by definition, the components of $\dot{\mathbf{p}}$ in the inertial frame, which are precisely the linear velocity components in $\mathbf{x}_a$. The kinematic block of \eqref{eq:uav_state_space_generic} is therefore given directly by \eqref{eq:uav_pdot_inertial_def}, without any change of basis. This is in contrast to a \gls{usv} such as the \gls{wamv} (Section~\ref{sec:mod_usv}), where the linear velocities are instead expressed in $\{\mathcal{B}_v\}$, requiring an additional change of basis via $\mathbf{R}(\psi)$ to relate them to $\dot{\mathbf p}$. Here, this rotation is required instead to express the thrust force, applied along $\mathbf{z}^{\mathcal{B}_a}$, in $\{\mathcal{I}\}$. It is therefore deferred to the dynamic block, derived next.
+i.e.\ $\dot{x}, \dot{y}, \dot{z}$ are, by definition, the components of $\dot{\mathbf{p}}$ in the inertial frame, which are precisely the linear velocity components in $\mathbf{x}_a$. The kinematic block of \eqref{eq:uav_state_space_generic} is therefore given directly by \eqref{eq:uav_pdot_inertial_def}, without any change of basis. This is in contrast to the \gls{usv} (Section~\ref{sec:mod_usv}), where the linear velocities are instead expressed in $\{\mathcal{B}_v\}$, requiring an additional change of basis via $\mathbf{R}(\psi)$ to relate them to $\dot{\mathbf p}$. Here, this rotation is required instead to express the thrust force, applied along $\mathbf{z}^{\mathcal{B}_a}$, in $\{\mathcal{I}\}$. It is therefore deferred to the dynamic block, derived next.
 
 \subsubsection{Dynamic Model}
 \label{subsec:mod_uav_dynamics}
@@ -582,7 +582,7 @@ where the small coupling between horizontal and vertical velocities caused by th
 
 In addition to thrust, gravity, and aerodynamic drag, the vehicle is subject to a force transmitted through a tether attached at the origin $\mathcal{O}_a$ of $\{\mathcal{B}_a\}$, denoted $\mathbf{F}_{\mathrm{tether}}^{\mathcal{I}}$ and derived separately in Section~\ref{subsec:mod_uav_tether}.
 
-Since $\{\mathcal{I}\}$ is non-rotating, Newton's second law applies directly to the inertial acceleration, without the transport terms that arise when applying it in a rotating frame, such as $\{\mathcal{B}_v\}$ in the \gls{wamv} model (Section~\ref{subsec:mod_usv_dynamics}):
+Since $\{\mathcal{I}\}$ is non-rotating, Newton's second law applies directly to the inertial acceleration, without the transport terms that arise when applying it in a rotating frame, such as $\{\mathcal{B}_v\}$ in the \gls{usv} model (Section~\ref{subsec:mod_usv_dynamics}):
 \begin{equation}
     m\,\ddot{\mathbf{p}} = \mathbf{F}_{\mathrm{thr}}^{\mathcal{I}} + \mathbf{F}_{\mathrm{grav}}^{\mathcal{I}} + \mathbf{F}_{\mathrm{drag}}^{\mathcal{I}} + \mathbf{F}_{\mathrm{tether}}^{\mathcal{I}}.
     \label{eq:uav_newton}
@@ -597,7 +597,7 @@ Substituting \eqref{eq:uav_thrust_inertial}, \eqref{eq:uav_gravity}, and \eqref{
 \label{subsec:mod_uav_tether}
 \label{subsec:mod_tether_force_model}
 
-The tether connects the origin $\mathcal{O}_a$ of $\{\mathcal{B}_a\}$ to the winch on the deck of the \gls{wamv}. The winch is vertically aligned with $\mathcal{O}_v$, at a fixed height $z_t$, so that its position in $\{\mathcal{I}\}$ is $\mathbf{p}_w = [x_v, y_v, z_t]^\top$, where $x_v, y_v$ denote the horizontal position of the \gls{usv}. It is treated here only as a known point, without modelling the (negligible) reaction force exerted on the \gls{usv}.
+The tether connects the origin $\mathcal{O}_a$ of $\{\mathcal{B}_a\}$ to the winch on the deck of the \gls{usv}. The winch is vertically aligned with $\mathcal{O}_v$, at a fixed height $z_t$, so that its position in $\{\mathcal{I}\}$ is $\mathbf{p}_w = [x_v, y_v, z_t]^\top$, where $x_v, y_v$ denote the horizontal position of the \gls{usv}. It is treated here only as a known point, without modelling the (negligible) reaction force exerted on the \gls{usv}.
 
 The relevant geometric quantity is the chord, the straight-line vector between the \gls{uav} and the winch,
 \begin{equation}
