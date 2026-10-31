@@ -580,7 +580,7 @@ For small roll and pitch angles, the horizontal axes of the body remain approxim
 \end{equation}
 where the small coupling between horizontal and vertical velocities caused by the tilt of the vehicle is neglected.
 
-In addition to thrust, gravity, and aerodynamic drag, the vehicle is subject to a force transmitted through a tether attached at the origin $\mathcal{O}_a$ of $\{\mathcal{B}_a\}$, denoted $\mathbf{F}_{\mathrm{tether}}^{\mathcal{I}}$ and derived separately in Section~\ref{subsec:mod_uav_tether}.
+In addition to thrust, gravity, and aerodynamic drag, the vehicle is subject to a force transmitted through a tether attached at the origin $\mathcal{O}_a$ of $\{\mathcal{B}_a\}$, denoted $\mathbf{F}_{\mathrm{tether}}^{\mathcal{I}}$, whose model is derived separately.
 
 Since $\{\mathcal{I}\}$ is non-rotating, Newton's second law applies directly to the inertial acceleration, without the transport terms that arise when applying it in a rotating frame, such as $\{\mathcal{B}_v\}$ in the \gls{usv} model (Section~\ref{subsec:mod_usv_dynamics}):
 \begin{equation}
@@ -604,7 +604,7 @@ The relevant geometric quantity is the chord, the straight-line vector between t
     \mathbf{r} = \mathbf{p}_w - \mathbf{p}, \qquad d = \|\mathbf{r}\|, \qquad \hat{\mathbf{d}}_0 = \frac{\mathbf{r}}{d},
     \label{eq:uav_tether_geometry}
 \end{equation}
-where $d$ is the length of the chord, i.e.\ the straight-line distance between the \gls{uav} and the \gls{usv}, and $\hat{\mathbf{d}}_0$ is its direction, which the tether would have if taut.
+where $d$ is the length of the chord, i.e.\ the straight-line distance between the \gls{uav} and the winch on the deck of the \gls{usv}, and $\hat{\mathbf{d}}_0$ is its direction, which the tether would have if taut.
 
 The tether lies in the vertical plane that contains the chord. Within this plane, the horizontal direction towards the winch is the unit vector $\hat{\mathbf{e}}_h$ along the horizontal component of the chord, and the depression angle $\alpha$ of the chord below it follows from
 \begin{equation}

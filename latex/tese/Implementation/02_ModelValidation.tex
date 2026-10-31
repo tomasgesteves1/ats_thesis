@@ -15,7 +15,7 @@ Before incorporating the vehicle and tether models into the real-time controller
 \subsection{\texorpdfstring{\gls{usv} Model}{USV Model}}
 \label{subsec:usv_validation}
 
-The first model to be validated is the one used by the \gls{usv} \gls{nmpc}, presented in Section~\ref{sec:ctrl_usv_mpc}. It predicts how the \gls{usv} moves from the commands sent to its thrusters, so its accuracy determines how well the controller can anticipate the motion of the \gls{usv}. To compare it with the simulator, the parameters of the model are set to the values of the simulated \gls{usv}, described in Section~\ref{sec:simulation_environment}. These values are listed in Table~\ref{tab:usv_model_parameters}.
+The first model to be validated is the one used by the \gls{usv} \gls{nmpc}, presented in Section~\ref{sec:ctrl_usv_mpc}. It predicts how the \gls{usv} moves from the commands sent to its thrusters, so its accuracy determines how well the controller can anticipate the motion of the \gls{usv}. To compare it with the simulator, the parameters of the model are set to the values of the simulated \gls{usv}, described in Section~\ref{sec:simulation_environment}, including the added mass, which the simulated \gls{usv} does not include and is therefore set to zero. These values are listed in Table~\ref{tab:usv_model_parameters}.
 
 \begin{table}[htbp]
     \centering
