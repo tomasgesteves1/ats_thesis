@@ -1,7 +1,8 @@
 #!/usr/bin/env python3
 """
 Section 5.3: landing on the moving boat (landing_demo mission) under waves (gain of the wavefield 0, 1, 2) and under
-wind on the UAV (5, 8 m/s; the 12 m/s runs are not used) with and without the disturbance observer. Data: data/landing_*.npz (extract.py).
+wind on the UAV (5, 8 m/s; the 12 m/s runs are not used) with and without the disturbance observer, and five more
+landings in each sea with waves (landing_repeat mission). Data: data/landing_*.npz (extract.py).
 Prints the metrics and writes the figures to Results/figures/03_disturbances.
 """
 import os
@@ -17,6 +18,8 @@ WINDS = (5, 8)
 WIND_FIG = 8   # wind of the landing figure (the strongest in the thesis)
 # runs repeated with the final controller (tilt limits also on the command)
 RUN = {(12, 'obs'): 'landing_wind12_obs_rerun', (12, 'noobs'): 'landing_wind12_noobs_rerun'}
+# five landings in a row in each sea with waves (landing_repeat mission, WAVE_GAIN=1, 2)
+REPEAT = {1: 'landing_repeat_gain1', 2: 'landing_repeat_gain2'}
 
 
 def ev_time(d, text):
@@ -49,11 +52,16 @@ def landing(d):
     mb = (d['boat'][:, 0] >= t_land) & (d['boat'][:, 0] <= t_td)
     heave = w_all[mb, 2]
     i_desc = np.searchsorted(t, t_desc)
-    # contact speed: largest approach speed of the UAV relative to the winch over the 2 s before the touchdown is
-    # declared (it is declared after the UAV has rested on the pad for a moment)
+    # contact speed: at every touch of the legs on the pad after the descent starts (the deck can rise to the UAV and
+    # fall away again before it settles), the approach speed relative to the winch over the 0.3 s before the UAV
+    # comes within 2.5 cm of its resting height; the largest over the touches
     dz = np.gradient(rel[:, 2], t)
-    mc = (t >= t_td - 2.0) & (t <= t_td)
-    vrel = -dz[mc].min()
+    # resting height: just after the touchdown, while the UAV rests disarmed on the pad (a following takeoff of the
+    # landing_repeat mission can start soon after)
+    rest = np.median(rel[(t >= t_td + 0.2) & (t <= t_td + 1.0), 2])
+    below = rel[:, 2] <= rest + 0.025
+    touches = np.where(below[1:] & ~below[:-1] & (t[1:] >= t_desc) & (t[1:] <= t_td + 0.2))[0] + 1
+    vrel = max(-dz[(t >= t[i] - 0.3) & (t <= t[i])].min() for i in touches)
     return dict(t=t - t_land, rel=rel, wz=w[:, 2], t_desc=t_desc - t_land, t_td=t_td - t_land, offset=offset,
                 heave=0.5 * (heave.max() - heave.min()), heave_std=heave.std(),
                 centring=np.hypot(*rel[i_desc, :2]), contact=vrel, duration=t_td - t_land)
@@ -122,6 +130,19 @@ def main(part):
         wind()
 
 
+def landings(d):
+    """Metrics of every landing of a run (the landing_repeat mission lands several times), each from its own events."""
+    ev, et = list(d['ev']), np.asarray(d['ev_t'])
+    starts = [t for t, e in zip(et, ev) if e.startswith('uav.land') and 'started' in e]
+    out = []
+    for k, t0 in enumerate(starts):
+        t1 = starts[k + 1] if k + 1 < len(starts) else et[-1] + 1.0
+        m = (et >= t0) & (et < t1)
+        sub = dict(d, ev=[re.sub(r'uav\.land\d+', 'uav.land', e) for e, keep in zip(ev, m) if keep], ev_t=et[m])
+        out.append(landing(sub))
+    return out
+
+
 def waves():
     runs = {g: landing(load('landing_gain%d' % g)) for g in GAINS}
     print('=== waves ===')
@@ -129,6 +150,14 @@ def waves():
         print('gain %d: heave amplitude %.2f m (std %.2f) | landing %.1f s | offset at descent %.2f m | touchdown offset '
               '%.2f m | contact speed %.2f m/s' % (g, r['heave'], r['heave_std'], r['duration'], r['centring'],
                                                   r['offset'], r['contact']))
+    # Table of Section 5.2: in each sea with waves, the landing above and the five of the landing_repeat mission
+    print('=== Table: mean (min-max) over the landings of each sea ===')
+    for g in GAINS:
+        rs = [runs[g]] + (landings(load(REPEAT[g])) if g in REPEAT else [])
+        cols = [('centring cm', [100 * r['centring'] for r in rs]), ('touchdown cm', [100 * r['offset'] for r in rs]),
+                ('contact m/s', [r['contact'] for r in rs]), ('duration s', [r['duration'] for r in rs])]
+        print('gain %d (n=%d): ' % (g, len(rs)) + ' | '.join('%s %.2f (%.2f-%.2f)' % (k, np.mean(v), min(v), max(v))
+                                                             for k, v in cols))
     # thesis, and a column of the extended abstract
     for size, path in ((fig_size('waves_landing'), os.path.join(OUT, 'waves_landing')),
                        ((3.1, 3.6), os.path.join(EA_FIGS, 'waves_landing_column'))):
