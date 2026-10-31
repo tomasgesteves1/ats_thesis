@@ -16,7 +16,7 @@ With the tracking of each controller established, the evaluation turns to the la
 In each run, the \gls{uav} takes off while the \gls{usv} starts a route at $0.75\,\text{m/s}$, moves away from it and then lands back on the pad, in the phases described in Section~\ref{subsec:maneuver_primitives}. A landing is judged by four criteria. The \gls{uav} must be centred above the pad when the descent starts, touch down close to the centre of the pad, which is $0.40\,\text{m}$ wide, meet the deck at a low speed, and complete the landing without delay. Since the waves at the instant of the touchdown differ from one landing to the next, the landing is repeated six times in each sea, once after moving away from the \gls{usv} and five times in a row from the start of the landing, $3\,\text{m}$ above the winch.
 
 % Does each phase of the landing do what it is meant to?
-Without waves and wind, each phase of the landing completes as intended, as shown in Figure~\ref{fig:res_landing_nominal}. The \gls{uav} moves above the winch in about $7\,\text{s}$ and, once centred within $3\,\text{cm}$ of it, descends with the winch pulling it towards the deck. The final approach then brings it into contact with the pad at $0.15\,\text{m/s}$, less than $1\,\text{cm}$ from its centre, $26\,\text{s}$ after the landing started.
+Without waves and wind, each phase of the landing completes as intended, as shown in Figure~\ref{fig:res_landing_nominal}. The \gls{uav} moves above the winch in about $7\,\text{s}$ and, once centred above it, descends with the winch pulling it towards the deck. The final approach then brings it slowly into contact with the pad, at its centre, as listed in Table~\ref{tab:res_landing}.
 
 % How does the landing change with the waves?
 The landing is then repeated in two seas, with significant wave heights of $0.6$ and $1.2\,\text{m}$. Since the descent is referenced to the constant height $z_t$, and does not follow the heave of the deck, the \gls{uav} descends as it does without waves, is centred, touches down close to the centre of the pad and completes the landing in about the same time, as listed in Table~\ref{tab:res_landing}. What the waves change is the contact. Since the final approach descends slowly towards a point below the deck, the speed of the contact is set by the motion of the deck at the touchdown, and varies from one landing to the next with the phase of the waves. Its mean roughly doubles from one sea to the next, and its range widens with the height of the waves, so that the worst landing of the higher sea reaches the default landing speed of PX4, of $0.7\,\text{m/s}$~\cite{px4_parameters}.
@@ -40,7 +40,7 @@ The wind acts on the \gls{uav} as a horizontal drag force along a fixed directio
 \end{figure}
 
 % What does the observer change?
-With the observer, the \gls{uav} is centred soon after it arrives, and the landing takes the same time as without wind, as listed in Table~\ref{tab:res_landing}. In both winds, it touches down within $2\,\text{cm}$ of the centre of the pad.
+With the observer, the \gls{uav} is centred soon after it arrives, and the landing takes the same time and ends as close to the centre of the pad as without wind, as listed in Table~\ref{tab:res_landing}.
 
 \begin{table}[htbp]
     \centering
