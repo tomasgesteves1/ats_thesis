@@ -12,8 +12,9 @@
 % What does this work contribute?
 The main contributions of this work are the following.
 \begin{itemize}
-    \item A closed-form model of the force of a slack tether that accounts for its weight.
+    \item Control-oriented models of the simulated \gls{usv} and \gls{uav} for real-time predictive control.
     \item Two cooperating \gls{nmpc} controllers, one for each vehicle, which exchange their predicted trajectories to anticipate the motion of each other within the reach of the tether.
-    \item Manoeuvres for the takeoff from and the landing on the moving deck, and for the \gls{usv} to follow the \gls{uav} around a structure without the tether wrapping around it.
-    \item A simulation environment of the tethered system at sea, with waves, the PX4 autopilot of the \gls{uav} and a tether whose length is set by a winch.
+    \item A simulation environment of the tethered system at sea.
+    \item A set of useful manoeuvres and missions for the tethered system.
+    \item The software of the system, publicly available at \url{https://github.com/tomasgesteves1/tethered-usv-uav-nmpc}.
 \end{itemize}

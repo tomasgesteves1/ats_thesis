@@ -9,14 +9,20 @@
 \section{Future Work}
 \label{sec:concl_future}
 
-% What is the next step for the system as a whole?
-The system was evaluated in simulation only, with the state of both vehicles taken from the simulator. The next step is to test it with the real vehicles, where the state is estimated from noisy sensors, the communication between the vehicles has delays, and the tether is stiffer than the one simulated, so that its tension changes faster with the distance. The models would first need to be validated again against the real vehicles, and their parameters identified wherever the nominal values do not hold.
+% What separates this work from real operations at sea?
+The system was developed and evaluated in simulation. Bringing it to real operations at sea requires several further steps, each building on the previous one, which outline a roadmap from this work to a deployable system.
 
-% How could the takeoff and the landing be improved?
-The takeoff and the landing are the manoeuvres in which the \gls{uav} is closest to the moving deck. In the landing, the speed of the contact grows with the waves, and a prediction of the motion of the deck could time the touchdown to when the deck is moving down. The takeoff was not tested under wind, which could tip the \gls{uav} against the pad while the winch still holds it, and starting the estimate of the disturbance observer before the \gls{uav} leaves the deck, or turning the \gls{usv} so that the \gls{uav} faces the wind, could make it more robust.
+% What hardware is needed first?
+The first step is the hardware of the tethered system itself. The tether must carry power and data to the \gls{uav}, the winch must regulate its slack from the length of tether paid out and the distance between the vehicles, and both vehicles must carry \gls{rtk} satellite positioning receivers. On this hardware, the models would be validated again, and their parameters identified wherever the nominal values do not hold, in particular the hydrodynamics of the \gls{usv}, the attitude response of the \gls{uav} under its real autopilot and the mass and stiffness of the real tether.
 
-% How could the missions become more flexible?
-The missions are fixed sequences of manoeuvres, in which every manoeuvre ends with an event or with the end of a manoeuvre of the other vehicle. Real operations also need missions that branch, for instance to return to the search when the target is lost, or to change the route when the sea is too rough to land. A reactive mission layer, such as a behaviour tree, could choose the next manoeuvre from the state of both vehicles, and a higher-level interface could let an operator describe the mission in more general terms, leaving its decomposition into manoeuvres to the system.
+% Where would the state come from?
+The second step is the estimation of the state. On the real vehicles, the state must be estimated on board from noisy sensors, such as satellite positioning and \glspl{imu}, and the controllers must keep their performance with this estimate. The cooperation in particular depends on the position of the \gls{uav} relative to the \gls{usv}, which the \gls{rtk} receivers can provide with centimetre accuracy by using the \gls{usv} as a moving base, without a fixed station on land. For the landing, this could be complemented by visual markers on the pad, which keep the relative position available close to the deck.
 
-% How could the vehicles operate around obstacles?
-Since the controllers plan the motion within all their limits from simple references, the manoeuvres could be replaced by references planned over a longer horizon, for instance around obstacles, without changing the controllers. Obstacles described by simple shapes could also be added to both \glspl{nmpc} as further constraints on the vehicles and on points along the tether, which would let the two vehicles operate close to structures without a dedicated manoeuvre to keep the tether clear of them.
+% What must the system do when something fails?
+The third step is safety. A real system must detect and handle failures, such as the loss of communication, of satellite positioning or of power through the tether, a jammed winch or a broken tether, with defined responses for each, from holding position to an emergency landing. Operations would also need to comply with the regulations for unmanned aircraft and vessels, and to perceive and avoid other vessels and obstacles, which the controllers could take as further constraints on the vehicles and on points along the tether.
+
+% How would the system be brought to sea?
+The fourth step is a gradual validation in the field, first with the tethered \gls{uav} over a static platform on land, then on the \gls{usv} in sheltered water, and finally at sea, in progressively rougher seas and stronger winds. Along the way, the manoeuvres closest to the deck would be made more robust: the landing could predict the motion of the deck to touch down when the deck is moving down, and the takeoff could start the disturbance observer before the \gls{uav} leaves the deck or turn the \gls{usv} so that the \gls{uav} faces the wind.
+
+% What would real missions need beyond this?
+Only then would the system be ready for real missions, which also require more autonomy than the fixed sequences of manoeuvres of this work. A reactive mission layer could choose the next manoeuvre from the state of both vehicles, for instance returning to the search when the target is lost or changing the route when the sea is too rough to land, under the supervision of an operator.

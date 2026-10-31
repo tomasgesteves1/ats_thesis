@@ -137,7 +137,7 @@ The reference is a closed trajectory around the \gls{usv}, as shown in Figure~\r
 
 \pagebreak
 % What is the NMPC compared with?
-As a baseline, the same trajectory is tracked by the position controller supplied with PX4. At each instant, this controller receives the current point of the trajectory and acts on the error between this point and the current position of the \gls{uav}, whereas the \gls{nmpc} receives the trajectory over a one-second horizon and predicts the response of the \gls{uav} and of the tether. The comparison therefore quantifies the benefit of prediction.
+As a baseline, the same trajectory is tracked by the position controller supplied with PX4. At each instant, this controller receives the position, velocity and acceleration of the current point of the trajectory, and combines these feedforward terms with feedback on the error to this point, whereas the \gls{nmpc} receives the trajectory over a one-second horizon and predicts the response of the \gls{uav} and of the tether. The comparison therefore quantifies the benefit of prediction.
 
 % Is the reference within the limits of the UAV?
 The trajectory keeps both controllers well within the limits of the \gls{uav}, as shown in Figure~\ref{fig:res_uav_commands}. The commanded tilt stays below $9^\circ$, against a limit of $28.6^\circ$, and the commanded thrust varies by less than $2\,\text{N}$ about its value in hover. Both controllers command nearly the same tilt and thrust along the lap, since both must produce the accelerations that the trajectory requires. The difference between the two results therefore reflects only the tracking performance of each controller, and not a larger control effort or the limits of the \gls{uav}.
