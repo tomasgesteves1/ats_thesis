@@ -1,21 +1,15 @@
 \section{Results}
 \label{sec:resul}
 
-All results were obtained in simulation, with the default sea of the simulator, which moves the winch up and down by about $0.25\,\text{m}$, without wind unless stated otherwise, and with the state of both vehicles taken from the simulator.
+% How are the results organised?
+Evaluated all together, the limits of each vehicle, the coupling through the tether and the disturbances of the sea would not reveal which of them causes a given behaviour. The evaluation therefore introduces them one at a time. It begins with each vehicle alone, then exposes the landing on the moving deck, the manoeuvre most sensitive to the sea, to higher waves and to wind, and finally couples the two vehicles through the tether in complete missions.
 
-\subsection{Tracking}
+\subsection{Trajectory Tracking}
 
-% How accurately does each controller follow a reference within its limits?
-Each controller was first evaluated on a reference within the limits of its vehicle. The USV sails a figure-eight at the speed of the missions, with the UAV on its deck, and follows it within $5.6\,\text{cm}$. The UAV flies a closed trajectory around the USV, which holds its position, made of two fast arcs at constant distance joined by two slow turns, so that its speed and the force of the tether vary along each lap. As a baseline, the same trajectory was flown by the position controller of PX4, which acts on the error only once it has appeared. The NMPC tracks the trajectory with less than a quarter of the error of PX4, as listed in Table~\ref{tab:uav_accuracy}. The error of PX4 grows with the speed of the reference, which indicates a time delay that the prediction of the NMPC avoids, as shown in Fig.~\ref{fig:uav_accuracy}.
+% How closely does each controller follow a reference that its vehicle can follow?
+Each controller was first given a reference within the limits of its vehicle. The USV, with the UAV resting on its deck, sails a figure-eight of two circles of $12\,\text{m}$ radius, turned in opposite directions, and follows it with an RMSE of $5.5\,\text{cm}$, about one percent of its length, and a heading error below one degree. The UAV, tethered to the USV, which holds its position, flies a closed trajectory around it, made of two fast arcs at a constant separation joined by two slow turns, so that its speed and the force of the tether vary along each lap. As a baseline, the same trajectory was flown by the position controller supplied with PX4, which acts on the error between the current point of the trajectory and the position of the UAV, whereas the NMPC sees the trajectory one second ahead and predicts the response of the UAV and of the tether. Both command nearly the same tilt and thrust, well within the limits of the UAV, but the error of the NMPC is more than four times smaller, as listed in Table~\ref{tab:uav_accuracy}. The error of PX4 grows on the fast arcs and shrinks on the slow turns, as shown in Fig.~\ref{fig:uav_accuracy}, since it trails the reference by about $80\,\text{ms}$, and a constant lag produces an error proportional to the speed. The NMPC, which anticipates the reference, shows no such lag.
 
-\begin{figure}[t]
-    \centering
-    \includegraphics{ea_uav_accuracy.pdf}
-    \caption{Position error of the UAV over three laps, with the speed of the reference shaded.}
-    \label{fig:uav_accuracy}
-\end{figure}
-
-\begin{table}[b]
+\begin{table}[t]
     \centering
     \caption{Position error of the UAV (cm).}
     \label{tab:uav_accuracy}
@@ -30,98 +24,97 @@ Each controller was first evaluated on a reference within the limits of its vehi
     \end{tabular}
 \end{table}
 
-% What does each controller do when its reference demands more than its vehicle can deliver?
-A second reference for each vehicle demands more than it can deliver. The UAV is given a tight arc that requires more tilt than allowed, a fast arc beyond its speed limit, and two steps in height, the second of which ends below its minimum height, as shown in Fig.~\ref{fig:uav_limits}. On each arc, the NMPC brings the UAV onto the limit that makes the reference unattainable and holds it there without oscillation, at the cost of a lag that it recovers once the reference stops. On the way down, it foresees the minimum height within its horizon and decelerates in advance, so that the UAV comes to rest at $2\,\text{m}$ although the reference lies on the water.
+\begin{figure}[t]
+    \centering
+    \includegraphics{ea_uav_accuracy.pdf}
+    \caption{Position error of the UAV over three laps, with the speed of the reference shaded.}
+    \label{fig:uav_accuracy}
+\end{figure}
+
+% What does each controller do when the reference demands more than the vehicle can deliver?
+A second reference asks each vehicle for motions it cannot perform. The UAV is given an arc of $15\,\text{m}$ radius at $10.5\,\text{m/s}$, which requires a tilt of about $37^\circ$ against a limit of $28.6^\circ$, a second arc at $11\,\text{m/s}$, beyond its speed limit of $10\,\text{m/s}$, and two steps in height, the second down to the surface of the water, below its minimum height of $2\,\text{m}$, as shown in Fig.~\ref{fig:uav_limits}. On each arc, the NMPC drives the UAV onto the limit that makes the reference unattainable and holds it there without oscillation, falling behind the reference, a lag it recovers within about two seconds once the reference stops. On the way down, the minimum height enters the horizon before the UAV reaches it, and the NMPC starts to decelerate at about $3.3\,\text{m}$, so that the UAV comes to rest at $2\,\text{m}$, whereas a controller that reacted to this limit only on reaching it would cross it.
 
 \begin{figure}[t]
     \centering
     \includegraphics{ea_uav_limits.pdf}
-    \caption{Limits test of the UAV.}
+    \caption{Tilt, horizontal speed and height of the UAV against their limits, on a reference beyond them.}
     \label{fig:uav_limits}
 \end{figure}
 
 % And the USV?
-The USV is given a fast leg, a sharp turn and two steps, astern and abeam, which drive both thrusters to their limits of thrust and angle, as shown in Fig.~\ref{fig:usv_limits}. In both vehicles, the limits of the inputs are never exceeded, and those of the states by less than $1\,\%$, so that each controller uses the full capability of its vehicle without driving it beyond its limits.
+The USV is given a straight leg at $3\,\text{m/s}$, beyond its top speed of $2.3\,\text{m/s}$, ending in a sharp turn of $90^\circ$, and then a point moved $15\,\text{m}$ backwards and $15\,\text{m}$ to its left, which drive both thrusters to their limits of thrust and angle, as shown in Fig.~\ref{fig:usv_limits}. When the point moves backwards, the USV reverses in a straight line at exactly the soft lower limit of its surge speed. In both vehicles, the limits of the inputs are reached but never exceeded, and those of the states by less than $1\,\%$, so that each controller gives up following the reference only as far as the limits of its vehicle require, and uses their full capability in doing so.
 
 \begin{figure}[t]
     \centering
     \includegraphics{ea_usv_limits.pdf}
-    \caption{Limits test of the USV.}
+    \caption{Thrust and azimuth of both thrusters of the USV against their limits, on a reference beyond them.}
     \label{fig:usv_limits}
 \end{figure}
 
-\subsection{Planning}
+\subsection{Landing on the Moving Deck}
 
-To test the planning, both vehicles were given step references, single points held fixed over the horizon, with $d_{max} = 15\,\text{m}$. The UAV is sent $10\,\text{m}$ sideways, then $12\,\text{m}$ up, to a point $22\,\text{m}$ from the winch, beyond the reach of the tether; the USV is then sent $18\,\text{m}$ away, and both finally return, while the separation stays within its limits, as shown in Fig.~\ref{fig:steps}.
-
-\begin{figure}[tb]
-    \centering
-    \includegraphics{ea_steps_separation.pdf}
-    \caption{Separation of the vehicles and its rate in the step test.}
-    \label{fig:steps}
-\end{figure}
-
-When its reference lies beyond the reach of the tether, the UAV stops short of it, on the line towards it, at $14\,\text{m}$ from the winch, where the projection of its reference places it, and when the USV then sails away, it follows the USV, with the separation between $14.0$ and $14.4\,\text{m}$. In the first step, moving sideways at the same height would separate the vehicles faster than the winch pays out the tether, and the UAV drops by $2\,\text{m}$ on the way to slow the growth of the separation, whose rate exceeds its limit of $2\,\text{m/s}$ only briefly at the start of the step. The steps bring the actuators to their limits: the thrust of the UAV saturates at its maximum and its commanded tilt at $28.6^\circ$, while the thrusters of the USV reach their maximum reverse thrust and their maximum angle as it turns in place. The rates of all the commands reach their limits without exceeding them, and the real pitch of the UAV exceeds its limit by at most $1.7^\circ$, as the attitude loop of the autopilot slightly overshoots its command. The controllers therefore do not need feasible, or even continuous, references, which keeps the manoeuvres simple.
-
-\subsection{Missions}
-
-The three missions were flown with $d_{max} = 15\,\text{m}$, and are summarised in Table~\ref{tab:missions}. In the scout, the UAV keeps $8\,\text{m}$ ahead of the bow of the USV as it sails a route with two turns of $90^\circ$, with a mean error of $5\,\text{cm}$, largest at the turns, where the point ahead of the bow swings around the USV. In the patrol, the UAV orbits the USV until it detects a target fleeing at $1.5\,\text{m/s}$, $19\,\text{m}$ away from it and $23\,\text{m}$ from the USV, beyond the reach of the tether. Its reference above the target is brought within reach along the line from the USV, which also lowers it, so that the UAV drops from $10$ to $5\,\text{m}$ as it flies towards the target, and is above it $5\,\text{s}$ after the detection, with the separation at $14.7\,\text{m}$. As the USV closes in, at up to $2.2\,\text{m/s}$, the reference comes back within reach and the UAV climbs to its height again, and the USV catches up with the target $21\,\text{s}$ after the detection.
-
-The inspection shows best how the two vehicles work as one system, as shown in Fig.~\ref{fig:inspection}. The UAV circles a tower of $12$ by $13\,\text{m}$ at a radius of $13\,\text{m}$, a circle beyond the reach of the tether from any fixed point. Its reference is a circle fixed in the world, regardless of the USV, while the USV supports it from the water, $6\,\text{m}$ further from the tower. The USV keeps within $3\,\text{cm}$ of its intended radius around the whole tower, the separation stays at $12.3\,\text{m}$, and the UAV follows its circle within $1\,\text{cm}$, so that the two vehicles together cover a circle that neither could cover alone. In the inspection and the patrol, the roll of the UAV reaches $32^\circ$ and $34^\circ$ for less than $0.5\,\text{s}$, above its limit of $28.6^\circ$, when its yaw lags behind its command, by up to $13^\circ$ in the patrol: the tilt is limited about axes turned by the commanded yaw, while the total tilt stays below the commanded one.
-
-\begin{figure}[tb]
-    \centering
-    \includegraphics{Results/figures/02_missions/inspection_paths.pdf}
-    \caption{Inspection of a tower, with the vehicles and the tether at five instants.}
-    \label{fig:inspection}
-\end{figure}
+% How is a landing judged?
+The landing closes every mission, and is the only manoeuvre that brings the UAV into contact with a deck that moves with the waves. In each run, the UAV takes off while the USV starts a route at $0.75\,\text{m/s}$, moves away from it and lands back on the pad. A landing is judged by how well the UAV is centred above the pad when the descent starts, how close to the centre of the pad it touches down, how fast it meets the deck, and how long the landing takes, as listed in Table~\ref{tab:landing}.
 
 \begin{table}[t]
     \centering
-    \caption{Missions with $d_{max} = 15\,\text{m}$: duration, largest separation, and distance of the touchdown from the centre of the pad.}
-    \label{tab:missions}
+    \caption{Landing under waves and wind: centring before the descent, distance of the touchdown from the centre of the pad, speed of the contact and duration.}
+    \label{tab:landing}
     \footnotesize
-    \begin{tabular}{@{}lrrr@{}}
+    \setlength{\tabcolsep}{4pt}
+    \begin{tabular}{@{}lrrrr@{}}
         \toprule
-        Mission & Duration & Max. $d$ & Touchdown \\
+         & \textbf{Centr.} & \textbf{Touchd.} & \textbf{Contact} & \textbf{Dur.} \\
+         & (cm) & (cm) & (m/s) & (s) \\
         \midrule
-        Scout & $132\,\text{s}$ & $9.6\,\text{m}$ & $3\,\text{cm}$ \\
-        Inspection & $159\,\text{s}$ & $12.5\,\text{m}$ & $4\,\text{cm}$ \\
-        Patrol & $104\,\text{s}$ & $14.7\,\text{m}$ & $5\,\text{cm}$ \\
+        No waves & $2.7$ & $0$ & $0.15$ & $26.3$ \\
+        Waves $0.6\,\text{m}$ & $3.8$ & $2$ & $0.26$ & $25.2$ \\
+        Waves $1.2\,\text{m}$ & $1.3$ & $4$ & $0.39$ & $26.9$ \\
+        \midrule
+        \multicolumn{5}{@{}l}{\textit{Wind, without / with the observer}} \\
+        $5\,\text{m/s}$ & $18.3$ / $4.3$ & -- / $1$ & -- / $0.26$ & -- / $27.7$ \\
+        $8\,\text{m/s}$ & $44.1$ / $6.4$ & -- / $2$ & -- / $0.25$ & -- / $26.1$ \\
         \bottomrule
     \end{tabular}
 \end{table}
 
-\subsection{Waves and Wind}
+% What do the waves change?
+Without waves, the UAV is centred within $3\,\text{cm}$ of the winch, descends with the winch pulling it and meets the pad at $0.15\,\text{m/s}$, less than $1\,\text{cm}$ from its centre, $26\,\text{s}$ after the landing started. The landing was then repeated in seas with significant wave heights of $0.6$ and $1.2\,\text{m}$. Since the descent is referenced to the mean height of the winch, and not to the heaving deck, the UAV descends as it does without waves, touches down within $4\,\text{cm}$ of the centre of the pad, which is $40\,\text{cm}$ wide, and completes the landing in the same time. What the waves change is the contact. Since the final approach descends slowly towards a point below the deck, the speed of the contact is set by the motion of the deck, and grows to $0.39\,\text{m/s}$ in the higher sea, still below the default landing speed of PX4, of $0.7\,\text{m/s}$~\cite{px4_parameters}.
 
-The disturbances were added during the landing on the deck of the USV, sailing a route at $0.75\,\text{m/s}$. With the gain of the wave field set to $0$, a calm sea, to $1$, the default, and to $2$, the winch rises and falls by $0$, $0.25$ and $0.44\,\text{m}$, as listed in Table~\ref{tab:disturbances}. The landing takes the same $25$ to $27\,\text{s}$ in all sea states, since the reference is taken above the mean height of the winch, and the UAV touches down $0$, $2$ and $4\,\text{cm}$ from the centre of the pad. What the waves change is the contact: the final approach aims below the deck, so the speed of the contact is set by its motion, and grows from $0.15$ to $0.26$ and $0.39\,\text{m/s}$.
+% And the wind?
+The wind was applied together with the waves of $0.6\,\text{m}$, at $5$ and $8\,\text{m/s}$, the stronger producing a mean force of $2.3\,\text{N}$, about a ninth of the weight of the UAV. Without the disturbance observer, the wind holds the UAV away from the pad, as shown in Fig.~\ref{fig:wind}, and it is never centred above it, so that the landing is aborted and the USV starts its recovery. With the observer, the UAV is centred soon after it arrives above the pad, and lands within $2\,\text{cm}$ of its centre in the same time as without wind.
 
-The wind was applied as a drag force on the UAV, with means of $0.9$ and $2.3\,\text{N}$ for $5$ and $8\,\text{m/s}$ and gusts of $\pm 30\,\%$, with and without the disturbance observer, as shown in Fig.~\ref{fig:wind}. Without the observer, the UAV settles away from its reference, $18$ and $44\,\text{cm}$ from the centre of the pad before the descent, and the landing waits for a centring that never happens, so that it takes more than twice as long and ends $7\,\text{cm}$ off the centre. With the observer, whose estimate follows the force of the wind about $0.7\,\text{s}$ behind it, gusts included, the offset is $4$ and $6\,\text{cm}$ and the UAV lands within $2\,\text{cm}$ of the centre.
-
-\begin{figure}[tb]
+\begin{figure}[t]
     \centering
-    \includegraphics{Results/figures/03_disturbances/wind_offset.pdf}
-    \caption{Offset of the UAV from the winch when the descent starts, with and without the observer.}
+    \includegraphics{Results/figures/03_disturbances/wind_landing.pdf}
+    \caption{Landing in a wind of $8\,\text{m/s}$, with and without the disturbance observer.}
     \label{fig:wind}
 \end{figure}
 
-\begin{table}[t]
+\subsection{Missions}
+
+% What do the missions add?
+In the missions, both controllers operate at the same time, coupled by the tether, each executing the manoeuvres of its vehicle from the takeoff of the UAV to its landing on the deck.
+
+% Inspection
+\textit{Inspection.} The UAV circles a tower standing in the water, $43\,\text{m}$ high, at $13\,\text{m}$ from its centre, in three laps at heights of $12$, $27$ and $42\,\text{m}$, pointed at the tower, so that a camera on board covers it from bottom to top. To reach the top, the maximum separation is raised to $d_{max} = 45\,\text{m}$. The USV supports the UAV from the water, following it around each lap at the same angle about the tower and $12\,\text{m}$ further out, as shown in Fig.~\ref{fig:inspection}, so that the tether runs outwards from the tower on every lap without crossing it. With the longer tether, its tension more than doubles from the lowest lap to the highest, yet the position error of the UAV remains of about $2\,\text{cm}$ on all three, so that the two vehicles survey the tower at a constant distance, which neither could do alone.
+
+\begin{figure}[t]
     \centering
-    \caption{Landing under waves and wind: rise and fall of the winch, horizontal offset before the descent, distance of the touchdown from the centre of the pad, and speed of the contact. Without and with the observer, separated by a slash.}
-    \label{tab:disturbances}
-    \footnotesize
-    \begin{tabular}{@{}lrrr@{}}
-        \toprule
-        Waves (gain) & Heave & Touchdown & Contact \\
-        \midrule
-        $0$ & $0\,\text{m}$ & $0\,\text{cm}$ & $0.15\,\text{m/s}$ \\
-        $1$ & $0.25\,\text{m}$ & $2\,\text{cm}$ & $0.26\,\text{m/s}$ \\
-        $2$ & $0.44\,\text{m}$ & $4\,\text{cm}$ & $0.39\,\text{m/s}$ \\
-        \midrule
-        Wind & Force & Offset (cm) & Touchd. (cm) \\
-        \midrule
-        $5\,\text{m/s}$ & $0.9\,\text{N}$ & $18$ / $4$ & $7$ / $1$ \\
-        $8\,\text{m/s}$ & $2.3\,\text{N}$ & $44$ / $6$ & $7$ / $2$ \\
-        \bottomrule
-    \end{tabular}
-\end{table}
+    \includegraphics{Results/figures/02_missions/inspection_paths.pdf}
+    \caption{Paths of both vehicles around the tower in the inspection, seen from above.}
+    \label{fig:inspection}
+\end{figure}
+
+% Patrol
+\textit{Patrol.} The UAV acts as a lookout for the USV, orbiting it $15\,\text{m}$ above the winch, with $d_{max} = 20\,\text{m}$, while the USV sails near a zone patrolled by a target, a second WAM-V that flees at $2\,\text{m/s}$ when either vehicle comes within $15\,\text{m}$. The target is detected at the edge of the view of a downward camera, beyond the reach of the tether, as shown in Fig.~\ref{fig:patrol}. The UAV flies towards it until the separation reaches $d_{max}$, and remains at the limit of the tether while the USV closes the distance. Once the target is within reach, the UAV keeps above it until the end of the pursuit, so that it never leaves the view of the camera. Throughout the mission, the separation and its rate exceed their soft limits by at most $0.1\,\%$ and $6\,\%$, and the UAV then lands $1\,\text{cm}$ from the centre of the pad.
+
+\begin{figure}[t]
+    \centering
+    \includegraphics{Results/figures/02_missions/patrol_paths.pdf}
+    \caption{Paths of both vehicles and of the target in the patrol.}
+    \label{fig:patrol}
+\end{figure}
+
+% Recovery
+\textit{Recovery.} The last mission represents the rescue of a UAV that cannot follow the USV, for instance against a wind it cannot overcome. The UAV is held at a point fixed in the world, without giving way to the tether, while the USV is sent along a route of $60\,\text{m}$, about three times the maximum separation of $d_{max} = 20.5\,\text{m}$. The USV sets off at its top speed, brakes as the separation predicted over its horizon approaches $d_{max}$, and waits at the reach of the tether, which it exceeds by less than $0.5\,\text{m}$ while braking, since it sees the UAV only over the shorter horizon of the UAV. Once the wait is over, the USV returns below the UAV, which lands $3\,\text{cm}$ from the centre of the pad. When the UAV cannot follow, the USV therefore moves no further than the tether allows, and can return to collect it.
