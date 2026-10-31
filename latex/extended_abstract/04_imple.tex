@@ -16,9 +16,16 @@ The system is simulated in Gazebo~\cite{koenig2004gazebo}, with the hydrodynamic
 \subsection{Model Validation}
 
 % Are the models accurate enough to predict with?
-Each model of Section~\ref{sec:model} was compared with the simulator in the way its controller uses it, over predictions as long as its horizon, started from the state of the simulator and driven by the recorded commands, as listed in Table~\ref{tab:validation}. Over its horizon, the model of the WAM-V predicts its position within a few centimetres, and that of the x500 within about one percent of the distance it travels, an accuracy that relies on the response of the attitude, without which the errors of the roll and the pitch grow to about $5\,\%$. The tether model was compared with two simpler models that keep its tension but change its direction, a taut model, in which the force points along the chord, and a vertical model, in which the tether hangs from the UAV as a vertical load. The catenary model reduces their error by about three quarters, to $1.2\,\%$ of the weight of the UAV, and, from the positions of the two vehicles alone, follows the tension that the simulator computes from the full dynamics of the tether, as shown in Fig.~\ref{fig:tether_fit}.
+Each model of Section~\ref{sec:model} was compared with the simulator in the way its controller uses it, over predictions as long as its horizon, started from the state of the simulator and driven by the recorded commands, as illustrated for the UAV in Fig.~\ref{fig:uav_pred}, with the errors listed in Table~\ref{tab:validation}. Over its horizon, the model of the WAM-V predicts its position within a few centimetres, and that of the x500 within about one percent of the distance it travels, an accuracy that relies on the response of the attitude, without which the errors of the roll and the pitch grow to about $5\,\%$. The tether model was compared with two simpler models that keep its tension but change its direction, a taut model, in which the force points along the chord, and a vertical model, in which the tether hangs from the UAV as a vertical load. The catenary model reduces their error by about three quarters, to $1.2\,\%$ of the weight of the UAV, and, from the positions of the two vehicles alone, follows the tension that the simulator computes from the full dynamics of the tether, as shown in Fig.~\ref{fig:tether_fit}.
 
-\begin{table}[t]
+\begin{figure}[!tb]
+    \centering
+    \includegraphics[width=\columnwidth]{Implementation/figures/02_model_validation/uav_prediction_trajectory.pdf}
+    \caption{Flight of the UAV in the simulator, seen from above, and predictions of $1\,\text{s}$ of its model, each started from the state of the simulator.}
+    \label{fig:uav_pred}
+\end{figure}
+
+\begin{table}[!tb]
     \centering
     \caption{Errors of the models against the simulator (RMSE, and NRMSE relative to the range of each signal).}
     \label{tab:validation}
@@ -51,16 +58,12 @@ Each model of Section~\ref{sec:model} was compared with the simulator in the way
 % How are the controllers built?
 Both controllers are written in CasADi~\cite{anderssonCasADiSoftwareFramework2019}, from which acados~\cite{verschueren2022acados} generates a dedicated solver in C, compiled before operation, and the models are integrated with the fourth-order Runge--Kutta method. The horizons follow the dynamics of each vehicle. The USV NMPC runs at $10\,\text{Hz}$ over $2\,\text{s}$, long enough to see the slow response of the USV to its thrusters. The roll and the pitch of the UAV respond to a new command within about $0.2\,\text{s}$, so the UAV NMPC runs at $50\,\text{Hz}$, computing about ten commands while the vehicle responds to one, over a horizon of $1\,\text{s}$.
 
-% How fast are the solvers?
-The USV solver iterates until convergence, which takes on average $1.1\,\text{ms}$ and at most $3.7\,\text{ms}$ of the $100\,\text{ms}$ available. Iterating until convergence, the UAV solver exceeded its $20\,\text{ms}$ in about $6\,\%$ of the instants close to its limits, so it performs a single iteration per instant instead, the real-time iteration~\cite{diehl2005rti}, which takes on average $2.2\,\text{ms}$ and at most $4.7\,\text{ms}$, and whose commands differ from the converged ones by less than $0.7^\circ$.
-
-% Which limits keep the tether safe?
-Both controllers limit the separation between the vehicles to $d_{max} = 15\,\text{m}$, raised in the missions that need a longer reach, and the UAV limits the rate at which it changes to the speed of the winch, $\dot d_{max} = 2\,\text{m/s}$. The disturbance observer uses a gain $\beta = 0.03$, so that its estimate settles in about $0.7\,\text{s}$, slower than the response of the attitude but faster than the gusts of the wind, and a bound of $8\,\text{N}$, well above the strongest wind tested.
-
-\subsection{Manoeuvres and Missions}
-
-% Who decides where each vehicle goes?
-The controllers follow references, but do not decide where each vehicle should go. This is the role of the manoeuvres, which give the reference of one vehicle over the horizon of its controller at every instant. The UAV can take off, fly in formation with the USV, orbit it or a point in the world, follow a target and land, while the USV can hold its position, sail a route, follow a target, or support the UAV, sailing below it at a safe distance from a structure that the UAV circles, so that the tether does not wrap around the structure. The references are simple geometric curves, such as lines and circles, and often a single point. Figure~\ref{fig:catalogue} shows the manoeuvres of the UAV as flown in simulation, the takeoff and the landing through the height of the UAV above the winch, and the others from above.
+\begin{figure}[!tb]
+    \centering
+    \includegraphics{Implementation/figures/03_controller_implementation/uav_solver_time.pdf}
+    \caption{Computation time of the UAV solver close to its limits, iterating until convergence and with a single iteration per instant, against the sampling time.}
+    \label{fig:solver}
+\end{figure}
 
 \begin{figure*}[t]
     \centering
@@ -69,19 +72,26 @@ The controllers follow references, but do not decide where each vehicle should g
     \label{fig:catalogue}
 \end{figure*}
 
-% Why are the takeoff and the landing special?
-The takeoff and the landing are the manoeuvres in which the UAV is closest to the deck and moves with it, on a pad of $0.40\,\text{m}$ by $0.40\,\text{m}$ placed directly above the winch. To keep the waves from tipping the UAV off the deck, the winch pulls it towards the pad from the start of the takeoff until it is clear of the deck. Its controller does not include this pull in its model, and the vertical component of the disturbance estimate is held while the pull acts, so that the controller does not cancel it. The takeoff therefore starts with a vertical climb off the pad, so that the UAV does not drift over the edge of the deck at low height. In the landing, the UAV first waits above the pad until it is centred and moving with it, then descends with the winch pulling it, and ends with a slow approach towards a point below the deck, so that it touches down even if the deck falls away, as shown in Fig.~\ref{fig:landing_phases}. If it is not centred within $40\,\text{s}$, the landing is aborted and the USV starts the recovery of the UAV.
+% How fast are the solvers?
+The USV solver iterates until convergence, which takes on average $1.1\,\text{ms}$ and at most $3.7\,\text{ms}$ of the $100\,\text{ms}$ available. Iterating until convergence, the UAV solver exceeded its $20\,\text{ms}$ in about $6\,\%$ of the instants close to its limits, so it performs a single iteration per instant instead, the real-time iteration~\cite{diehl2005rti}, as shown in Fig.~\ref{fig:solver}, which takes on average $2.2\,\text{ms}$ and at most $4.7\,\text{ms}$, and whose commands differ from the converged ones by less than $0.7^\circ$.
 
-\begin{figure*}[t]
+% Which limits keep the tether safe?
+Both controllers limit the separation between the vehicles to $d_{max} = 15\,\text{m}$, raised in the missions that need a longer reach, and the UAV limits the rate at which it changes to the speed of the winch, $\dot d_{max} = 2\,\text{m/s}$. The disturbance observer uses a gain $\beta = 0.03$, so that its estimate settles in about $0.7\,\text{s}$, slower than the response of the attitude but faster than the gusts of the wind, and a bound of $8\,\text{N}$, well above the strongest wind tested.
+
+\subsection{Manoeuvres and Missions}
+
+\begin{figure*}[!t]
     \centering
-    \subfloat[Waiting above the pad.]{\includegraphics[width=0.32\textwidth]{Implementation/figures/04_maneuvers_and_missions/landing_hover.png}}
-    \hfill
-    \subfloat[Descent pulled by the winch.]{\includegraphics[width=0.32\textwidth]{Implementation/figures/04_maneuvers_and_missions/landing_descent.png}}
-    \hfill
-    \subfloat[Touchdown on the pad.]{\includegraphics[width=0.32\textwidth]{Implementation/figures/04_maneuvers_and_missions/landing_touchdown.png}}
-    \caption{Phases of the landing in the simulator, with the USV sailing at $0.75\,\text{m/s}$.}
-    \label{fig:landing_phases}
+    \includegraphics[width=0.85\textwidth]{Implementation/figures/05_software_architecture/architecture.pdf}
+    \caption{Software architecture of the system.}
+    \label{fig:architecture}
 \end{figure*}
+
+% Who decides where each vehicle goes?
+The controllers follow references, but do not decide where each vehicle should go. This is the role of the manoeuvres, which give the reference of one vehicle over the horizon of its controller at every instant. The UAV can take off, fly in formation with the USV, orbit it or a point in the world, follow a target and land, while the USV can hold its position, sail a route, follow a target, or support the UAV, sailing below it at a safe distance from a structure that the UAV circles, so that the tether does not wrap around the structure. The references are simple geometric curves, such as lines and circles, and often a single point. Figure~\ref{fig:catalogue} shows the manoeuvres of the UAV as flown in simulation, the takeoff and the landing through the height of the UAV above the winch, and the others from above.
+
+% Why are the takeoff and the landing special?
+The takeoff and the landing are the manoeuvres in which the UAV is closest to the deck and moves with it, on a pad of $0.40\,\text{m}$ by $0.40\,\text{m}$ placed directly above the winch. To keep the waves from tipping the UAV off the deck, the winch pulls it towards the pad from the start of the takeoff until it is clear of the deck. Its controller does not include this pull in its model, and the vertical component of the disturbance estimate is held while the pull acts, so that the controller does not cancel it. The takeoff therefore starts with a vertical climb off the pad, so that the UAV does not drift over the edge of the deck at low height. In the landing, the UAV first waits above the pad until it is centred and moving with it, then descends with the winch pulling it, and ends with a slow approach towards a point below the deck, so that it touches down even if the deck falls away. If it is not centred within $40\,\text{s}$, the landing is aborted and the USV starts the recovery of the UAV.
 
 % How are the manoeuvres combined into missions?
 A mission chains the manoeuvres of both vehicles, each ending with an event, such as the detection of a target or the end of a manoeuvre of the other vehicle. Three missions were tested. In the inspection, the UAV circles a tower while the USV supports it. In the patrol, the UAV orbits the USV until it detects a target, which both vehicles then follow. In the recovery, the UAV is held at a point it cannot leave, while the USV sails away, waits at the reach of the tether and returns to collect it.
@@ -90,10 +100,3 @@ A mission chains the manoeuvres of both vehicles, each ending with an event, suc
 
 % How is the system put together?
 The models, the controllers and the manoeuvres run as independent nodes of ROS~2~\cite{macenski2022ros2}, connected to the simulator and to the autopilot as shown in Fig.~\ref{fig:architecture}, so that the controllers do not depend on whether their data comes from the simulation or from the real vehicles. An operator launches, records and aborts the missions from a web interface, the Mission Control Centre, which shows the two vehicles, the tether and their references on a map, so that every mission is run and recorded in the same way. The code of the system is publicly available\footnote{\url{https://github.com/tomasgesteves1/tethered-usv-uav-nmpc}}.
-
-\begin{figure*}[t]
-    \centering
-    \includegraphics[width=0.85\textwidth]{Implementation/figures/05_software_architecture/architecture.pdf}
-    \caption{Software architecture of the system.}
-    \label{fig:architecture}
-\end{figure*}
